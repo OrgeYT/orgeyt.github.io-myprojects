@@ -1,0 +1,47 @@
+{
+  "singdown": [
+    0,
+    0
+  ],
+  "singdownAlt": [
+    -15,
+    0
+  ],
+  "singleft": [
+    -15,
+    0
+  ],
+  "singleftAlt": [
+    -5,
+    0
+  ],
+  "singright": [
+    30,
+    0
+  ],
+  "singrightAlt": [
+    30,
+    0
+  ],
+  "singup": [
+    15,
+    0
+  ],
+  "singupAlt": [
+    5,
+    0
+  ],
+  "hey": [
+    0,
+    0
+  ],
+  "idle": [
+    0,
+    0
+  ],
+  "arrows": {
+    "spacing": -650,
+    "startX": 6,
+    "y": 1
+  }
+}

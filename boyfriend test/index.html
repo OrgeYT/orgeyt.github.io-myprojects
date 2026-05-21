@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FNF Boyfriend Animation Tester</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="min-h-screen flex flex-col md:flex-row p-4 md:p-8 gap-6 justify-center items-center">
+
+    <div class="flex-1 w-full max-w-3xl flex flex-col items-center">
+        <div id="canvas-container" class="w-full aspect-square md:aspect-[4/3] border-4 border-gray-700 relative">
+            <div id="loading" class="loading-overlay">
+                <div class="spinner"></div>
+                <p class="font-bold tracking-widest text-blue-400">LOADING SPRITES...</p>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+
+            <div class="absolute top-4 left-4 bg-black/60 px-3 py-2 rounded-full text-sm font-semibold backdrop-blur-sm border border-gray-600 flex flex-col items-start gap-1">
+                <div>Current: <span id="anim-label" class="text-blue-400">Idle</span></div>
+                <div class="text-xs text-gray-300">NPS: <span id="nps-label" class="text-green-400">0.0</span></div>
+            </div>
+
+            <div class="absolute top-4 right-4 bg-black/60 px-3 py-1 rounded-full text-sm font-semibold backdrop-blur-sm border border-gray-600 flex items-center gap-3">
+                <div class="flex items-center gap-2">
+                    <label for="alt-toggle" class="cursor-pointer">Alt Animations</label>
+                    <input type="checkbox" id="alt-toggle" class="w-4 h-4 accent-blue-500 cursor-pointer">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="double-toggle" class="cursor-pointer">Double Notes</label>
+                    <input type="checkbox" id="double-toggle" class="w-4 h-4 accent-green-400 cursor-pointer">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label for="sound-toggle" class="cursor-pointer">BF Sounds</label>
+                    <input type="checkbox" id="sound-toggle" class="w-4 h-4 accent-red-400 cursor-pointer" checked>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <aside id="right-panel" class="w-full md:w-72 lg:w-72 h-full max-h-[90vh] overflow-y-auto bg-gray-900 border-l-2 border-gray-800 rounded-l-2xl p-4 md:p-6 shadow-2xl flex flex-col gap-4 custom-scrollbar">
+        <div class="flex items-center justify-between gap-3">
+            <div>
+                <h2 class="text-lg font-extrabold text-white">BF Tester</h2>
+                <p class="text-xs text-gray-400">Tap controls or use keys to preview animations.</p>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <div class="flex items-center gap-2 text-xs text-gray-300">
+                    <label for="alt-toggle" class="cursor-pointer">Alt</label>
+                    <input type="checkbox" id="alt-toggle" class="w-4 h-4 accent-blue-500 cursor-pointer">
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-300">
+                    <label for="double-toggle" class="cursor-pointer">Double</label>
+                    <input type="checkbox" id="double-toggle" class="w-4 h-4 accent-green-400 cursor-pointer">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-xl p-3 border border-gray-700">
+            <div class="grid grid-cols-3 gap-2 items-center justify-center">
+                <div></div>
+                <button id="btn-up" class="btn-control w-14 h-14 rounded-xl bg-gradient-to-b from-green-400 to-green-600 shadow-[0_3px_0_#166534] text-xl font-bold text-white">↑</button>
+                <div></div>
+
+                <button id="btn-left" class="btn-control w-14 h-14 rounded-xl bg-gradient-to-b from-purple-400 to-purple-600 shadow-[0_3px_0_#4c1d95] text-xl font-bold text-white">←</button>
+                <button id="btn-down" class="btn-control w-14 h-14 rounded-xl bg-gradient-to-b from-blue-400 to-blue-600 shadow-[0_3px_0_#1e3a8a] text-xl font-bold text-white">↓</button>
+                <button id="btn-right" class="btn-control w-14 h-14 rounded-xl bg-gradient-to-b from-red-400 to-red-600 shadow-[0_3px_0_#7f1d1d] text-xl font-bold text-white">→</button>
+            </div>
+
+            <div class="mt-3">
+                <button id="btn-hey" class="w-full py-2 rounded-lg bg-yellow-500 text-white font-bold shadow-[0_3px_0_#9a3412]">HEY</button>
+            </div>
+        </div>
+
+        <details open class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+            <summary class="cursor-pointer font-semibold text-gray-200">Offsets Editor</summary>
+            <div class="mt-3 flex flex-col gap-3">
+                <select id="offset-anim-select" class="bg-gray-900 text-white p-2 rounded border border-gray-600 w-full outline-none"></select>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-400">X Offset</label>
+                        <input type="number" id="offset-x" value="0" class="bg-gray-900 text-white p-2 rounded border border-gray-600">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="text-xs text-gray-400">Y Offset</label>
+                        <input type="number" id="offset-y" value="0" class="bg-gray-900 text-white p-2 rounded border border-gray-600">
+                    </div>
+                </div>
+
+                <div class="mt-1 p-2 bg-gray-900 rounded border border-gray-700">
+                    <h4 class="text-xs text-gray-400 mb-2 font-semibold uppercase">Arrow Placement</h4>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs text-gray-400">Horizontal Spacing</label>
+                            <input type="number" id="arrow-spacing" value="0" class="bg-gray-800 text-white p-2 rounded border border-gray-600 w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-400">Start X Shift</label>
+                            <input type="number" id="arrow-startx" value="0" class="bg-gray-800 text-white p-2 rounded border border-gray-600 w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-400">Receptor Y Offset</label>
+                            <input type="number" id="arrow-y" value="0" class="bg-gray-800 text-white p-2 rounded border border-gray-600 w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <label class="text-xs text-gray-400">Load Offsets JSON</label>
+                    <input id="offset-file" type="file" accept=".json,application/json" class="ml-auto text-xs text-gray-300 bg-gray-900 p-2 rounded border border-gray-600">
+                </div>
+
+                <button id="btn-save-json" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm">Save Offsets</button>
+            </div>
+        </details>
+
+        <details class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+            <summary class="cursor-pointer font-semibold text-gray-200">Spam Mode</summary>
+            <div class="mt-3 flex flex-col gap-2">
+                <label class="flex items-center justify-between gap-2">
+                    <span class="text-sm text-gray-200">Enable Spam Mode</span>
+                    <input id="spam-toggle" type="checkbox" class="w-5 h-5 accent-pink-500">
+                </label>
+                <div class="flex items-center gap-3">
+                    <label class="text-sm text-gray-400 w-24">Speed</label>
+                    <div class="flex-1 flex items-center gap-2">
+                        <input id="spam-speed" type="range" min="1" max="800" value="200" class="flex-1">
+                        <input id="spam-speed-num" type="number" min="1" max="800" value="200" class="w-20 bg-gray-800 text-white p-1 rounded border border-gray-600 text-xs" />
+                    </div>
+                    <span id="spam-speed-label" class="text-xs text-gray-300 w-12 text-right">200ms</span>
+                </div>
+                <p class="text-xs text-gray-400">Hold a sing key to continuously spam it at the selected interval.</p>
+            </div>
+        </details>
+
+        <details class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+            <summary class="cursor-pointer font-semibold text-gray-200">MIDI Player</summary>
+            <div class="mt-3 flex flex-col gap-3">
+                <label class="text-xs text-gray-400">Upload MIDI File</label>
+                <input id="midi-file" type="file" accept=".mid,audio/midi,application/octet-stream" class="bg-gray-900 text-white p-2 rounded border border-gray-600">
+
+                <label class="text-xs text-gray-400">Channel / Track</label>
+                <select id="midi-channel" class="bg-gray-900 text-white p-2 rounded border border-gray-600">
+                    <option value="all">All</option>
+                </select>
+
+                <div class="flex items-center gap-2">
+                    <button id="midi-start" class="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold">Start</button>
+                    <button id="midi-pause" class="py-2 px-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-bold">Pause</button>
+                    <button id="midi-stop" class="py-2 px-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold">Stop</button>
+                </div>
+
+                <p class="text-xs text-gray-400">BF voice is tuned to F; only non-alt sing animations are used for MIDI playback.</p>
+            </div>
+        </details>
+
+        <details class="bg-gray-800 p-3 rounded-xl border border-gray-700">
+            <summary class="cursor-pointer font-semibold text-gray-200">Advanced</summary>
+            <div class="mt-3 flex flex-col gap-2 text-sm text-gray-300">
+                <label class="flex items-center gap-2"><input id="show-guides" type="checkbox" class="w-4 h-4"> Show placement guides</label>
+                <label class="text-xs text-gray-400">Tip: use Q/W/I/O for per-key ALT animations</label>
+            </div>
+        </details>
+
+        <div class="mt-auto text-xs text-gray-500">
+            <div class="flex items-center justify-between">
+                <span>Version</span><span class="font-semibold text-gray-200">1.0</span>
+            </div>
+        </div>
+    </aside>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
