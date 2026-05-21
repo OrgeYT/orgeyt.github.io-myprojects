@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>MIDI Player</title>
+</head>
+<body>
+
+<p>
+  MIDI player powered by
+  <strong>html-midi-player</strong>.
+  Credits to
+  <a href="https://github.com/cifkao/html-midi-player" target="_blank">
+    cifkao
+  </a>
+  for the original project.
+</p>
+
+<section id="customSection">
+  <h2>MIDI Player!</h2>
+
+  <!-- File Upload Input -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <input type="file" id="midiInput" accept=".mid,.midi" style="color: #fff;" />
+  </div>
+
+  <!-- Piano Roll Visualizer -->
+  <midi-visualizer type="piano-roll" id="visualizer1" src="https://github.com/OrgeYT/orgeyt.github.io-myprojects/raw/refs/heads/main/awesomemid.mid"></midi-visualizer>
+
+  <!-- Staff Visualizer -->
+  <midi-visualizer type="staff" id="visualizer2" src="https://github.com/OrgeYT/orgeyt.github.io-myprojects/raw/refs/heads/main/awesomemid.mid"></midi-visualizer>
+
+  <!-- MIDI Player -->
+  <midi-player id="player" src="https://github.com/OrgeYT/orgeyt.github.io-myprojects/raw/refs/heads/main/awesomemid.mid" sound-font visualizer="#customSection midi-visualizer">
+  </midi-player>
+</section>
+
+<script src="https://cdn.jsdelivr.net/combine/npm/tone@14.7.58,npm/@magenta/music@1.23.1/es6/core.js,npm/focus-visible@5,npm/html-midi-player@1.5.0"></script>
+
+<script>
+  const fileInput = document.getElementById('midiInput');
+  const player = document.getElementById('player');
+  const visualizers = document.querySelectorAll('midi-visualizer');
+
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const midiUrl = event.target.result;
+        // Update player and visualizers
+        player.src = midiUrl;
+        visualizers.forEach(v => v.src = midiUrl);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+</script>
+
+<style>
+body {
+  font-family: system-ui, Arial, sans-serif;
+  background: radial-gradient(circle at top, #1a1a2e, #0f0f1a);
+  color: #eaeaea;
+  padding: 20px;
+}
+
+/* layout container */
+#customSection {
+  max-width: 900px;
+  margin: auto;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  backdrop-filter: blur(10px);
+}
+
+/* heading */
+#customSection h2 {
+  text-align: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #b8c0ff;
+}
+
+/* ===================== */
+/* 🎛 PLAYER STYLE */
+/* ===================== */
+
+#customSection midi-player {
+  display: block;
+  margin: 10px 4px 0;
+}
+
+/* main control bar */
+#customSection midi-player::part(control-panel) {
+  background: linear-gradient(90deg, #6c5ce7, #00d2ff);
+  border-radius: 16px 16px 0 0;
+  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+  padding: 10px;
+}
+
+/* play button */
+#customSection midi-player::part(play-button) {
+  background: #111;
+  color: #00ffd5;
+  border: 2px solid #00ffd5;
+  border-radius: 999px;
+  transition: all 0.25s ease;
+}
+
+#customSection midi-player::part(play-button):hover {
+  background: #00ffd5;
+  color: #000;
+  transform: scale(1.1);
+  box-shadow: 0 0 15px #00ffd5;
+}
+
+/* time text */
+#customSection midi-player::part(time) {
+  font-family: monospace;
+  color: #0ff;
+  text-shadow: 0 0 6px rgba(0,255,255,0.5);
+}
+
+/* ===================== */
+/* 🎼 VISUALIZER STYLE */
+/* ===================== */
+
+#customSection midi-visualizer .piano-roll-visualizer,
+#customSection midi-visualizer .staff-visualizer {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255,255,255,0.1);
+  margin: 0;
+  overflow: auto;
+}
+
+/* top visualizer */
+#customSection midi-visualizer:first-of-type .piano-roll-visualizer {
+  border-radius: 0;
+  border-bottom: none;
+}
+
+/* bottom visualizer */
+#customSection midi-visualizer:last-of-type .staff-visualizer {
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+}
+
+/* notes = neon style */
+#customSection midi-visualizer svg rect.note {
+  opacity: 0.85;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 4px rgba(0,0,0,0.4));
+}
+
+/* instruments */
+#customSection midi-visualizer svg rect.note[data-instrument="0"] {
+  fill: #ff4fd8;
+  stroke: #ff0077;
+}
+
+#customSection midi-visualizer svg rect.note[data-instrument="2"] {
+  fill: #00f5ff;
+  stroke: #008cff;
+}
+
+/* drums */
+#customSection midi-visualizer svg rect.note[data-is-drum="true"] {
+  fill: #888;
+  stroke: #444;
+}
+
+/* active note glow */
+#customSection midi-visualizer svg rect.note.active {
+  opacity: 1;
+  stroke: #fff;
+  filter: drop-shadow(0 0 6px #00ffd5);
+}
+</style>
+</body>
+</html>
