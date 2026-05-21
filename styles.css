@@ -1,0 +1,72 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    height: 100vh;
+    background-color: #121212;
+    color: #ffffff;
+}
+
+.sidebar {
+    width: 250px;
+    background-color: #1e1e1e;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #333;
+}
+
+.sidebar h2 {
+    font-size: 1.2rem;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 20px;
+}
+
+#file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.file-btn {
+    background-color: #2d2d2d;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.9rem;
+}
+
+.file-btn:hover {
+    background-color: #3d3d3d;
+}
+
+.file-btn:active {
+    transform: scale(0.98);
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    background-color: #000;
+}
+
+#runner-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: #fff; /* Keeps the iframe background white for standard HTML files */
+}
