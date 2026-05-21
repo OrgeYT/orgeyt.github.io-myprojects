@@ -3,7 +3,8 @@ const projects = [
     "welcome",
     "fnftools",
     "spritesheetmerger",
-    "3danimator"
+    "3danimator",
+    "catmemory"
     ];
 
 // 2. Grab the elements from the DOM
