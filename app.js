@@ -7,7 +7,8 @@ const projects = [
     "catmemory",
     "midiplayer",
     "mandelbrot",
-    "gswitch"
+    "gswitch",
+    "pfpmaker"
     ];
 
 // 2. Grab the elements from the DOM
