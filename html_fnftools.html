@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Processing Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1e1e2e;
+            color: #cdd6f4;
+            min-height: 100vh;
+        }
+        
+        /* Unified UI Components */
+        .container-app {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .card {
+            background-color: #313244;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid #45475a;
+        }
+        
+        .btn {
+            background-color: #89b4fa;
+            color: #11111b;
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        
+        .btn:hover:not(:disabled) {
+            background-color: #b4befe;
+            transform: translateY(-1px);
+        }
+        
+        .btn:disabled {
+            background-color: #45475a;
+            color: #6c7086;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background-color: #a6e3a1;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background-color: #94e2d5;
+        }
+        
+        .input-group {
+            margin-bottom: 1.25rem;
+        }
+        
+        .input-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #bac2de;
+            font-size: 0.875rem;
+        }
+        
+        .input-field {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            background-color: #181825;
+            border: 1px solid #45475a;
+            color: #cdd6f4;
+            transition: border-color 0.2s;
+        }
+        
+        .input-field:focus {
+            outline: none;
+            border-color: #89b4fa;
+            box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+        }
+
+        /* FNF Specific Styles */
+        .track-item {
+            background-color: #181825;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #45475a;
+        }
+        
+        .radio-group { display: flex; gap: 1rem; }
+        .radio-label { display: flex; align-items: center; gap: 0.25rem; cursor: pointer; }
+        
+        input[type="radio"] {
+            appearance: none;
+            background-color: #181825;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.15em;
+            height: 1.15em;
+            border: 0.15em solid #89b4fa;
+            border-radius: 50%;
+            display: grid;
+            place-content: center;
+        }
+        input[type="radio"]::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            border-radius: 50%;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em #89b4fa;
+        }
+        input[type="radio"]:checked::before { transform: scale(1); }
+        
+        #fnf-json-output {
+            background-color: #181825;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            max-height: 400px;
+            border: 1px solid #45475a;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        /* Global Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background-color: #a6e3a1;
+            color: #11111b;
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+            z-index: 50;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Custom file input styles */
+        input[type="file"]::file-selector-button {
+            background-color: #89b4fa;
+            color: #11111b;
+            font-weight: 600;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            margin-right: 1rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background-color: #b4befe;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="container-app">
+        <!-- Navigation Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400 mb-6">
+                MIDI Utility Hub
+            </h1>
+            
+            <!-- Tool Selector -->
+            <div class="inline-flex bg-[#313244] rounded-lg p-1 border border-[#45475a]">
+                <button id="tab-spam" class="px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 bg-[#89b4fa] text-[#11111b] shadow-sm">
+                    Jack Spam Generator
+                </button>
+                <button id="tab-fnf" class="px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 text-[#bac2de] hover:text-white">
+                    FNF Chart Converter
+                </button>
+            </div>
+        </header>
+
+        <!-- ========================================== -->
+        <!-- TOOL 1: JACK SPAM MIDI GENERATOR           -->
+        <!-- ========================================== -->
+        <div id="view-spam" class="block animate-fade-in">
+            <div class="card max-w-lg mx-auto">
+                <h2 class="text-2xl font-semibold mb-6 text-white text-center border-b border-[#45475a] pb-4">Jack Spam MIDI</h2>
+                
+                <div class="space-y-2">
+                    <div class="input-group">
+                        <label for="spam-midi-file" class="input-label">Upload MIDI File</label>
+                        <input type="file" id="spam-midi-file" accept=".mid,.midi" class="input-field cursor-pointer">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="spam-mode" class="input-label">Generation Mode</label>
+                        <select id="spam-mode" class="input-field cursor-pointer">
+                            <option value="subdivision">Mode 1: Note Subdivision (Jack Spam)</option>
+                            <option value="speedup">Mode 2: Exponential Speed Up & Loop</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="spam-levels" class="input-label">Number of Levels (Multiplier)</label>
+                        <input type="number" id="spam-levels" min="1" max="20" value="4" class="input-field">
+                        <p id="spam-levels-hint" class="text-xs text-[#a6adc8] mt-2">Plays normal once, then cuts notes in half repeatedly (2x, 4x, 8x...) up to this level.</p>
+                    </div>
+
+                    <button id="spam-generate-btn" class="btn w-full mt-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Generate Output MIDI
+                    </button>
+
+                    <div id="spam-status-area" class="hidden text-center p-3 rounded bg-[#181825] border border-[#45475a] text-sm mt-4">
+                        <!-- Status messages will appear here -->
+                    </div>
+
+                    <a id="spam-download-btn" class="hidden btn btn-success w-full mt-4 text-center no-underline" download="jack_spam_output.mid">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Download Result MIDI
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TOOL 2: FNF PSYCH ENGINE CHART CONVERTER   -->
+        <!-- ========================================== -->
+        <div id="view-fnf" class="hidden animate-fade-in">
+            <div class="card">
+                <h2 class="text-xl font-semibold mb-6 text-white border-b border-[#45475a] pb-3">1. Upload MIDI & Settings</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mb-4">
+                    <div class="input-group">
+                        <label class="input-label" for="fnf-midi-file">Select MIDI File (.mid)</label>
+                        <input type="file" id="fnf-midi-file" accept=".mid,.midi" class="input-field cursor-pointer" />
+                    </div>
+                    
+                    <div class="input-group">
+                        <label class="input-label" for="fnf-song-name">Song Name</label>
+                        <input type="text" id="fnf-song-name" class="input-field" placeholder="e.g., Bopeebo" value="TestSong" />
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="fnf-bpm">BPM (Auto-detected if in MIDI)</label>
+                        <input type="number" id="fnf-bpm" class="input-field" value="100" />
+                    </div>
+
+                    <div class="input-group">
+                        <label class="input-label" for="fnf-speed">Scroll Speed</label>
+                        <input type="number" id="fnf-speed" class="input-field" value="2.0" step="0.1" />
+                    </div>
+                </div>
+                
+                <button id="fnf-process-btn" class="btn w-full mt-4" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg>
+                    Read MIDI
+                </button>
+            </div>
+
+            <div id="fnf-track-mapping-section" class="card hidden">
+                <h2 class="text-xl font-semibold mb-4 text-white border-b border-[#45475a] pb-3">2. Map Tracks</h2>
+                <p class="text-sm text-[#a6adc8] mb-6">Assign MIDI tracks to characters. Tracks set to "Ignore" will not be charted.</p>
+                
+                <div id="fnf-track-list" class="mb-6 max-h-96 overflow-y-auto pr-2">
+                    <!-- Tracks will be injected here -->
+                </div>
+
+                <div id="fnf-note-mapping-area" class="mt-6 mb-6 border-t border-[#45475a] pt-4">
+                    <h2 class="text-xl font-semibold mb-2 text-white border-b border-[#45475a] pb-3">3. Map Note Pitches to Directions</h2>
+                    <p class="text-sm text-[#a6adc8] mb-4">Set which arrow direction each unique pitch in the MIDI corresponds to.</p>
+                    <div id="fnf-note-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-64 overflow-y-auto pr-2 pb-2">
+                        <!-- Dynamic note mappings will go here -->
+                    </div>
+                </div>
+                
+                <button id="fnf-generate-btn" class="btn btn-success w-full text-lg py-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    Generate Chart
+                </button>
+            </div>
+
+            <div id="fnf-output-section" class="card hidden">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 border-b border-[#45475a] pb-4 gap-4">
+                    <h2 class="text-xl font-semibold text-white">4. Output JSON</h2>
+                    <div class="flex gap-3 w-full sm:w-auto">
+                        <button id="fnf-copy-btn" class="btn flex-1 sm:flex-none text-sm">Copy</button>
+                        <button id="fnf-download-btn" class="btn btn-success flex-1 sm:flex-none text-sm">Download</button>
+                    </div>
+                </div>
+                <pre id="fnf-json-output"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Global Toast Notification -->
+    <div id="toast" class="toast">Action successful!</div>
+
+    <script>
+        // ==========================================
+        // GLOBAL UTILS
+        // ==========================================
+        const toast = document.getElementById('toast');
+        function showToast(message, isError = false) {
+            toast.textContent = message;
+            toast.style.backgroundColor = isError ? '#f38ba8' : '#a6e3a1'; // Red for error, Green for success
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // ==========================================
+        // TAB SWITCHING LOGIC
+        // ==========================================
+        const tabSpam = document.getElementById('tab-spam');
+        const tabFnf = document.getElementById('tab-fnf');
+        const viewSpam = document.getElementById('view-spam');
+        const viewFnf = document.getElementById('view-fnf');
+
+        function switchTab(activeMode) {
+            if (activeMode === 'spam') {
+                viewSpam.classList.remove('hidden');
+                viewFnf.classList.add('hidden');
+                
+                tabSpam.className = "px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 bg-[#89b4fa] text-[#11111b] shadow-sm";
+                tabFnf.className = "px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 text-[#bac2de] hover:text-white bg-transparent";
+            } else {
+                viewSpam.classList.add('hidden');
+                viewFnf.classList.remove('hidden');
+                
+                tabFnf.className = "px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 bg-[#89b4fa] text-[#11111b] shadow-sm";
+                tabSpam.className = "px-6 py-2.5 rounded-md text-sm font-semibold transition-all duration-200 text-[#bac2de] hover:text-white bg-transparent";
+            }
+        }
+
+        tabSpam.addEventListener('click', () => switchTab('spam'));
+        tabFnf.addEventListener('click', () => switchTab('fnf'));
+
+
+        // ==========================================
+        // TOOL 1: JACK SPAM MIDI LOGIC
+        // ==========================================
+        {
+            const fileInput = document.getElementById('spam-midi-file');
+            const modeSelect = document.getElementById('spam-mode');
+            const levelsInput = document.getElementById('spam-levels');
+            const levelsHint = document.getElementById('spam-levels-hint');
+            const generateBtn = document.getElementById('spam-generate-btn');
+            const downloadBtn = document.getElementById('spam-download-btn');
+            const statusArea = document.getElementById('spam-status-area');
+
+            modeSelect.addEventListener('change', () => {
+                if (modeSelect.value === 'subdivision') {
+                    levelsHint.textContent = "Plays normal once, then cuts notes in half repeatedly (2x, 4x, 8x...) up to this level.";
+                } else {
+                    levelsHint.textContent = "Plays normal once, then 2x speed (2 loops), 4x speed (4 loops), 8x speed (8 loops), etc.";
+                }
+            });
+
+            function showStatus(message, isError = false) {
+                statusArea.classList.remove('hidden');
+                statusArea.textContent = message;
+                statusArea.className = `text-center p-3 rounded text-sm mt-4 border ${isError ? 'bg-[#311825] border-[#f38ba8] text-[#f38ba8]' : 'bg-[#181825] border-[#45475a] text-[#cdd6f4]'}`;
+            }
+
+            generateBtn.addEventListener('click', async () => {
+                const file = fileInput.files[0];
+                const mode = modeSelect.value;
+                const levels = parseInt(levelsInput.value, 10);
+
+                if (!file) {
+                    showStatus('Please select a MIDI file first.', true);
+                    return;
+                }
+
+                if (isNaN(levels) || levels < 1) {
+                    showStatus('Please enter a valid number of levels.', true);
+                    return;
+                }
+
+                generateBtn.disabled = true;
+                downloadBtn.classList.add('hidden');
+                showStatus('Processing MIDI...');
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const originalMidi = new Midi(arrayBuffer);
+                    const outputMidi = new Midi();
+                    
+                    outputMidi.header.tempos = originalMidi.header.tempos;
+                    outputMidi.header.timeSignatures = originalMidi.header.timeSignatures;
+                    
+                    let maxDuration = 0;
+                    originalMidi.tracks.forEach(track => {
+                        track.notes.forEach(note => {
+                            const noteEnd = note.time + note.duration;
+                            if (noteEnd > maxDuration) {
+                                maxDuration = noteEnd;
+                            }
+                        });
+                    });
+                    
+                    originalMidi.tracks.forEach(originalTrack => {
+                        const outputTrack = outputMidi.addTrack();
+                        if (originalTrack.instrument) {
+                            outputTrack.instrument.number = originalTrack.instrument.number;
+                            outputTrack.instrument.family = originalTrack.instrument.family;
+                        }
+                    });
+
+                    let globalTimeOffset = 0;
+
+                    for (let currentLevel = 0; currentLevel <= levels; currentLevel++) {
+                        if (mode === 'subdivision') {
+                            const splits = Math.pow(2, currentLevel);
+                            originalMidi.tracks.forEach((originalTrack, trackIndex) => {
+                                const outputTrack = outputMidi.tracks[trackIndex];
+                                originalTrack.notes.forEach(note => {
+                                    const newDuration = note.duration / splits;
+                                    for (let i = 0; i < splits; i++) {
+                                        const noteOffset = i * newDuration;
+                                        outputTrack.addNote({
+                                            midi: note.midi,
+                                            time: note.time + globalTimeOffset + noteOffset,
+                                            duration: newDuration,
+                                            velocity: note.velocity
+                                        });
+                                    }
+                                });
+                            });
+                            globalTimeOffset += maxDuration;
+
+                        } else if (mode === 'speedup') {
+                            const speedFactor = Math.pow(2, currentLevel); 
+                            const playCount = Math.pow(2, currentLevel);  
+                            const scaledMaxDuration = maxDuration / speedFactor;
+
+                            for (let loopIndex = 0; loopIndex < playCount; loopIndex++) {
+                                originalMidi.tracks.forEach((originalTrack, trackIndex) => {
+                                    const outputTrack = outputMidi.tracks[trackIndex];
+                                    originalTrack.notes.forEach(note => {
+                                        const newDuration = note.duration / speedFactor;
+                                        const newTime = globalTimeOffset + (loopIndex * scaledMaxDuration) + (note.time / speedFactor);
+                                        outputTrack.addNote({
+                                            midi: note.midi,
+                                            time: newTime,
+                                            duration: newDuration,
+                                            velocity: note.velocity
+                                        });
+                                    });
+                                });
+                            }
+                            globalTimeOffset += (scaledMaxDuration * playCount);
+                        }
+                    }
+
+                    const finalMidiArray = outputMidi.toArray();
+                    const blob = new Blob([finalMidiArray], { type: 'audio/midi' });
+                    const url = URL.createObjectURL(blob);
+                    
+                    downloadBtn.href = url;
+                    downloadBtn.classList.remove('hidden');
+                    
+                    showStatus(`Success! Generated sequence with ${levels} multiplier levels.`);
+                    showToast('MIDI generated successfully!');
+                    
+                } catch (error) {
+                    console.error("MIDI Processing Error:", error);
+                    showStatus('Error processing MIDI file. Check console for details.', true);
+                } finally {
+                    generateBtn.disabled = false;
+                }
+            });
+        }
+
+
+        // ==========================================
+        // TOOL 2: FNF CHART CONVERTER LOGIC
+        // ==========================================
+        {
+            let currentMidi = null;
+            let generatedChart = null;
+
+            const fileInput = document.getElementById('fnf-midi-file');
+            const processBtn = document.getElementById('fnf-process-btn');
+            const trackMappingSection = document.getElementById('fnf-track-mapping-section');
+            const trackListContainer = document.getElementById('fnf-track-list');
+            const generateBtn = document.getElementById('fnf-generate-btn');
+            const outputSection = document.getElementById('fnf-output-section');
+            const jsonOutput = document.getElementById('fnf-json-output');
+            const copyBtn = document.getElementById('fnf-copy-btn');
+            const downloadBtn = document.getElementById('fnf-download-btn');
+            const bpmInput = document.getElementById('fnf-bpm');
+            const songNameInput = document.getElementById('fnf-song-name');
+            const speedInput = document.getElementById('fnf-speed');
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    processBtn.disabled = false;
+                    const fileName = e.target.files[0].name.replace(/\.[^/.]+$/, "");
+                    if (songNameInput.value === 'TestSong' || songNameInput.value === '') {
+                        songNameInput.value = fileName;
+                    }
+                } else {
+                    processBtn.disabled = true;
+                }
+            });
+
+            processBtn.addEventListener('click', async () => {
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                try {
+                    processBtn.innerHTML = 'Reading...';
+                    processBtn.disabled = true;
+
+                    const arrayBuffer = await file.arrayBuffer();
+                    currentMidi = new Midi(arrayBuffer);
+
+                    if (currentMidi.header.tempos.length > 0) {
+                        bpmInput.value = Math.round(currentMidi.header.tempos[0].bpm);
+                    }
+
+                    renderTrackList();
+                    renderNoteMappingList();
+                    
+                    trackMappingSection.classList.remove('hidden');
+                    outputSection.classList.add('hidden');
+                    
+                    processBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 16 16 12 12 8"></polyline><line x1="8" y1="12" x2="16" y2="12"></line></svg> Read MIDI Again';
+                    processBtn.disabled = false;
+                    showToast('MIDI parsed successfully!');
+                } catch (err) {
+                    console.error(err);
+                    showToast('Error reading MIDI file.', true);
+                    processBtn.innerHTML = 'Read MIDI';
+                    processBtn.disabled = false;
+                }
+            });
+
+            function renderTrackList() {
+                trackListContainer.innerHTML = '';
+                
+                if (!currentMidi || currentMidi.tracks.length === 0) {
+                    trackListContainer.innerHTML = '<p class="text-[#f38ba8]">No tracks found in MIDI.</p>';
+                    return;
+                }
+
+                currentMidi.tracks.forEach((track, index) => {
+                    if (track.notes.length === 0) return;
+
+                    const trackName = track.name || `Track ${index + 1}`;
+                    const instrumentName = track.instrument.family || 'Unknown Instrument';
+                    const noteCount = track.notes.length;
+
+                    const trackDiv = document.createElement('div');
+                    trackDiv.className = 'track-item flex-col sm:flex-row gap-4';
+                    trackDiv.innerHTML = `
+                        <div class="track-info w-full sm:w-auto">
+                            <div class="font-bold text-white">${trackName} <span class="text-xs text-[#a6adc8] font-normal">(${noteCount} notes)</span></div>
+                            <div class="text-sm text-[#a6adc8]">${instrumentName}</div>
+                        </div>
+                        <div class="track-controls w-full sm:w-auto">
+                            <div class="radio-group">
+                                <label class="radio-label text-[#a6adc8]">
+                                    <input type="radio" name="fnf_track_${index}" value="ignore" checked>
+                                    <span class="text-sm">Ignore</span>
+                                </label>
+                                <label class="radio-label text-[#89b4fa]">
+                                    <input type="radio" name="fnf_track_${index}" value="bf">
+                                    <span class="text-sm">BF</span>
+                                </label>
+                                <label class="radio-label text-[#cba6f7]">
+                                    <input type="radio" name="fnf_track_${index}" value="dad">
+                                    <span class="text-sm">Dad</span>
+                                </label>
+                            </div>
+                        </div>
+                    `;
+                    trackListContainer.appendChild(trackDiv);
+                });
+            }
+
+            function renderNoteMappingList() {
+                const container = document.getElementById('fnf-note-list');
+                container.innerHTML = '';
+                
+                if (!currentMidi) return;
+
+                // Collect all unique notes used in the entire MIDI
+                const uniqueNotes = new Map();
+                currentMidi.tracks.forEach(track => {
+                    track.notes.forEach(note => {
+                        if (!uniqueNotes.has(note.midi)) {
+                            uniqueNotes.set(note.midi, note.name);
+                        }
+                    });
+                });
+
+                const sortedNotes = Array.from(uniqueNotes.entries()).sort((a, b) => a[0] - b[0]);
+
+                if (sortedNotes.length === 0) {
+                    container.innerHTML = '<p class="text-[#f38ba8] col-span-full">No notes found to map.</p>';
+                    return;
+                }
+
+                sortedNotes.forEach(([midiVal, noteName]) => {
+                    // Auto-guess based on standard FNF modulo to save user time
+                    const noteClass = midiVal % 12;
+                    let guess = 0; // Left
+                    if (noteClass === 2 || noteClass === 3) guess = 1; // Down
+                    else if (noteClass === 4) guess = 2; // Up
+                    else if (noteClass >= 5) guess = 3; // Right
+
+                    const div = document.createElement('div');
+                    div.className = 'bg-[#181825] p-2 rounded border border-[#45475a] flex flex-col gap-1';
+                    div.innerHTML = `
+                        <label class="text-xs font-semibold text-[#bac2de]">${noteName} (Pitch: ${midiVal})</label>
+                        <select id="fnf-note-map-${midiVal}" class="input-field py-1 px-2 text-sm cursor-pointer border-none bg-[#313244] mt-1">
+                            <option value="0" ${guess === 0 ? 'selected' : ''}>Left (0)</option>
+                            <option value="1" ${guess === 1 ? 'selected' : ''}>Down (1)</option>
+                            <option value="2" ${guess === 2 ? 'selected' : ''}>Up (2)</option>
+                            <option value="3" ${guess === 3 ? 'selected' : ''}>Right (3)</option>
+                            <option value="ignore">Ignore Note</option>
+                        </select>
+                    `;
+                    container.appendChild(div);
+                });
+            }
+
+            generateBtn.addEventListener('click', () => {
+                if (!currentMidi) return;
+
+                const baseBpm = parseFloat(bpmInput.value) || 100;
+                const songSpeed = parseFloat(speedInput.value) || 2.0;
+                const songName = songNameInput.value || 'Song';
+
+                // Grab mapping choices from the generated UI
+                const noteMapping = {};
+                const selects = document.querySelectorAll('select[id^="fnf-note-map-"]');
+                selects.forEach(select => {
+                    const midiVal = parseInt(select.id.replace('fnf-note-map-', ''), 10);
+                    noteMapping[midiVal] = select.value;
+                });
+
+                const chartData = {
+                    song: {
+                        song: songName,
+                        notes: [],
+                        bpm: baseBpm,
+                        needsVoices: true,
+                        speed: songSpeed,
+                        player1: 'bf',
+                        player2: 'dad',
+                        gfVersion: 'gf',
+                        validScore: true
+                    }
+                };
+
+                const msPerBeat = 60000 / baseBpm;
+                const msPerStep = msPerBeat / 4;
+                const msPerSection = msPerStep * 16;
+
+                let maxTimeMs = 0;
+                currentMidi.tracks.forEach(track => {
+                    if (track.notes.length > 0) {
+                        const lastNote = track.notes[track.notes.length - 1];
+                        const endTime = (lastNote.time + lastNote.duration) * 1000;
+                        if (endTime > maxTimeMs) maxTimeMs = endTime;
+                    }
+                });
+
+                const totalSections = Math.ceil(maxTimeMs / msPerSection) || 1;
+
+                for (let i = 0; i < totalSections; i++) {
+                    chartData.song.notes.push({
+                        lengthInSteps: 16,
+                        bpm: baseBpm,
+                        changeBPM: false,
+                        mustHitSection: false,
+                        sectionNotes: [],
+                        typeOfSection: 0
+                    });
+                }
+
+                const bfTracks = [];
+                const dadTracks = [];
+
+                currentMidi.tracks.forEach((track, index) => {
+                    const radioNodeList = document.getElementsByName(`fnf_track_${index}`);
+                    if (!radioNodeList || radioNodeList.length === 0) return;
+                    
+                    let selectedValue = 'ignore';
+                    for (const radio of radioNodeList) {
+                        if (radio.checked) {
+                            selectedValue = radio.value;
+                            break;
+                        }
+                    }
+
+                    if (selectedValue === 'bf') bfTracks.push(track);
+                    if (selectedValue === 'dad') dadTracks.push(track);
+                });
+
+                if (bfTracks.length === 0 && dadTracks.length === 0) {
+                    showToast('Warning: No tracks assigned to BF or Dad. Chart will have no notes.', true);
+                }
+
+                function processNotes(tracks, isPlayer) {
+                    tracks.forEach(track => {
+                        track.notes.forEach(note => {
+                            const mappedValue = noteMapping[note.midi];
+                            if (mappedValue === 'ignore' || mappedValue === undefined) return;
+                            
+                            const timeMs = note.time * 1000;
+                            const durationMs = note.duration * 1000;
+                            
+                            let noteData = parseInt(mappedValue, 10);
+                            
+                            if (isPlayer) {
+                                noteData += 4; 
+                            }
+
+                            const sustain = durationMs > 100 ? durationMs : 0; 
+                            const sectionIndex = Math.floor(timeMs / msPerSection);
+                            
+                            if (sectionIndex >= 0 && sectionIndex < chartData.song.notes.length) {
+                                chartData.song.notes[sectionIndex].sectionNotes.push([timeMs, noteData, sustain]);
+                            }
+                        });
+                    });
+                }
+
+                processNotes(dadTracks, false);
+                processNotes(bfTracks, true); 
+
+                chartData.song.notes.forEach(section => {
+                    section.sectionNotes.sort((a, b) => a[0] - b[0]);
+                });
+
+                chartData.song.notes.forEach(section => {
+                    let bfCount = 0;
+                    let dadCount = 0;
+                    
+                    section.sectionNotes.forEach(n => {
+                        if (n[1] >= 4) bfCount++;
+                        else dadCount++;
+                    });
+
+                    if (bfCount > dadCount) {
+                        section.mustHitSection = true;
+                        section.sectionNotes.forEach(n => {
+                            if (n[1] >= 4) n[1] -= 4; 
+                            else n[1] += 4;           
+                        });
+                    }
+                });
+
+                generatedChart = chartData;
+                const jsonString = JSON.stringify(chartData, null, 2);
+                
+                jsonOutput.textContent = jsonString;
+                jsonOutput.style.display = 'block';
+                outputSection.classList.remove('hidden');
+                
+                outputSection.scrollIntoView({ behavior: 'smooth' });
+                showToast('Chart generated successfully!');
+            });
+
+            copyBtn.addEventListener('click', () => {
+                if (!generatedChart) return;
+                const textToCopy = JSON.stringify(generatedChart, null, 2);
+                
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        navigator.clipboard.writeText(textToCopy).then(() => {
+                            showToast('Copied to clipboard!');
+                        });
+                    } else {
+                        const textArea = document.createElement("textarea");
+                        textArea.value = textToCopy;
+                        textArea.style.position = "absolute";
+                        textArea.style.left = "-999999px";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        
+                        if (successful) {
+                            showToast('Copied to clipboard!');
+                        } else {
+                            throw new Error('execCommand failed');
+                        }
+                    }
+                } catch (err) {
+                    console.error("Copy failed", err);
+                    showToast('Failed to copy. Please manually copy from text area.', true);
+                }
+            });
+
+            downloadBtn.addEventListener('click', () => {
+                if (!generatedChart) return;
+                
+                const songName = (songNameInput.value || 'chart').toLowerCase().replace(/\s+/g, '-');
+                const fileName = `${songName}.json`;
+                const jsonString = JSON.stringify(generatedChart, null, "\t"); 
+                
+                const blob = new Blob([jsonString], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast(`Downloaded ${fileName}`);
+            });
+        }
+    </script>
+</body>
+</html>
