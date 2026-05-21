@@ -6,7 +6,8 @@ const projects = [
     "3danimator",
     "catmemory",
     "midiplayer",
-    "mandelbrot"
+    "mandelbrot",
+    "gswitch"
     ];
 
 // 2. Grab the elements from the DOM
