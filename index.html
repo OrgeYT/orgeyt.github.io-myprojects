@@ -24,6 +24,15 @@
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
+    <script>
+        // ChatGPT easter egg
+        const params = new URLSearchParams(window.location.search);
+
+        if (params.get("utm_source") === "chatgpt.com") {
+            alert("ChatGPT linked you here, eh?");
+        }
+    </script>
+
     <script src="app.js"></script>
 </body>
 </html>
