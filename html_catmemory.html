@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Cat Memory 3D</title>
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #1a1a1a; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #game-canvas { 
+            display: block; 
+            width: 100vw; 
+            height: 100vh; 
+            touch-action: none;
+        }
+        
+        /* UI Overlays */
+        .overlay { 
+            position: absolute; 
+            top: 0; left: 0; 
+            width: 100%; height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            background: rgba(0, 0, 0, 0.75); 
+            color: white; 
+            transition: opacity 0.3s ease; 
+            z-index: 10; 
+        }
+        .hidden { 
+            opacity: 0; 
+            pointer-events: none; 
+        }
+        
+        .panel { 
+            background: #2c3e50; 
+            padding: 40px; 
+            border-radius: 20px; 
+            text-align: center; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5); 
+            border: 4px solid #34495e;
+            max-width: 90%;
+            box-sizing: border-box;
+        }
+        
+        h1 { 
+            margin-top: 0; 
+            font-size: 3.5em; 
+            color: #f1c40f; 
+            text-shadow: 2px 3px 5px rgba(0,0,0,0.6); 
+            margin-bottom: 10px;
+        }
+        
+        p {
+            font-size: 1.1em;
+            line-height: 1.4;
+            color: #ecf0f1;
+            max-width: 450px;
+            margin: 0 auto 20px auto;
+        }
+
+        button { 
+            background: #e74c3c; 
+            color: white; 
+            border: none; 
+            padding: 15px 40px; 
+            font-size: 1.3em; 
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: background 0.2s, transform 0.1s; 
+            font-weight: bold; 
+            box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+            margin: 5px;
+        }
+        button:hover { 
+            background: #c0392b; 
+            transform: scale(1.05); 
+        }
+        button:active { 
+            transform: scale(0.95); 
+        }
+        
+        .diff-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+        .diff-btn {
+            padding: 12px 20px;
+            font-size: 1.1em;
+            flex: 1;
+            min-width: 120px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .diff-easy { background: #2ecc71; }
+        .diff-normal { background: #f39c12; }
+        .diff-hard { background: #9b59b6; }
+        
+        #hud { 
+            position: absolute; 
+            top: 20px; left: 0; 
+            width: 100%; 
+            text-align: center; 
+            pointer-events: none; 
+            z-index: 5; 
+            transition: opacity 0.3s ease;
+        }
+        .hud-box { 
+            display: inline-block; 
+            background: rgba(44, 62, 80, 0.9); 
+            color: white; 
+            padding: 12px 25px; 
+            border-radius: 30px; 
+            font-size: 1.4em; 
+            border: 3px solid #34495e; 
+            font-weight: bold; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            pointer-events: auto;
+        }
+        #turn-val {
+            color: #f1c40f;
+        }
+
+        .settings-row {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            background: rgba(0,0,0,0.2);
+            padding: 12px;
+            border-radius: 10px;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="number"] {
+            width: 60px;
+            padding: 8px;
+            border-radius: 5px;
+            border: none;
+            background: #ecf0f1;
+            font-weight: bold;
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        #pause-btn {
+            background: #34495e;
+            padding: 8px 15px;
+            font-size: 0.8em;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+    </style>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <canvas id="game-canvas"></canvas>
+    
+    <div id="hud" class="hidden">
+        <div class="hud-box">
+            Score: <span id="score-val">0</span> &nbsp;|&nbsp; 
+            <span id="turn-val">White Cat's Turn</span>
+            <button id="pause-btn">PAUSE</button>
+        </div>
+    </div>
+    
+    <div id="start-screen" class="overlay">
+        <div class="panel">
+            <h1>Cat Memory</h1>
+            <p>1. The <b>White Cat</b> will press a sequence.<br>2. The <b>Black Cat</b> (you) must copy it.</p>
+            
+            <div class="settings-row">
+                <div class="input-group">
+                    <input type="checkbox" id="bot-mode-check">
+                    <label for="bot-mode-check">Bot Mode</label>
+                </div>
+                <div class="input-group">
+                    <label for="start-at-input">Start at level:</label>
+                    <input type="number" id="start-at-input" value="1" min="1" step="1">
+                </div>
+            </div>
+
+            <div class="diff-buttons">
+                <button class="diff-btn diff-easy" id="btn-easy">Easy (1-4)</button>
+                <button class="diff-btn diff-normal" id="btn-normal">Normal (0-9)</button>
+                <button class="diff-btn diff-hard" id="btn-hard">Hard (0-15)</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="pause-screen" class="overlay hidden">
+        <div class="panel">
+            <h1>Paused</h1>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button id="resume-btn" style="background: #2ecc71;">Resume</button>
+                <button id="main-menu-btn" style="background: #34495e;">Back to Main Menu</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="game-over-screen" class="overlay hidden">
+        <div class="panel">
+            <h1>Game Over!</h1>
+            <p style="font-size: 1.8em; margin: 15px 0;">Final Score: <span id="final-score" style="color: #f1c40f; font-weight: bold; font-size: 1.5em;">0</span></p>
+            <button id="restart-btn">Try Again</button>
+            <button id="over-menu-btn" style="background: #34495e;">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        // --- AUDIO SYSTEM ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playTone(number) {
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            const freq = 220 * Math.pow(2, number / 12);
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+        }
+
+        function playFailTone() {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.type = 'sawtooth';
+            oscillator.frequency.setValueAtTime(110, audioCtx.currentTime);
+            oscillator.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.5);
+            gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.5);
+        }
+
+        // --- GAME STATES & GLOBALS ---
+        const STATES = {
+            IDLE: 0,
+            WHITE_ENTER: 1,
+            WHITE_SHOW: 2,
+            WHITE_LEAVE: 3,
+            BLACK_ENTER: 4,
+            PLAYER_TURN: 5,
+            BLACK_LEAVE: 6,
+            GAME_OVER: 7,
+            PAUSED: 8
+        };
+
+        let gameState = STATES.IDLE;
+        let previousState = STATES.IDLE;
+        let score = 0;
+        let sequence = [];
+        let playerIndex = 0;
+        let isAnimatingPlayer = false;
+        let currentDifficulty = 'normal';
+        let activeButtonsPool = [];
+        let botMode = false;
+        let startingLevel = 1;
+
+        // --- CUSTOM TWEEN ENGINE ---
+        const TWEEN = {
+            animations: [],
+            paused: false,
+            to: function(target, props, duration, easing, onUpdate, onComplete) {
+                let anim = {
+                    target: target,
+                    startProps: {},
+                    endProps: props,
+                    duration: duration,
+                    startTime: performance.now(),
+                    pauseTimeOffset: 0,
+                    easing: easing || (t => t),
+                    onUpdate: onUpdate,
+                    onComplete: onComplete
+                };
+                for(let key in props) {
+                    anim.startProps[key] = target[key];
+                }
+                this.animations.push(anim);
+            },
+            update: function(time) {
+                if (this.paused) {
+                    for(let anim of this.animations) {
+                        anim.startTime += (time - (anim.lastFrameTime || time));
+                        anim.lastFrameTime = time;
+                    }
+                    return;
+                }
+                for(let i = this.animations.length - 1; i >= 0; i--) {
+                    let anim = this.animations[i];
+                    anim.lastFrameTime = time;
+                    let elapsed = time - anim.startTime;
+                    let progress = Math.min(elapsed / anim.duration, 1);
+                    let eased = anim.easing(progress);
+                    for(let key in anim.endProps) {
+                        anim.target[key] = anim.startProps[key] + (anim.endProps[key] - anim.startProps[key]) * eased;
+                    }
+                    if(anim.onUpdate) anim.onUpdate(progress);
+                    if(progress === 1) {
+                        if(anim.onComplete) anim.onComplete();
+                        this.animations.splice(i, 1);
+                    }
+                }
+            }
+        };
+
+        const Easing = { Quadratic: { InOut: t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t } };
+
+        // --- THREE.JS SETUP ---
+        let scene, camera, renderer;
+        let buttons = [];
+        let whiteCat, blackCat;
+        let raycaster, mouse;
+
+        window.onload = function() {
+            init3D();
+            setupUI();
+            animateLoop();
+        };
+
+        function init3D() {
+            const canvas = document.getElementById('game-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a252c);
+            scene.fog = new THREE.Fog(0x1a252c, 20, 45);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 14, 15);
+            camera.lookAt(0, 0, -2);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshStandardMaterial({ color: 0x34495e, roughness: 0.9 }));
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            createNumberPad('normal');
+            whiteCat = createCat(0xffffff);
+            blackCat = createCat(0x222222);
+            whiteCat.position.set(-20, 0, 5);
+            blackCat.position.set(20, 0, 5);
+            scene.add(whiteCat);
+            scene.add(blackCat);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            window.addEventListener('resize', onWindowResize, false);
+            window.addEventListener('pointerdown', onPointerDown, false);
+        }
+
+        function createNumberTexture(num) {
+            const size = 256;
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#bdc3c7'; ctx.fillRect(0, 0, size, size);
+            ctx.strokeStyle = '#7f8c8d'; ctx.lineWidth = 10; ctx.strokeRect(5, 5, size - 10, size - 10);
+            ctx.fillStyle = '#2c3e50'; ctx.font = 'bold 100px Tahoma, Arial';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(num, size / 2, size / 2 + 10);
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createNumberPad(difficulty) {
+            buttons.forEach(b => { if(b){ scene.remove(b); b.material.map.dispose(); b.material.dispose(); b.geometry.dispose(); } });
+            buttons = [];
+            const spacing = 2.4;
+            const size = 2;
+            const height = 0.2;
+            let positions = {};
+
+            if (difficulty === 'easy') {
+                activeButtonsPool = [1, 2, 3, 4];
+                positions = { 1: {x: -spacing/2, z: -spacing/2}, 2: {x: spacing/2, z: -spacing/2}, 3: {x: -spacing/2, z: spacing/2}, 4: {x: spacing/2, z: spacing/2} };
+            } else if (difficulty === 'hard') {
+                activeButtonsPool = Array.from({length: 16}, (_, i) => i);
+                for(let i=0; i<16; i++) positions[i] = { x: (i%4 - 1.5)*spacing, z: (Math.floor(i/4) - 1.5)*spacing };
+            } else {
+                activeButtonsPool = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+                positions = { 7: {x: -spacing, z: -spacing*2}, 8: {x: 0, z: -spacing*2}, 9: {x: spacing, z: -spacing*2}, 4: {x: -spacing, z: -spacing}, 5: {x: 0, z: -spacing}, 6: {x: spacing, z: -spacing}, 1: {x: -spacing, z: 0}, 2: {x: 0, z: 0}, 3: {x: spacing, z: 0}, 0: {x: 0, z: spacing} };
+            }
+
+            const boxGeom = new THREE.BoxGeometry(size, height, size);
+            activeButtonsPool.forEach(i => {
+                const mat = new THREE.MeshStandardMaterial({ map: createNumberTexture(i), roughness: 0.6, metalness: 0.1 });
+                const btn = new THREE.Mesh(boxGeom, mat);
+                btn.position.set(positions[i].x, height / 2, positions[i].z);
+                btn.userData = { num: i };
+                scene.add(btn);
+                buttons.push(btn);
+            });
+        }
+
+        function createCat(colorHex) {
+            const cat = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: colorHex });
+            cat.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 2), mat));
+            cat.children[0].position.y = 0.5;
+            const head = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.9, 1.0), mat); head.position.set(0, 1.2, 1.0); cat.add(head);
+            const earL = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 4), mat); earL.position.set(0.35, 1.7, 1.0); cat.add(earL);
+            const earR = new THREE.Mesh(new THREE.ConeGeometry(0.25, 0.5, 4), mat); earR.position.set(-0.35, 1.7, 1.0); cat.add(earR);
+            const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5), mat); tail.position.set(0, 0.8, -1.0); tail.rotation.x = -Math.PI / 6; cat.add(tail);
+            return cat;
+        }
+
+        function hopCatTo(cat, targetX, targetZ, duration, onComplete) {
+            TWEEN.to(cat.position, { x: targetX, z: targetZ }, duration, Easing.Quadratic.InOut, (p) => {
+                cat.position.y = Math.sin(p * Math.PI) * 1.5;
+            }, onComplete);
+        }
+
+        function lookAtTarget(cat, tx, tz) { cat.lookAt(tx, cat.position.y, tz); }
+        function highlightButton(btn, hexColor) { 
+            btn.material.emissive.setHex(hexColor); btn.position.y = 0.3; playTone(btn.userData.num);
+        }
+        function unhighlightButton(btn) { btn.material.emissive.setHex(0x000000); btn.position.y = 0.1; }
+
+        // --- GAME LOGIC FLOW ---
+        function startTurn() {
+            if (gameState === STATES.PAUSED) return;
+            // Add a new random number to the sequence
+            sequence.push(activeButtonsPool[Math.floor(Math.random() * activeButtonsPool.length)]);
+            updateHUD(`White Cat's Turn (${sequence.length})`, '#ecf0f1');
+            gameState = STATES.WHITE_ENTER;
+            whiteCat.position.set(-15, 0, 5);
+            lookAtTarget(whiteCat, 0, 5);
+            TWEEN.to(whiteCat.position, { x: 0, z: 5 }, 1200, Easing.Quadratic.InOut, null, () => {
+                lookAtTarget(whiteCat, 0, 0);
+                setTimeout(() => playWhiteCatSequence(0), 600);
+            });
+        }
+
+        function playWhiteCatSequence(index) {
+            if (gameState === STATES.PAUSED) { setTimeout(() => playWhiteCatSequence(index), 100); return; }
+            if (index >= sequence.length) {
+                gameState = STATES.WHITE_LEAVE;
+                lookAtTarget(whiteCat, 0, 5);
+                hopCatTo(whiteCat, 0, 5, 500, () => {
+                    lookAtTarget(whiteCat, -15, 5);
+                    TWEEN.to(whiteCat.position, { x: -15, z: 5 }, 1200, Easing.Quadratic.InOut, null, enterBlackCat);
+                });
+                return;
+            }
+            let btn = buttons.find(b => b.userData.num === sequence[index]);
+            lookAtTarget(whiteCat, btn.position.x, btn.position.z);
+            hopCatTo(whiteCat, btn.position.x, btn.position.z, 450, () => {
+                highlightButton(btn, 0x2ecc71);
+                setTimeout(() => { unhighlightButton(btn); setTimeout(() => playWhiteCatSequence(index + 1), 250); }, 400);
+            });
+        }
+
+        function enterBlackCat() {
+            gameState = STATES.BLACK_ENTER;
+            updateHUD(botMode ? "Bot's Turn..." : "Your Turn!", botMode ? "#9b59b6" : "#f1c40f");
+            blackCat.position.set(15, 0, 5);
+            lookAtTarget(blackCat, 0, 5);
+            TWEEN.to(blackCat.position, { x: 0, z: 5 }, 1200, Easing.Quadratic.InOut, null, () => {
+                lookAtTarget(blackCat, 0, 0);
+                gameState = STATES.PLAYER_TURN;
+                playerIndex = 0;
+                isAnimatingPlayer = false;
+                if (botMode) setTimeout(processBotMove, 500);
+            });
+        }
+
+        function processBotMove() {
+            if (gameState !== STATES.PLAYER_TURN || gameState === STATES.PAUSED) return;
+            processPlayerClick(buttons.find(b => b.userData.num === sequence[playerIndex]));
+        }
+
+        function processPlayerClick(btn) {
+            if (gameState !== STATES.PLAYER_TURN || isAnimatingPlayer || gameState === STATES.PAUSED) return;
+            isAnimatingPlayer = true;
+            lookAtTarget(blackCat, btn.position.x, btn.position.z);
+            hopCatTo(blackCat, btn.position.x, btn.position.z, 300, () => {
+                if (btn.userData.num === sequence[playerIndex]) {
+                    highlightButton(btn, 0x3498db);
+                    setTimeout(() => {
+                        unhighlightButton(btn);
+                        playerIndex++;
+                        if (playerIndex >= sequence.length) {
+                            gameState = STATES.BLACK_LEAVE;
+                            score++; updateScore(score); updateHUD("Perfect!", "#2ecc71");
+                            lookAtTarget(blackCat, 0, 5);
+                            hopCatTo(blackCat, 0, 5, 400, () => {
+                                lookAtTarget(blackCat, 15, 5);
+                                TWEEN.to(blackCat.position, { x: 15, z: 5 }, 1200, Easing.Quadratic.InOut, null, startTurn);
+                            });
+                        } else {
+                            isAnimatingPlayer = false;
+                            if (botMode) setTimeout(processBotMove, 300);
+                        }
+                    }, 300);
+                } else {
+                    gameState = STATES.GAME_OVER;
+                    playFailTone();
+                    btn.material.emissive.setHex(0xe74c3c); btn.position.y = 0.3;
+                    TWEEN.to(blackCat.rotation, { z: Math.PI / 2 }, 600, Easing.Quadratic.InOut, null, showGameOver);
+                }
+            });
+        }
+
+        function onPointerDown(event) {
+            initAudio();
+            if (gameState !== STATES.PLAYER_TURN || isAnimatingPlayer || botMode) return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(buttons);
+            if (intersects.length > 0) processPlayerClick(intersects[0].object);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function setupUI() {
+            const startPanel = document.getElementById('start-screen');
+            const hud = document.getElementById('hud');
+            const pausePanel = document.getElementById('pause-screen');
+
+            const startWithDifficulty = (diff) => {
+                initAudio();
+                currentDifficulty = diff;
+                botMode = document.getElementById('bot-mode-check').checked;
+                // Get starting level, ensure it's at least 1
+                startingLevel = parseInt(document.getElementById('start-at-input').value) || 1;
+                if (startingLevel < 1) startingLevel = 1;
+                
+                createNumberPad(diff);
+                startPanel.classList.add('hidden');
+                hud.classList.remove('hidden');
+                resetGameData();
+                
+                // Pre-populate sequence based on starting level
+                // Level 1 starts with 1 button, Level 5 starts with 5 buttons, etc.
+                // startTurn() will add the final button of the sequence
+                for(let i = 0; i < startingLevel - 1; i++) {
+                    sequence.push(activeButtonsPool[Math.floor(Math.random() * activeButtonsPool.length)]);
+                }
+                
+                setTimeout(startTurn, 500);
+            };
+
+            document.getElementById('btn-easy').addEventListener('click', () => startWithDifficulty('easy'));
+            document.getElementById('btn-normal').addEventListener('click', () => startWithDifficulty('normal'));
+            document.getElementById('btn-hard').addEventListener('click', () => startWithDifficulty('hard'));
+            
+            document.getElementById('restart-btn').addEventListener('click', () => {
+                document.getElementById('game-over-screen').classList.add('hidden');
+                hud.classList.remove('hidden'); 
+                resetGameData();
+                // When restarting, use the same starting level set at first start
+                for(let i = 0; i < startingLevel - 1; i++) {
+                    sequence.push(activeButtonsPool[Math.floor(Math.random() * activeButtonsPool.length)]);
+                }
+                setTimeout(startTurn, 500);
+            });
+
+            document.getElementById('pause-btn').addEventListener('click', () => {
+                if (gameState === STATES.GAME_OVER) return;
+                previousState = gameState;
+                gameState = STATES.PAUSED;
+                TWEEN.paused = true;
+                pausePanel.classList.remove('hidden');
+            });
+
+            document.getElementById('resume-btn').addEventListener('click', () => {
+                gameState = previousState;
+                TWEEN.paused = false;
+                pausePanel.classList.add('hidden');
+                if (botMode && gameState === STATES.PLAYER_TURN && !isAnimatingPlayer) processBotMove();
+            });
+
+            const goToMainMenu = () => {
+                pausePanel.classList.add('hidden');
+                document.getElementById('game-over-screen').classList.add('hidden');
+                hud.classList.add('hidden');
+                startPanel.classList.remove('hidden');
+                gameState = STATES.IDLE;
+                TWEEN.paused = false;
+                TWEEN.animations = [];
+            };
+
+            document.getElementById('main-menu-btn').addEventListener('click', goToMainMenu);
+            document.getElementById('over-menu-btn').addEventListener('click', goToMainMenu);
+        }
+
+        function updateHUD(text, colorHex) {
+            const turnEl = document.getElementById('turn-val');
+            turnEl.innerText = text; turnEl.style.color = colorHex || '#ffffff';
+        }
+
+        function updateScore(newScore) {
+            document.getElementById('score-val').innerText = newScore;
+            document.getElementById('final-score').innerText = newScore;
+        }
+
+        function resetGameData() {
+            score = 0; sequence = []; updateScore(0);
+            whiteCat.position.set(-20, 0, 5); whiteCat.rotation.set(0, 0, 0);
+            blackCat.position.set(20, 0, 5); blackCat.rotation.set(0, 0, 0);
+            buttons.forEach(btn => unhighlightButton(btn));
+            TWEEN.animations = [];
+        }
+
+        function showGameOver() {
+            updateHUD('Game Over!', '#e74c3c');
+            setTimeout(() => {
+                document.getElementById('hud').classList.add('hidden');
+                document.getElementById('game-over-screen').classList.remove('hidden');
+            }, 1000);
+        }
+
+        function animateLoop(time) {
+            requestAnimationFrame(animateLoop);
+            TWEEN.update(time);
+            if (whiteCat && blackCat) {
+                const idleTime = time * 0.005;
+                if(whiteCat.children[4]) whiteCat.children[4].rotation.z = Math.sin(idleTime) * 0.2;
+                if(blackCat.children[4]) blackCat.children[4].rotation.z = Math.sin(idleTime + 1) * 0.2;
+            }
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
