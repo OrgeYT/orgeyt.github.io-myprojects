@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite Mandelbrot Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.js"></script>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #000; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; image-rendering: pixelated; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #3b82f6;
+            cursor: pointer;
+            margin-top: -6px;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <canvas id="mandelbrotCanvas"></canvas>
+
+    <!-- UI Overlay -->
+    <div class="absolute top-4 left-4 w-80 glass-panel rounded-2xl p-5 shadow-2xl z-10 transition-opacity duration-300" id="uiPanel">
+        <h1 class="text-2xl font-bold mb-1 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Mandelbrot Explorer</h1>
+        <p class="text-xs text-gray-400 mb-5">Click fast to zoom. Pausing for 1s renders high detail.</p>
+
+        <!-- Iterations Control -->
+        <div class="mb-5">
+            <div class="flex justify-between items-center mb-2">
+                <label class="text-sm font-medium text-gray-200">Max Iterations</label>
+                <input type="number" id="iterInput" value="500" min="10" max="100000" class="w-20 bg-gray-800 text-white text-sm rounded px-2 py-1 border border-gray-600 focus:outline-none focus:border-blue-400 text-right">
+            </div>
+            <input type="range" id="iterSlider" min="10" max="100000" value="500" step="10">
+        </div>
+
+        <hr class="border-gray-700 mb-5">
+
+        <div class="space-y-3">
+            <button id="btnRandom" class="w-full py-2.5 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg font-medium transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                Random Awesome Spot
+            </button>
+            
+            <button id="btnGif" class="w-full py-2.5 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-medium transition-all shadow-lg active:scale-95 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                Generate Zoom GIF
+            </button>
+
+            <button id="btnReset" class="w-full py-2 px-4 border border-gray-600 hover:bg-gray-800 text-gray-300 rounded-lg text-sm font-medium transition-all active:scale-95">
+                Reset View
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Toast -->
+    <div id="statusToast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-6 py-3 rounded-full font-medium shadow-xl transition-all duration-300 opacity-0 translate-y-4 pointer-events-none z-50">
+        Rendering...
+    </div>
+
+    <!-- GIF Generator Overlay -->
+    <div id="gifOverlay" class="fixed inset-0 bg-black/90 z-50 hidden flex-col justify-center items-center p-6">
+        <h2 class="text-3xl font-bold text-white mb-4">Generating GIF</h2>
+        <p class="text-gray-400 mb-8 max-w-md text-center">Rendering frames for the zoom animation...</p>
+        <canvas id="gifCanvas" width="400" height="400" class="border border-gray-700 rounded-lg mb-6 shadow-2xl"></canvas>
+        <div class="w-full max-w-md bg-gray-800 rounded-full h-4 mb-2">
+            <div id="gifProgressBar" class="bg-blue-500 h-4 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <p id="gifStatusText" class="text-blue-400 font-medium">Preparing...</p>
+    </div>
+
+    <script>
+        // --- State ---
+        let currentX = -0.5;
+        let currentY = 0;
+        let currentScale = 250;
+        let maxIter = 500;
+        
+        const BASE_SCALE = 250;
+        const ZOOM_FACTOR = 2.0;
+        const MAX_DOUBLE_SCALE = 1e13;
+        const LOW_RES_DIVIDER = 4; // Render at 1/4th resolution for fast zoom
+
+        let renderTimeout = null;
+
+        const awesomeSpots = [
+            { x: -0.743643887037151, y: 0.131825904205330, scale: 2e10, iter: 2000 },
+            { x: -0.160474636906233, y: 1.037198762512610, scale: 5e10, iter: 2500 },
+            { x: -1.768778833, y: 0.001738996, scale: 5e9, iter: 1000 },
+            { x: 0.281717921930775, y: 0.577105284148850, scale: 8e9, iter: 1500 },
+            { x: -0.77568377, y: 0.13646737, scale: 1e6, iter: 800 }
+        ];
+
+        const canvas = document.getElementById('mandelbrotCanvas');
+        const ctx = canvas.getContext('2d', { alpha: false });
+        const gifCanvas = document.getElementById('gifCanvas');
+        const gifCtx = gifCanvas.getContext('2d', { alpha: false });
+        
+        const iterSlider = document.getElementById('iterSlider');
+        const iterInput = document.getElementById('iterInput');
+        const btnRandom = document.getElementById('btnRandom');
+        const btnGif = document.getElementById('btnGif');
+        const btnReset = document.getElementById('btnReset');
+        const statusToast = document.getElementById('statusToast');
+        
+        const gifOverlay = document.getElementById('gifOverlay');
+        const gifProgressBar = document.getElementById('gifProgressBar');
+        const gifStatusText = document.getElementById('gifStatusText');
+
+        function resize() {
+            canvas.width = Math.max(1, window.innerWidth);
+            canvas.height = Math.max(1, window.innerHeight);
+            render(false); // Fast render on resize
+        }
+        window.addEventListener('resize', resize);
+
+        const workerCode = `
+            self.onmessage = function(e) {
+                const { width, height, x, y, scale, maxIterations, jobId, isLowRes } = e.data;
+                const imgData = new ImageData(width, height);
+                const data = imgData.data;
+                const escapeRadius = 4.0;
+                const log2 = Math.log(2);
+
+                for (let py = 0; py < height; py++) {
+                    const cy = y + (py - height / 2) / scale;
+                    for (let px = 0; px < width; px++) {
+                        const cx = x + (px - width / 2) / scale;
+                        let zx = 0, zy = 0, zx2 = 0, zy2 = 0, iter = 0;
+
+                        while (zx2 + zy2 < escapeRadius && iter < maxIterations) {
+                            zy = 2 * zx * zy + cy;
+                            zx = zx2 - zy2 + cx;
+                            zx2 = zx * zx;
+                            zy2 = zy * zy;
+                            iter++;
+                        }
+
+                        const pixelIdx = (py * width + px) * 4;
+                        if (iter === maxIterations) {
+                            data[pixelIdx] = 0; data[pixelIdx+1] = 0; data[pixelIdx+2] = 0; data[pixelIdx+3] = 255;
+                        } else {
+                            const zSq = zx2 + zy2;
+                            const logZn = Math.log(zSq) / 2;
+                            const nu = Math.log(logZn / log2) / log2;
+                            let smoothIter = iter + 1 - nu;
+                            if (smoothIter < 0) smoothIter = 0;
+                            const t = smoothIter * 0.05;
+                            data[pixelIdx] = Math.floor(255 * (0.5 + 0.5 * Math.cos(2 * Math.PI * (t + 0.0))));
+                            data[pixelIdx+1] = Math.floor(255 * (0.5 + 0.5 * Math.cos(2 * Math.PI * (t + 0.15))));
+                            data[pixelIdx+2] = Math.floor(255 * (0.5 + 0.5 * Math.cos(2 * Math.PI * (t + 0.3))));
+                            data[pixelIdx+3] = 255;
+                        }
+                    }
+                }
+                self.postMessage({ imgData, jobId, isLowRes }, [imgData.data.buffer]);
+            };
+        `;
+        
+        let mandelbrotWorker;
+        let currentJobId = 0;
+
+        function initWorker() {
+            if (mandelbrotWorker) mandelbrotWorker.terminate();
+            const blob = new Blob([workerCode], { type: 'application/javascript' });
+            mandelbrotWorker = new Worker(URL.createObjectURL(blob));
+            
+            mandelbrotWorker.onmessage = function(e) {
+                const { imgData, jobId, isLowRes } = e.data;
+                if (jobId === currentJobId) {
+                    if (isLowRes) {
+                        // Draw low-res buffer scaled up
+                        const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = imgData.width;
+                        tempCanvas.height = imgData.height;
+                        tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
+                        ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+                    } else {
+                        ctx.putImageData(imgData, 0, 0);
+                        hideStatus();
+                    }
+                }
+            };
+        }
+
+        /**
+         * @param {boolean} fullQuality - If true, renders at native resolution. If false, renders low-res immediately.
+         */
+        function render(fullQuality = true) {
+            if (!mandelbrotWorker) initWorker();
+            
+            // Clear existing timers for high-quality render
+            if (renderTimeout) clearTimeout(renderTimeout);
+
+            currentJobId++;
+            
+            if (!fullQuality) {
+                // Immediate low-res render
+                const w = Math.max(1, Math.floor(canvas.width / LOW_RES_DIVIDER));
+                const h = Math.max(1, Math.floor(canvas.height / LOW_RES_DIVIDER));
+                mandelbrotWorker.postMessage({
+                    width: w, height: h, x: currentX, y: currentY, 
+                    scale: currentScale / LOW_RES_DIVIDER, 
+                    maxIterations: Math.min(maxIter, 500), // Lower iters for fast zoom
+                    jobId: currentJobId, isLowRes: true
+                });
+
+                // Set timer for high-quality render
+                renderTimeout = setTimeout(() => {
+                    render(true);
+                }, 1000);
+            } else {
+                // Full quality render
+                showStatus('Refining detail...');
+                mandelbrotWorker.postMessage({
+                    width: canvas.width, height: canvas.height, 
+                    x: currentX, y: currentY, scale: currentScale, 
+                    maxIterations: maxIter, jobId: currentJobId, isLowRes: false
+                });
+            }
+        }
+
+        function renderFrameSync(ctxTarget, width, height, x, y, scale, maxIterations) {
+            return new Promise((resolve) => {
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                const tempWorker = new Worker(URL.createObjectURL(blob));
+                tempWorker.onmessage = (e) => {
+                    ctxTarget.putImageData(e.data.imgData, 0, 0);
+                    tempWorker.terminate();
+                    resolve();
+                };
+                tempWorker.postMessage({ width, height, x, y, scale, maxIterations, jobId: 0, isLowRes: false });
+            });
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (currentScale > MAX_DOUBLE_SCALE) {
+                showStatus('Reached precision limit!', 2000);
+                return;
+            }
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            currentX = currentX + (mouseX - canvas.width / 2) / currentScale;
+            currentY = currentY + (mouseY - canvas.height / 2) / currentScale;
+            currentScale *= ZOOM_FACTOR;
+            render(false); // Zoom fast!
+        });
+
+        iterSlider.addEventListener('input', (e) => iterInput.value = e.target.value);
+        iterSlider.addEventListener('change', (e) => {
+            maxIter = parseInt(e.target.value);
+            render(true);
+        });
+        iterInput.addEventListener('change', (e) => {
+            let val = Math.min(100000, Math.max(10, parseInt(e.target.value)));
+            e.target.value = val;
+            iterSlider.value = val;
+            maxIter = val;
+            render(true);
+        });
+
+        btnReset.addEventListener('click', () => {
+            currentX = -0.5; currentY = 0; currentScale = BASE_SCALE; maxIter = 500;
+            iterSlider.value = 500; iterInput.value = 500;
+            render(true);
+        });
+
+        btnRandom.addEventListener('click', () => {
+            const spot = awesomeSpots[Math.floor(Math.random() * awesomeSpots.length)];
+            currentX = spot.x; currentY = spot.y; currentScale = spot.scale; maxIter = spot.iter;
+            iterSlider.value = maxIter; iterInput.value = maxIter;
+            render(true);
+            showStatus('Teleported!', 2000);
+        });
+
+        async function getGifWorkerUrl() {
+            const res = await fetch('https://cdn.jsdelivr.net/npm/gif.js@0.2.0/dist/gif.worker.js');
+            const code = await res.text();
+            return URL.createObjectURL(new Blob([code], { type: 'application/javascript' }));
+        }
+
+        btnGif.addEventListener('click', async () => {
+            if (currentScale <= BASE_SCALE) return alert("Zoom in first!");
+            gifOverlay.classList.replace('hidden', 'flex');
+            const targetScale = currentScale;
+            const targetX = currentX;
+            const targetY = currentY;
+            const gifIters = Math.min(maxIter, 2000);
+            let simScale = BASE_SCALE;
+            let expectedFrames = 0;
+            let tempScale = BASE_SCALE;
+            while (tempScale < targetScale) { expectedFrames++; tempScale *= 1.3; }
+            
+            try {
+                gifStatusText.innerText = "Initializing...";
+                const gif = new GIF({ workers: 4, quality: 10, width: 400, height: 400, workerScript: await getGifWorkerUrl() });
+                let currentFrame = 0;
+                while (simScale < targetScale) {
+                    gifStatusText.innerText = `Frame ${++currentFrame}/${expectedFrames}`;
+                    await renderFrameSync(gifCtx, 400, 400, targetX, targetY, simScale, gifIters);
+                    gif.addFrame(gifCanvas, { copy: true, delay: 100 });
+                    simScale *= 1.3;
+                    gifProgressBar.style.width = `${(currentFrame / expectedFrames) * 50}%`;
+                }
+                await renderFrameSync(gifCtx, 400, 400, targetX, targetY, targetScale, gifIters);
+                gif.addFrame(gifCanvas, { copy: true, delay: 1500 });
+                gifStatusText.innerText = "Encoding...";
+                gif.on('progress', p => gifProgressBar.style.width = `${50 + (p * 50)}%`);
+                gif.on('finished', blob => {
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `mandelbrot_${Date.now()}.gif`;
+                    a.click();
+                    closeGifOverlay();
+                });
+                gif.render();
+            } catch (err) { closeGifOverlay(); }
+        });
+
+        function closeGifOverlay() {
+            gifOverlay.classList.replace('flex', 'hidden');
+            gifProgressBar.style.width = '0%';
+        }
+
+        let statusTimeout;
+        function showStatus(text, duration = null) {
+            statusToast.innerText = text;
+            statusToast.classList.replace('opacity-0', 'opacity-100');
+            statusToast.classList.replace('translate-y-4', 'translate-y-0');
+            clearTimeout(statusTimeout);
+            if (duration) statusTimeout = setTimeout(hideStatus, duration);
+        }
+
+        function hideStatus() {
+            statusToast.classList.replace('opacity-100', 'opacity-0');
+            statusToast.classList.replace('translate-y-0', 'translate-y-4');
+        }
+
+        canvas.width = Math.max(1, window.innerWidth);
+        canvas.height = Math.max(1, window.innerHeight);
+        render(true);
+
+    </script>
+</body>
+</html>
