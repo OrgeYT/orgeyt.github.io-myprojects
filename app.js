@@ -9,7 +9,8 @@ const projects = [
     "mandelbrot",
     "gswitch",
     "pfpmaker",
-    "platformer"
+    "platformer",
+    "throwplayground"
     ];
 
 // 2. Grab the elements from the DOM
