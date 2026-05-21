@@ -15,6 +15,7 @@
             background: #0f172a;
             font-family: 'Segoe UI', system-ui, sans-serif;
             overflow: hidden;
+            text-align: center; /* Added to center the text */
         }
 
         .welcome-container {
@@ -28,7 +29,6 @@
             margin: 0;
             cursor: default;
             text-transform: uppercase;
-            /* Clipping the text to reveal a background gradient animation */
             background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
             background-size: 200% auto;
             -webkit-background-clip: text;
@@ -37,7 +37,14 @@
             animation: shine 3s linear infinite;
         }
 
-        /* Subtle glow effect */
+        /* Styling for your new description */
+        .description {
+            color: #94a3b8;
+            font-size: 1.25rem;
+            margin-top: 10px;
+            letter-spacing: 0.05em;
+        }
+
         h1::after {
             content: "WELCOME";
             position: absolute;
@@ -57,6 +64,7 @@
 
     <div class="welcome-container">
         <h1>Welcome</h1>
+        <p class="description">Welcome to my github website! (My first ever, well, working correctly one...), this will include random projects i made that i would want to share with everyone!</p>
     </div>
 
 </body>
