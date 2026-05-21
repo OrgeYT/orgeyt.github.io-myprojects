@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G-Switch Collection - Play Online</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Ruffle for G-Switch 1 Flash support (Keeping for compatibility if needed elsewhere) -->
+    <script src="https://unpkg.com/@ruffle-rs/ruffle@0.1.0-nightly.2024.01.01/ruffle.js"></script>
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; 
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.15);
+            border: 1px solid #1e293b;
+            transition: padding-top 0.5s ease-in-out;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        #game-viewport-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center center;
+        }
+
+        #game-viewport {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* --- INTERACTIVE MIRROR MODE --- */
+        .effect-mirror {
+            display: flex !important;
+            flex-direction: row !important;
+            justify-content: flex-start !important;
+        }
+
+        .effect-mirror #game-viewport {
+            width: 50% !important;
+            -webkit-box-reflect: right 0px;
+        }
+
+        /* --- 3D CSS CUBE STYLES --- */
+        #cube-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            perspective: 1200px;
+            z-index: 20;
+            background: rgba(15, 23, 42, 0.95);
+            cursor: grab;
+            overflow: hidden;
+        }
+        
+        #cube-wrapper:active {
+            cursor: grabbing;
+        }
+
+        .cube {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 400px;
+            height: 400px;
+            margin-top: -200px;
+            margin-left: -200px;
+            transform-style: preserve-3d;
+            transform: rotateX(var(--rot-x, -10deg)) rotateY(var(--rot-y, -20deg));
+        }
+
+        .face {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: rgba(15, 23, 42, 0.8);
+            border: 2px solid #3b82f6;
+            box-shadow: inset 0 0 30px rgba(59, 130, 246, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            backface-visibility: visible;
+        }
+        
+        .face.front {
+            background: #000;
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+        }
+
+        .face iframe, .face ruffle-player {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .front  { transform: rotateY(0deg) translateZ(200px); }
+        .back   { transform: rotateY(180deg) translateZ(200px); }
+        .right  { transform: rotateY(90deg) translateZ(200px); }
+        .left   { transform: rotateY(-90deg) translateZ(200px); }
+        .top    { transform: rotateX(90deg) translateZ(200px); }
+        .bottom { transform: rotateX(-90deg) translateZ(200px); }
+
+        /* --- Effects --- */
+        .effect-rainbow { animation: rainbow 5s infinite linear; }
+        @keyframes rainbow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .effect-wavy { filter: url(#wavyFilter); }
+        .effect-upside-down { transform: scaleY(-1); }
+        .effect-invert { filter: invert(1); }
+        .effect-bw { filter: grayscale(1); }
+
+        /* Focus Mode Styles */
+        .focus-mode nav,
+        .focus-mode .header-text,
+        .focus-mode footer,
+        .focus-mode .game-selector-container,
+        .focus-mode .info-grid {
+            display: none;
+        }
+
+        .focus-mode .main-content {
+            width: 100%;
+            max-width: 100%;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+
+        #floating-controls {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            gap: 0.5rem;
+        }
+
+        .focus-mode #floating-controls {
+            display: flex;
+        }
+
+        .glow-effect {
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+        }
+
+        .game-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+
+        .game-card.active {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .effect-btn {
+            transition: all 0.2s ease;
+        }
+        .effect-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #60a5fa;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        input[type=range] {
+            accent-color: #3b82f6;
+        }
+
+        ruffle-player {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .version-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .slider-group {
+            display: none;
+        }
+        .slider-group.visible {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="transition-all duration-300">
+
+    <svg style="display: none;">
+        <defs>
+            <filter id="wavyFilter">
+                <feTurbulence type="fractalNoise" baseFrequency="0.01 0.05" numOctaves="2" result="noise">
+                    <animate attributeName="baseFrequency" values="0.01 0.05;0.01 0.1;0.01 0.05" dur="3s" repeatCount="indefinite" />
+                </feTurbulence>
+                <feDisplacementMap id="wavyMap" in="SourceGraphic" in2="noise" scale="30" />
+            </filter>
+        </defs>
+    </svg>
+
+    <div id="floating-controls">
+        <button onclick="handleRefresh()" title="Restart Game" class="p-3 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md rounded-full transition-colors border border-slate-700 text-slate-300 shadow-xl">
+            <i class="fas fa-sync-alt"></i>
+        </button>
+        <button onclick="toggleFocusMode()" title="Exit Focus Mode" class="p-3 bg-slate-800/80 hover:bg-slate-700 backdrop-blur-md rounded-full transition-colors border border-slate-700 text-slate-300 shadow-xl">
+            <i class="fas fa-compress"></i>
+        </button>
+    </div>
+
+    <nav class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
+                        <i class="fas fa-bolt text-white"></i>
+                    </div>
+                    <span class="text-xl font-bold tracking-tight">G-SWITCH <span class="text-blue-500">COLLECTION</span></span>
+                </div>
+                <div class="flex gap-3">
+                    <button id="refreshGame" title="Restart Game" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors border border-slate-700 text-slate-300">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button id="toggleFocus" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-2 text-sm font-medium border border-slate-700">
+                        <i class="fas fa-expand"></i>
+                        <span class="hidden sm:inline">Focus Mode</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 main-content transition-all duration-500">
+        
+        <div class="game-selector-container mb-8">
+            <h2 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-4">Select Version</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div onclick="loadGame(1)" id="card-1" class="game-card bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:bg-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center font-bold">1</div>
+                        <div>
+                            <div class="font-bold">G-Switch</div>
+                            <div class="text-xs text-slate-400">The Original</div>
+                        </div>
+                    </div>
+                </div>
+                <div onclick="loadGame(2)" id="card-2" class="game-card bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:bg-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center font-bold">2</div>
+                        <div>
+                            <div class="font-bold">G-Switch 2</div>
+                            <div class="text-xs text-slate-400">The Sequel</div>
+                        </div>
+                    </div>
+                </div>
+                <div onclick="loadGame(3)" id="card-3" class="game-card bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:bg-slate-800">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center font-bold">3</div>
+                        <div>
+                            <div class="font-bold">G-Switch 3</div>
+                            <div class="text-xs text-slate-400">The Ultimate</div>
+                        </div>
+                    </div>
+                </div>
+                <div onclick="loadGame(4)" id="card-4" class="game-card bg-slate-800/50 p-4 rounded-xl border border-slate-700 hover:bg-slate-800 active">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded bg-blue-600 flex items-center justify-center font-bold">4</div>
+                        <div class="flex-1">
+                            <div class="font-bold flex justify-between items-center">
+                                G-Switch 4
+                                <span id="v-indicator" class="version-badge">V1</span>
+                            </div>
+                            <div class="text-xs text-slate-400">Level Editor</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-8">
+            <div class="header-text mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 id="game-title" class="text-3xl font-bold mb-2">G-Switch 4</h1>
+                    <p id="game-desc" class="text-slate-400">Now with level editing and sharing! Uncover the truth behind the simulation.</p>
+                </div>
+                
+                <div id="gs4-versions" class="hidden flex items-center bg-slate-800/80 p-1 rounded-lg border border-slate-700">
+                    <button onclick="switchGS4(0)" id="gs4-v1" class="px-3 py-1.5 text-xs font-bold rounded bg-blue-600 text-white transition-all">Official (V1)</button>
+                    <button onclick="switchGS4(1)" id="gs4-v2" class="px-3 py-1.5 text-xs font-bold rounded text-slate-400 hover:text-slate-200 transition-all">Mirror (V2)</button>
+                </div>
+            </div>
+
+            <!-- Effect Bar -->
+            <div class="mb-4 bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                <div class="flex flex-wrap gap-2 justify-center mb-4">
+                    <span class="w-full text-center text-[10px] uppercase tracking-tighter text-slate-500 font-bold mb-1">Visual Modifiers</span>
+                    <button onclick="toggleEffect('rainbow', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Rainbow</button>
+                    <button onclick="toggleEffect('wavy', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Wavy</button>
+                    <button onclick="toggleEffect('mirror', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Mirror</button>
+                    <button onclick="toggleCubeEffect(this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Cube</button>
+                    <button onclick="toggleEffect('upside-down', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Upside Down</button>
+                    <button onclick="toggleEffect('invert', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Invert</button>
+                    <button onclick="toggleEffect('bw', this)" class="effect-btn px-3 py-1 rounded text-xs border border-slate-600 bg-slate-900 text-slate-300">Black and White</button>
+                    <button onclick="clearEffects()" class="px-3 py-1 rounded text-xs bg-red-900/20 text-red-400 border border-red-900/50 hover:bg-red-900/40">Clear All</button>
+                </div>
+
+                <!-- Sliders -->
+                <div id="sliders-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto border-t border-slate-700/50 pt-4 empty:pt-0">
+                    <div id="slider-wavy" class="slider-group flex-col gap-1">
+                        <div class="flex justify-between items-center text-[10px] text-slate-400 uppercase font-bold px-1">
+                            <span>Wavy Intensity</span>
+                            <span id="wavyVal">30</span>
+                        </div>
+                        <input type="range" min="0" max="150" value="30" oninput="updateSlider('wavy', this.value)" class="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                    </div>
+                </div>
+            </div>
+
+            <div class="game-container glow-effect" id="gameFrameContainer">
+                <div id="game-viewport-container">
+                    <!-- Main Game Viewport -->
+                </div>
+                
+                <!-- 3D CSS CUBE OVERLAY -->
+                <div id="cube-wrapper">
+                    <div class="cube" id="cube">
+                        <div class="face front"  id="face-front"></div>
+                        <div class="face back"   id="face-back"></div>
+                        <div class="face right"  id="face-right"></div>
+                        <div class="face left"   id="face-left"></div>
+                        <div class="face top"    id="face-top"></div>
+                        <div class="face bottom" id="face-bottom"></div>
+                    </div>
+                    <div class="absolute bottom-4 w-full text-center pointer-events-none text-white/50 text-sm font-bold tracking-widest animate-pulse">
+                        <i class="fas fa-hand-pointer mr-2"></i> DRAG BACKGROUND TO ROTATE
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 header-text info-grid">
+            <div class="bg-slate-800/40 p-6 rounded-xl border border-slate-700">
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="fas fa-gamepad text-blue-400"></i> Controls
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between bg-slate-900/50 p-3 rounded-lg">
+                        <span class="text-sm text-slate-300 font-medium">Flip Gravity</span>
+                        <span class="text-xs text-blue-400 font-bold uppercase">Any key or click</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-slate-800/40 p-6 rounded-xl border border-slate-700">
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-blue-400"></i> Game Details
+                </h3>
+                <p id="footer-details" class="text-slate-300 text-sm leading-relaxed">
+                    Access the complete G-Switch trilogy and the latest level editor.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="mt-12 border-t border-slate-800 py-8 text-center text-slate-500 text-sm">
+        <p>G-Switch Collection Portal &bull; 2024</p>
+    </footer>
+
+    <script>
+        const toggleBtn = document.getElementById('toggleFocus');
+        const refreshBtn = document.getElementById('refreshGame');
+        const body = document.body;
+        const gameFrameContainer = document.getElementById('gameFrameContainer');
+        const viewportContainer = document.getElementById('game-viewport-container');
+        const cubeWrapper = document.getElementById('cube-wrapper');
+        const cube = document.getElementById('cube');
+        const gameTitle = document.getElementById('game-title');
+        const gameDesc = document.getElementById('game-desc');
+        const gs4Controls = document.getElementById('gs4-versions');
+
+        let currentGameId = 4;
+        let gs4VersionIndex = 0; 
+        let isCubeActive = false;
+
+        const gs4Urls = [
+            "https://www.seriusgames.com/html5/g-switch-4-1.5.9/",
+            "https://szhong.4399.com/4399swf//upload_swf/ftp45/gamehwq/20231127/09/index.html"
+        ];
+
+        const games = {
+            1: { title: "G-Switch 1", desc: "The original gravity-defying runner.", url: "https://www.twoplayergames.org/gameframe/g-switch", type: "iframe", aspectRatio: "56.25%" },
+            2: { title: "G-Switch 2", desc: "High-speed sequel with complex platforming.", url: "https://www.twoplayergames.org/gameframe/g-switch-2", type: "iframe", aspectRatio: "56.25%" },
+            3: { title: "G-Switch 3", desc: "Lightning-speed timing and reflexes.", url: "https://files.twoplayergames.org/files/games/other/G-Switch_3/index.html", type: "iframe", aspectRatio: "56.25%" },
+            4: { title: "G-Switch 4", desc: "Level editing and sharing capabilities.", url: gs4Urls[0], type: "iframe", aspectRatio: "56.25%" }
+        };
+
+        async function createGameInstance() {
+            const game = games[currentGameId];
+            if (game.type === 'swf') {
+                if (!window.RufflePlayer) {
+                    await new Promise(resolve => {
+                        const check = setInterval(() => {
+                            if (window.RufflePlayer) {
+                                clearInterval(check);
+                                resolve();
+                            }
+                        }, 100);
+                    });
+                }
+
+                const ruffle = window.RufflePlayer.newest();
+                const player = ruffle.createPlayer();
+                player.id = "game-viewport";
+                
+                player.config = {
+                    autoplay: "on",
+                    unmuteOverlay: "hidden",
+                    letterbox: "on",
+                    warnOnUnsupportedContent: false
+                };
+
+                try {
+                    await player.load(game.url);
+                } catch (err) {
+                    console.error("SWF Load Error:", err);
+                }
+                
+                return player;
+            } else {
+                const iframe = document.createElement('iframe');
+                iframe.id = "game-viewport";
+                iframe.src = (currentGameId === 4) ? gs4Urls[gs4VersionIndex] : game.url;
+                iframe.allow = "autoplay; fullscreen; keyboard; gamepad";
+                return iframe;
+            }
+        }
+
+        async function loadGame(id) {
+            currentGameId = id;
+            const game = games[id];
+            
+            document.querySelectorAll('.game-card').forEach(card => card.classList.remove('active'));
+            const activeCard = document.getElementById(`card-${id}`);
+            if (activeCard) activeCard.classList.add('active');
+
+            gs4Controls.classList.toggle('hidden', id !== 4);
+            gameTitle.innerText = game.title;
+            gameDesc.innerText = game.desc;
+            gameFrameContainer.style.paddingTop = game.aspectRatio;
+
+            if (isCubeActive) {
+                toggleCubeEffect(document.querySelector('[onclick*="toggleCubeEffect"]'));
+            }
+
+            viewportContainer.innerHTML = '<div class="text-blue-400 animate-pulse font-bold">INITIALIZING SIMULATION...</div>';
+
+            const mainGame = await createGameInstance();
+            viewportContainer.innerHTML = '';
+            viewportContainer.appendChild(mainGame);
+        }
+
+        function toggleCubeEffect(btn) {
+            isCubeActive = !isCubeActive;
+            btn.classList.toggle('active', isCubeActive);
+            
+            const viewport = document.getElementById('game-viewport');
+            if (!viewport) return;
+            
+            if (isCubeActive) {
+                cubeWrapper.style.display = 'block';
+                document.getElementById('face-front').appendChild(viewport);
+                initCubeRotation();
+            } else {
+                cubeWrapper.style.display = 'none';
+                viewportContainer.appendChild(viewport);
+            }
+        }
+
+        let cubeX = -10, cubeY = -20;
+        function initCubeRotation() {
+            let isDragging = false;
+            let startX, startY;
+
+            cubeWrapper.onmousedown = (e) => {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+            };
+
+            window.onmousemove = (e) => {
+                if (!isDragging) return;
+                cubeY += (e.clientX - startX) * 0.5;
+                cubeX -= (e.clientY - startY) * 0.5;
+                cube.style.setProperty('--rot-x', cubeX + 'deg');
+                cube.style.setProperty('--rot-y', cubeY + 'deg');
+                startX = e.clientX;
+                startY = e.clientY;
+            };
+
+            window.onmouseup = () => isDragging = false;
+        }
+
+        function toggleEffect(effect, btn) {
+            const className = 'effect-' + effect;
+            viewportContainer.classList.toggle(className);
+            btn.classList.toggle('active');
+
+            const slider = document.getElementById('slider-' + effect);
+            if (slider) slider.classList.toggle('visible', btn.classList.contains('active'));
+        }
+
+        function updateSlider(type, val) {
+            const display = document.getElementById(type + 'Val');
+            if(display) display.innerText = val;
+            document.getElementById(type + 'Map')?.setAttribute('scale', val);
+        }
+
+        function clearEffects() {
+            const effects = ['effect-rainbow', 'effect-wavy', 'effect-upside-down', 'effect-invert', 'effect-bw', 'effect-mirror'];
+            effects.forEach(eff => viewportContainer.classList.remove(eff));
+            document.querySelectorAll('.effect-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.slider-group').forEach(slider => slider.classList.remove('visible'));
+            if (isCubeActive) toggleCubeEffect(document.querySelector('[onclick*="toggleCubeEffect"]'));
+        }
+
+        function handleRefresh() { loadGame(currentGameId); }
+
+        function toggleFocusMode() {
+            body.classList.toggle('focus-mode');
+            gameFrameContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        window.onload = () => {
+            refreshBtn.addEventListener('click', handleRefresh);
+            toggleBtn.addEventListener('click', toggleFocusMode);
+            loadGame(4);
+        };
+    </script>
+</body>
+</html>
