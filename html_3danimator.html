@@ -1,0 +1,2111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Stop-Motion Studio</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- TransformControls (3D Gizmo Support) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+    <!-- GLTFExporter (3D GLB Support) -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            user-select: none;
+        }
+        /* Canvas container background to provide workspace contrast with transparent canvas */
+        #three-canvas-mount {
+            background: radial-gradient(circle, #1e293b 0%, #0b0f19 100%);
+        }
+        /* Custom scrollbar for timeline and sidebars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        /* Mode transitions and visual styles */
+        .glassmorphism {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .timeline-card.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col text-slate-100">
+
+    <!-- Top Navbar -->
+    <header class="h-14 border-b border-slate-800 bg-slate-900/90 flex items-center justify-between px-6 z-10 shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-blue-600 to-indigo-500 p-2 rounded-lg shadow-md shadow-blue-500/20">
+                <i class="fa-solid fa-clapperboard text-white text-sm"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-sm tracking-wide text-white">STOP-FRAME 3D</h1>
+                <p class="text-[10px] text-slate-400 font-medium">Stop-Motion Animation Engine</p>
+            </div>
+        </div>
+
+        <!-- Project JSON Save & Load Controls -->
+        <div class="flex items-center space-x-2">
+            <button onclick="saveProjectJSON()" class="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-floppy-disk text-blue-400"></i>
+                <span>Save Studio (.json)</span>
+            </button>
+            <button onclick="triggerImportJSON()" class="px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg flex items-center space-x-1.5 transition">
+                <i class="fa-solid fa-folder-open text-indigo-400"></i>
+                <span>Load Studio</span>
+            </button>
+            <input type="file" id="import-json-input" accept=".json" onchange="handleImportJSON(event)" class="hidden">
+        </div>
+
+        <!-- Mode Toggle & Global Actions -->
+        <div class="flex items-center space-x-4">
+            <!-- Camera View Mode -->
+            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800">
+                <button id="btn-camera-main" onclick="setCameraMode('main')" class="px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all bg-blue-600 text-white shadow-sm">
+                    <i class="fa-solid fa-video"></i>
+                    <span>Director Cam</span>
+                </button>
+                <button id="btn-camera-free" onclick="setCameraMode('free')" class="px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                    <i class="fa-solid fa-mountain"></i>
+                    <span>Free Cam</span>
+                </button>
+            </div>
+
+            <!-- Playback controls -->
+            <div class="flex items-center space-x-2 border-l border-slate-800 pl-4">
+                <button id="btn-play" onclick="togglePlayback()" class="h-8 w-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition shadow-lg shadow-emerald-600/20">
+                    <i class="fa-solid fa-play text-xs"></i>
+                </button>
+                <div class="flex items-center space-x-2 bg-slate-950 px-2 py-1 rounded-lg border border-slate-800">
+                    <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">FPS</span>
+                    <input id="playback-fps" type="number" min="1" max="24" value="4" onchange="updateFPS(this.value)" class="w-8 bg-transparent text-center text-xs font-bold text-white focus:outline-none">
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <button onclick="exportCurrentFrame()" class="px-3 py-1.5 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg flex items-center space-x-1 transition">
+                <i class="fa-solid fa-image"></i>
+                <span>Export Frame</span>
+            </button>
+            <button onclick="exportGLB()" class="px-3 py-1.5 text-xs font-medium bg-emerald-600 hover:bg-emerald-550 text-white rounded-lg flex items-center space-x-1 transition shadow-lg shadow-emerald-600/10">
+                <i class="fa-solid fa-cube text-emerald-100"></i>
+                <span>Export GLB</span>
+            </button>
+            <button onclick="exportAllFrames()" class="px-3 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center space-x-1 transition shadow-lg shadow-blue-600/10">
+                <i class="fa-solid fa-file-image"></i>
+                <span>Export All (ZIP)</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Studio Workspace -->
+    <div class="flex flex-1 relative overflow-hidden">
+        
+        <!-- Left Sidebar - Hierarchy, Summon, Controls -->
+        <aside class="w-80 border-r border-slate-800 bg-slate-900/90 flex flex-col justify-between shrink-0 z-10">
+            <!-- Top Segment (Summon & Properties) -->
+            <div class="p-5 flex-1 overflow-y-auto space-y-6">
+                <!-- Summon Panel -->
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">Add Elements</h3>
+                    <button onclick="summonCube()" class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition shadow-lg shadow-blue-500/10 hover:shadow-blue-500/20 active:scale-95">
+                        <i class="fa-solid fa-cube text-sm"></i>
+                        <span>Summon Magic Cube</span>
+                    </button>
+                </div>
+
+                <!-- Cube List & Multi-Selection Toolbar -->
+                <div>
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center justify-between">
+                        <span>Stage Elements</span>
+                        <span id="cube-count" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">0 Cubes</span>
+                    </h3>
+                    
+                    <!-- Selection Toolbar for fast interactions -->
+                    <div class="grid grid-cols-3 gap-1.5 mb-3">
+                        <button id="btn-toggle-multiselect" onclick="toggleMultiSelectMode()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition">
+                            <i id="icon-toggle-multiselect" class="fa-solid fa-square"></i>
+                            <span id="lbl-toggle-multiselect">Multi-Select</span>
+                        </button>
+                        <button onclick="selectAllCubes()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition">
+                            <i class="fa-solid fa-list-check text-indigo-400"></i>
+                            <span>Select All</span>
+                        </button>
+                        <button onclick="clearSelection()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition">
+                            <i class="fa-solid fa-xmark text-rose-400"></i>
+                            <span>Clear</span>
+                        </button>
+                    </div>
+
+                    <div id="elements-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        <!-- Instantiated by JS -->
+                        <div class="text-center py-4 text-xs text-slate-500 italic bg-slate-950/40 rounded-lg border border-slate-800">
+                            No active elements on stage
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Element Properties Editor -->
+                <div id="properties-editor" class="hidden space-y-4 pt-4 border-t border-slate-800">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center space-x-1.5">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span id="properties-title">Cube Properties</span>
+                        </h3>
+                        <button onclick="deleteSelectedCubes()" class="text-xs text-rose-500 hover:text-rose-400 flex items-center space-x-1 transition" title="Delete Selection">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+
+                    <!-- Multi-Select Descriptive Panel -->
+                    <div id="multi-select-info" class="hidden p-3 rounded-xl bg-blue-950/30 border border-blue-900/40 space-y-2">
+                        <p id="multi-select-count" class="text-xs font-bold text-blue-300">0 Cubes Selected</p>
+                        <p class="text-[10px] text-slate-400 leading-normal">Use the 3D transform gizmo to move, rotate, or scale all selected cubes together relative to their collective pivot point. Changes to colors will apply immediately to all selection members.</p>
+                    </div>
+
+                    <!-- Transform Mode Switchers -->
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2">3D Transform Gizmo</label>
+                        <div class="grid grid-cols-4 gap-1 p-1 bg-slate-950 rounded-lg border border-slate-800">
+                            <button id="gizmo-btn-translate" onclick="setGizmoMode('translate')" title="Move Tool (W)" class="py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition bg-blue-600 text-white shadow">
+                                <i class="fa-solid fa-arrows-up-down-left-right mb-0.5 text-[10px]"></i>
+                                <span class="text-[9px]">Move</span>
+                            </button>
+                            <button id="gizmo-btn-rotate" onclick="setGizmoMode('rotate')" title="Rotate Tool (E)" class="py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition text-slate-400 hover:text-slate-200">
+                                <i class="fa-solid fa-rotate mb-0.5 text-[10px]"></i>
+                                <span class="text-[9px]">Rotate</span>
+                            </button>
+                            <button id="gizmo-btn-scale" onclick="setGizmoMode('scale')" title="Scale Tool (R)" class="py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition text-slate-400 hover:text-slate-200">
+                                <i class="fa-solid fa-maximize mb-0.5 text-[10px]"></i>
+                                <span class="text-[9px]">Scale</span>
+                            </button>
+                            <button id="gizmo-btn-none" onclick="setGizmoMode('none')" title="Hide Gizmo (Q)" class="py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition text-slate-400 hover:text-rose-400">
+                                <i class="fa-solid fa-eye-slash mb-0.5 text-[10px]"></i>
+                                <span class="text-[9px]">Hide</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Material and Color -->
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold mb-2">Color & Look</label>
+                        <div class="flex items-center space-x-3 bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+                            <div class="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-700">
+                                <input id="prop-color" type="color" oninput="updateSelectedCubeMaterial()" class="absolute inset-0 w-[200%] h-[200%] -translate-x-1/4 -translate-y-1/4 cursor-pointer">
+                            </div>
+                            <div class="flex-1">
+                                <input id="prop-color-hex" type="text" onchange="updateSelectedCubeHex(this.value)" class="w-full bg-slate-900 border border-slate-800 rounded-md px-2 py-1 text-xs font-mono text-slate-300 focus:outline-none focus:border-blue-500" value="#ffffff">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single Transform Inputs Container (hidden in multi-select mode) -->
+                    <div id="single-select-transforms" class="space-y-4">
+                        <!-- Position Transforms -->
+                        <div class="space-y-3">
+                            <label class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Position</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-red-500 px-1">X</span>
+                                    <input type="number" id="prop-pos-x" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-green-500 px-1">Y</span>
+                                    <input type="number" id="prop-pos-y" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-blue-500 px-1">Z</span>
+                                    <input type="number" id="prop-pos-z" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Rotation Transforms -->
+                        <div class="space-y-3">
+                            <label class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Rotation (Degrees)</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-red-400 px-1">Pitch</span>
+                                    <input type="number" id="prop-rot-x" step="5" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-green-400 px-1">Yaw</span>
+                                    <input type="number" id="prop-rot-y" step="5" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-blue-400 px-1">Roll</span>
+                                    <input type="number" id="prop-rot-z" step="5" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Scale Transforms -->
+                        <div class="space-y-3">
+                            <label class="block text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Scale</label>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-slate-500 px-1">W</span>
+                                    <input type="number" id="prop-scale-x" min="0.1" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-slate-500 px-1">H</span>
+                                    <input type="number" id="prop-scale-y" min="0.1" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                                <div class="bg-slate-950 p-1.5 rounded-lg border border-slate-800/80">
+                                    <span class="text-[9px] font-bold text-slate-500 px-1">D</span>
+                                    <input type="number" id="prop-scale-z" min="0.1" step="0.1" oninput="updateSelectedCubeTransform()" class="w-full bg-transparent text-xs text-slate-100 font-medium focus:outline-none p-0.5">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Left Sidebar Bottom Config -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50 space-y-3">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                    <span>Scene Settings</span>
+                    <button onclick="requestResetScene()" class="text-[10px] text-blue-400 hover:text-blue-300 transition uppercase tracking-wider font-bold">Clear All</button>
+                </div>
+                <div class="space-y-2.5">
+                    <label class="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>Show Floor Grid</span>
+                        <input id="setting-grid" type="checkbox" checked onchange="toggleGrid(this.checked)" class="rounded text-blue-600 focus:ring-0">
+                    </label>
+                    <label class="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                        <span>Ambient Light Intensity</span>
+                        <input id="setting-ambient" type="range" min="0" max="100" value="40" oninput="updateLighting()" class="w-20 accent-blue-500">
+                    </label>
+
+                    <!-- Global Camera Sync Settings -->
+                    <div class="border-t border-slate-800/80 pt-2.5 space-y-2">
+                        <label class="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-link text-blue-400 text-[10px]"></i>
+                                <span>Sync Camera to All Frames</span>
+                            </span>
+                            <input id="setting-sync-camera" type="checkbox" onchange="toggleSyncCamera(this.checked)" class="rounded text-blue-600 focus:ring-0">
+                        </label>
+                        <div class="flex items-center justify-between text-[11px] text-slate-300 pt-0.5">
+                            <span class="text-[10px] text-slate-400">Set Current Cam to All</span>
+                            <button onclick="applyCameraToAllFrames()" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-750 text-blue-400 hover:text-blue-300 border border-slate-700 hover:border-slate-600 rounded text-[9px] font-semibold transition uppercase tracking-wide">
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Onion Skinning Integration -->
+                    <div class="border-t border-slate-800/80 pt-2.5 space-y-2">
+                        <label class="flex items-center justify-between text-[11px] text-slate-300 cursor-pointer">
+                            <span class="flex items-center space-x-1.5">
+                                <i class="fa-solid fa-layer-group text-indigo-400 text-[10px]"></i>
+                                <span>Onion Skinning</span>
+                            </span>
+                            <input id="setting-onion-enable" type="checkbox" onchange="toggleOnionSkin(this.checked)" class="rounded text-indigo-600 focus:ring-0">
+                        </label>
+                        <div id="onion-options" class="hidden space-y-1.5 bg-slate-950/60 p-2 rounded-lg border border-slate-900">
+                            <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Display Frames</span>
+                                <select id="setting-onion-mode" onchange="updateOnionSkin()" class="bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-300 focus:outline-none focus:border-indigo-500 text-[9px]">
+                                    <option value="prev">Previous Frame Only</option>
+                                    <option value="next">Next Frame Only</option>
+                                    <option value="both" selected>Both (Prev & Next)</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center justify-between text-[10px] text-slate-400">
+                                <span>Ghost Opacity</span>
+                                <input id="setting-onion-opacity" type="range" min="10" max="80" value="30" oninput="updateOnionSkin()" class="w-16 accent-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Scene Container -->
+        <main class="flex-1 relative bg-slate-950 flex flex-col overflow-hidden">
+            <!-- 3D Canvas viewport container -->
+            <div id="canvas-container" class="flex-1 relative">
+                <!-- Overlay badge for camera mode -->
+                <div class="absolute top-4 left-4 z-10 pointer-events-none">
+                    <div id="camera-badge" class="px-3 py-1.5 rounded-lg glassmorphism text-xs font-semibold tracking-wider flex items-center space-x-2 text-white">
+                        <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
+                        <span id="camera-badge-text">DIRECTOR CAM</span>
+                    </div>
+                </div>
+
+                <!-- Aspect Overlay Helper (Shows the 1:1 Square Frame outline) -->
+                <div id="square-frame-overlay" class="absolute inset-0 pointer-events-none border-[3px] border-amber-500/30 flex items-center justify-center transition-all duration-300">
+                    <div class="w-[500px] h-[500px] max-w-full max-h-full border border-dashed border-amber-500/50 flex items-center justify-center relative">
+                        <!-- Crosshairs in center -->
+                        <div class="w-4 h-[1px] bg-amber-500/50 absolute"></div>
+                        <div class="h-4 w-[1px] bg-amber-500/50 absolute"></div>
+                        <span class="absolute bottom-2 right-2 text-[9px] text-amber-500/70 font-mono tracking-wider bg-slate-900/80 px-1.5 py-0.5 rounded">PNG EXPORT BOUNDS</span>
+                    </div>
+                </div>
+
+                <!-- Quick Help Controls Layer -->
+                <div class="absolute bottom-4 left-4 z-10 glassmorphism p-3 rounded-xl max-w-xs pointer-events-none">
+                    <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Shortcuts & Help</h4>
+                    <ul class="text-[10px] space-y-1 text-slate-300">
+                        <li class="flex justify-between"><span>Multi-Selection:</span> <span class="font-mono text-blue-400">[Shift + Click] cubes</span></li>
+                        <li class="flex justify-between"><span>Gizmo Shortcuts:</span> <span class="font-mono text-amber-400">[W] Move, [E] Rot, [R] Scale, [Q] Hide</span></li>
+                        <li class="flex justify-between"><span>Click empty stage:</span> <span class="font-mono text-slate-400">Deselect all</span></li>
+                        <li class="flex justify-between"><span>Orbit view:</span> <span class="font-mono text-blue-400">Left Drag (Free Cam)</span></li>
+                    </ul>
+                </div>
+
+                <!-- Core Three.js Canvas container mount -->
+                <div id="three-canvas-mount" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Timeline / Frame Manager -->
+    <footer class="h-44 border-t border-slate-800 bg-slate-900 flex flex-col justify-between shrink-0 z-10">
+        <!-- Frame toolbar -->
+        <div class="h-10 px-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/50">
+            <div class="flex items-center space-x-4">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Timeline / Frames</span>
+                <span id="active-frame-lbl" class="text-xs font-semibold text-blue-400">Frame 1 of 1</span>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <button onclick="addFrame()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-750 text-slate-200 rounded border border-slate-700 transition flex items-center space-x-1">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Blank Frame</span>
+                </button>
+                <button onclick="duplicateFrame()" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-750 text-slate-200 rounded border border-slate-700 transition flex items-center space-x-1">
+                    <i class="fa-solid fa-clone"></i>
+                    <span>Duplicate Frame</span>
+                </button>
+                <button onclick="deleteFrame()" class="px-2.5 py-1 text-xs bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/30 rounded transition flex items-center space-x-1">
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Delete Frame</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Frame items timeline channel -->
+        <div id="timeline-container" class="flex-1 overflow-x-auto overflow-y-hidden flex items-center space-x-4 px-6 py-4 bg-slate-950/30">
+            <!-- Frame boxes will populate here dynamically via JS -->
+        </div>
+    </footer>
+
+    <!-- Hidden standard notification dialog component -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3">
+        <div id="toast-icon-bg" class="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs">
+            <i id="toast-icon" class="fa-solid fa-check"></i>
+        </div>
+        <p id="toast-message" class="text-xs font-medium text-slate-200">Frame created successfully.</p>
+    </div>
+
+    <!-- Elegant Custom Confirmation Modal -->
+    <div id="custom-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 w-96 rounded-2xl p-6 shadow-2xl transform scale-95 transition-all duration-300">
+            <div class="flex items-center space-x-3 text-amber-500 mb-4">
+                <i class="fa-solid fa-triangle-exclamation text-2xl"></i>
+                <h3 class="text-lg font-bold text-slate-100">Are you sure?</h3>
+            </div>
+            <p id="confirm-modal-text" class="text-xs text-slate-400 leading-relaxed mb-6">This action cannot be undone. Are you sure you want to proceed?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="confirm-modal-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-lg transition">Cancel</button>
+                <button id="confirm-modal-action" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-lg transition shadow-lg shadow-rose-600/20">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Engine Core -->
+    <script>
+        // Global App State
+        let frames = [];
+        let activeFrameIndex = 0;
+        let selectedCubeIds = []; // Upgraded array to support multi-selection
+        let cameraMode = 'main'; // 'main' (Director) or 'free'
+        let isPlaying = false;
+        let playInterval = null;
+        let fps = 4;
+        let nextCubeId = 1;
+        let nextFrameId = 1;
+        let isMultiSelectMode = false; // Toggle flag for touchscreen/sidebar multi selection
+
+        // Global Camera Sync Options
+        let syncCameraToAll = false;
+
+        // Onion Skin State
+        let onionSkinEnabled = false;
+        let onionSkinMode = 'both'; // 'prev', 'next', 'both'
+        let onionSkinOpacity = 0.3;
+        let onionSkinMeshes = [];
+
+        // Three.js Core components
+        let scene, mainCamera, freeCamera, renderer, controls, transformControls;
+        let activeCamera;
+        let gridHelper;
+        let mainCameraHelper; // Camera visualizer mesh shown in Free Cam mode
+        let lightsGroup = {};
+        
+        // Lists to store ThreeJS active meshes in 3D viewport
+        let threeCubes = {};
+        
+        // Multi Selection Pivot Group Helper
+        let multiSelectGroup;
+
+        // Window onload initialization
+        window.onload = function() {
+            initApp();
+            animate();
+            setupKeyboardShortcuts();
+        }
+
+        // Initialize state, generate initial frame, setup Three.js engine
+        function initApp() {
+            setupThreeJS();
+            
+            // Build first default frame
+            const initialFrame = createBlankFrameState();
+            frames.push(initialFrame);
+            
+            // Generate some initial cubes to populate the workspace instantly
+            addDefaultCubeToFrame(initialFrame, '#3b82f6', -1.5, 0.5, 0); // blue
+            addDefaultCubeToFrame(initialFrame, '#10b981', 1.5, 0.5, 0);  // emerald
+            
+            // Update Scene and Timeline
+            applyFrameToScene(0);
+            renderTimeline();
+            updateUIState();
+        }
+
+        // Setting up the WebGL Three.js Sandbox
+        function setupThreeJS() {
+            const container = document.getElementById('three-canvas-mount');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Create Scene
+            scene = new THREE.Scene();
+
+            // Director Camera
+            mainCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            mainCamera.position.set(0, 5, 10);
+            mainCamera.lookAt(0, 0, 0);
+
+            // Free Editor Camera
+            freeCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            freeCamera.position.set(8, 8, 12);
+            freeCamera.lookAt(0, 0, 0);
+
+            // Set Initial Camera
+            activeCamera = mainCamera;
+
+            // Renderer configured with transparency (alpha: true)
+            renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true, alpha: true });
+            renderer.setClearColor(0x000000, 0); // Fully transparent background
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Orbit Controls setup (Initially attached to active camera)
+            controls = new THREE.OrbitControls(freeCamera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target.set(0, 0, 0);
+
+            // Grid & Ground Visualizers
+            gridHelper = new THREE.GridHelper(30, 30, 0x3b82f6, 0x1e293b);
+            gridHelper.position.y = -0.01; // Slightly below zero to prevent z-fighting
+            scene.add(gridHelper);
+
+            // Initialize Multi Selection Transformation Group Pivot
+            multiSelectGroup = new THREE.Group();
+            scene.add(multiSelectGroup);
+
+            // Interactive 3D Transform Gizmo integration
+            transformControls = new THREE.TransformControls(activeCamera, renderer.domElement);
+            // Sync current cube transforms back to JSON frame data as the user drags
+            transformControls.addEventListener('change', () => {
+                if (selectedCubeIds.length > 0 && transformControls.dragging) {
+                    syncGizmoToState();
+                }
+            });
+            // Stop OrbitControls from moving the camera while we're dragging gizmo handles
+            transformControls.addEventListener('dragging-changed', (event) => {
+                controls.enabled = !event.value;
+                if (!event.value) {
+                    // Update timeline frame card thumbnail after user releases drag handle
+                    debounceUpdateTimelineThumbnail();
+                }
+            });
+            scene.add(transformControls);
+
+            // Setup Studio Lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            lightsGroup.ambient = ambientLight;
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            mainLight.position.set(10, 20, 15);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            mainLight.shadow.bias = -0.0001;
+            scene.add(mainLight);
+            lightsGroup.main = mainLight;
+
+            // Secondary softer rim light
+            const fillLight = new THREE.DirectionalLight(0xa5b4fc, 0.3);
+            fillLight.position.set(-10, 10, -10);
+            scene.add(fillLight);
+
+            // Constructing detailed vintage movie Camera visualizer mesh
+            buildCameraHelper();
+
+            // Set up Window Resize handler
+            window.addEventListener('resize', onWindowResize);
+
+            // Add Mouse Click Picker (Raycasting)
+            renderer.domElement.addEventListener('pointerdown', handleScenePointerDown);
+        }
+
+        // Custom vintage film camera representation mesh
+        function buildCameraHelper() {
+            mainCameraHelper = new THREE.Group();
+            
+            // Camera Body
+            const bodyGeo = new THREE.BoxGeometry(0.8, 0.6, 1);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            mainCameraHelper.add(body);
+
+            // Film Reels
+            const reelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.15, 16);
+            const reelMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 });
+            const reelLeft = new THREE.Mesh(reelGeo, reelMat);
+            reelLeft.rotation.x = Math.PI / 2;
+            reelLeft.position.set(-0.25, 0.5, 0.1);
+            
+            const reelRight = reelLeft.clone();
+            reelRight.position.set(-0.25, 0.5, -0.4);
+
+            mainCameraHelper.add(reelLeft);
+            mainCameraHelper.add(reelRight);
+
+            // Camera Lens
+            const lensGeo = new THREE.CylinderGeometry(0.2, 0.15, 0.4, 16);
+            const lensMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, metalness: 0.9 });
+            const lens = new THREE.Mesh(lensGeo, lensMat);
+            lens.rotation.x = Math.PI / 2;
+            lens.position.set(0, 0, 0.6);
+            mainCameraHelper.add(lens);
+
+            // Initial Position for helper matching camera
+            scene.add(mainCameraHelper);
+            mainCameraHelper.visible = false; // Hidden in default Main camera mode
+        }
+
+        // Handle viewport pointer interactions (Raycasting picker)
+        function handleScenePointerDown(event) {
+            // Check if user is clicking/hovering directly on the interactive Transform Controls Gizmo
+            if (transformControls.dragging) return;
+            
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(x, y), activeCamera);
+
+            // Ensure we do not accidentally trigger selection when clicking TransformControl gizmo elements
+            const gizmoIntersects = raycaster.intersectObjects(transformControls.children, true);
+            if (gizmoIntersects.length > 0) return;
+
+            // Get standard stage meshes
+            const meshes = Object.values(threeCubes);
+            const intersects = raycaster.intersectObjects(meshes);
+
+            if (intersects.length > 0) {
+                // Find ID of hit object
+                const hitMesh = intersects[0].object;
+                const hitId = Object.keys(threeCubes).find(key => threeCubes[key] === hitMesh);
+                if (hitId) {
+                    handleItemSelection(hitId, event.shiftKey);
+                }
+            } else {
+                // Clicked on empty space: clear selection unless holding down shift or multi-select toggle is on
+                if (!event.shiftKey && !isMultiSelectMode) {
+                    selectCubes([]);
+                }
+            }
+        }
+
+        // Centralized selection decision engine to support both Shift-Click and Click list modifiers
+        function handleItemSelection(id, isShiftPressed) {
+            if (isShiftPressed || isMultiSelectMode) {
+                // Toggle active selected member
+                if (selectedCubeIds.includes(id)) {
+                    const idx = selectedCubeIds.indexOf(id);
+                    const newSelection = [...selectedCubeIds];
+                    newSelection.splice(idx, 1);
+                    selectCubes(newSelection);
+                } else {
+                    selectCubes([...selectedCubeIds, id]);
+                }
+            } else {
+                // Normal standard single selection
+                selectCubes([id]);
+            }
+        }
+
+        // Setup Keyboard Shortcuts for ultra-fast transforming
+        function setupKeyboardShortcuts() {
+            window.addEventListener('keydown', (e) => {
+                // If focus is inside input boxes, ignore hotkeys
+                if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') {
+                    return;
+                }
+                const key = e.key.toLowerCase();
+                if (key === 'w') {
+                    setGizmoMode('translate');
+                } else if (key === 'e') {
+                    setGizmoMode('rotate');
+                } else if (key === 'r') {
+                    setGizmoMode('scale');
+                } else if (key === 'q') {
+                    setGizmoMode('none');
+                }
+            });
+        }
+
+        // State Generator: blank template frame
+        function createBlankFrameState() {
+            return {
+                id: nextFrameId++,
+                cubes: {},
+                camera: {
+                    px: 0, py: 5, pz: 10,
+                    tx: 0, ty: 0, tz: 0
+                }
+            };
+        }
+
+        // Generate base test structures in fresh scenes
+        function addDefaultCubeToFrame(frame, colorHex, px, py, pz) {
+            const id = 'cube_' + nextCubeId++;
+            frame.cubes[id] = {
+                id: id,
+                color: colorHex,
+                px: px, py: py, pz: pz,
+                rx: 0, ry: 0, rz: 0,
+                sx: 1.0, sy: 1.0, sz: 1.0
+            };
+            return id;
+        }
+
+        // Detaches and disbands the multi-select group container, returning meshes back to scene root
+        function disbandMultiSelectGroup() {
+            if (!multiSelectGroup || multiSelectGroup.children.length === 0) return;
+            
+            // Shallow clone children array to prevent index-skipping as we detach
+            const children = [...multiSelectGroup.children];
+            children.forEach(mesh => {
+                if (mesh.name !== "selection_wireframe") {
+                    scene.attach(mesh);
+                }
+            });
+        }
+
+        // Clear existing mesh layers from the active Three.js rendering scene
+        function clearStageMeshes() {
+            // Detach gizmo first before deleting target meshes
+            transformControls.detach();
+
+            Object.values(threeCubes).forEach(mesh => {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                if (Array.isArray(mesh.material)) {
+                    mesh.material.forEach(mat => mat.dispose());
+                } else {
+                    mesh.material.dispose();
+                }
+            });
+            threeCubes = {};
+        }
+
+        // Main synchronization: render specific frame state inside ThreeJS viewport
+        function applyFrameToScene(index) {
+            if (index < 0 || index >= frames.length) return;
+            
+            disbandMultiSelectGroup(); // Release any active selection groupings before clearing
+            clearStageMeshes();
+            const frame = frames[index];
+
+            // Reconstruct cubes in current frame
+            Object.values(frame.cubes).forEach(cubeData => {
+                const geo = new THREE.BoxGeometry(1, 1, 1);
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: cubeData.color,
+                    roughness: 0.3,
+                    metalness: 0.1
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                // Position
+                mesh.position.set(cubeData.px, cubeData.py, cubeData.pz);
+                // Rotation (Euler conversion from degrees)
+                mesh.rotation.set(
+                    THREE.MathUtils.degToRad(cubeData.rx),
+                    THREE.MathUtils.degToRad(cubeData.ry),
+                    THREE.MathUtils.degToRad(cubeData.rz)
+                );
+                // Scale
+                mesh.scale.set(cubeData.sx, cubeData.sy, cubeData.sz);
+
+                // Add to scene and memory structure
+                scene.add(mesh);
+                threeCubes[cubeData.id] = mesh;
+
+                // Re-apply highlight boundaries if selected in current frame context
+                if (selectedCubeIds.includes(cubeData.id)) {
+                    addHighlightToMesh(mesh);
+                }
+            });
+
+            // Adjust main camera visually to saved director coordinates
+            mainCamera.position.set(frame.camera.px, frame.camera.py, frame.camera.pz);
+            mainCamera.lookAt(new THREE.Vector3(frame.camera.tx, frame.camera.ty, frame.camera.tz));
+
+            // Align retro 3D camera helper
+            if (mainCameraHelper) {
+                mainCameraHelper.position.copy(mainCamera.position);
+                mainCameraHelper.rotation.copy(mainCamera.rotation);
+            }
+
+            // Sync visual controls
+            if (cameraMode === 'main') {
+                controls.object = mainCamera;
+                controls.target.set(frame.camera.tx, frame.camera.ty, frame.camera.tz);
+            } else {
+                controls.object = freeCamera;
+            }
+            controls.update();
+
+            // Reassemble group bounds if multi-selection remains valid
+            if (selectedCubeIds.length > 1) {
+                setupMultiSelectGroup();
+            } else if (selectedCubeIds.length === 1) {
+                const singleMesh = threeCubes[selectedCubeIds[0]];
+                if (singleMesh && transformControls.visible) {
+                    transformControls.attach(singleMesh);
+                }
+            }
+
+            // Sync 3D Onion Skin ghosts
+            updateOnionSkin();
+        }
+
+        // Clean up visual reference layers representing onion skin frame positions
+        function clearOnionSkin() {
+            onionSkinMeshes.forEach(mesh => {
+                scene.remove(mesh);
+                mesh.geometry.dispose();
+                if (Array.isArray(mesh.material)) {
+                    mesh.material.forEach(mat => mat.dispose());
+                } else {
+                    mesh.material.dispose();
+                }
+            });
+            onionSkinMeshes = [];
+        }
+
+        // Re-align and update the onion skin ghost structures
+        function updateOnionSkin() {
+            clearOnionSkin();
+
+            // Fetch DOM UI parameters
+            onionSkinEnabled = document.getElementById('setting-onion-enable').checked;
+            if (!onionSkinEnabled) {
+                document.getElementById('onion-options').classList.add('hidden');
+                return;
+            }
+            document.getElementById('onion-options').classList.remove('hidden');
+
+            onionSkinMode = document.getElementById('setting-onion-mode').value;
+            onionSkinOpacity = parseFloat(document.getElementById('setting-onion-opacity').value) / 100;
+
+            const drawGhostFrame = (frameIndex, tintColor) => {
+                if (frameIndex < 0 || frameIndex >= frames.length) return;
+                const frame = frames[frameIndex];
+
+                Object.values(frame.cubes).forEach(cubeData => {
+                    const geo = new THREE.BoxGeometry(1, 1, 1);
+                    // Use standard flat materials to represent translucent silhouettes
+                    const mat = new THREE.MeshBasicMaterial({
+                        color: tintColor,
+                        transparent: true,
+                        opacity: onionSkinOpacity,
+                        depthWrite: false // Prevents sorting glitches when overlapping normal active meshes
+                    });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.set(cubeData.px, cubeData.py, cubeData.pz);
+                    mesh.rotation.set(
+                        THREE.MathUtils.degToRad(cubeData.rx),
+                        THREE.MathUtils.degToRad(cubeData.ry),
+                        THREE.MathUtils.degToRad(cubeData.rz)
+                    );
+                    mesh.scale.set(cubeData.sx, cubeData.sy, cubeData.sz);
+
+                    // Overlay thin high contrast wireframe on ghosts for structural guidance
+                    const wireGeo = new THREE.BoxGeometry(1.01, 1.01, 1.01);
+                    const wireMat = new THREE.MeshBasicMaterial({
+                        color: tintColor,
+                        transparent: true,
+                        opacity: onionSkinOpacity * 1.5,
+                        wireframe: true,
+                        depthWrite: false
+                    });
+                    const wire = new THREE.Mesh(wireGeo, wireMat);
+                    mesh.add(wire);
+
+                    scene.add(mesh);
+                    onionSkinMeshes.push(mesh);
+                });
+            };
+
+            // Previous frame shown in Crimson tint
+            if (onionSkinMode === 'prev' || onionSkinMode === 'both') {
+                drawGhostFrame(activeFrameIndex - 1, 0xef4444);
+            }
+            // Next frame shown in Emerald tint
+            if (onionSkinMode === 'next' || onionSkinMode === 'both') {
+                drawGhostFrame(activeFrameIndex + 1, 0x10b981);
+            }
+        }
+
+        // Camera Sync State Actions
+        function toggleSyncCamera(checked) {
+            syncCameraToAll = checked;
+            if (syncCameraToAll) {
+                applyCameraToAllFrames(false); // silently sync now
+                showToast("Real-time Camera synchronization enabled!", "info");
+            } else {
+                showToast("Camera synchronization disabled.", "info");
+            }
+        }
+
+        function applyCameraToAllFrames(showNotification = true) {
+            if (frames.length === 0) return;
+            
+            // Extract current target positioning values
+            const px = mainCamera.position.x;
+            const py = mainCamera.position.y;
+            const pz = mainCamera.position.z;
+            
+            const tx = controls.target.x;
+            const ty = controls.target.y;
+            const tz = controls.target.z;
+
+            frames.forEach(f => {
+                f.camera.px = px;
+                f.camera.py = py;
+                f.camera.pz = pz;
+                f.camera.tx = tx;
+                f.camera.ty = ty;
+                f.camera.tz = tz;
+            });
+
+            if (showNotification) {
+                showToast("Applied current camera angle to all frames!", "success");
+            }
+        }
+
+        // Simple high contrast border visualization on selected objects
+        function addHighlightToMesh(mesh) {
+            // Remove previous wireframes if lingering
+            const oldWire = mesh.getObjectByName("selection_wireframe");
+            if (oldWire) mesh.remove(oldWire);
+
+            const geo = new THREE.BoxGeometry(1.02, 1.02, 1.02);
+            const wireMat = new THREE.MeshBasicMaterial({ 
+                color: 0x3b82f6, 
+                wireframe: true,
+                transparent: true,
+                opacity: 0.6
+            });
+            const wireframe = new THREE.Mesh(geo, wireMat);
+            wireframe.name = "selection_wireframe";
+            mesh.add(wireframe);
+        }
+
+        function removeHighlightFromMesh(mesh) {
+            const wire = mesh.getObjectByName("selection_wireframe");
+            if (wire) mesh.remove(wire);
+        }
+
+        // Gizmo mode switching handler (translate, rotate, scale, none)
+        function setGizmoMode(mode) {
+            const btnTranslate = document.getElementById('gizmo-btn-translate');
+            const btnRotate = document.getElementById('gizmo-btn-rotate');
+            const btnScale = document.getElementById('gizmo-btn-scale');
+            const btnNone = document.getElementById('gizmo-btn-none');
+
+            // Reset layouts
+            [btnTranslate, btnRotate, btnScale, btnNone].forEach(btn => {
+                btn.className = "py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition text-slate-400 hover:text-slate-200";
+            });
+
+            if (mode === 'none') {
+                transformControls.visible = false;
+                transformControls.detach();
+                btnNone.className = "py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition bg-slate-800 text-rose-400 border border-slate-700 shadow";
+            } else {
+                transformControls.visible = true;
+                transformControls.setMode(mode);
+                
+                if (selectedCubeIds.length > 1) {
+                    transformControls.attach(multiSelectGroup);
+                } else if (selectedCubeIds.length === 1 && threeCubes[selectedCubeIds[0]]) {
+                    transformControls.attach(threeCubes[selectedCubeIds[0]]);
+                }
+
+                if (mode === 'translate') {
+                    btnTranslate.className = "py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition bg-blue-600 text-white shadow";
+                } else if (mode === 'rotate') {
+                    btnRotate.className = "py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition bg-blue-600 text-white shadow";
+                } else if (mode === 'scale') {
+                    btnScale.className = "py-1.5 rounded text-xs font-bold flex flex-col items-center justify-center transition bg-blue-600 text-white shadow";
+                }
+            }
+        }
+
+        // Pull coordinates from interactive 3D gizmo and sync them directly to state variables
+        function syncGizmoToState() {
+            if (selectedCubeIds.length === 0) return;
+
+            const frame = frames[activeFrameIndex];
+
+            if (selectedCubeIds.length === 1) {
+                const id = selectedCubeIds[0];
+                const data = frame.cubes[id];
+                const mesh = threeCubes[id];
+
+                if (!data || !mesh) return;
+
+                // Sync single values from ThreeJS object structure
+                data.px = parseFloat(mesh.position.x.toFixed(2));
+                data.py = parseFloat(mesh.position.y.toFixed(2));
+                data.pz = parseFloat(mesh.position.z.toFixed(2));
+
+                data.rx = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.x));
+                data.ry = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.y));
+                data.rz = Math.round(THREE.MathUtils.radToDeg(mesh.rotation.z));
+
+                data.sx = parseFloat(mesh.scale.x.toFixed(2));
+                data.sy = parseFloat(mesh.scale.y.toFixed(2));
+                data.sz = parseFloat(mesh.scale.z.toFixed(2));
+
+                // Sync sidebar inputs instantly
+                document.getElementById('prop-pos-x').value = data.px;
+                document.getElementById('prop-pos-y').value = data.py;
+                document.getElementById('prop-pos-z').value = data.pz;
+
+                document.getElementById('prop-rot-x').value = data.rx;
+                document.getElementById('prop-rot-y').value = data.ry;
+                document.getElementById('prop-rot-z').value = data.rz;
+
+                document.getElementById('prop-scale-x').value = data.sx;
+                document.getElementById('prop-scale-y').value = data.sy;
+                document.getElementById('prop-scale-z').value = data.sz;
+            } else {
+                // Multi-select translation/rotation tracking utilizing world matrix mapping
+                selectedCubeIds.forEach(id => {
+                    const mesh = threeCubes[id];
+                    const data = frame.cubes[id];
+                    if (mesh && data) {
+                        const worldPos = new THREE.Vector3();
+                        const worldQuat = new THREE.Quaternion();
+                        const worldScale = new THREE.Vector3();
+
+                        mesh.getWorldPosition(worldPos);
+                        mesh.getWorldQuaternion(worldQuat);
+                        mesh.getWorldScale(worldScale);
+
+                        const euler = new THREE.Euler().setFromQuaternion(worldQuat);
+
+                        data.px = parseFloat(worldPos.x.toFixed(2));
+                        data.py = parseFloat(worldPos.y.toFixed(2));
+                        data.pz = parseFloat(worldPos.z.toFixed(2));
+
+                        data.rx = Math.round(THREE.MathUtils.radToDeg(euler.x));
+                        data.ry = Math.round(THREE.MathUtils.radToDeg(euler.y));
+                        data.rz = Math.round(THREE.MathUtils.radToDeg(euler.z));
+
+                        data.sx = parseFloat(worldScale.x.toFixed(2));
+                        data.sy = parseFloat(worldScale.y.toFixed(2));
+                        data.sz = parseFloat(worldScale.z.toFixed(2));
+                    }
+                });
+            }
+        }
+
+        // Construct the multi-selection pivot group to manipulate multiple meshes at once
+        function setupMultiSelectGroup() {
+            if (selectedCubeIds.length <= 1) return;
+
+            // 1. Calculate the bounding center of all selected elements
+            const center = new THREE.Vector3();
+            let count = 0;
+
+            selectedCubeIds.forEach(id => {
+                const mesh = threeCubes[id];
+                if (mesh) {
+                    center.add(mesh.position);
+                    count++;
+                }
+            });
+
+            if (count > 0) {
+                center.divideScalar(count);
+            }
+
+            // 2. Align the group pivot to this center point
+            multiSelectGroup.position.copy(center);
+            multiSelectGroup.rotation.set(0, 0, 0);
+            multiSelectGroup.scale.set(1, 1, 1);
+            multiSelectGroup.updateMatrixWorld();
+
+            // 3. Attach each selected mesh to the group (maintaining its world position)
+            selectedCubeIds.forEach(id => {
+                const mesh = threeCubes[id];
+                if (mesh) {
+                    multiSelectGroup.attach(mesh);
+                }
+            });
+
+            // 4. Attach transform controls to the group itself
+            if (transformControls.visible) {
+                transformControls.attach(multiSelectGroup);
+            }
+        }
+
+        // State Manager: Master selection distributor
+        function selectCubes(ids) {
+            // First, disband any active multiSelectGroups to return meshes back to the scene root
+            disbandMultiSelectGroup();
+
+            // Clear highlights from all current meshes
+            Object.values(threeCubes).forEach(mesh => {
+                removeHighlightFromMesh(mesh);
+            });
+            transformControls.detach();
+
+            selectedCubeIds = ids;
+
+            if (selectedCubeIds.length === 0) {
+                document.getElementById('properties-editor').classList.add('hidden');
+                updateCubeListUI();
+                return;
+            }
+
+            // Highlight all selected meshes
+            selectedCubeIds.forEach(id => {
+                const mesh = threeCubes[id];
+                if (mesh) {
+                    addHighlightToMesh(mesh);
+                }
+            });
+
+            document.getElementById('properties-editor').classList.remove('hidden');
+
+            if (selectedCubeIds.length === 1) {
+                // Configure properties editor for single selection
+                const id = selectedCubeIds[0];
+                const mesh = threeCubes[id];
+                if (mesh && transformControls.visible) {
+                    transformControls.attach(mesh);
+                }
+
+                const frame = frames[activeFrameIndex];
+                const data = frame.cubes[id];
+
+                document.getElementById('properties-title').innerText = "Cube Properties";
+                document.getElementById('multi-select-info').classList.add('hidden');
+                document.getElementById('single-select-transforms').classList.remove('hidden');
+
+                document.getElementById('prop-color').value = data.color;
+                document.getElementById('prop-color-hex').value = data.color.toUpperCase();
+                
+                document.getElementById('prop-pos-x').value = data.px;
+                document.getElementById('prop-pos-y').value = data.py;
+                document.getElementById('prop-pos-z').value = data.pz;
+
+                document.getElementById('prop-rot-x').value = data.rx;
+                document.getElementById('prop-rot-y').value = data.ry;
+                document.getElementById('prop-rot-z').value = data.rz;
+
+                document.getElementById('prop-scale-x').value = data.sx;
+                document.getElementById('prop-scale-y').value = data.sy;
+                document.getElementById('prop-scale-z').value = data.sz;
+            } else {
+                // Configure properties editor for multiple items
+                document.getElementById('properties-title').innerText = "Multi-Cube Properties";
+                document.getElementById('multi-select-info').classList.remove('hidden');
+                document.getElementById('multi-select-count').innerText = `${selectedCubeIds.length} Cubes Selected`;
+                document.getElementById('single-select-transforms').classList.add('hidden');
+
+                // Prepare multi select container
+                setupMultiSelectGroup();
+            }
+
+            updateCubeListUI();
+        }
+
+        // Toggles multi selection state (helpful on mobile viewports)
+        function toggleMultiSelectMode() {
+            isMultiSelectMode = !isMultiSelectMode;
+            const btn = document.getElementById('btn-toggle-multiselect');
+            const lbl = document.getElementById('lbl-toggle-multiselect');
+            const icon = document.getElementById('icon-toggle-multiselect');
+
+            if (isMultiSelectMode) {
+                btn.className = "py-1.5 px-1 text-[9px] font-semibold bg-blue-600/25 hover:bg-blue-600/40 text-blue-200 rounded-lg border border-blue-500 flex items-center justify-center space-x-1 transition shadow-sm";
+                lbl.innerText = "Multi-Select: ON";
+                icon.className = "fa-solid fa-square-check text-blue-400 animate-pulse";
+                showToast("Multi-Select ON. Tap cubes to select multiple.", "info");
+            } else {
+                btn.className = "py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition";
+                lbl.innerText = "Multi-Select";
+                icon.className = "fa-solid fa-square";
+                showToast("Multi-Select OFF. Restored normal click selection.", "info");
+            }
+        }
+
+        // Interactive toggle helper for the onion skins
+        function toggleOnionSkin(checked) {
+            onionSkinEnabled = checked;
+            updateOnionSkin();
+            if (checked) {
+                showToast("Onion Skinning enabled", "info");
+            } else {
+                showToast("Onion Skinning disabled", "info");
+            }
+        }
+
+        // Helper selection utilities
+        function selectAllCubes() {
+            const frame = frames[activeFrameIndex];
+            const allIds = Object.keys(frame.cubes);
+            selectCubes(allIds);
+            showToast(`Selected all (${allIds.length}) cubes.`, "success");
+        }
+
+        // Action wrapper to clear selections
+        function clearSelection() {
+            selectCubes([]);
+            showToast("Cleared active selection.", "info");
+        }
+
+        // Summon Cube Event Trigger
+        function summonCube() {
+            const frame = frames[activeFrameIndex];
+            const colorPresets = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
+            const randomColor = colorPresets[Math.floor(Math.random() * colorPresets.length)];
+            
+            // Random distribution on ground plane
+            const px = (Math.random() - 0.5) * 4;
+            const py = 0.5; // flush with ground
+            const pz = (Math.random() - 0.5) * 4;
+
+            const id = addDefaultCubeToFrame(frame, randomColor, px, py, pz);
+            
+            applyFrameToScene(activeFrameIndex);
+            selectCubes([id]);
+            renderTimeline();
+            updateUIState();
+            
+            showToast("Cube summoned successfully", "success");
+        }
+
+        // Propagate property field modifications manually typed into sidebars to 3D representation
+        function updateSelectedCubeTransform() {
+            if (selectedCubeIds.length !== 1) return;
+
+            const id = selectedCubeIds[0];
+            const frame = frames[activeFrameIndex];
+            const data = frame.cubes[id];
+            const mesh = threeCubes[id];
+
+            if (!data || !mesh) return;
+
+            // Extract numeric transforms safely
+            data.px = parseFloat(document.getElementById('prop-pos-x').value) || 0;
+            data.py = parseFloat(document.getElementById('prop-pos-y').value) || 0;
+            data.pz = parseFloat(document.getElementById('prop-pos-z').value) || 0;
+
+            data.rx = parseFloat(document.getElementById('prop-rot-x').value) || 0;
+            data.ry = parseFloat(document.getElementById('prop-rot-y').value) || 0;
+            data.rz = parseFloat(document.getElementById('prop-rot-z').value) || 0;
+
+            data.sx = Math.max(0.1, parseFloat(document.getElementById('prop-scale-x').value) || 1);
+            data.sy = Math.max(0.1, parseFloat(document.getElementById('prop-scale-y').value) || 1);
+            data.sz = Math.max(0.1, parseFloat(document.getElementById('prop-scale-z').value) || 1);
+
+            // Re-apply values to direct ThreeJS geometry transformations
+            mesh.position.set(data.px, data.py, data.pz);
+            mesh.rotation.set(
+                THREE.MathUtils.degToRad(data.rx),
+                THREE.MathUtils.degToRad(data.ry),
+                THREE.MathUtils.degToRad(data.rz)
+            );
+            mesh.scale.set(data.sx, data.sy, data.sz);
+
+            // Update transformControls visually if active
+            transformControls.update();
+
+            // Redraw current timeline frame slot dynamically
+            debounceUpdateTimelineThumbnail();
+        }
+
+        // Color and material picker state updates for single or batch selections
+        function updateSelectedCubeMaterial() {
+            if (selectedCubeIds.length === 0) return;
+
+            const newColor = document.getElementById('prop-color').value;
+            document.getElementById('prop-color-hex').value = newColor.toUpperCase();
+
+            selectedCubeIds.forEach(id => {
+                const frame = frames[activeFrameIndex];
+                const data = frame.cubes[id];
+                const mesh = threeCubes[id];
+
+                if (data && mesh) {
+                    data.color = newColor;
+                    mesh.material.color.set(newColor);
+                }
+            });
+            
+            debounceUpdateTimelineThumbnail();
+        }
+
+        function updateSelectedCubeHex(hexValue) {
+            if (selectedCubeIds.length === 0 || !hexValue.startsWith('#') || hexValue.length !== 7) return;
+            document.getElementById('prop-color').value = hexValue;
+            updateSelectedCubeMaterial();
+        }
+
+        // Deletion operations on selected shapes (supporting batch deleting)
+        function deleteSelectedCubes() {
+            if (selectedCubeIds.length === 0) return;
+            
+            const frame = frames[activeFrameIndex];
+            
+            selectedCubeIds.forEach(id => {
+                delete frame.cubes[id];
+            });
+            
+            selectedCubeIds = [];
+            applyFrameToScene(activeFrameIndex);
+            selectCubes([]);
+            renderTimeline();
+            updateUIState();
+            
+            showToast("Deleted selected cubes from stage", "info");
+        }
+
+        // Toggles camera context ('main' / 'free')
+        function setCameraMode(mode) {
+            cameraMode = mode;
+            const btnMain = document.getElementById('btn-camera-main');
+            const btnFree = document.getElementById('btn-camera-free');
+            const badgeText = document.getElementById('camera-badge-text');
+            const overlay = document.getElementById('square-frame-overlay');
+
+            if (mode === 'main') {
+                activeCamera = mainCamera;
+                mainCameraHelper.visible = false;
+                overlay.style.opacity = '1';
+                
+                // Style elements
+                btnMain.className = "px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all bg-blue-600 text-white shadow-sm";
+                btnFree.className = "px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200";
+                badgeText.innerText = "DIRECTOR CAM";
+                
+                // Snap OrbitControls back to main director perspective
+                controls.object = mainCamera;
+                const frame = frames[activeFrameIndex];
+                controls.target.set(frame.camera.tx, frame.camera.ty, frame.camera.tz);
+            } else {
+                activeCamera = freeCamera;
+                mainCameraHelper.visible = true;
+                overlay.style.opacity = '0.3'; // Dimmed layout frames during free rotation mode
+                
+                btnFree.className = "px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all bg-blue-600 text-white shadow-sm";
+                btnMain.className = "px-3 py-1 text-xs font-semibold rounded-md flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200";
+                badgeText.innerText = "FREE CAMERA";
+                
+                controls.object = freeCamera;
+            }
+
+            // Sync gizmo camera settings so controls adjust nicely to active viewport
+            transformControls.camera = activeCamera;
+            controls.update();
+        }
+
+        // Create an entirely blank secondary storyboard scene frame
+        function addFrame() {
+            const newFrame = createBlankFrameState();
+            
+            // Clone cubes from active frame to preserve context nicely for animation continuity
+            const activeFrame = frames[activeFrameIndex];
+            newFrame.cubes = JSON.parse(JSON.stringify(activeFrame.cubes));
+            newFrame.camera = JSON.parse(JSON.stringify(activeFrame.camera));
+            
+            frames.splice(activeFrameIndex + 1, 0, newFrame);
+            
+            // Go to the newly inserted slot
+            selectFrame(activeFrameIndex + 1);
+            showToast("Blank frame added", "success");
+        }
+
+        // Storyboard manipulation helper: duplicate
+        function duplicateFrame() {
+            const activeFrame = frames[activeFrameIndex];
+            const duplicate = {
+                id: nextFrameId++,
+                cubes: JSON.parse(JSON.stringify(activeFrame.cubes)),
+                camera: JSON.parse(JSON.stringify(activeFrame.camera))
+            };
+            
+            frames.splice(activeFrameIndex + 1, 0, duplicate);
+            selectFrame(activeFrameIndex + 1);
+            showToast("Frame duplicated successfully", "success");
+        }
+
+        // Storyboard frame removal logic
+        function deleteFrame() {
+            if (frames.length <= 1) {
+                showToast("Cannot delete the last remaining frame!", "warning");
+                return;
+            }
+
+            frames.splice(activeFrameIndex, 1);
+            
+            // Re-index pointer down to protect stack overflows
+            if (activeFrameIndex >= frames.length) {
+                activeFrameIndex = frames.length - 1;
+            }
+
+            selectFrame(activeFrameIndex);
+            showToast("Frame deleted", "info");
+        }
+
+        // Navigate directly to exact selected storyboard item
+        function selectFrame(index) {
+            if (index < 0 || index >= frames.length) return;
+            activeFrameIndex = index;
+            
+            // Sync scene
+            applyFrameToScene(index);
+            
+            // Select no object automatically when swapping frames to prevent matrix reference loss
+            selectCubes([]);
+            
+            renderTimeline();
+            updateUIState();
+        }
+
+        // Generates dynamic miniature thumbnails of active viewport content for timeline slots
+        function captureFrameThumbnail(frameIndex) {
+            // Save current camera setups and selection configs
+            const origAspect = mainCamera.aspect;
+            const origSize = new THREE.Vector2();
+            renderer.getSize(origSize);
+
+            const savedSelection = [...selectedCubeIds];
+
+            // Temporarily swap scene positions to matching target
+            applyFrameToScene(frameIndex);
+
+            // Temporary hide selection wireframe and transform gizmo for clear rendering
+            const prevGizmoVisible = transformControls.visible;
+            transformControls.visible = false;
+            savedSelection.forEach(id => {
+                if (threeCubes[id]) {
+                    const wire = threeCubes[id].getObjectByName("selection_wireframe");
+                    if (wire) wire.visible = false;
+                }
+            });
+
+            // Clean up reference onion skin visual ghosts specifically on timeline thumbnail capture
+            clearOnionSkin();
+
+            // Standardize capture size parameters
+            const renderSize = 120;
+            renderer.setSize(renderSize, renderSize, false);
+            mainCamera.aspect = 1;
+            mainCamera.updateProjectionMatrix();
+
+            // Perform export renders specifically utilizing the main cinematic frame view
+            renderer.render(scene, mainCamera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+
+            // Restore canvas to current user settings
+            renderer.setSize(origSize.x, origSize.y, false);
+            mainCamera.aspect = origAspect;
+            mainCamera.updateProjectionMatrix();
+
+            transformControls.visible = prevGizmoVisible;
+            savedSelection.forEach(id => {
+                if (threeCubes[id]) {
+                    const wire = threeCubes[id].getObjectByName("selection_wireframe");
+                    if (wire) wire.visible = true;
+                }
+            });
+
+            // Re-align and restore multi-selection variables to interactive state
+            applyFrameToScene(activeFrameIndex);
+            if (savedSelection.length > 0) {
+                selectCubes(savedSelection);
+            }
+
+            return dataURL;
+        }
+
+        // Debounce mechanism preventing laggy slide changes during manual manipulation
+        let thumbnailTimeout;
+        function debounceUpdateTimelineThumbnail() {
+            clearTimeout(thumbnailTimeout);
+            thumbnailTimeout = setTimeout(() => {
+                const imgElement = document.getElementById(`thumb-${activeFrameIndex}`);
+                if (imgElement) {
+                    imgElement.src = captureFrameThumbnail(activeFrameIndex);
+                }
+            }, 300);
+        }
+
+        // Save current Stop-Motion project setup (including frames & Director Camera Placement) into JSON File
+        function saveProjectJSON() {
+            const projectData = {
+                metadata: {
+                    engine: "Stop-Frame 3D Studio",
+                    version: "2.5",
+                    timestamp: new Date().toISOString()
+                },
+                fps: fps,
+                nextCubeId: nextCubeId,
+                nextFrameId: nextFrameId,
+                activeFrameIndex: activeFrameIndex,
+                frames: frames
+            };
+
+            const jsonString = JSON.stringify(projectData, null, 2);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.download = `stop-motion_project_${new Date().toISOString().slice(0,10)}.json`;
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            showToast("Studio Project exported to JSON!", "success");
+        }
+
+        // Triggers click event on hidden HTML file selector
+        function triggerImportJSON() {
+            document.getElementById('import-json-input').click();
+        }
+
+        // Handles actual import processing of selected JSON projects
+        function handleImportJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (!data.frames || !Array.isArray(data.frames)) {
+                        throw new Error("Invalid Studio file format - Missing storyboard sequence.");
+                    }
+
+                    // Restore global parameters
+                    fps = data.fps || 4;
+                    document.getElementById('playback-fps').value = fps;
+                    nextCubeId = data.nextCubeId || 1;
+                    nextFrameId = data.nextFrameId || 1;
+                    frames = data.frames;
+                    activeFrameIndex = data.activeFrameIndex !== undefined ? data.activeFrameIndex : 0;
+                    if (activeFrameIndex >= frames.length) activeFrameIndex = 0;
+
+                    // Sync graphics
+                    applyFrameToScene(activeFrameIndex);
+                    renderTimeline();
+                    updateUIState();
+                    selectCubes([]);
+
+                    showToast("Studio project loaded successfully!", "success");
+                } catch(error) {
+                    showToast("Error parsing Project JSON - invalid structure", "warning");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Reset input target
+        }
+
+        // Drawing and appending items on Bottom Storyboard Panel
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
+            container.innerHTML = '';
+
+            frames.forEach((frame, idx) => {
+                const frameCard = document.createElement('div');
+                frameCard.className = `timeline-card shrink-0 w-28 bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden cursor-pointer flex flex-col justify-between transition relative ${idx === activeFrameIndex ? 'active' : ''}`;
+                frameCard.onclick = () => selectFrame(idx);
+
+                // Miniature Thumbnail box
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = "h-16 w-full bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800/60 relative";
+                
+                // Draw live elements internally
+                const thumbImg = document.createElement('img');
+                thumbImg.id = `thumb-${idx}`;
+                thumbImg.className = "object-contain w-full h-full";
+                
+                // Fetch cached thumbnail dynamically
+                thumbImg.src = captureFrameThumbnail(idx);
+                
+                thumbDiv.appendChild(thumbImg);
+
+                // Card Footer
+                const footerDiv = document.createElement('div');
+                footerDiv.className = "p-1.5 flex items-center justify-between text-[10px] bg-slate-900";
+                
+                const numberLbl = document.createElement('span');
+                numberLbl.className = "font-bold text-slate-400";
+                numberLbl.innerText = `#${idx + 1}`;
+
+                const cubeCount = document.createElement('span');
+                cubeCount.className = "text-slate-500 text-[9px] flex items-center space-x-0.5";
+                cubeCount.innerHTML = `<i class="fa-solid fa-cube text-[8px]"></i> <span>${Object.keys(frame.cubes).length}</span>`;
+
+                footerDiv.appendChild(numberLbl);
+                footerDiv.appendChild(cubeCount);
+
+                frameCard.appendChild(thumbDiv);
+                frameCard.appendChild(footerDiv);
+                container.appendChild(frameCard);
+            });
+
+            // Adjust horizontal alignment to center active viewport card
+            const activeCard = container.children[activeFrameIndex];
+            if (activeCard) {
+                activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+        }
+
+        // Synchronizes labels, counts, and structures inside Left properties sidebars
+        function updateUIState() {
+            document.getElementById('active-frame-lbl').innerText = `Frame ${activeFrameIndex + 1} of ${frames.length}`;
+            
+            const frame = frames[activeFrameIndex];
+            const cubesCount = Object.keys(frame.cubes).length;
+            document.getElementById('cube-count').innerText = `${cubesCount} Cube${cubesCount !== 1 ? 's' : ''}`;
+
+            updateCubeListUI();
+        }
+
+        // Refreshes custom hierarchy list in Left side panel
+        function updateCubeListUI() {
+            const listContainer = document.getElementById('elements-list');
+            listContainer.innerHTML = '';
+
+            const frame = frames[activeFrameIndex];
+            const cubes = Object.values(frame.cubes);
+
+            if (cubes.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center py-4 text-xs text-slate-500 italic bg-slate-950/40 rounded-lg border border-slate-800">
+                        No active elements on stage
+                    </div>
+                `;
+                return;
+            }
+
+            cubes.forEach(cube => {
+                const isSelected = selectedCubeIds.includes(cube.id);
+                const item = document.createElement('div');
+                item.className = `flex items-center justify-between p-2 rounded-lg border text-xs cursor-pointer transition-all ${isSelected ? 'bg-blue-600/20 border-blue-500 text-blue-200' : 'bg-slate-950 border-slate-800/80 hover:bg-slate-900/60 text-slate-300'}`;
+                item.onclick = (e) => {
+                    e.stopPropagation();
+                    handleItemSelection(cube.id, e.shiftKey);
+                };
+
+                const titleGroup = document.createElement('div');
+                titleGroup.className = "flex items-center space-x-2";
+                
+                const dot = document.createElement('div');
+                dot.className = "w-2.5 h-2.5 rounded border border-white/20";
+                dot.style.backgroundColor = cube.color;
+                
+                const title = document.createElement('span');
+                title.className = "font-medium font-mono text-[11px]";
+                title.innerText = cube.id;
+
+                titleGroup.appendChild(dot);
+                titleGroup.appendChild(title);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = "text-slate-500 hover:text-rose-400 p-0.5 transition";
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    selectCubes([cube.id]);
+                    deleteSelectedCubes();
+                };
+                deleteBtn.innerHTML = `<i class="fa-solid fa-xmark text-[10px]"></i>`;
+
+                item.appendChild(titleGroup);
+                item.appendChild(deleteBtn);
+                listContainer.appendChild(item);
+            });
+        }
+
+        // Cycles frames continuously to preview final stop-motion output
+        function togglePlayback() {
+            isPlaying = !isPlaying;
+            const playBtn = document.getElementById('btn-play');
+
+            if (isPlaying) {
+                // Change to main director view instantly to guarantee clear projection
+                setCameraMode('main');
+                
+                playBtn.innerHTML = `<i class="fa-solid fa-pause text-xs"></i>`;
+                playBtn.className = "h-8 w-8 rounded-lg bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center transition shadow-lg shadow-rose-600/20";
+                
+                startPlaybackTimer();
+                showToast("Stop-motion preview playing", "success");
+            } else {
+                playBtn.innerHTML = `<i class="fa-solid fa-play text-xs"></i>`;
+                playBtn.className = "h-8 w-8 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center transition shadow-lg shadow-emerald-600/20";
+                
+                clearInterval(playInterval);
+                playInterval = null;
+            }
+        }
+
+        function startPlaybackTimer() {
+            if (playInterval) clearInterval(playInterval);
+            
+            const ms = 1000 / fps;
+            playInterval = setInterval(() => {
+                let nextIdx = activeFrameIndex + 1;
+                if (nextIdx >= frames.length) {
+                    nextIdx = 0; // loop back to first frame
+                }
+                selectFrame(nextIdx);
+            }, ms);
+        }
+
+        function updateFPS(val) {
+            fps = Math.max(1, Math.min(24, parseInt(val) || 4));
+            document.getElementById('playback-fps').value = fps;
+            if (isPlaying) {
+                startPlaybackTimer(); // restart with new timing intervals
+            }
+        }
+
+        // Generates and downloads exact transparent square 1:1 format frame
+        function exportCurrentFrame() {
+            const origAspect = mainCamera.aspect;
+            const origSize = new THREE.Vector2();
+            renderer.getSize(origSize);
+
+            // Configure precise high-quality square capturing dimensions (1024x1024)
+            const captureResolution = 1024;
+            renderer.setSize(captureResolution, captureResolution, false);
+            mainCamera.aspect = 1; // 1:1 Aspect Ratio
+            mainCamera.updateProjectionMatrix();
+
+            // Clear visual helper elements temporarily to guarantee clear exports
+            const prevGridVisible = gridHelper.visible;
+            gridHelper.visible = false;
+            
+            const prevGizmoVisible = transformControls.visible;
+            transformControls.visible = false;
+            
+            // Temporarily clear onion skins so references don't end up on output exports
+            const wasOnionEnabled = onionSkinEnabled;
+            if (wasOnionEnabled) {
+                clearOnionSkin();
+            }
+
+            // Highlight cleaning
+            selectedCubeIds.forEach(id => {
+                if (threeCubes[id]) {
+                    const wire = threeCubes[id].getObjectByName("selection_wireframe");
+                    if (wire) wire.visible = false;
+                }
+            });
+
+            // Render scene explicitly through Director's camera
+            renderer.render(scene, mainCamera);
+
+            // Fetch Frame Image data
+            const dataURL = renderer.domElement.toDataURL('image/png');
+
+            // Restore elements instantly
+            gridHelper.visible = prevGridVisible;
+            transformControls.visible = prevGizmoVisible;
+            selectedCubeIds.forEach(id => {
+                if (threeCubes[id]) {
+                    const wire = threeCubes[id].getObjectByName("selection_wireframe");
+                    if (wire) wire.visible = true;
+                }
+            });
+
+            // Restore onion skin if it was active
+            if (wasOnionEnabled) {
+                updateOnionSkin();
+            }
+
+            renderer.setSize(origSize.x, origSize.y, false);
+            mainCamera.aspect = origAspect;
+            mainCamera.updateProjectionMatrix();
+
+            // Force browser save download
+            const link = document.createElement('a');
+            link.download = `stop-motion_frame_${activeFrameIndex + 1}.png`;
+            link.href = dataURL;
+            link.click();
+
+            showToast(`Exported frame #${activeFrameIndex + 1}!`, "success");
+        }
+
+        // Packages and exports the entire active scene layout for the current frame as a valid .glb 3D model
+        function exportGLB() {
+            if (typeof THREE.GLTFExporter === 'undefined') {
+                showToast("GLTF Exporter not loaded yet. Please wait.", "warning");
+                return;
+            }
+
+            showToast("Packaging current frame as GLB...", "info");
+
+            // Rebuild entirely clean static export meshes directly from the frame state data source of truth.
+            // This safely avoids outline highlights, gizmo artifacts, or temporary multi-selection group offsets.
+            const exportGroup = new THREE.Group();
+            exportGroup.name = `Frame_${activeFrameIndex + 1}_Scene`;
+
+            const frame = frames[activeFrameIndex];
+            Object.values(frame.cubes).forEach(cubeData => {
+                const geo = new THREE.BoxGeometry(1, 1, 1);
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: cubeData.color,
+                    roughness: 0.3,
+                    metalness: 0.1
+                });
+                const mesh = new THREE.Mesh(geo, mat);
+                
+                // Copy exact transformation values
+                mesh.position.set(cubeData.px, cubeData.py, cubeData.pz);
+                mesh.rotation.set(
+                    THREE.MathUtils.degToRad(cubeData.rx),
+                    THREE.MathUtils.degToRad(cubeData.ry),
+                    THREE.MathUtils.degToRad(cubeData.rz)
+                );
+                mesh.scale.set(cubeData.sx, cubeData.sy, cubeData.sz);
+
+                exportGroup.add(mesh);
+            });
+
+            // Force recalculate model coordinate matrices
+            exportGroup.updateMatrixWorld(true);
+
+            // Instantiate GLTFExporter
+            const exporter = new THREE.GLTFExporter();
+            const options = { binary: true };
+
+            const onCompleted = function (gltf) {
+                let blob;
+                let filename = `stop-motion_frame_${activeFrameIndex + 1}`;
+                
+                if (gltf instanceof ArrayBuffer) {
+                    blob = new Blob([gltf], { type: 'application/octet-stream' });
+                    filename += '.glb';
+                } else {
+                    // Safe fallback back to stringified .gltf format if the loaded exporter returns JSON
+                    const jsonString = JSON.stringify(gltf, null, 2);
+                    blob = new Blob([jsonString], { type: 'application/json' });
+                    filename += '.gltf';
+                }
+                
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.download = filename;
+                link.href = url;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                showToast(`Frame #${activeFrameIndex + 1} exported successfully!`, "success");
+            };
+
+            const onError = function (error) {
+                console.error("GLB Export Failed:", error);
+                showToast("Error generating GLB file.", "warning");
+            };
+
+            // Safely parse supporting both the 3-argument and 4-argument specifications of THREE.GLTFExporter
+            if (exporter.parse.length === 3) {
+                exporter.parse(exportGroup, onCompleted, options);
+            } else {
+                exporter.parse(exportGroup, onCompleted, onError, options);
+            }
+        }
+
+        // Batch download setup using asynchronous recursive simulation
+        function exportAllFrames() {
+            showToast("Packaging all frames...", "info");
+            
+            let currentExportIndex = 0;
+
+            function triggerNextDownload() {
+                if (currentExportIndex >= frames.length) {
+                    showToast("All frames processed successfully!", "success");
+                    return;
+                }
+
+                // Render specifically target index
+                applyFrameToScene(currentExportIndex);
+
+                setTimeout(() => {
+                    const origAspect = mainCamera.aspect;
+                    const origSize = new THREE.Vector2();
+                    renderer.getSize(origSize);
+
+                    const captureResolution = 1024;
+                    renderer.setSize(captureResolution, captureResolution, false);
+                    mainCamera.aspect = 1;
+                    mainCamera.updateProjectionMatrix();
+
+                    // Hide Grid and helpers
+                    const prevGridVisible = gridHelper.visible;
+                    gridHelper.visible = false;
+
+                    const prevGizmoVisible = transformControls.visible;
+                    transformControls.visible = false;
+
+                    // Ensure onion skin reference ghosts are removed for exports
+                    const wasOnionEnabled = onionSkinEnabled;
+                    if (wasOnionEnabled) {
+                        clearOnionSkin();
+                    }
+
+                    renderer.render(scene, mainCamera);
+                    const dataURL = renderer.domElement.toDataURL('image/png');
+
+                    gridHelper.visible = prevGridVisible;
+                    transformControls.visible = prevGizmoVisible;
+                    
+                    // Restore onion skin structure
+                    if (wasOnionEnabled) {
+                        updateOnionSkin();
+                    }
+
+                    renderer.setSize(origSize.x, origSize.y, false);
+                    mainCamera.aspect = origAspect;
+                    mainCamera.updateProjectionMatrix();
+
+                    const link = document.createElement('a');
+                    link.download = `stop-motion_sequence_${String(currentExportIndex + 1).padStart(3, '0')}.png`;
+                    link.href = dataURL;
+                    link.click();
+
+                    currentExportIndex++;
+                    setTimeout(triggerNextDownload, 350); // small delay to allow browsers to schedule batch downloads reliably
+                }, 100);
+            }
+
+            triggerNextDownload();
+        }
+
+        // Configurable elements
+        function toggleGrid(visible) {
+            gridHelper.visible = visible;
+        }
+
+        // Adjust intensity
+        function updateLighting() {
+            const ambientSliderVal = parseFloat(document.getElementById('setting-ambient').value);
+            lightsGroup.ambient.intensity = ambientSliderVal / 100;
+        }
+
+        // Elegant custom Modal Confirmation dialog trigger
+        function requestResetScene() {
+            showCustomConfirm("Are you sure you want to clear your stage? This completely resets all storyboard steps and your directory camera layout.", () => {
+                frames = [];
+                activeFrameIndex = 0;
+                selectedCubeIds = [];
+                nextCubeId = 1;
+                nextFrameId = 1;
+                initApp();
+                showToast("Workspace fully reset", "info");
+            });
+        }
+
+        // Custom Modal UI Handler
+        function showCustomConfirm(message, onConfirm) {
+            const modal = document.getElementById('custom-confirm-modal');
+            const modalText = document.getElementById('confirm-modal-text');
+            const btnCancel = document.getElementById('confirm-modal-cancel');
+            const btnAction = document.getElementById('confirm-modal-action');
+
+            modalText.innerText = message;
+
+            // Open Transition
+            modal.classList.remove('pointer-events-none');
+            modal.classList.add('opacity-100');
+            modal.firstElementChild.classList.remove('scale-95');
+            modal.firstElementChild.classList.add('scale-100');
+
+            const closeModal = () => {
+                modal.classList.add('pointer-events-none');
+                modal.classList.remove('opacity-100');
+                modal.firstElementChild.classList.remove('scale-100');
+                modal.firstElementChild.classList.add('scale-95');
+            };
+
+            btnCancel.onclick = () => closeModal();
+            
+            btnAction.onclick = () => {
+                closeModal();
+                onConfirm();
+            };
+        }
+
+        // Auto Window scale handler
+        function onWindowResize() {
+            const container = document.getElementById('three-canvas-mount');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            mainCamera.aspect = width / height;
+            mainCamera.updateProjectionMatrix();
+
+            freeCamera.aspect = width / height;
+            freeCamera.updateProjectionMatrix();
+
+            renderer.setSize(width, height);
+        }
+
+        // Notification Engine
+        function showToast(msg, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-message');
+            const toastBg = document.getElementById('toast-icon-bg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.innerText = msg;
+
+            // Type styles
+            if (type === "success") {
+                toastBg.className = "p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs";
+                toastIcon.className = "fa-solid fa-check";
+            } else if (type === "warning") {
+                toastBg.className = "p-1.5 rounded-lg bg-amber-500/20 text-amber-400 text-xs";
+                toastIcon.className = "fa-solid fa-triangle-exclamation";
+            } else {
+                toastBg.className = "p-1.5 rounded-lg bg-blue-500/20 text-blue-400 text-xs";
+                toastIcon.className = "fa-solid fa-info";
+            }
+
+            // Animate In
+            toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-0 opacity-100 transition-all duration-300 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3";
+            
+            setTimeout(() => {
+                toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3";
+            }, 3000);
+        }
+
+        // Standard Frame Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+
+            // Update user navigation controls state
+            controls.update();
+
+            // Continuously synchronize animated cameras
+            if (cameraMode === 'main') {
+                const frame = frames[activeFrameIndex];
+                if (frame) {
+                    const px = mainCamera.position.x;
+                    const py = mainCamera.position.y;
+                    const pz = mainCamera.position.z;
+                    
+                    const tx = controls.target.x;
+                    const ty = controls.target.y;
+                    const tz = controls.target.z;
+
+                    if (syncCameraToAll) {
+                        // Replicate camera coordinates recursively across every single frame structure
+                        frames.forEach(f => {
+                            f.camera.px = px;
+                            f.camera.py = py;
+                            f.camera.pz = pz;
+                            f.camera.tx = tx;
+                            f.camera.ty = ty;
+                            f.camera.tz = tz;
+                        });
+                    } else {
+                        // Cache camera movements when navigating around in main mode to keep the animation frames synced!
+                        frame.camera.px = px;
+                        frame.camera.py = py;
+                        frame.camera.pz = pz;
+                        
+                        frame.camera.tx = tx;
+                        frame.camera.ty = ty;
+                        frame.camera.tz = tz;
+                    }
+                }
+            } else {
+                // Free camera mode allows checking out Director Camera representation
+                if (mainCameraHelper) {
+                    mainCameraHelper.position.copy(mainCamera.position);
+                    mainCameraHelper.rotation.copy(mainCamera.rotation);
+                }
+            }
+
+            // Perform core Render updates
+            renderer.render(scene, activeCamera);
+        }
+    </script>
+</body>
+</html>
