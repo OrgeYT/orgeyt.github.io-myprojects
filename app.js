@@ -4,7 +4,8 @@ const projects = [
     "fnftools",
     "spritesheetmerger",
     "3danimator",
-    "catmemory"
+    "catmemory",
+    "midiplayer"
     ];
 
 // 2. Grab the elements from the DOM
