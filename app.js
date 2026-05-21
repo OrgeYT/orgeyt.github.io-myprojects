@@ -1,6 +1,7 @@
 // 1. Add the NAME of your files here. 
 // If your file is called "html_test.html", just type "test".
 const projects = [
+    "welcome",
     "fnftools"
 ];
 
