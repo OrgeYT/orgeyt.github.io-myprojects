@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Netflix Style PFP Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #141414;
+            color: white;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        @media (max-width: 1023px) {
+            body { overflow: auto; }
+        }
+
+        .canvas-container {
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            background: #1f1f1f;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            width: 100%;
+            max-width: 340px; 
+        }
+        
+        #avatarCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 4px;
+        }
+
+        input[type="range"] {
+            accent-color: #e50914;
+            height: 3px;
+        }
+
+        .control-group {
+            background: #232323;
+            border-radius: 6px;
+            padding: 0.6rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .label-mini {
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+
+        .value-text {
+            font-size: 10px;
+            color: #d1d5db;
+        }
+
+        .preset-card {
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            border: 2px solid transparent;
+            position: relative;
+        }
+        .preset-card:hover {
+            transform: scale(1.05);
+            border-color: #e50914;
+        }
+
+        .preset-preview-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                height: calc(100vh - 100px);
+            }
+            .scrollable-controls {
+                overflow-y: auto;
+                height: 100%;
+                padding-right: 8px;
+            }
+            .scrollable-controls::-webkit-scrollbar {
+                width: 4px;
+            }
+            .scrollable-controls::-webkit-scrollbar-thumb {
+                background: #333;
+                border-radius: 10px;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-3 lg:p-4">
+
+    <header class="text-center mb-3 lg:mb-4 w-full max-w-6xl flex justify-between items-center">
+        <div class="text-left">
+            <h1 class="text-xl md:text-2xl font-bold text-red-600 leading-none">Avatar Maker</h1>
+            <p class="text-gray-500 text-[10px]">Minimalist Profile Generator</p>
+        </div>
+        <div class="hidden md:flex gap-2">
+            <button id="randomizeBtn" class="bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded font-bold transition text-[10px] uppercase">
+                Randomize
+            </button>
+            <button id="resetBtn" class="bg-gray-800 hover:bg-gray-700 px-2.5 py-1 rounded font-bold transition text-[10px] uppercase">
+                Reset
+            </button>
+        </div>
+    </header>
+
+    <main class="main-content flex flex-col lg:flex-row gap-4 lg:gap-8 max-w-6xl w-full items-center lg:items-start">
+        
+        <!-- Preview Section -->
+        <div class="flex-none flex flex-col items-center w-full lg:w-[360px]">
+            <div class="canvas-container mb-3">
+                <canvas id="avatarCanvas" width="400" height="400"></canvas>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-1.5 w-full max-w-[340px]">
+                <button id="exportJsonBtn" class="bg-blue-600/80 hover:bg-blue-600 px-2 py-1.5 rounded font-bold transition text-[10px] uppercase">
+                    Save JSON
+                </button>
+                <label for="importJsonFile" class="bg-green-600/80 hover:bg-green-600 px-2 py-1.5 rounded font-bold transition text-[10px] uppercase cursor-pointer text-center">
+                    Load JSON
+                    <input type="file" id="importJsonFile" accept=".json" class="hidden">
+                </label>
+                <button id="downloadBtn" class="col-span-2 bg-red-600 hover:bg-red-700 px-3 py-2 rounded font-black transition text-xs uppercase tracking-widest mt-0.5">
+                    Download PNG
+                </button>
+                <button id="randomizeBtnMobile" class="md:hidden bg-gray-800 px-2 py-1.5 rounded text-[10px] font-bold">RANDOM</button>
+                <button id="resetBtnMobile" class="md:hidden bg-gray-800 px-2 py-1.5 rounded text-[10px] font-bold">RESET</button>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="flex-1 w-full scrollable-controls">
+            
+            <!-- Featured Presets -->
+            <div class="control-group">
+                <span class="label-mini">Featured Presets</span>
+                <div class="flex gap-3 mt-2 overflow-x-auto pb-1">
+                    <!-- Preset Orange -->
+                    <div id="presetOrange" class="preset-card flex-shrink-0 w-12 h-12 rounded bg-[#d07200]">
+                        <svg class="preset-preview-svg" viewBox="0 0 100 100">
+                            <circle cx="35" cy="45" r="4" fill="white" />
+                            <circle cx="65" cy="45" r="4" fill="white" />
+                            <path d="M35 65 Q50 75 65 65" stroke="white" stroke-width="3" fill="none" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                    <!-- Preset Red -->
+                    <div id="presetRed" class="preset-card flex-shrink-0 w-12 h-12 rounded bg-gradient-to-br from-[#e50914] to-[#7a0000]">
+                        <svg class="preset-preview-svg" viewBox="0 0 100 100">
+                            <!-- Brows -->
+                            <path d="M25 35 L40 42" stroke="white" stroke-width="2" stroke-linecap="round" />
+                            <path d="M75 35 L60 42" stroke="white" stroke-width="2" stroke-linecap="round" />
+                            <circle cx="35" cy="50" r="4" fill="white" />
+                            <circle cx="65" cy="50" r="4" fill="white" />
+                            <!-- Open mouth -->
+                            <path d="M35 70 L65 70 Q65 85 50 85 Q35 85 35 70" fill="white" />
+                        </svg>
+                    </div>
+                    <!-- Preset Purple -->
+                    <div id="presetPurple" class="preset-card flex-shrink-0 w-12 h-12 rounded bg-gradient-to-br from-[#9c27b0] to-[#390080]">
+                        <svg class="preset-preview-svg" viewBox="0 0 100 100">
+                            <!-- Glasses -->
+                            <rect x="25" y="40" width="20" height="15" fill="none" stroke="white" stroke-width="2" />
+                            <rect x="55" y="40" width="20" height="15" fill="none" stroke="white" stroke-width="2" />
+                            <path d="M45 47 L55 47" stroke="white" stroke-width="2" />
+                            <!-- Eyes -->
+                            <circle cx="35" cy="47" r="3" fill="white" />
+                            <circle cx="65" cy="47" r="3" fill="white" />
+                            <!-- Smile -->
+                            <path d="M40 75 Q50 80 60 75" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Layout -->
+            <div class="control-group border-l-2 border-red-600">
+                <span class="label-mini">Layout & Scale</span>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                        <div class="flex justify-between value-text"><span>Scale</span><span id="faceScaleVal">1.7</span></div>
+                        <input type="range" id="faceScale" min="0.5" max="2.5" step="0.05" value="1.7" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>Weight</span><span id="strokeWeightVal">13</span></div>
+                        <input type="range" id="strokeWeight" min="2" max="30" value="13" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>X</span><span id="faceXVal">-4</span></div>
+                        <input type="range" id="faceX" min="-200" max="200" value="-4" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>Y</span><span id="faceYVal">-7</span></div>
+                        <input type="range" id="faceY" min="-200" max="200" value="-7" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Background -->
+            <div class="control-group">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="label-mini !mb-0">Background</span>
+                    <label class="flex items-center value-text cursor-pointer">
+                        <input type="checkbox" id="useGradient" class="mr-1.5 w-3 h-3"> Gradient
+                    </label>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1.5">
+                        <input type="color" id="bgColor" value="#d07200" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                        <div id="gradientColorContainer" class="hidden">
+                            <input type="color" id="bgColor2" value="#6b3b00" class="w-6 h-6 rounded cursor-pointer bg-transparent border-0">
+                        </div>
+                    </div>
+                    <div class="flex-1" id="gradientAngleContainer">
+                        <div class="flex justify-between value-text"><span>Angle</span><span id="bgAngleVal">0</span></div>
+                        <input type="range" id="bgAngle" min="0" max="360" value="0" class="w-full">
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-1.5 mt-2" id="presetColors"></div>
+            </div>
+
+            <!-- Eyes -->
+            <div class="control-group">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="label-mini !mb-0">Eyes & Brows</span>
+                    <select id="eyeStyle" class="bg-black text-[10px] px-1.5 py-0.5 rounded border border-gray-700 outline-none">
+                        <option value="circle">Circles</option>
+                        <option value="square">Squares</option>
+                        <option value="line">Lines</option>
+                        <option value="x">X Eyes</option>
+                        <option value="heart">Hearts</option>
+                        <option value="wink">Wink</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                        <div class="flex justify-between value-text"><span>Vertical</span><span id="eyeHeightVal">151</span></div>
+                        <input type="range" id="eyeHeight" min="50" max="350" value="151" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>Spacing</span><span id="eyeSpreadVal">143</span></div>
+                        <input type="range" id="eyeSpread" min="40" max="250" value="143" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>Size</span><span id="eyeSizeVal">16</span></div>
+                        <input type="range" id="eyeSize" min="5" max="60" value="16" class="w-full">
+                    </div>
+                    <div class="flex flex-col">
+                        <label class="flex items-center value-text cursor-pointer mb-1">
+                            <input type="checkbox" id="hasBrows" class="mr-1.5 w-3 h-3"> Brows
+                        </label>
+                        <input type="range" id="browAngle" min="-45" max="45" value="-21" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mouth -->
+            <div class="control-group">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="label-mini !mb-0">Mouth</span>
+                    <select id="mouthStyle" class="bg-black text-[10px] px-1.5 py-0.5 rounded border border-gray-700 outline-none">
+                        <option value="smile">Smile</option>
+                        <option value="open">Open</option>
+                        <option value="openFangs">Vampire</option>
+                        <option value="smileFangs">Smile + Fangs</option>
+                        <option value="cat">Cat (3)</option>
+                        <option value="tongue">Tongue (P)</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <div>
+                        <div class="flex justify-between value-text"><span>Curvature</span><span id="happinessVal">74</span></div>
+                        <input type="range" id="happiness" min="0" max="100" value="74" class="w-full">
+                    </div>
+                    <div>
+                        <div class="flex justify-between value-text"><span>Width</span><span id="mouthWidthVal">127</span></div>
+                        <input type="range" id="mouthWidth" min="20" max="250" value="127" class="w-full">
+                    </div>
+                    <div class="col-span-2 grid grid-cols-3 gap-2">
+                        <div>
+                            <div class="flex justify-between value-text"><span>Tilt</span><span id="mouthRotationVal">0</span></div>
+                            <input type="range" id="mouthRotation" min="-30" max="30" value="0" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between value-text"><span>X-Off</span><span id="mouthXVal">31</span></div>
+                            <input type="range" id="mouthX" min="-120" max="120" value="31" class="w-full">
+                        </div>
+                        <div>
+                            <div class="flex justify-between value-text"><span>Y-Off</span><span id="mouthYVal">205</span></div>
+                            <input type="range" id="mouthY" min="100" max="380" value="205" class="w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Extras -->
+            <div class="control-group">
+                <span class="label-mini">Extras</span>
+                <div class="flex flex-wrap gap-2">
+                    <label class="checkbox-container flex-1 min-w-[80px]">
+                        <input type="checkbox" id="hasGlasses" class="mr-1.5 w-3 h-3">
+                        <span class="value-text">Glasses</span>
+                    </label>
+                    <label class="checkbox-container flex-1 min-w-[80px]">
+                        <input type="checkbox" id="hasBlush" class="mr-1.5 w-3 h-3">
+                        <span class="value-text">Blush</span>
+                    </label>
+                    <div id="blushIntensityContainer" class="flex-1 min-w-[120px] hidden">
+                        <div class="flex justify-between value-text"><span>Opacity</span><span id="blushIntensityVal">0.2</span></div>
+                        <input type="range" id="blushIntensity" min="0.05" max="0.6" step="0.01" value="0.2" class="w-full">
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <div id="toast" class="fixed bottom-4 bg-white text-black px-3 py-1.5 rounded-full shadow-2xl opacity-0 transition-opacity pointer-events-none z-50 text-[10px] font-black uppercase">
+        Message here
+    </div>
+
+    <script>
+        const canvas = document.getElementById('avatarCanvas');
+        const ctx = canvas.getContext('2d');
+        const inputs = document.querySelectorAll('input, select');
+        const useGradientInput = document.getElementById('useGradient');
+        const hasBlushCheck = document.getElementById('hasBlush');
+        
+        const presets = [
+            { c1: '#d07200', c2: '#6b3b00' }, { c1: '#e50914', c2: '#7a0000' }, 
+            { c1: '#3296ff', c2: '#004a8f' }, { c1: '#5cb85c', c2: '#2a612a' }, 
+            { c1: '#9c27b0', c2: '#4a148c' }, { c1: '#5bc0de', c2: '#2c7a91' }, 
+            { c1: '#221f1f', c2: '#000000' }, { c1: '#ff8d00', c2: '#995500' }
+        ];
+
+        // Exact configurations from shared files
+        const PRESET_ORANGE = {"faceScale":"1.7","strokeWeight":"13","faceX":"-4","faceY":"-7","useGradient":false,"bgColor":"#d07200","bgColor2":"#6b3b00","bgAngle":"0","eyeStyle":"circle","eyeHeight":"151","eyeSpread":"143","eyeSize":"16","hasBrows":false,"browAngle":"-21","mouthStyle":"smile","happiness":"74","mouthRotation":"0","mouthWidth":"127","mouthX":"31","mouthY":"205","hasGlasses":false,"hasBlush":false,"blushIntensity":"0.2"};
+        const PRESET_PURPLE = {"faceScale":"1.25","strokeWeight":"9","faceX":"3","faceY":"140","useGradient":true,"bgColor":"#9c27b0","bgColor2":"#390080","bgAngle":"247","eyeStyle":"circle","eyeHeight":"63","eyeSpread":"206","eyeSize":"23","hasBrows":true,"browAngle":"-5","mouthStyle":"smile","happiness":"64","mouthWidth":"49","mouthRotation":"-26","mouthX":"6","mouthY":"114","hasGlasses":true,"hasBlush":true,"blushIntensity":"0.32"};
+        const PRESET_RED = {"faceScale":"1.75","strokeWeight":"13","faceX":"-4","faceY":"28","useGradient":true,"bgColor":"#e50914","bgColor2":"#7a0000","bgAngle":"58","eyeStyle":"circle","eyeHeight":"162","eyeSpread":"129","eyeSize":"16","hasBrows":true,"browAngle":"29","mouthStyle":"open","happiness":"100","mouthWidth":"89","mouthRotation":"-19","mouthX":"31","mouthY":"205","hasGlasses":false,"hasBlush":false,"blushIntensity":"0.2"};
+
+        const DEFAULT_CONFIG = PRESET_ORANGE;
+
+        function applyConfig(config) {
+            Object.keys(config).forEach(k => {
+                const el = document.getElementById(k);
+                if (el) {
+                    if (el.type === 'checkbox') el.checked = config[k];
+                    else el.value = config[k];
+                }
+            });
+            draw();
+        }
+
+        function initPresets() {
+            const container = document.getElementById('presetColors');
+            presets.forEach(p => {
+                const d = document.createElement('div');
+                d.className = 'w-5 h-5 rounded-full cursor-pointer border border-white/10 hover:scale-110 transition-transform';
+                d.style.background = `linear-gradient(135deg, ${p.c1}, ${p.c2})`;
+                d.onclick = () => {
+                    document.getElementById('bgColor').value = p.c1;
+                    document.getElementById('bgColor2').value = p.c2;
+                    draw();
+                };
+                container.appendChild(d);
+            });
+
+            document.getElementById('presetOrange').onclick = () => { applyConfig(PRESET_ORANGE); showToast("Orange Minimalist Applied"); };
+            document.getElementById('presetPurple').onclick = () => { applyConfig(PRESET_PURPLE); showToast("Purple Glasses Applied"); };
+            document.getElementById('presetRed').onclick = () => { applyConfig(PRESET_RED); showToast("Red Aggressive Applied"); };
+        }
+
+        function showToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = '1';
+            setTimeout(() => t.style.opacity = '0', 2000);
+        }
+
+        function draw() {
+            const w = canvas.width, h = canvas.height;
+            const config = getConfig();
+            const sw = parseInt(config.strokeWeight);
+            
+            ctx.clearRect(0, 0, w, h);
+            
+            if (config.useGradient) {
+                const angle = config.bgAngle * (Math.PI / 180);
+                const x2 = w / 2 + Math.cos(angle) * w / 2, y2 = h / 2 + Math.sin(angle) * h / 2;
+                const grad = ctx.createLinearGradient(w/2 - Math.cos(angle)*w/2, h/2 - Math.sin(angle)*h/2, x2, y2);
+                grad.addColorStop(0, config.bgColor); grad.addColorStop(1, config.bgColor2);
+                ctx.fillStyle = grad;
+            } else ctx.fillStyle = config.bgColor;
+            ctx.fillRect(0, 0, w, h);
+
+            const v = ctx.createLinearGradient(0, 0, 0, h);
+            v.addColorStop(0, 'rgba(255,255,255,0.05)'); v.addColorStop(1, 'rgba(0,0,0,0.08)');
+            ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
+
+            ctx.save();
+            ctx.translate(w/2 + parseInt(config.faceX), h/2 + parseInt(config.faceY));
+            ctx.scale(config.faceScale, config.faceScale);
+            ctx.translate(-w/2, -h/2);
+
+            ctx.fillStyle = ctx.strokeStyle = 'white';
+            ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+            const exL = w/2 - config.eyeSpread/2, exR = w/2 + config.eyeSpread/2, ey = parseInt(config.eyeHeight);
+            const es = parseInt(config.eyeSize);
+
+            if (config.hasBlush) {
+                ctx.fillStyle = `rgba(255,255,255,${config.blushIntensity})`;
+                ctx.beginPath(); ctx.ellipse(w/2 - config.eyeSpread*0.7, ey+40, 25, 12, 0, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.ellipse(w/2 + config.eyeSpread*0.7, ey+40, 25, 12, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = 'white';
+            }
+
+            if (config.hasBrows) {
+                ctx.lineWidth = sw * 0.6;
+                const bA = config.browAngle * (Math.PI/180);
+                [exL, exR].forEach((x, i) => {
+                    ctx.save(); ctx.translate(x, ey-40); ctx.rotate(i===0?bA:-bA);
+                    ctx.beginPath(); ctx.moveTo(-18,0); ctx.lineTo(18,0); ctx.stroke(); ctx.restore();
+                });
+            }
+
+            ctx.lineWidth = Math.max(2, sw * (es/20));
+            [exL, exR].forEach((x, i) => {
+                const style = config.eyeStyle;
+                if(style === 'circle') { ctx.beginPath(); ctx.arc(x, ey, es, 0, Math.PI*2); ctx.fill(); }
+                else if(style === 'square') { ctx.fillRect(x-es, ey-es, es*2, es*2); }
+                else if(style === 'line') { ctx.beginPath(); ctx.moveTo(x, ey-es*1.5); ctx.lineTo(x, ey+es*1.5); ctx.stroke(); }
+                else if(style === 'x') {
+                    ctx.beginPath(); ctx.moveTo(x-es, ey-es); ctx.lineTo(x+es, ey+es); ctx.moveTo(x+es, ey-es); ctx.lineTo(x-es, ey+es); ctx.stroke();
+                } else if(style === 'heart') {
+                    ctx.beginPath(); ctx.moveTo(x, ey+es/2);
+                    ctx.bezierCurveTo(x+es, ey-es/2, x+es/2, ey-es*1.2, x, ey-es/3);
+                    ctx.bezierCurveTo(x-es/2, ey-es*1.2, x-es, ey-es/2, x, ey+es/2); ctx.fill();
+                } else if(style === 'wink' && i === 1) {
+                    ctx.beginPath(); ctx.arc(x, ey, es*1.2, 0.2, Math.PI-0.2); ctx.stroke();
+                } else { ctx.beginPath(); ctx.arc(x, ey, es, 0, Math.PI*2); ctx.fill(); }
+            });
+
+            if (config.hasGlasses) {
+                ctx.lineWidth = sw * 0.4;
+                const gw = es*3, gh = gw*0.85;
+                ctx.strokeRect(exL-gw/2, ey-gh/2, gw, gh); ctx.strokeRect(exR-gw/2, ey-gh/2, gw, gh);
+                ctx.beginPath(); ctx.moveTo(exL+gw/2, ey); ctx.lineTo(exR-gw/2, ey); ctx.stroke();
+            }
+
+            ctx.save();
+            ctx.translate(w/2 + parseInt(config.mouthX), parseInt(config.mouthY));
+            ctx.rotate(config.mouthRotation * (Math.PI/180));
+            const mw = parseInt(config.mouthWidth), hap = config.happiness/100;
+            ctx.lineWidth = sw;
+            
+            if (config.mouthStyle.includes('smile')) {
+                ctx.beginPath(); ctx.moveTo(-mw/2, 0); ctx.quadraticCurveTo(0, (hap*0.4)*mw, mw/2, 0); ctx.stroke();
+                if(config.mouthStyle === 'smileFangs') {
+                    ctx.beginPath(); ctx.moveTo(-mw/2+5, -2); ctx.lineTo(-mw/2+mw*0.1, mw*0.15); ctx.lineTo(-mw/2+mw*0.15, -2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(mw/2-5, -2); ctx.lineTo(mw/2-mw*0.1, mw*0.15); ctx.lineTo(mw/2-mw*0.15, -2); ctx.fill();
+                }
+            } else if (config.mouthStyle.includes('open')) {
+                const oh = (0.2 + hap*0.6)*mw;
+                ctx.beginPath(); ctx.moveTo(-mw/2,0); ctx.lineTo(mw/2,0); ctx.quadraticCurveTo(mw/2, oh, 0, oh); ctx.quadraticCurveTo(-mw/2, oh, -mw/2, 0); ctx.fill();
+                if(config.mouthStyle === 'openFangs') {
+                    ctx.beginPath(); ctx.moveTo(-mw/2+5,2); ctx.lineTo(-mw/2+mw*0.1,mw*0.2); ctx.lineTo(-mw/2+mw*0.15,2); ctx.fill();
+                    ctx.beginPath(); ctx.moveTo(mw/2-5,2); ctx.lineTo(mw/2-mw*0.1,mw*0.2); ctx.lineTo(mw/2-mw*0.15,2); ctx.fill();
+                }
+            } else if (config.mouthStyle === 'cat') {
+                ctx.beginPath(); ctx.arc(-mw/4, 0, mw/4, 0, Math.PI); ctx.stroke();
+                ctx.beginPath(); ctx.arc(mw/4, 0, mw/4, 0, Math.PI); ctx.stroke();
+            } else if (config.mouthStyle === 'tongue') {
+                ctx.beginPath(); ctx.moveTo(-mw/2,0); ctx.quadraticCurveTo(0, mw*0.1, mw/2,0); ctx.stroke();
+                ctx.beginPath(); ctx.roundRect(-mw*0.2, mw*0.05, mw*0.4, mw*0.4, [0,0,10,10]); ctx.fill();
+            }
+            ctx.restore();
+            ctx.restore();
+            updateUI();
+        }
+
+        function getConfig() {
+            const c = {};
+            inputs.forEach(i => { if(i.id) c[i.id] = i.type==='checkbox'?i.checked:i.value; });
+            return c;
+        }
+
+        function updateUI() {
+            inputs.forEach(i => {
+                const v = document.getElementById(i.id + 'Val');
+                if(v) v.innerText = i.value;
+            });
+            document.getElementById('gradientColorContainer').classList.toggle('hidden', !useGradientInput.checked);
+            document.getElementById('blushIntensityContainer').classList.toggle('hidden', !hasBlushCheck.checked);
+        }
+
+        inputs.forEach(i => i.addEventListener('input', draw));
+        
+        document.getElementById('randomizeBtn').onclick = () => {
+            inputs.forEach(i => {
+                if(i.type === 'range') i.value = (parseFloat(i.min) + Math.random()*(i.max-i.min)).toFixed(2);
+                if(i.type === 'checkbox') i.checked = Math.random() > 0.8;
+                if(i.tagName === 'SELECT') {
+                    const opts = i.options;
+                    i.selectedIndex = Math.floor(Math.random() * opts.length);
+                }
+            });
+            draw();
+        };
+        
+        document.getElementById('resetBtn').onclick = () => {
+            applyConfig(DEFAULT_CONFIG);
+            showToast("Reset completed");
+        };
+
+        document.getElementById('randomizeBtnMobile').onclick = document.getElementById('randomizeBtn').onclick;
+        document.getElementById('resetBtnMobile').onclick = document.getElementById('resetBtn').onclick;
+
+        document.getElementById('exportJsonBtn').onclick = () => {
+            const blob = new Blob([JSON.stringify(getConfig(), null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = 'avatar.json'; a.click();
+        };
+
+        document.getElementById('importJsonFile').onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const config = JSON.parse(e.target.result);
+                    applyConfig(config);
+                    showToast("Config loaded");
+                } catch(err) { showToast("Error loading file"); }
+            };
+            reader.readAsText(file);
+        };
+
+        document.getElementById('downloadBtn').onclick = () => {
+            const a = document.createElement('a'); a.href = canvas.toDataURL(); a.download = 'avatar.png'; a.click();
+            showToast("Saved PNG");
+        };
+
+        window.onload = () => { initPresets(); draw(); };
+    </script>
+</body>
+</html>
