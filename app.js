@@ -1,5 +1,4 @@
 // 1. Add the NAME of your files here. 
-// If your file is called "html_test.html", just type "test".
 const projects = [
     "welcome",
     "fnftools",
@@ -19,10 +18,13 @@ projects.forEach(name => {
     
     // 4. When clicked, load the corresponding file into the iframe
     button.onclick = () => {
-        // This constructs the exact file name: html_NAME.html
         const fileName = `html_${name}.html`;
         runnerFrame.src = fileName;
     };
     
     fileList.appendChild(button);
 });
+
+// --- ADD THIS LINE BELOW ---
+// Set default page to welcome
+runnerFrame.src = 'html_welcome.html';
