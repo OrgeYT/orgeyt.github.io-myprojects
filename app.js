@@ -2,8 +2,10 @@
 // If your file is called "html_test.html", just type "test".
 const projects = [
     "welcome",
-    "fnftools"
-];
+    "fnftools",
+    "spritesheetmerger",
+    "3danimator"
+    ];
 
 // 2. Grab the elements from the DOM
 const fileList = document.getElementById('file-list');
