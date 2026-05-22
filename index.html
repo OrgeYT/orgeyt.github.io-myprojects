@@ -5,32 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrgeYT's HTML Projects</title>
 
-    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <link rel="stylesheet" href="styles.css">
 
     <style>
-        /* Unused image section */
-        .unused-file-box {
+        /* Gallery section */
+        .gallery-section {
             margin-top: 20px;
             padding: 10px;
             background: rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             text-align: center;
+            max-height: 300px; /* Keeps the sidebar from getting too long */
+            overflow-y: auto;
         }
 
-        .unused-file-box img {
+        /* Custom scrollbar for the gallery */
+        .gallery-section::-webkit-scrollbar {
+            width: 6px;
+        }
+        .gallery-section::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .gallery-item {
+            margin-bottom: 15px;
+        }
+
+        .gallery-item img {
             width: 100%;
             max-width: 180px;
             border-radius: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
-        .unused-file-box p {
-            font-size: 0.9rem;
+        .gallery-item p {
+            font-size: 0.85rem;
             opacity: 0.8;
             margin: 0;
+            font-style: italic;
+        }
+
+        .gallery-section h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
         }
     </style>
 </head>
@@ -40,18 +63,37 @@
         <p class="subtitle">Choose a project to load</p>
 
         <div id="file-list">
-            <!-- Buttons will be generated here by app.js -->
-        </div>
+            </div>
 
-        <!-- Unused file section -->
-        <div class="unused-file-box">
-            <img src="Gallery/AAUGH.png" alt="Unused file">
-            <p>"I wanted to add this unused file somewhere :)"</p>
+        <div class="gallery-section">
+            <h3>Gallery</h3>
+            
+            <div class="gallery-item">
+                <img src="Gallery/AAUGH.png" alt="AAUGH">
+                <p>"Fun fact, this was actually the first file uploaded."</p>
+            </div>
+
+            <div class="gallery-item">
+                <img src="Gallery/NOO.png" alt="NOO">
+                <p>"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"</p>
+            </div>
+
+            <div class="gallery-item">
+                <img src="Gallery/avatar.png" alt="Avatar">
+                <p>"this is fine"</p>
+            </div>
+
+            <div class="gallery-item">
+                <img src="Gallery/cards.jpg" alt="Cards">
+            </div>
+
+            <div class="gallery-item">
+                <img src="Gallery/finaltest.jpg" alt="Final Test">
+            </div>
         </div>
     </div>
     
     <div class="main-content">
-        <!-- This iframe acts as the "screen" to run your other HTML files -->
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
