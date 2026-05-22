@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=0">
+<title>Pass The Bomb</title>
+<link rel="stylesheet" href="style.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "nipplejs": "https://esm.sh/nipplejs"
+  }
+}
+</script>
+</head>
+<body class="pixel-font">
+<div id="ui">
+  <div id="overlay" class="screen">
+    <div class="card">
+      <h1>Pass The Bomb</h1>
+      <div style="margin:6px 0 0;font-size:13px;color:#444;text-align:center;">
+        Recent: <strong id="recentLabel" style="margin-left:6px;">None</strong>
+      </div>
+      
+
+      <div style="margin:8px 0;text-align:left;">
+        <label for="npcRange" style="font-size:13px;color:#333;display:block;margin-bottom:6px;">NPCs: <span id="npcCountLabel" style="font-weight:700;">10</span></label>
+        <input id="npcRange" type="range" min="2" max="50" value="10" style="width:100%;">
+      </div>
+
+      <button id="startBtn">Start Game</button>
+      <button id="spectateBtn" style="margin-top:8px;background:#374151;">Spectate</button>
+      <button id="toggleCheatsBtn" style="margin-top:8px;background:#6b21a8;">Toggle cheats</button>
+      <button id="pixelFontBtn" style="margin-top:8px;background:#111827;">Pixel Font: ON</button>
+      <button id="hatBtn" style="margin-top:8px;background:#ef6c00;">Edit character</button>
+      <button id="orgeRealBtn" style="margin-top:8px;background:#0ea5e9;">OrgeYT_Real</button>
+      <button id="npcChatBtn" style="margin-top:8px;background:#10b981;">NPC Chat: ON</button>
+      <button id="shieldBtn" style="margin-top:8px;background:#06b6d4;">Ultra-Sheld: OFF</button>
+      <button id="spriteMgrBtn" style="margin-top:8px;background:#2563eb;">Sprite Manager</button>
+      <button id="watchBtn" style="margin-top:8px;background:#10a7f0;">Watch Player</button>
+
+      <!-- unpause will be shown when paused -->
+      <button id="unpauseBtn" class="hidden" style="margin-top:8px;background:#10b981;">Unpause</button>
+    </div>
+  </div>
+
+  <div id="gameOver" class="screen hidden">
+    <div class="card">
+      <h2 id="gameOverText">Game Over</h2>
+      <button id="restartBtn">Restart</button>
+    </div>
+  </div>
+
+  <div id="hud">
+    <button id="muteBtn" class="info" style="pointer-events:auto;position:absolute;left:12px;top:12px;min-width:44px;padding:6px 8px;">🔊</button>
+    <div id="bombTimer" class="timer hidden"></div>
+    <div id="playersLeft" class="info"></div>
+    <button id="pauseBtn" class="info" style="pointer-events:auto;min-width:84px;">Pause</button>
+    <button id="showPauseBtn" class="info hidden" style="pointer-events:auto;min-width:120px;margin-left:8px;">Show Pause Menu</button>
+    <button id="focusPlayerBtn" class="info hidden" style="pointer-events:auto;min-width:160px;margin-left:8px;">Focus Player: OFF</button>
+  </div>
+
+  <div id="controls">
+    <div id="joystickZone" aria-hidden="true"></div>
+    <button id="jumpBtn" class="ctl jump">▲</button>
+  </div>
+
+  <!-- Player chat input (moved to top-right) -->
+  <div id="chatWrap" style="position:fixed;right:16px;top:16px;transform:none;pointer-events:auto;z-index:60;width:auto;max-width:360px;display:flex;flex-direction:column;gap:8px;align-items:flex-end;">
+    <div style="display:flex;gap:8px;width:100%;align-items:center;">
+      <input id="chatInput" type="text" placeholder="Type a message and press Enter..." autocomplete="off" style="flex:1;width:100%;" />
+      <button id="chatLogBtn" class="ctl" title="Show chat log" style="width:auto;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.06);min-width:44px;">💬</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="c"></canvas>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
