@@ -1,4 +1,4 @@
-// 1. Add the NAME of your files here. 
+// 1. Add 'boyfriend test' to your array
 const projects = [
     "welcome",
     "fnftools",
@@ -10,8 +10,9 @@ const projects = [
     "gswitch",
     "pfpmaker",
     "platformer",
-    "throwplayground"
-    ];
+    "throwplayground",
+    "boyfriend test" // <-- Added here
+];
 
 // 2. Grab the elements from the DOM
 const fileList = document.getElementById('file-list');
@@ -23,15 +24,23 @@ projects.forEach(name => {
     button.textContent = `Run ${name}`;
     button.className = 'file-btn';
     
-    // 4. When clicked, load the corresponding file into the iframe
+    // 4. When clicked, load the corresponding path into the iframe
     button.onclick = () => {
-        const fileName = `html_${name}.html`;
-        runnerFrame.src = fileName;
+        let filePath;
+        
+        // Check if it's the folder project
+        if (name === "boyfriend test") {
+            filePath = "boyfriend test/index.html"; 
+        } else {
+            // Your original working logic for single files
+            filePath = `html_${name}.html`;
+        }
+        
+        runnerFrame.src = filePath;
     };
     
     fileList.appendChild(button);
 });
 
-// --- ADD THIS LINE BELOW ---
 // Set default page to welcome
 runnerFrame.src = 'html_welcome.html';
