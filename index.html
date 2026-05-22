@@ -6,6 +6,61 @@
     <title>OrgeYT's HTML Projects</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Gallery Carousel Styles */
+        .gallery-section {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            text-align: center;
+        }
+        .gallery-section h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 5px;
+        }
+        .gallery-carousel {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .gallery-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: white;
+            font-weight: bold;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.2s;
+        }
+        .gallery-btn:hover { background: rgba(255, 255, 255, 0.3); }
+        .gallery-content {
+            flex-grow: 1;
+            padding: 0 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .gallery-content img {
+            width: 100%;
+            max-width: 160px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .gallery-content p {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin: 0;
+            font-style: italic;
+            min-height: 2.5em;
+            display: flex;
+            align-items: center;
+        }
+    </style>
 </head>
 <body>
     <div class="sidebar">
@@ -28,13 +83,11 @@
     </div>
     
     <div class="main-content">
-        <!-- New Fullscreen Button -->
         <button id="fullscreen-btn">Full Screen</button>
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
     <script>
-        // --- Gallery Carousel Logic ---
         const galleryImages = [
             { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
             { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
@@ -65,7 +118,6 @@
 
         updateGallery();
     </script>
-
     <script src="app.js"></script>
 </body>
 </html>
