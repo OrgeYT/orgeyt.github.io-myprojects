@@ -14,7 +14,8 @@ const projects = [
     { name: "boyfriend test", path: "boyfriend test/index.html" },
     "grapplinghook",
     "physicsandbox",
-    "stacktower"
+    "stacktower",
+    "airhockey"
 ];
 
 // 2. Grab the elements from the DOM
