@@ -36,39 +36,38 @@ projects.forEach(project => {
     }
     
     // 5. When clicked, load the correct path into the iframe
-    button.onclick = async () => {
+button.onclick = () => {
 
-        // Special fix for Pass The Bomb
-        if (filePath === "passthebomb/index.html") {
+    // Load the project normally
+    runnerFrame.src = filePath;
 
-            const response = await fetch(filePath);
-            let html = await response.text();
+    // Special Pass The Bomb fix
+    if (filePath === "passthebomb/index.html") {
 
-            // Fix src="/..."
-            html = html.replace(
-                /(src|href)=["']\/(.*?)["']/g,
-                '$1="$2"'
-            );
+        runnerFrame.onload = () => {
 
-            // Fix fetch("/...")
-            html = html.replace(
-                /fetch\(["']\/(.*?)["']\)/g,
-                'fetch("$1")'
-            );
+            try {
+                const win = runnerFrame.contentWindow;
 
-            // Create blob URL
-            const blob = new Blob([html], { type: 'text/html' });
-            const blobURL = URL.createObjectURL(blob);
+                // Override fetch inside iframe
+                const originalFetch = win.fetch;
 
-            runnerFrame.src = blobURL;
+                win.fetch = (url, ...args) => {
 
-        } else {
-            runnerFrame.src = filePath;
-        }
-    };
-    
-    fileList.appendChild(button);
-});
+                    // Remove leading slash ONLY if it exists
+                    if (typeof url === "string" && url.startsWith("/")) {
+                        url = url.substring(1);
+                    }
+
+                    return originalFetch.call(win, url, ...args);
+                };
+
+            } catch (e) {
+                console.log("Pass The Bomb fetch patch failed:", e);
+            }
+        };
+    }
+};
 
 // Set default page to welcome
 runnerFrame.src = 'html_welcome.html';
