@@ -13,7 +13,8 @@ const projects = [
     "throwplayground",
     { name: "boyfriend test", path: "boyfriend test/index.html" },
     "grapplinghook",
-    "physicsandbox"
+    "physicsandbox",
+    "stacktower"
 ];
 
 // 2. Grab the elements from the DOM
