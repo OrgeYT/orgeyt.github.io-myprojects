@@ -9,13 +9,44 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
 
     <link rel="stylesheet" href="styles.css">
+
+    <style>
+        /* Unused image section */
+        .unused-file-box {
+            margin-top: 20px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .unused-file-box img {
+            width: 100%;
+            max-width: 180px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .unused-file-box p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin: 0;
+        }
+    </style>
 </head>
 <body>
     <div class="sidebar">
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
+
         <div id="file-list">
             <!-- Buttons will be generated here by app.js -->
+        </div>
+
+        <!-- Unused file section -->
+        <div class="unused-file-box">
+            <img src="AAUGH.png" alt="Unused file">
+            <p>"I wanted to add this unused file somewhere :)"</p>
         </div>
     </div>
     
