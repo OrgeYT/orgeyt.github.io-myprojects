@@ -36,6 +36,26 @@ body {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    
+    /* Scroll Fix Additions */
+    flex-grow: 1;              /* Pushes the image box to the bottom */
+    overflow-y: auto;          /* Enables vertical scrolling when content overflows */
+    padding-right: 5px;        /* Prevents the scrollbar from overlapping button text */
+    margin-bottom: 15px;       /* Adds a clean gap above the image box */
+}
+
+/* Custom Scrollbar Styling for a Sleeker Dark Mode Look */
+#file-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#file-list::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+#file-list::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 .file-btn {
