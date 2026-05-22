@@ -36,38 +36,12 @@ projects.forEach(project => {
     }
     
     // 5. When clicked, load the correct path into the iframe
-button.onclick = () => {
-
-    // Load the project normally
-    runnerFrame.src = filePath;
-
-    // Special Pass The Bomb fix
-    if (filePath === "passthebomb/index.html") {
-
-        runnerFrame.onload = () => {
-
-            try {
-                const win = runnerFrame.contentWindow;
-
-                // Override fetch inside iframe
-                const originalFetch = win.fetch;
-
-                win.fetch = (url, ...args) => {
-
-                    // Remove leading slash ONLY if it exists
-                    if (typeof url === "string" && url.startsWith("/")) {
-                        url = url.substring(1);
-                    }
-
-                    return originalFetch.call(win, url, ...args);
-                };
-
-            } catch (e) {
-                console.log("Pass The Bomb fetch patch failed:", e);
-            }
-        };
-    }
-};
+    button.onclick = () => {
+        runnerFrame.src = filePath;
+    };
+    
+    fileList.appendChild(button);
+});
 
 // Set default page to welcome
 runnerFrame.src = 'html_welcome.html';
