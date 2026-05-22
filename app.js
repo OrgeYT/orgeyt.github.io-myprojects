@@ -11,8 +11,7 @@ const projects = [
     "pfpmaker",
     "platformer",
     "throwplayground",
-    { name: "boyfriend test", path: "boyfriend test/index.html" },
-    { name: "passthebomb", path: "passthebomb/index.html" }
+    { name: "boyfriend test", path: "boyfriend test/index.html" }
 ];
 
 // 2. Grab the elements from the DOM
