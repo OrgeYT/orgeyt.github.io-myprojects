@@ -5,58 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome</title>
     <style>
+        :root {
+            --bg-color: #0f172a; 
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-1: #38bdf8;
+            --accent-2: #818cf8;
+            --accent-3: #c084fc;
+        }
+
         body {
             margin: 0;
-            padding: 0;
-            height: 100vh;
+            padding: 20px;
+            box-sizing: border-box;
+            background: var(--bg-color);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-main);
             display: flex;
             justify-content: center;
             align-items: center;
-            background: #0f172a;
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            height: 100vh;
             overflow: hidden;
-            text-align: center; /* Added to center the text */
         }
 
         .welcome-container {
+            max-width: 650px;
+            text-align: center;
             position: relative;
+            padding: 20px;
         }
 
         h1 {
-            color: #f8fafc;
-            font-size: 5rem;
-            letter-spacing: -0.05em;
-            margin: 0;
+            font-size: 4.5rem;
+            letter-spacing: -0.04em;
+            margin: 0 0 20px 0;
             cursor: default;
             text-transform: uppercase;
-            background: linear-gradient(90deg, #38bdf8, #818cf8, #c084fc);
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
             background-size: 200% auto;
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             animation: shine 3s linear infinite;
+            display: inline-block;
+            position: relative;
         }
 
-        /* Styling for your new description */
-        .description {
-            color: #94a3b8;
-            font-size: 1.25rem;
-            margin-top: 10px;
-            letter-spacing: 0.05em;
-        }
-
+        /* Subtle glowing background behind the text */
         h1::after {
             content: "WELCOME";
             position: absolute;
-            left: 0;
+            left: 50%;
             top: 0;
+            transform: translateX(-50%);
             z-index: -1;
-            filter: blur(25px);
-            opacity: 0.4;
+            filter: blur(35px);
+            opacity: 0.35;
+            background: linear-gradient(90deg, var(--accent-1), var(--accent-3));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            width: 100%;
         }
 
+        .description {
+            color: var(--text-muted);
+            font-size: 1.25rem;
+            line-height: 1.7;
+            margin: 0 0 35px 0;
+        }
+
+        .highlight {
+            color: var(--accent-1);
+            font-weight: 600;
+        }
+
+        /* Animated pointer pointing left toward your sidebar */
+        .sidebar-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-main);
+            font-size: 1.05rem;
+            font-weight: 500;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 24px;
+            border-radius: 50px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .arrow {
+            color: var(--accent-1);
+            display: inline-block;
+            font-size: 1.2rem;
+            animation: pointLeft 1.5s infinite ease-in-out;
+        }
+
+        /* Animations */
         @keyframes shine {
             to { background-position: 200% center; }
+        }
+
+        @keyframes pointLeft {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-6px); }
         }
     </style>
 </head>
@@ -64,7 +120,14 @@
 
     <div class="welcome-container">
         <h1>Welcome</h1>
-        <p class="description">Welcome to my github website! (My first ever, well, working correctly one...), this will include random projects i made that i would want to share with everyone!</p>
+        
+        <p class="description">
+            Welcome to my GitHub website! This is my first working hub built to share all the random applications, tools, and mini-projects I design.
+        </p>
+
+        <div class="sidebar-hint">
+            <span class="arrow">←</span> Choose a project from the sidebar to load it
+        </div>
     </div>
 
 </body>
