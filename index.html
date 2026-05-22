@@ -4,111 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrgeYT's HTML Projects</title>
-
     <link rel="icon" type="image/x-icon" href="favicon.ico">
-
     <link rel="stylesheet" href="styles.css">
-
-    <style>
-        /* Gallery Carousel Section */
-        .gallery-section {
-            margin-top: 20px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            text-align: center;
-        }
-
-        .gallery-section h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            padding-bottom: 5px;
-        }
-
-        .gallery-carousel {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .gallery-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            color: white;
-            font-weight: bold;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.2s;
-        }
-
-        .gallery-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-
-        .gallery-content {
-            flex-grow: 1;
-            padding: 0 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .gallery-content img {
-            width: 100%;
-            max-width: 160px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-
-        .gallery-content p {
-            font-size: 0.85rem;
-            opacity: 0.8;
-            margin: 0;
-            font-style: italic;
-            min-height: 2.5em; /* Keeps the buttons from jumping around if there is no subtitle */
-            display: flex;
-            align-items: center;
-        }
-    </style>
 </head>
 <body>
     <div class="sidebar">
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
 
-        <div id="file-list">
-            </div>
+        <div id="file-list"></div>
 
         <div class="gallery-section">
             <h3>Gallery</h3>
             <div class="gallery-carousel">
                 <button id="prev-btn" class="gallery-btn">&lt;</button>
-                
                 <div class="gallery-content">
                     <img id="gallery-img" src="" alt="Gallery Image">
                     <p id="gallery-caption"></p>
                 </div>
-
                 <button id="next-btn" class="gallery-btn">&gt;</button>
             </div>
         </div>
     </div>
     
     <div class="main-content">
+        <!-- New Fullscreen Button -->
+        <button id="fullscreen-btn">Full Screen</button>
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
     <script>
-        // ChatGPT easter egg
-        const params = new URLSearchParams(window.location.search);
-
-        if (params.get("utm_source") === "chatgpt.com") {
-            alert("ChatGPT linked you here, eh?");
-        }
-
         // --- Gallery Carousel Logic ---
         const galleryImages = [
             { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
@@ -120,7 +45,6 @@
         ];
 
         let currentIndex = 0;
-        
         const galleryImg = document.getElementById("gallery-img");
         const galleryCaption = document.getElementById("gallery-caption");
 
@@ -130,18 +54,15 @@
         }
 
         document.getElementById("prev-btn").addEventListener("click", () => {
-            // Subtract 1, but wrap around to the end if we go below 0
             currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
             updateGallery();
         });
 
         document.getElementById("next-btn").addEventListener("click", () => {
-            // Add 1, wrap around to 0 if we hit the limit
             currentIndex = (currentIndex + 1) % galleryImages.length;
             updateGallery();
         });
 
-        // Load the first image on startup
         updateGallery();
     </script>
 
