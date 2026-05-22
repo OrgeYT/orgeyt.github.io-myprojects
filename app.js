@@ -3,7 +3,7 @@ const projects = [
     "welcome", "fnftools", "spritesheetmerger", "3danimator", "catmemory", 
     "midiplayer", "mandelbrot", "gswitch", "pfpmaker", "platformer", 
     "throwplayground", { name: "boyfriend test", path: "boyfriend test/index.html" }, 
-    "grapplinghook", "physicsandbox", "stacktower", "airhockey", "chess"
+    "grapplinghook", "physicsandbox", "stacktower", "airhockey", "chess", "flappyarena"
 ];
 
 const fileList = document.getElementById('file-list');
