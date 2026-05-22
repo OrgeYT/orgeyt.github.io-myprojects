@@ -8,11 +8,9 @@
         body {
             margin: 0;
             padding: 0;
-            background-color: #222;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
+            background-color: #fff;
+            width: 100vw;
+            height: 100vh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             touch-action: none; /* Prevent zooming and scrolling on mobile */
             overflow: hidden;
@@ -21,13 +19,9 @@
         #game-container {
             position: relative;
             background-color: #fff;
-            border: 15px solid #444;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0,0,0,0.1);
+            width: 100%;
+            height: 100%;
             overflow: hidden;
-            /* Default size, adjusted by JS */
-            width: 400px;
-            height: 600px;
         }
 
         #gameCanvas {
@@ -239,26 +233,16 @@ function lightenColor(color, percent) {
 }
 
 function resize() {
-    // Determine target dimensions maintaining aspect ratio (2:3)
-    let targetWidth = window.innerWidth * 0.9;
-    let targetHeight = window.innerHeight * 0.9;
-    
-    // Max constraints
-    if (targetWidth > 500) targetWidth = 500;
-    if (targetHeight > 750) targetHeight = 750;
-
-    const aspect = 2 / 3;
-    if (targetWidth / targetHeight > aspect) {
-        targetWidth = targetHeight * aspect;
-    } else {
-        targetHeight = targetWidth / aspect;
-    }
+    const targetWidth = window.innerWidth;
+    const targetHeight = window.innerHeight;
 
     container.style.width = `${targetWidth}px`;
     container.style.height = `${targetHeight}px`;
     canvas.width = targetWidth;
     canvas.height = targetHeight;
-    scale = targetWidth / GAME_WIDTH;
+    
+    // Scale elements based on the smaller screen dimension to keep proportions playable
+    scale = Math.min(targetWidth / GAME_WIDTH, targetHeight / GAME_HEIGHT);
 
     initEntities();
 }
