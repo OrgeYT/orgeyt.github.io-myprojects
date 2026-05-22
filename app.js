@@ -12,7 +12,7 @@ const projects = [
     "platformer",
     "throwplayground",
     { name: "boyfriend test", path: "boyfriend test/index.html" },
-    { name: "passthebomb", path: "passthebomb/index.html" } // <-- Added your new folder project
+    { name: "passthebomb", path: "passthebomb/index.html" }
 ];
 
 // 2. Grab the elements from the DOM
@@ -36,8 +36,35 @@ projects.forEach(project => {
     }
     
     // 5. When clicked, load the correct path into the iframe
-    button.onclick = () => {
-        runnerFrame.src = filePath;
+    button.onclick = async () => {
+
+        // Special fix for Pass The Bomb
+        if (filePath === "passthebomb/index.html") {
+
+            const response = await fetch(filePath);
+            let html = await response.text();
+
+            // Fix src="/..."
+            html = html.replace(
+                /(src|href)=["']\/(.*?)["']/g,
+                '$1="$2"'
+            );
+
+            // Fix fetch("/...")
+            html = html.replace(
+                /fetch\(["']\/(.*?)["']\)/g,
+                'fetch("$1")'
+            );
+
+            // Create blob URL
+            const blob = new Blob([html], { type: 'text/html' });
+            const blobURL = URL.createObjectURL(blob);
+
+            runnerFrame.src = blobURL;
+
+        } else {
+            runnerFrame.src = filePath;
+        }
     };
     
     fileList.appendChild(button);
