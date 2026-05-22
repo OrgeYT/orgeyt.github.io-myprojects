@@ -12,7 +12,8 @@ const projects = [
     "platformer",
     "throwplayground",
     { name: "boyfriend test", path: "boyfriend test/index.html" },
-    "grapplinghook"
+    "grapplinghook",
+    "physicsandbox"
 ];
 
 // 2. Grab the elements from the DOM
