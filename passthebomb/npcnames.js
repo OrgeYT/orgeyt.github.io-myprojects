@@ -1,0 +1,32 @@
+export const NPC_NAMES = [
+  "Liam","Olivia","Noah","Emma","Lucas","Sophia","Mason","Isabella","Ethan","Ava",
+  "Logan","Mia","Aiden","Charlotte","Elijah","Amelia","James","Harper","Benjamin","Evelyn",
+  "Daniel","Abigail","Michael","Emily","Alexander","Ella","OrgeYT","Scarlett","Henry","Grace",
+  "Jackson","Chloe","Sebastian","Lily","Jack","Aria","Levi","Zoe","Mateo","Hannah",
+  "Owen","Nora","Wyatt","Ellie","Carter","Stella","Julian","Layla","Leo","Riley",
+
+  // extra names
+  "Caleb","Aurora","Nathan","Sadie","Isaac","Paisley","Anthony","Willow","Joshua","Hazel",
+  "Christopher","Nova","Andrew","Ivy","Gabriel","Naomi","Dylan","Elena","Ryan","Valerie",
+
+  // username style
+  "PixelStorm","ShadowByte","MegaCoder","FireNova","BlockBuilder","HyperNinja",
+  "CoolKid42","xX_DarkFlame_Xx","GlitchMaster","SpeedRunner99","CodeWizard",
+  "TurboPenguin","QuantumDuck","BlueScreenDude","MrButtonMasher","EpicBuilderYT",
+  "GhostPlayer","NeonSpecter","RetroGamer77","UltraBanana","MysticCube",
+
+  // chaotic ones
+  "KeyboardSmash","LagMachine","404NameNotFound","TotallyNotABot","CheeseWizard",
+  "BananaOverlord","PotatoEngine","SneakyToaster","SirYeetsALot","DuckDebugger",
+
+  // OrgeYT related
+  "OrgeFan","OrgeSubscriber","OrgeClone","OrgeYT_Alt","OrgeYTReal","OrgeYTRealReal",
+  "OrgeYT_2","OrgeYTGaming","OrgeDev","OrgeBuilder","OrgeNPC","OrgeFollower",
+  "OrgeYT_Legend","OrgeYTFan99","OrgeYTOfficial","OrgeCultMember","OrgeYTClone",
+  "DarkOrgeYT","CorruptedOrge","GlitchedOrgeYT","OrgeYT_404","OrgeYT_TheSecond",
+  "OrgeYTButBetter","OrgeYTButWorse","OrgeYTFromOhio","UltraOrgeYT",
+
+  // your alts
+  "Testaccount",
+  "Noobiey_21"
+];
