@@ -1,4 +1,4 @@
-// 1. Add 'boyfriend test' to your array
+// 1. List your projects. Strings for files, Objects for folder-based projects.
 const projects = [
     "welcome",
     "fnftools",
@@ -11,7 +11,8 @@ const projects = [
     "pfpmaker",
     "platformer",
     "throwplayground",
-    "boyfriend test" // <-- Added here
+    { name: "boyfriend test", path: "boyfriend test/index.html" },
+    { name: "passthebomb", path: "passthebomb/index.html" } // <-- Added your new folder project
 ];
 
 // 2. Grab the elements from the DOM
@@ -19,23 +20,23 @@ const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
 
 // 3. Loop through the array and create a button for each project
-projects.forEach(name => {
+projects.forEach(project => {
     const button = document.createElement('button');
-    button.textContent = `Run ${name}`;
     button.className = 'file-btn';
     
-    // 4. When clicked, load the corresponding path into the iframe
+    let filePath;
+
+    // 4. Determine if the project is a folder object or a single file string
+    if (typeof project === 'object') {
+        button.textContent = `Run ${project.name}`;
+        filePath = project.path;
+    } else {
+        button.textContent = `Run ${project}`;
+        filePath = `html_${project}.html`;
+    }
+    
+    // 5. When clicked, load the correct path into the iframe
     button.onclick = () => {
-        let filePath;
-        
-        // Check if it's the folder project
-        if (name === "boyfriend test") {
-            filePath = "boyfriend test/index.html"; 
-        } else {
-            // Your original working logic for single files
-            filePath = `html_${name}.html`;
-        }
-        
         runnerFrame.src = filePath;
     };
     
