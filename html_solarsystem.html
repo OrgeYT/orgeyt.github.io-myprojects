@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Solar System Viewer - Pilot Mode</title>
+    <style>
+        body { 
+            background: #010308; 
+            margin: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            color: white;
+            user-select: none;
+        }
+        
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            cursor: crosshair;
+        }
+
+        #ui { 
+            position: fixed; 
+            top: 20px; 
+            left: 20px; 
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            z-index: 10; 
+            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1.2rem;
+            color: #ffcc33;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .controls-text {
+            font-size: 0.85rem;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .highlight { color: #fff; font-weight: bold; }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 100;
+            display: none;
+        }
+
+        #labels-container {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            z-index: 5;
+            overflow: hidden;
+        }
+
+        .planet-label {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-shadow: 0 0 4px #000;
+            transform: translate(-50%, 15px);
+        }
+
+        #click-prompt {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 204, 51, 0.8);
+            color: black;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            z-index: 50;
+            animation: pulse 2s infinite;
+        }
+
+        #focus-info {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 15px;
+            border-radius: 5px;
+            display: none;
+            font-size: 0.9rem;
+            backdrop-filter: blur(5px);
+        }
+
+        #speed-boost-ui {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #4ade80;
+            font-weight: bold;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui">
+        <h1>Solar System: Pilot</h1>
+        <div class="controls-text">
+            <span class="highlight">Click Screen:</span> Lock Mouse / Pilot Mode<br>
+            <span class="highlight">W/A/S/D:</span> Move Through Space<br>
+            <span class="highlight">SHIFT:</span> Turbo Boost Speed<br>
+            <span class="highlight">Mouse:</span> Look Around<br>
+            <span class="highlight">Click Body:</span> Focus & Follow<br>
+            <span class="highlight">ESC:</span> Unlock Cursor
+        </div>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="click-prompt">CLICK TO PILOT SHIP</div>
+    <div id="focus-info">TRACKING: <span id="target-name">NONE</span></div>
+    <div id="speed-boost-ui">THRUSTERS: MAX</div>
+    <div id="labels-container"></div>
+    <div id="canvas-container"></div>
+
+    <script>
+        const CELESTIAL_DATA = [
+            // INNER PLANETS
+            { name: "Mercury", radius: 1.2, distance: 25, speed: 0.04, color: 0x8c8c8c },
+            { name: "Venus", radius: 2.2, distance: 35, speed: 0.015, color: 0xe3bb76 },
+            { name: "Earth", radius: 2.4, distance: 48, speed: 0.01, color: 0x4169e1, procedural: 'earth' },
+            { name: "Moon", radius: 0.6, distance: 5, speed: 0.05, color: 0xcccccc, parent: "Earth" },
+            { name: "Mars", radius: 1.6, distance: 62, speed: 0.008, color: 0xae4a3a },
+            { name: "Phobos", radius: 0.2, distance: 3, speed: 0.08, color: 0x999999, parent: "Mars" },
+            { name: "Deimos", radius: 0.15, distance: 4.5, speed: 0.06, color: 0xbbbbbb, parent: "Mars" },
+            { name: "Ceres", radius: 0.4, distance: 80, speed: 0.005, color: 0x999999 },
+            
+            // GAS GIANTS
+            { name: "Jupiter", radius: 7.5, distance: 115, speed: 0.002, color: 0xd39c7e, procedural: 'jupiter' },
+            { name: "Io", radius: 0.5, distance: 10, speed: 0.04, color: 0xfdfd53, parent: "Jupiter" },
+            { name: "Europa", radius: 0.45, distance: 13, speed: 0.03, color: 0xd9d9d9, parent: "Jupiter" },
+            { name: "Ganymede", radius: 0.7, distance: 17, speed: 0.02, color: 0x9a9a9a, parent: "Jupiter" },
+            { name: "Callisto", radius: 0.65, distance: 22, speed: 0.01, color: 0x4d4d4d, parent: "Jupiter" },
+            
+            { name: "Saturn", radius: 6.0, distance: 175, speed: 0.0009, color: 0xe2bf7d, hasRings: true },
+            { name: "Titan", radius: 0.7, distance: 14, speed: 0.02, color: 0xe8bd52, parent: "Saturn" },
+            { name: "Enceladus", radius: 0.3, distance: 9, speed: 0.05, color: 0xffffff, parent: "Saturn" },
+            
+            { name: "Uranus", radius: 3.5, distance: 230, speed: 0.0004, color: 0xb0e0e6 },
+            { name: "Titania", radius: 0.4, distance: 8, speed: 0.03, color: 0xcccccc, parent: "Uranus" },
+            { name: "Oberon", radius: 0.4, distance: 11, speed: 0.02, color: 0x999999, parent: "Uranus" },
+            
+            { name: "Neptune", radius: 3.4, distance: 280, speed: 0.0001, color: 0x274687 },
+            { name: "Triton", radius: 0.5, distance: 7, speed: -0.04, color: 0xfff5ee, parent: "Neptune" },
+            
+            // KUIPER BELT / TRANS-NEPTUNIAN OBJECTS
+            { name: "Pluto", radius: 0.8, distance: 320, speed: 0.00007, color: 0xf5f5dc },
+            { name: "Charon", radius: 0.35, distance: 3, speed: 0.03, color: 0xaaaaaa, parent: "Pluto" },
+            { name: "Styx", radius: 0.08, distance: 4.5, speed: 0.05, color: 0x888888, parent: "Pluto" },
+            { name: "Nix", radius: 0.12, distance: 5.5, speed: 0.04, color: 0x999999, parent: "Pluto" },
+            { name: "Kerberos", radius: 0.09, distance: 6.5, speed: 0.035, color: 0x777777, parent: "Pluto" },
+            { name: "Hydra", radius: 0.14, distance: 7.5, speed: 0.03, color: 0xbbbbbb, parent: "Pluto" },
+            
+            { name: "Haumea", radius: 0.6, distance: 350, speed: 0.00006, color: 0xe5e5e5 },
+            { name: "Makemake", radius: 0.7, distance: 380, speed: 0.00005, color: 0xd2a679 },
+            { name: "Eris", radius: 0.85, distance: 420, speed: 0.00003, color: 0xefefef },
+            { name: "Arrokoth", radius: 0.3, distance: 460, speed: 0.00002, color: 0x8b4513 }
+        ];
+
+        let scene, camera, renderer, raycaster, mouse;
+        let bodies = [];
+        let sunGlow;
+        let focusedPlanet = null;
+        let focusDistance = 15;
+        
+        const labelsContainer = document.getElementById('labels-container');
+        const prompt = document.getElementById('click-prompt');
+        const crosshair = document.getElementById('crosshair');
+        const focusInfo = document.getElementById('focus-info');
+        const targetName = document.getElementById('target-name');
+        const boostIndicator = document.getElementById('speed-boost-ui');
+
+        const keys = { w: false, a: false, s: false, d: false, shift: false };
+        const baseSpeed = 1.2;
+        const boostMultiplier = 5.0; // 5x speed boost
+        
+        let yaw = 0;
+        let pitch = 0;
+        const sensitivity = 0.002;
+
+        document.addEventListener('mousedown', (e) => {
+            if (document.pointerLockElement !== document.body) {
+                document.body.requestPointerLock();
+                return;
+            }
+
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(bodies.map(p => p.mesh));
+
+            if (intersects.length > 0) {
+                const clickedMesh = intersects[0].object;
+                const planetData = bodies.find(p => p.mesh === clickedMesh);
+                
+                if (focusedPlanet === planetData) {
+                    focusedPlanet = null;
+                    focusInfo.style.display = 'none';
+                } else {
+                    focusedPlanet = planetData;
+                    targetName.textContent = planetData.name;
+                    focusInfo.style.display = 'block';
+                    focusDistance = Math.max(8, planetData.radius * 6);
+                }
+            } else {
+                focusedPlanet = null;
+                focusInfo.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === document.body) {
+                prompt.style.display = 'none';
+                crosshair.style.display = 'block';
+            } else {
+                prompt.style.display = 'block';
+                crosshair.style.display = 'none';
+                // Reset keys on unlock to prevent drifting
+                Object.keys(keys).forEach(k => keys[k] = false);
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body) {
+                yaw -= e.movementX * sensitivity;
+                pitch -= e.movementY * sensitivity;
+                pitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, pitch));
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if(key === 'shift') keys.shift = true;
+            if(keys.hasOwnProperty(key)) keys[key] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if(key === 'shift') keys.shift = false;
+            if(keys.hasOwnProperty(key)) keys[key] = false;
+        });
+
+        function createEarthTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#1a3a5a';
+            ctx.fillRect(0, 0, 512, 256);
+            ctx.fillStyle = '#2d5a27';
+            for (let i = 0; i < 60; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 30 + 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            for (let i = 0; i < 100; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 256, Math.random() * 15, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function createJupiterTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 256);
+            gradient.addColorStop(0, '#a57e65');
+            gradient.addColorStop(0.5, '#e5d1bc');
+            gradient.addColorStop(1, '#8c6b56');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 512, 256);
+            ctx.fillStyle = '#9e4b33';
+            ctx.beginPath();
+            ctx.ellipse(256, 160, 40, 15, 0, 0, Math.PI * 2);
+            ctx.fill();
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x010308, 0.0004);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 8000);
+            camera.position.set(0, 50, 400);
+
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0x888888); 
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.PointLight(0xffffee, 4.0, 3000);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+            
+            const bounceLight = new THREE.PointLight(0x555577, 1.2, 2000);
+            scene.add(bounceLight);
+
+            createStarfield();
+            createSun();
+            createBodies();
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createStarfield() {
+            const geo = new THREE.BufferGeometry();
+            const pos = [];
+            for(let i = 0; i < 6000; i++) {
+                const r = 1500 + Math.random() * 2500;
+                const t = Math.random() * Math.PI * 2;
+                const p = Math.acos(2 * Math.random() - 1);
+                pos.push(r * Math.sin(p) * Math.cos(t), r * Math.sin(p) * Math.sin(t), r * Math.cos(p));
+            }
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 1.8 })));
+        }
+
+        function createSun() {
+            const sun = new THREE.Mesh(new THREE.SphereGeometry(14, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffcc33 }));
+            scene.add(sun);
+            sunGlow = new THREE.Mesh(new THREE.SphereGeometry(18, 32, 32), new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.3, side: THREE.BackSide }));
+            scene.add(sunGlow);
+            createLabel("SUN", sun);
+        }
+
+        function createBodies() {
+            const earthTex = createEarthTexture();
+            const jupiterTex = createJupiterTexture();
+
+            CELESTIAL_DATA.forEach(data => {
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: data.color || 0xffffff,
+                    roughness: 0.7,
+                    metalness: 0.1
+                });
+                
+                if(data.procedural === 'earth') mat.map = earthTex;
+                if(data.procedural === 'jupiter') mat.map = jupiterTex;
+
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(data.radius, 32, 32), mat);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+
+                const pivot = new THREE.Object3D();
+                pivot.rotation.y = Math.random() * Math.PI * 2;
+                
+                if (data.parent) {
+                    const parentBody = bodies.find(p => p.name === data.parent);
+                    if (parentBody) {
+                        parentBody.mesh.add(pivot);
+                    }
+                } else {
+                    scene.add(pivot);
+                }
+
+                mesh.position.x = data.distance;
+                pivot.add(mesh);
+
+                if (data.hasRings) {
+                    const ring = new THREE.Mesh(new THREE.RingGeometry(data.radius*1.4, data.radius*2.2, 64), new THREE.MeshStandardMaterial({ color: 0xc8b496, side: THREE.DoubleSide, transparent: true, opacity: 0.6 }));
+                    ring.rotation.x = Math.PI/2;
+                    mesh.add(ring);
+                }
+
+                createLabel(data.name, mesh);
+                bodies.push({ ...data, mesh, pivot });
+            });
+        }
+
+        function createLabel(text, target) {
+            const div = document.createElement('div');
+            div.className = 'planet-label';
+            div.textContent = text;
+            div.targetMesh = target;
+            labelsContainer.appendChild(div);
+            return div;
+        }
+
+        function updateLabels() {
+            const v = new THREE.Vector3();
+            Array.from(labelsContainer.children).forEach(el => {
+                el.targetMesh.getWorldPosition(v);
+                v.project(camera);
+                if (v.z > 1) { el.style.display = 'none'; return; }
+                el.style.display = 'block';
+                el.style.left = `${(v.x * .5 + .5) * window.innerWidth}px`;
+                el.style.top = `${(v.y * -.5 + .5) * window.innerHeight}px`;
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+
+            const currentFlySpeed = keys.shift ? baseSpeed * boostMultiplier : baseSpeed;
+            
+            // UI Feedback for speed boost
+            if (keys.shift && (keys.w || keys.a || keys.s || keys.d)) {
+                boostIndicator.style.opacity = "1";
+            } else {
+                boostIndicator.style.opacity = "0";
+            }
+
+            if (focusedPlanet) {
+                const targetWorldPos = new THREE.Vector3();
+                focusedPlanet.mesh.getWorldPosition(targetWorldPos);
+                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                const desiredPos = targetWorldPos.clone().add(forward.clone().multiplyScalar(-focusDistance));
+                camera.position.copy(desiredPos);
+            } else {
+                if (keys.w || keys.a || keys.s || keys.d) {
+                    const dir = new THREE.Vector3();
+                    camera.getWorldDirection(dir);
+                    const side = new THREE.Vector3().crossVectors(dir, camera.up).normalize();
+                    if (keys.w) camera.position.addScaledVector(dir, currentFlySpeed);
+                    if (keys.s) camera.position.addScaledVector(dir, -currentFlySpeed);
+                    if (keys.a) camera.position.addScaledVector(side, -currentFlySpeed);
+                    if (keys.d) camera.position.addScaledVector(side, currentFlySpeed);
+                }
+            }
+
+            bodies.forEach(p => {
+                p.pivot.rotation.y += p.speed;
+                p.mesh.rotation.y += 0.01;
+            });
+
+            if(sunGlow) sunGlow.scale.setScalar(1 + Math.sin(Date.now()*0.002)*0.05);
+
+            updateLabels();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
