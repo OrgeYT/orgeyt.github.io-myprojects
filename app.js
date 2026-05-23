@@ -1,4 +1,4 @@
-// 1. List your projects.
+// 1. List your projects..
 const projects = [
     "welcome", "fnftools", "spritesheetmerger", "3danimator", "catmemory", 
     "midiplayer", "mandelbrot", "gswitch", "pfpmaker", "platformer", 
