@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Flocky Bird - Widescreen Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111827; }
+        #game-wrapper {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #222;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background: #70c5ce;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .text-stroke {
+            -webkit-text-stroke: 2px #543847;
+        }
+        .btn-ui {
+            pointer-events: auto;
+            background: #543847;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 999px;
+            font-weight: bold;
+            font-size: 0.875rem;
+            border: 2px solid white;
+            transition: all 0.2s;
+            cursor: pointer;
+            min-width: 140px;
+        }
+        .btn-ui:active { transform: scale(0.95); }
+        .btn-ui.active-fair { background: #3b82f6; }
+        .btn-ui.active-swarm { background: #73bf2e; color: #111; }
+
+        .btn-hard {
+            background: #4b5563;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 0.75rem;
+            border: 2px solid #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-hard.active {
+            background: #ef4444;
+            border-color: #fee2e2;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+
+        .btn-main {
+            pointer-events: auto;
+            background: #e67e22;
+            color: white;
+            padding: 12px 48px;
+            border-radius: 12px;
+            font-weight: 900;
+            font-size: 1.75rem;
+            border: 4px solid white;
+            box-shadow: 0 6px 0 #543847;
+            transition: all 0.1s;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .btn-main:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #543847;
+        }
+        
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            background: #543847;
+            border-radius: 4px;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: #facc15;
+            cursor: pointer;
+            margin-top: -6px;
+            border: 2px solid white;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+
+        <div id="ui-layer" class="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 z-10">
+            <div class="flex justify-between items-start text-white font-black text-5xl drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">
+                <div id="score-display" class="transition-all duration-150 transform text-stroke">0</div>
+                <div class="flex flex-col items-end gap-3">
+                    <button id="bot-toggle" class="btn-ui">BOT: OFF</button>
+                    <div class="text-3xl text-stroke text-right">
+                        <span class="block text-sm font-bold text-yellow-300 drop-shadow-none uppercase">Swarm Size</span>
+                        <span id="alive-display">100/100</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Screen -->
+        <div id="start-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-20 transition-opacity duration-300">
+            <h1 class="text-8xl font-black text-yellow-400 text-stroke drop-shadow-2xl mb-4 text-center tracking-wide leading-tight">FLOCKY <span class="text-white">BIRD</span></h1>
+            
+            <div class="bg-black/50 p-6 rounded-3xl border-2 border-white/20 mt-4 w-80 pointer-events-auto flex flex-col gap-4">
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-white font-bold text-base uppercase">Swarm Density</span>
+                        <span id="bird-count-label" class="text-yellow-400 font-black text-lg">100</span>
+                    </div>
+                    <input type="range" id="bird-slider" min="2" max="500" value="100" class="cursor-pointer">
+                </div>
+                
+                <div class="flex justify-between items-center py-3 border-t border-white/10">
+                    <span class="text-white font-bold text-sm uppercase">Bot Pilot</span>
+                    <button id="bot-toggle-start" class="btn-ui scale-90">OFF</button>
+                </div>
+
+                <div class="flex justify-between items-center pt-3 border-t border-white/10">
+                    <span class="text-white font-bold text-sm uppercase">Hard Mode</span>
+                    <button id="hard-mode-toggle" class="btn-hard">OFF</button>
+                </div>
+            </div>
+
+            <div class="mt-10">
+                <button id="start-btn" class="btn-main">Launch Swarm</button>
+            </div>
+            <p class="text-white/80 text-sm font-bold mt-6 uppercase tracking-[0.2em] animate-pulse">Click or Space to Flap</p>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="game-over-screen" class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 backdrop-blur-md z-20 hidden opacity-0 transition-opacity duration-300">
+            <h2 class="text-7xl font-black text-red-500 text-stroke drop-shadow-2xl mb-6 text-center">EXTINCTION</h2>
+            
+            <div class="bg-[#ded895] border-[8px] border-[#543847] p-8 rounded-2xl shadow-2xl text-center transform scale-110 mb-10 w-80 relative">
+                <p class="text-[#543847] font-black text-sm mb-1 tracking-widest">FINAL SCORE</p>
+                <p id="final-score" class="text-6xl font-black text-white text-stroke drop-shadow-md mb-4">0</p>
+                <div class="h-1.5 w-full bg-[#543847]/20 rounded-full mb-3"></div>
+                <p class="text-[#543847] font-black text-sm mb-1 tracking-widest">BEST RECORD</p>
+                <p id="best-score" class="text-4xl font-black text-white text-stroke drop-shadow-md">0</p>
+                <div class="absolute -top-6 -right-6 bg-yellow-400 text-white font-bold w-14 h-14 rounded-full border-4 border-white flex items-center justify-center shadow-lg transform rotate-12 text-2xl">★</div>
+            </div>
+
+            <button id="restart-btn" class="btn-main">Retry Mission</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let logicalWidth = window.innerWidth;
+    const logicalHeight = 800;
+
+    let birdCount = 100;
+    const GAME_SPEED = 4;
+    const PIPE_WIDTH = 80;
+    const PIPE_GAP = 220;
+    let spawnRate = 120; 
+    const COHESION_STRENGTH = 0.02; 
+
+    // Bot Modes: 0 = OFF, 1 = FAIR (Unified Flap with delay), 2 = SWARM (Individual Minds)
+    let botMode = 0; 
+    let isHardMode = false;
+    let frames = 0;
+    let score = 0;
+    let highScore = localStorage.getItem('flockyHighScore') || 0;
+    let gameOverTime = 0;
+    
+    let camera = { x: 0, y: 0, zoom: 1 };
+    let worldX = 0;
+
+    let birds = [];
+    let pipes = [];
+    let clouds = [];
+    let hazards = [];
+
+    const botBtn = document.getElementById('bot-toggle');
+    const botBtnStart = document.getElementById('bot-toggle-start');
+    const birdSlider = document.getElementById('bird-slider');
+    const birdLabel = document.getElementById('bird-count-label');
+    const hardToggle = document.getElementById('hard-mode-toggle');
+    const startBtn = document.getElementById('start-btn');
+    const restartBtn = document.getElementById('restart-btn');
+
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        logicalWidth = canvas.width * (logicalHeight / canvas.height);
+        spawnRate = Math.floor(logicalWidth / 6); 
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function syncBirdCount(val) {
+        birdCount = parseInt(val);
+        birdSlider.value = val;
+        birdLabel.innerText = val;
+        if (gameState === 'START') {
+            birds = [];
+            for(let i=0; i<birdCount; i++) birds.push(new Bird(i));
+        }
+    }
+
+    birdSlider.addEventListener('input', (e) => syncBirdCount(e.target.value));
+    
+    function toggleBotMode(e) {
+        if (e) e.stopPropagation();
+        botMode = (botMode + 1) % 3;
+        updateBotUI();
+    }
+
+    function updateBotUI() {
+        const modes = ["OFF", "FAIR", "SWARM"];
+        const modeLabel = modes[botMode];
+        
+        [botBtn, botBtnStart].forEach(btn => {
+            btn.innerText = btn === botBtn ? `BOT: ${modeLabel}` : modeLabel;
+            btn.classList.remove('active-fair', 'active-swarm');
+            if (botMode === 1) btn.classList.add('active-fair');
+            if (botMode === 2) btn.classList.add('active-swarm');
+        });
+    }
+
+    botBtn.addEventListener('click', toggleBotMode);
+    botBtnStart.addEventListener('click', toggleBotMode);
+
+    hardToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        isHardMode = !isHardMode;
+        hardToggle.innerText = isHardMode ? 'ON' : 'OFF';
+        hardToggle.classList.toggle('active', isHardMode);
+    });
+
+    class Cloud {
+        constructor() {
+            this.x = Math.random() * 5000;
+            this.y = Math.random() * (logicalHeight / 2);
+            this.speed = 0.5 + Math.random() * 1.5;
+            this.size = 30 + Math.random() * 60;
+            this.opacity = 0.1 + Math.random() * 0.4;
+        }
+        update() {
+            if (this.x < camera.x - 1000) {
+                this.x = camera.x + logicalWidth + 1000;
+                this.y = Math.random() * (logicalHeight / 2);
+            }
+        }
+        draw(ctx, scale) {
+            ctx.save();
+            ctx.translate(-camera.x * 0.3 * scale, 0);
+            ctx.fillStyle = `rgba(255,255,255,${this.opacity})`;
+            ctx.beginPath();
+            ctx.arc(this.x * scale, this.y * scale, this.size * scale, 0, Math.PI*2);
+            ctx.arc((this.x + this.size*0.8) * scale, (this.y - this.size*0.2) * scale, this.size*0.75 * scale, 0, Math.PI*2);
+            ctx.arc((this.x + this.size*1.4) * scale, (this.y) * scale, this.size*0.6 * scale, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        }
+    }
+
+    class Pipe {
+        constructor(xPos) {
+            this.x = xPos;
+            this.w = PIPE_WIDTH;
+            const minPipe = 80;
+            const groundH = 120;
+            const maxPipe = logicalHeight - groundH - minPipe - PIPE_GAP;
+            this.topHeight = Math.floor(Math.random() * (maxPipe - minPipe + 1) + minPipe);
+            this.bottomY = this.topHeight + PIPE_GAP;
+            this.passed = false;
+        }
+        draw(ctx, scale) {
+            const screenX = (this.x - camera.x) * scale;
+            const screenW = this.w * scale;
+            const screenTopH = this.topHeight * scale;
+            const screenBottomY = this.bottomY * scale;
+            const groundY = (logicalHeight - 120) * scale;
+
+            ctx.fillStyle = '#74bf2e';
+            ctx.strokeStyle = '#543847';
+            ctx.lineWidth = 4 * scale;
+
+            ctx.fillRect(screenX, 0, screenW, screenTopH);
+            ctx.strokeRect(screenX, 0, screenW, screenTopH);
+            ctx.fillRect(screenX - 6*scale, screenTopH - 30*scale, screenW + 12*scale, 30*scale);
+            ctx.strokeRect(screenX - 6*scale, screenTopH - 30*scale, screenW + 12*scale, 30*scale);
+
+            ctx.fillRect(screenX, screenBottomY, screenW, groundY - screenBottomY);
+            ctx.strokeRect(screenX, screenBottomY, screenW, groundY - screenBottomY);
+            ctx.fillRect(screenX - 6*scale, screenBottomY, screenW + 12*scale, 30*scale);
+            ctx.strokeRect(screenX - 6*scale, screenBottomY, screenW + 12*scale, 30*scale);
+        }
+    }
+
+    class Hazard {
+        constructor(x, type) {
+            this.x = x;
+            this.type = type; 
+            this.w = type === 'LASER' ? 30 : 120;
+            this.active = true;
+            this.timer = 0;
+        }
+        update() {
+            if (this.type === 'LASER') {
+                this.timer++;
+                this.active = (Math.floor(this.timer / 60) % 2 === 0);
+            }
+        }
+        draw(ctx, scale) {
+            const screenX = (this.x - camera.x) * scale;
+            const screenW = this.w * scale;
+            const groundY = (logicalHeight - 120) * scale;
+
+            if (this.type === 'LASER') {
+                if (this.active) {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.4)';
+                    ctx.fillRect(screenX, 0, screenW, groundY);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.fillRect(screenX + screenW/2 - 3*scale, 0, 6*scale, groundY);
+                } else {
+                    ctx.fillStyle = 'rgba(255, 0, 0, 0.15)';
+                    ctx.fillRect(screenX + screenW/2 - 1*scale, 0, 2*scale, groundY);
+                }
+            } else if (this.type === 'WATERFALL') {
+                ctx.fillStyle = 'rgba(0, 150, 255, 0.3)';
+                ctx.fillRect(screenX, 0, screenW, groundY);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                for(let i=0; i<8; i++) {
+                    let dy = ((frames * 6 + i * 150) % logicalHeight) * scale;
+                    ctx.fillRect(screenX + (i * 15 * scale), dy, 3*scale, 15*scale);
+                }
+            }
+        }
+    }
+
+    class Bird {
+        constructor(index) {
+            this.baseXOffset = (Math.random() * 400) - 200;
+            this.x = 200 + this.baseXOffset;
+            this.y = 350 + (Math.random() * 150) - 75;
+            this.vy = 0;
+            this.alive = true;
+            this.size = 11;
+            const hue = Math.floor(Math.random() * 70 + 5); 
+            this.color = `hsl(${hue}, 100%, 55%)`;
+            this.flapPower = -7.5 - (Math.random() * 1.5); 
+            this.gravity = 0.42 + (Math.random() * 0.08); 
+            this.seed = Math.random() * 1000;
+            this.pendingFlapDelay = -1;
+            this.swayAmplitude = 150 + Math.random() * 250; 
+            this.swaySpeed = 0.008 + Math.random() * 0.01;
+            this.botThreshold = 5 + (Math.random() * 25); 
+            this.isFlapQueued = false; // Prevent multiple bot triggers in same flap cycle
+        }
+
+        queueFlap(forceImmediate = false) {
+            if (!this.alive) return;
+            if (forceImmediate) {
+                this.vy = this.flapPower;
+                this.pendingFlapDelay = -1;
+                this.isFlapQueued = false;
+            } else {
+                // Both player and "Fair Bot" use this staggered logic
+                this.pendingFlapDelay = Math.floor(Math.random() * 12);
+                this.isFlapQueued = true;
+            }
+        }
+
+        update(avgY, aliveRatio) {
+            if (!this.alive) return;
+            
+            // SWARM BOT LOGIC (Mode 2)
+            if (botMode === 2) this.think();
+            
+            if (this.pendingFlapDelay > 0) {
+                this.pendingFlapDelay--;
+            } else if (this.pendingFlapDelay === 0) {
+                this.vy = this.flapPower;
+                this.pendingFlapDelay = -1;
+                this.isFlapQueued = false;
+            }
+            this.vy += this.gravity;
+
+            if (isHardMode) {
+                for (let h of hazards) {
+                    if (h.type === 'WATERFALL' && this.x > h.x && this.x < h.x + h.w) this.vy += 0.9; 
+                }
+            }
+
+            if (botMode !== 2 && avgY !== null) {
+                const diff = avgY - this.y;
+                this.vy += diff * COHESION_STRENGTH;
+            }
+            this.y += this.vy;
+            
+            const swayMultiplier = 0.1 + (aliveRatio * 0.9); 
+            const currentSway = Math.sin(frames * this.swaySpeed + this.seed) * (this.swayAmplitude * swayMultiplier);
+            this.x = worldX + 200 + (this.baseXOffset * swayMultiplier) + currentSway;
+            
+            const groundY = logicalHeight - 120;
+            if (this.y >= groundY - this.size || this.y <= this.size) { this.die(); return; }
+            for(let p of pipes) {
+                if (this.x + this.size > p.x && this.x - this.size < p.x + p.w) {
+                    if (this.y - this.size < p.topHeight || this.y + this.size > p.bottomY) { this.die(); return; }
+                }
+            }
+            if (isHardMode) {
+                if (this.y < 35 || this.y > groundY - 35) { this.die(); return; }
+                for (let h of hazards) {
+                    if (h.type === 'LASER' && h.active && this.x + this.size > h.x && this.x - this.size < h.x + h.w) { this.die(); return; }
+                }
+            }
+        }
+
+        think() {
+            let nextObj = getNextObstacle(this.x);
+            let targetY = logicalHeight / 2.2;
+            if (nextObj && nextObj instanceof Pipe) {
+                targetY = nextObj.topHeight + (PIPE_GAP / 2);
+            } else if (isHardMode) {
+                targetY = logicalHeight / 2;
+            }
+            if (this.y > targetY + this.botThreshold && this.vy > 0 && !this.isFlapQueued) {
+                this.queueFlap();
+            }
+        }
+
+        die() { this.alive = false; }
+
+        draw(ctx, scale) {
+            if (!this.alive) return;
+            ctx.save();
+            let drawY = this.y * scale;
+            let drawX = (this.x - camera.x) * scale;
+            if (gameState === 'START') drawY += Math.sin(Date.now() / 300 + this.seed) * 20 * scale;
+            ctx.translate(drawX, drawY);
+            if (gameState !== 'START') ctx.rotate(Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (this.vy * 0.08))));
+            const scaledSize = this.size * scale;
+            ctx.fillStyle = this.color;
+            ctx.beginPath(); ctx.arc(0, 0, scaledSize, 0, Math.PI * 2); ctx.fill();
+            ctx.lineWidth = 2 * scale; ctx.strokeStyle = '#543847'; ctx.stroke();
+            ctx.fillStyle = "white"; ctx.beginPath(); ctx.arc(scaledSize/2, -scaledSize/3, scaledSize/2.5, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(scaledSize/2 + 1*scale, -scaledSize/3, scaledSize/6, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ff6600"; ctx.beginPath(); ctx.moveTo(scaledSize/2, 2*scale); ctx.lineTo(scaledSize + 5*scale, 3*scale); ctx.lineTo(scaledSize/2, 6*scale); ctx.fill(); ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    function getNextObstacle(fromX) {
+        let obstacles = [...pipes, ...hazards.filter(h => h.type === 'LASER' && h.active)];
+        obstacles.sort((a,b) => a.x - b.x);
+        for(let o of obstacles) {
+            const width = o.w || 30;
+            if (o.x + width > fromX - 11) return o;
+        }
+        return null;
+    }
+
+    function initGame() {
+        worldX = 0;
+        camera = { x: 0, y: 0, zoom: 1 };
+        birds = [];
+        for(let i=0; i<birdCount; i++) birds.push(new Bird(i));
+        pipes = [];
+        hazards = [];
+        score = 0;
+        frames = 0;
+        if (clouds.length === 0) for(let i=0; i<40; i++) clouds.push(new Cloud());
+        updateUI(birdCount);
+    }
+
+    function triggerGameOver() {
+        gameState = 'GAMEOVER';
+        gameOverTime = Date.now();
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('flockyHighScore', highScore);
+        }
+        document.getElementById('final-score').innerText = score;
+        document.getElementById('best-score').innerText = highScore;
+        const goScreen = document.getElementById('game-over-screen');
+        goScreen.classList.remove('hidden');
+        setTimeout(() => goScreen.classList.remove('opacity-0'), 10);
+    }
+
+    function updateUI(aliveCount) {
+        document.getElementById('score-display').innerText = score;
+        document.getElementById('alive-display').innerText = `${aliveCount}/${birdCount}`;
+        const aliveEl = document.getElementById('alive-display');
+        const ratio = aliveCount / birdCount;
+        if (ratio > 0.5) aliveEl.className = 'text-green-400';
+        else if (ratio > 0.2) aliveEl.className = 'text-yellow-400';
+        else aliveEl.className = 'text-red-500 animate-pulse';
+    }
+
+    function update() {
+        clouds.forEach(c => c.update());
+        if (gameState !== 'PLAYING') {
+            updateCamera(0.04);
+            return;
+        }
+        frames++;
+        worldX += GAME_SPEED;
+        if (frames % spawnRate === 0) {
+            pipes.push(new Pipe(worldX + logicalWidth + 800));
+            if (isHardMode && Math.random() > 0.5) {
+                const type = Math.random() > 0.5 ? 'LASER' : 'WATERFALL';
+                hazards.push(new Hazard(worldX + logicalWidth + 1200, type));
+            }
+        }
+        if (pipes.length > 0 && pipes[0].x < camera.x - 1000) pipes.shift();
+        if (hazards.length > 0 && hazards[0].x < camera.x - 1200) hazards.shift();
+        hazards.forEach(h => h.update());
+        
+        let aliveCount = 0;
+        let sumY = 0;
+        let sumX = 0;
+        birds.forEach(b => { if(b.alive) { aliveCount++; sumY += b.y; sumX += b.x; } });
+        const aliveRatio = aliveCount / birdCount;
+        const avgY = (aliveCount > 0 && botMode !== 2) ? sumY / aliveCount : null;
+        const avgX = (aliveCount > 0) ? sumX / aliveCount : 0;
+
+        // FAIR BOT LOGIC (Mode 1)
+        if (botMode === 1 && aliveCount > 0) {
+            let nextObj = getNextObstacle(avgX);
+            let targetY = logicalHeight / 2.2;
+            if (nextObj && nextObj instanceof Pipe) {
+                targetY = nextObj.topHeight + (PIPE_GAP / 2);
+            }
+            
+            // Check if ANY bird is already handling a pending flap
+            const alreadyFlapping = birds.some(b => b.alive && b.isFlapQueued);
+            
+            if (!alreadyFlapping && avgY > targetY + 15) {
+                // Fair bot triggers the SAME staggered queue logic as player
+                birds.forEach(b => b.queueFlap(false));
+            }
+        }
+        
+        birds.forEach(bird => bird.update(avgY, aliveRatio));
+        updateCamera(0.06);
+        
+        pipes.forEach(pipe => {
+            if (!pipe.passed) {
+                let maxAliveX = -5000;
+                for(let b of birds) if(b.alive && b.x > maxAliveX) maxAliveX = b.x;
+                if (maxAliveX > pipe.x + pipe.w) {
+                    score++;
+                    pipe.passed = true;
+                    updateUI(aliveCount);
+                    const sd = document.getElementById('score-display');
+                    sd.classList.add('scale-125', 'text-yellow-300');
+                    setTimeout(() => sd.classList.remove('scale-125', 'text-yellow-300'), 150);
+                }
+            }
+        });
+        updateUI(aliveCount);
+        if (aliveCount === 0) triggerGameOver();
+    }
+
+    function updateCamera(lerpFactor) {
+        let aliveCount = 0;
+        let minX = Infinity, maxX = -Infinity;
+        let minY = Infinity, maxY = -Infinity;
+        let sumX = 0, sumY = 0;
+        
+        birds.forEach(b => { 
+            if (b.alive) { 
+                aliveCount++; 
+                sumX += b.x; sumY += b.y;
+                if(b.x < minX) minX = b.x; if(b.x > maxX) maxX = b.x;
+                if(b.y < minY) minY = b.y; if(b.y > maxY) maxY = b.y;
+            } 
+        });
+        
+        if (aliveCount > 0) {
+            const avgX = sumX / aliveCount;
+            const avgY = sumY / aliveCount;
+            const spreadX = maxX - minX;
+            const spreadY = maxY - minY;
+            const maxSpread = Math.max(spreadX, spreadY * 1.5);
+            
+            let targetZoom = 1.0;
+            if (maxSpread > 500) targetZoom = 500 / maxSpread;
+            targetZoom = Math.max(0.4, Math.min(1.0, targetZoom));
+            
+            camera.zoom += (targetZoom - camera.zoom) * (lerpFactor * 0.5);
+            const targetCamX = avgX - (logicalWidth / (2 * camera.zoom));
+            const targetCamY = avgY - (logicalHeight / (2 * camera.zoom));
+            
+            camera.x += (targetCamX - camera.x) * lerpFactor;
+            camera.y += (targetCamY - camera.y) * lerpFactor;
+        }
+    }
+
+    function draw() {
+        const baseScale = canvas.height / logicalHeight;
+        const combinedScale = baseScale * camera.zoom;
+        
+        ctx.save();
+        ctx.fillStyle = '#70c5ce';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        clouds.forEach(c => c.draw(ctx, baseScale));
+        ctx.translate(0, -camera.y * combinedScale);
+        
+        if (isHardMode) {
+            ctx.fillStyle = '#4b5563';
+            const spikeSize = 30 * combinedScale;
+            const step = 40 * combinedScale;
+            const startX = Math.floor(camera.x * combinedScale / step) * step;
+            for(let i=-step*8; i < canvas.width + step*8; i += step) {
+                let drawX = (startX + i) - (camera.x * combinedScale);
+                ctx.beginPath(); ctx.moveTo(drawX, 0); ctx.lineTo(drawX + step/2, spikeSize); ctx.lineTo(drawX + step, 0); ctx.fill();
+                let gy = (logicalHeight - 120) * combinedScale;
+                ctx.beginPath(); ctx.moveTo(drawX, gy); ctx.lineTo(drawX + step/2, gy - spikeSize); ctx.lineTo(drawX + step, gy); ctx.fill();
+            }
+        }
+
+        hazards.forEach(h => h.draw(ctx, combinedScale));
+        pipes.forEach(p => p.draw(ctx, combinedScale));
+
+        const groundY = (logicalHeight - 120) * combinedScale;
+        ctx.fillStyle = '#ded895';
+        ctx.fillRect(0, groundY, canvas.width, 2000);
+        ctx.fillStyle = '#73bf2e';
+        ctx.fillRect(0, groundY, canvas.width, 18 * combinedScale);
+        ctx.strokeStyle = '#543847';
+        ctx.lineWidth = 4 * combinedScale;
+        ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(canvas.width, groundY); ctx.stroke();
+
+        birds.forEach(b => b.draw(ctx, combinedScale));
+        ctx.restore();
+    }
+
+    function startGameplay() {
+        if (gameState !== 'START') return;
+        gameState = 'PLAYING';
+        document.getElementById('start-screen').classList.add('opacity-0');
+        setTimeout(() => document.getElementById('start-screen').classList.add('hidden'), 300);
+        birds.forEach(b => b.queueFlap(true)); // Immediate first flap on start
+    }
+
+    function restartGameplay() {
+        if (gameState !== 'GAMEOVER') return;
+        if (Date.now() - gameOverTime < 500) return;
+        initGame();
+        gameState = 'START';
+        document.getElementById('game-over-screen').classList.add('opacity-0');
+        setTimeout(() => document.getElementById('game-over-screen').classList.add('hidden'), 300);
+        document.getElementById('start-screen').classList.remove('hidden');
+        setTimeout(() => document.getElementById('start-screen').classList.remove('opacity-0'), 10);
+    }
+
+    window.addEventListener('mousedown', (e) => {
+        if (gameState === 'PLAYING' && botMode === 0) birds.forEach(b => b.queueFlap());
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            if (gameState === 'PLAYING' && botMode === 0) birds.forEach(b => b.queueFlap());
+            if (gameState === 'START') startGameplay();
+        }
+    });
+    startBtn.addEventListener('click', (e) => { e.stopPropagation(); startGameplay(); });
+    restartBtn.addEventListener('click', (e) => { e.stopPropagation(); restartGameplay(); });
+    document.addEventListener('touchstart', (e) => { 
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON') return; 
+        e.preventDefault(); 
+        if (gameState === 'PLAYING' && botMode === 0) birds.forEach(b => b.queueFlap());
+    }, {passive: false});
+
+    function gameLoop(timestamp) {
+        requestAnimationFrame(gameLoop);
+        let deltaTime = timestamp - lastTime || 0;
+        lastTime = timestamp;
+        accumulator += Math.min(deltaTime, 250);
+        while (accumulator >= 16.6) { update(); accumulator -= 16.6; }
+        draw();
+    }
+    let lastTime = 0, accumulator = 0;
+    let gameState = 'START';
+    initGame();
+    requestAnimationFrame(gameLoop);
+</script>
+</body>
+</html>
