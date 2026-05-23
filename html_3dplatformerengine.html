@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Platformer Engine</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #game-canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        #ui-layer h1 {
+            font-size: 4rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        #skin-editor-ui {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 20, 0.98);
+            padding: 40px;
+            border-radius: 20px;
+            border: 3px solid #2196F3;
+            color: white;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 0 40px rgba(33, 150, 243, 0.6);
+            min-width: 300px;
+        }
+
+        #skin-editor-ui h2 {
+            margin-top: 0;
+            color: #2196F3;
+            letter-spacing: 2px;
+        }
+
+        .color-picker-container {
+            margin: 30px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="color"] {
+            width: 120px;
+            height: 120px;
+            border: 4px solid #444;
+            border-radius: 10px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+
+        .btn-done {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-done:hover {
+            background: #42a5f5;
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(33, 150, 243, 0.4);
+        }
+
+        .controls {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.2);
+            text-align: center;
+        }
+
+        .key {
+            display: inline-block;
+            background: #fff;
+            color: #333;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 0 3px;
+            box-shadow: 0 2px 0 #ccc;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 10px;
+            height: 10px;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            display: none;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>CUBE RUNNER</h1>
+        <p>Click to Start</p>
+        <div class="controls">
+            <p><span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move | <span class="key">Space</span> Jump (x2) | <span class="key">Shift</span> Sprint</p>
+        </div>
+    </div>
+
+    <div id="skin-editor-ui">
+        <h2>SKIN EDITOR</h2>
+        <div class="color-picker-container">
+            <label for="bodyColor">Customize Body Color</label>
+            <input type="color" id="bodyColor" value="#111111">
+        </div>
+        <button class="btn-done" onclick="closeSkinEditor()">DONE & RESPAWN</button>
+    </div>
+
+    <div id="crosshair"></div>
+    <canvas id="game-canvas"></canvas>
+
+    <script>
+        // --- Constants ---
+        const GRAVITY = 38;
+        const JUMP_FORCE = 13.5;
+        const WALK_SPEED = 8.5;
+        const SPRINT_SPEED = 15;
+        const PLAYER_SIZE = 1.0;
+        const PLAYER_HALF = PLAYER_SIZE / 2;
+        const COLLISION_SKIN = 0.001; 
+        
+        // --- Globals ---
+        let scene, camera, renderer;
+        let playerMesh, yawPivot, pitchPivot, playerVisual, modelContainer, bodyMesh;
+        let leftHand, rightHand; 
+        let levelBoxes = [];
+        let particles = [];
+        let skinEditorZone = null;
+        let editorIcon = null;
+        let clock = new THREE.Clock();
+        
+        let velocity = new THREE.Vector3();
+        let onGround = false;
+        let isPlaying = false;
+        let isEditingSkin = false;
+        let jumpsAvailable = 2;
+        let spaceWasDown = false;
+        let editorCooldown = 0;
+        let walkCycle = 0; 
+
+        let currentScaleY = 1.0;
+        let targetScaleY = 1.0;
+
+        function init() {
+            const canvas = document.getElementById('game-canvas');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 30, 160);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(20, 50, 20);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.set(2048, 2048);
+            scene.add(dirLight);
+
+            playerMesh = new THREE.Group();
+            playerMesh.position.set(0, 5, 0);
+            scene.add(playerMesh);
+
+            modelContainer = new THREE.Group();
+            playerMesh.add(modelContainer);
+
+            playerVisual = new THREE.Group();
+            modelContainer.add(playerVisual);
+
+            // Body
+            const bodyGeo = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE);
+            bodyGeo.translate(0, PLAYER_HALF, 0); 
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            bodyMesh.castShadow = true;
+            playerVisual.add(bodyMesh);
+
+            // Hands - Changed to SphereGeometry
+            const handGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            const handMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+            
+            leftHand = new THREE.Mesh(handGeo, handMat);
+            leftHand.position.set(0.65, 0.4, 0);
+            leftHand.castShadow = true;
+            playerVisual.add(leftHand);
+
+            rightHand = new THREE.Mesh(handGeo, handMat);
+            rightHand.position.set(-0.65, 0.4, 0);
+            rightHand.castShadow = true;
+            playerVisual.add(rightHand);
+
+            // Eyes
+            const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.1);
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(0.25, 0.7, 0.5);
+            playerVisual.add(leftEye);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(-0.25, 0.7, 0.5);
+            playerVisual.add(rightEye);
+
+            const pupilGeo = new THREE.BoxGeometry(0.1, 0.1, 0.05);
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+            leftPupil.position.set(0.25, 0.7, 0.55);
+            playerVisual.add(leftPupil);
+            const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+            rightPupil.position.set(-0.25, 0.7, 0.55);
+            playerVisual.add(rightPupil);
+
+            yawPivot = new THREE.Object3D();
+            pitchPivot = new THREE.Object3D();
+            scene.add(yawPivot);
+            yawPivot.add(pitchPivot);
+            pitchPivot.add(camera);
+            camera.position.set(0, 2.0, 6.0);
+            camera.rotation.x = -0.2;
+
+            buildLevel();
+            setupInput();
+            window.addEventListener('resize', onWindowResize);
+            animate();
+        }
+
+        function createPlatform(x, y, z, w, h, d, color, rotationX = 0, isRamp = false) {
+            const mesh = new THREE.Mesh(
+                new THREE.BoxGeometry(w, h, d),
+                new THREE.MeshStandardMaterial({ color })
+            );
+            mesh.position.set(x, y, z);
+            if (rotationX) mesh.rotation.x = rotationX;
+            mesh.receiveShadow = true;
+            mesh.castShadow = true;
+            scene.add(mesh);
+            
+            if (isRamp) {
+                const segments = 25;
+                const segmentDepth = d / segments;
+                for (let i = 0; i <= segments; i++) {
+                    const progress = i / segments;
+                    const stepZ = z + (progress - 0.5) * d * Math.cos(rotationX);
+                    const stepY = y - (progress - 0.5) * d * Math.sin(rotationX);
+                    
+                    const colBox = new THREE.Box3();
+                    colBox.setFromCenterAndSize(
+                        new THREE.Vector3(x, stepY - h/2, stepZ),
+                        new THREE.Vector3(w, h, segmentDepth * 1.2)
+                    );
+                    levelBoxes.push(colBox);
+                }
+            } else {
+                const box = new THREE.Box3();
+                box.setFromObject(mesh);
+                levelBoxes.push(box);
+            }
+            return mesh;
+        }
+
+        function createStaircase(startX, startY, startZ, width, totalHeight, numSteps, dirZ) {
+            const stepHeight = totalHeight / numSteps;
+            const stepDepth = 1.2;
+            for (let i = 0; i < numSteps; i++) {
+                const yPos = startY + (i * stepHeight) + (stepHeight / 2);
+                const zPos = startZ + (i * stepDepth * dirZ);
+                createPlatform(startX, yPos, zPos, width, stepHeight, stepDepth, 0x999999);
+            }
+        }
+
+        function buildLevel() {
+            createPlatform(0, -0.5, 0, 80, 1, 100, 0x4CAF50); 
+            
+            const editorBase = createPlatform(-15, 0.1, -15, 8, 0.2, 8, 0x2196F3);
+            editorBase.material.transparent = true;
+            editorBase.material.opacity = 0.6;
+            
+            const iconGeo = new THREE.IcosahedronGeometry(1, 0);
+            const iconMat = new THREE.MeshStandardMaterial({ color: 0x2196F3, wireframe: true, emissive: 0x2196F3, emissiveIntensity: 1 });
+            editorIcon = new THREE.Mesh(iconGeo, iconMat);
+            editorIcon.position.set(-15, 3, -15);
+            scene.add(editorIcon);
+
+            skinEditorZone = new THREE.Box3().setFromCenterAndSize(new THREE.Vector3(-15, 1, -15), new THREE.Vector3(8, 4, 8));
+
+            createStaircase(25, 0, -5, 6, 12.5, 25, -1);
+            createPlatform(15, 1, -15, 8, 2, 8, 0x888888);
+            createPlatform(15, 3, -25, 8, 6, 8, 0x888888);
+            createPlatform(15, 6, -35, 8, 12, 8, 0x888888);
+            createPlatform(15, 12.5, -35, 12, 1, 12, 0x2196F3); 
+            createPlatform(-15, 1.5, 10, 10, 1, 30, 0x795548, -0.2, true); 
+            createPlatform(0, 6, -45, 10, 1, 10, 0x2196F3);
+            createPlatform(-15, 8, -45, 5, 1, 5, 0xFF9800);
+            createPlatform(-25, 10, -45, 5, 1, 5, 0xFF9800);
+            createPlatform(-35, 12, -45, 8, 1, 8, 0xE91E63);
+            createPlatform(-35, 12, -20, 4, 0.5, 40, 0x607D8B);
+            createPlatform(-35, 12, 5, 10, 1, 10, 0x9C27B0);
+        }
+
+        function openSkinEditor() {
+            if (isEditingSkin || editorCooldown > 0) return;
+            isEditingSkin = true;
+            isPlaying = false;
+            document.exitPointerLock();
+            document.getElementById('skin-editor-ui').style.display = 'flex';
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('ui-layer').style.display = 'none';
+        }
+
+        window.closeSkinEditor = function() {
+            const newColor = document.getElementById('bodyColor').value;
+            bodyMesh.material.color.set(newColor);
+            leftHand.material.color.set(newColor);
+            rightHand.material.color.set(newColor);
+            isEditingSkin = false;
+            document.getElementById('skin-editor-ui').style.display = 'none';
+            editorCooldown = 2.0;
+            playerMesh.position.set(0, 5, 0);
+            velocity.set(0, 0, 0);
+            document.body.requestPointerLock();
+        };
+
+        function createParticle(x, y, z, color = 0xffffff, size = 0.2) {
+            const geo = new THREE.BoxGeometry(size, size, size);
+            const mat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.8, emissive: color, emissiveIntensity: 0.2 });
+            const p = new THREE.Mesh(geo, mat);
+            p.position.set(x, y, z);
+            const life = 0.5 + Math.random() * 0.5;
+            const vel = new THREE.Vector3((Math.random() - 0.5) * 5, Math.random() * 5, (Math.random() - 0.5) * 5);
+            scene.add(p);
+            particles.push({ mesh: p, velocity: vel, life, maxLife: life });
+        }
+
+        function spawnDustBurst(pos) {
+            for(let i = 0; i < 8; i++) createParticle(pos.x, pos.y, pos.z, 0xdddddd, 0.15);
+        }
+
+        function updateParticles(delta) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= delta;
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                    continue;
+                }
+                p.mesh.position.add(p.velocity.clone().multiplyScalar(delta));
+                p.mesh.scale.multiplyScalar(0.95);
+                p.mesh.material.opacity = p.life / p.maxLife;
+            }
+        }
+
+        const keys = { w: false, a: false, s: false, d: false, arrowup: false, arrowleft: false, arrowdown: false, arrowright: false, space: false, shift: false };
+
+        function setupInput() {
+            const ui = document.getElementById('ui-layer');
+            ui.addEventListener('click', () => { if (!isEditingSkin) document.body.requestPointerLock(); });
+            document.addEventListener('pointerlockchange', () => {
+                if (isEditingSkin) return;
+                isPlaying = document.pointerLockElement === document.body;
+                ui.style.display = isPlaying ? 'none' : 'flex';
+                document.getElementById('crosshair').style.display = isPlaying ? 'block' : 'none';
+            });
+            const handleKey = (e, val) => {
+                const k = e.key.toLowerCase();
+                if (keys.hasOwnProperty(k)) keys[k] = val;
+                if (e.code === 'Space') keys.space = val;
+            };
+            document.addEventListener('keydown', (e) => handleKey(e, true));
+            document.addEventListener('keyup', (e) => handleKey(e, false));
+            document.addEventListener('mousemove', (e) => {
+                if (!isPlaying) return;
+                yawPivot.rotation.y -= e.movementX * 0.002;
+                pitchPivot.rotation.x = Math.max(-0.9, Math.min(0.7, pitchPivot.rotation.x - e.movementY * 0.002));
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        const playerBounds = new THREE.Box3();
+        function getIntersectingBox(pos) {
+            playerBounds.setFromCenterAndSize(
+                new THREE.Vector3(pos.x, pos.y + PLAYER_HALF, pos.z), 
+                new THREE.Vector3(PLAYER_SIZE - 0.2, PLAYER_SIZE - 0.05, PLAYER_SIZE - 0.2) 
+            );
+            for (let b of levelBoxes) {
+                if (playerBounds.intersectsBox(b)) return b;
+            }
+            return null;
+        }
+
+        function updatePhysics(delta) {
+            if (delta > 0.05) delta = 0.05;
+
+            if (editorCooldown > 0) editorCooldown -= delta;
+            if (editorIcon) {
+                editorIcon.rotation.y += delta * 2;
+                editorIcon.position.y = 3 + Math.sin(Date.now() * 0.003) * 0.5;
+            }
+
+            // Skin Editor Trigger
+            playerBounds.setFromCenterAndSize(
+                new THREE.Vector3(playerMesh.position.x, playerMesh.position.y + PLAYER_HALF, playerMesh.position.z), 
+                new THREE.Vector3(PLAYER_SIZE, PLAYER_SIZE, PLAYER_SIZE) 
+            );
+            if (skinEditorZone && playerBounds.intersectsBox(skinEditorZone) && editorCooldown <= 0) {
+                openSkinEditor();
+                return; 
+            }
+
+            let moveX = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
+            let moveZ = (keys.s || keys.arrowdown ? 1 : 0) - (keys.w || keys.arrowup ? 1 : 0);
+            let input = new THREE.Vector2(moveX, moveZ);
+            if (input.length() > 1) input.normalize();
+            
+            const isSprinting = keys.shift && input.length() > 0.1 && onGround;
+            let speed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
+            let targetVel = new THREE.Vector3(input.x, 0, input.y)
+                .applyAxisAngle(new THREE.Vector3(0, 1, 0), yawPivot.rotation.y)
+                .multiplyScalar(speed);
+
+            const lerpFactor = onGround ? 15 : 5; 
+            velocity.x += (targetVel.x - velocity.x) * lerpFactor * delta;
+            velocity.z += (targetVel.z - velocity.z) * lerpFactor * delta;
+            
+            if (!onGround || velocity.y > 0) {
+                velocity.y -= GRAVITY * delta;
+            } else {
+                velocity.y = 0;
+            }
+
+            if (isSprinting && Math.random() > 0.7) {
+                createParticle(playerMesh.position.x, playerMesh.position.y, playerMesh.position.z, 0xffffff, 0.1);
+            }
+
+            // Hand animation logic
+            const horizVel = new THREE.Vector2(velocity.x, velocity.z).length();
+            if (horizVel > 1.0 && onGround) {
+                walkCycle += delta * horizVel * 1.2;
+            } else if (!onGround) {
+                walkCycle *= 0.9;
+            } else {
+                walkCycle *= 0.8; 
+            }
+
+            // Apply hand positions
+            const handSwing = Math.sin(walkCycle) * 0.5;
+            const handLift = Math.abs(Math.cos(walkCycle)) * 0.2;
+            
+            leftHand.position.z = handSwing;
+            leftHand.position.y = 0.4 + handLift;
+            
+            rightHand.position.z = -handSwing;
+            rightHand.position.y = 0.4 + handLift;
+
+            if (!onGround) {
+                const jumpLift = Math.min(Math.abs(velocity.y) * 0.05, 0.4);
+                leftHand.position.y += jumpLift;
+                rightHand.position.y += jumpLift;
+                leftHand.position.x = 0.65 + jumpLift * 0.5;
+                rightHand.position.x = -0.65 - jumpLift * 0.5;
+            } else {
+                leftHand.position.x = 0.65;
+                rightHand.position.x = -0.65;
+            }
+
+            if (input.length() > 0.1) {
+                const targetRotation = Math.atan2(velocity.x, velocity.z);
+                let diff = targetRotation - modelContainer.rotation.y;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                modelContainer.rotation.y += diff * 10 * delta;
+            }
+
+            // --- JUMP LOGIC ---
+            if (keys.space && !spaceWasDown) {
+                if (onGround || jumpsAvailable > 0) {
+                    velocity.y = JUMP_FORCE;
+                    jumpsAvailable--;
+                    onGround = false;
+                    currentScaleY = 1.4;
+                    spawnDustBurst(playerMesh.position);
+                }
+            }
+            spaceWasDown = keys.space;
+
+            if (!onGround) {
+                targetScaleY = Math.min(1.0 + Math.abs(velocity.y) * 0.02, 1.5);
+            } else {
+                targetScaleY = 1.0;
+            }
+            currentScaleY += (targetScaleY - currentScaleY) * 12 * delta;
+            playerVisual.scale.set(1 / Math.sqrt(currentScaleY), currentScaleY, 1 / Math.sqrt(currentScaleY));
+
+            // HORIZONTAL RESOLUTION
+            const resolveHorizontal = (axis) => {
+                if (Math.abs(velocity[axis]) < 0.01) return;
+                playerMesh.position[axis] += velocity[axis] * delta;
+                let b = getIntersectingBox(playerMesh.position);
+                if (b) {
+                    if (velocity[axis] > 0) playerMesh.position[axis] = b.min[axis] - (PLAYER_SIZE - 0.2)/2 - COLLISION_SKIN;
+                    else playerMesh.position[axis] = b.max[axis] + (PLAYER_SIZE - 0.2)/2 + COLLISION_SKIN;
+                    velocity[axis] = 0;
+                }
+            };
+            resolveHorizontal('x');
+            resolveHorizontal('z');
+
+            // VERTICAL RESOLUTION
+            let wasInAir = !onGround;
+            playerMesh.position.y += velocity.y * delta;
+            let b = getIntersectingBox(playerMesh.position);
+            
+            if (b) {
+                if (velocity.y < 0) {
+                    playerMesh.position.y = b.max.y;
+                    onGround = true;
+                    jumpsAvailable = 2; 
+                    if (wasInAir && Math.abs(velocity.y) > 5) {
+                        currentScaleY = 0.5;
+                        spawnDustBurst(playerMesh.position);
+                    }
+                    velocity.y = 0;
+                } else if (velocity.y > 0) {
+                    playerMesh.position.y = b.min.y - PLAYER_SIZE + 0.05 - COLLISION_SKIN;
+                    velocity.y = 0;
+                }
+            } else {
+                let downCheck = getIntersectingBox({x: playerMesh.position.x, y: playerMesh.position.y - 0.15, z: playerMesh.position.z});
+                if (!downCheck) {
+                    onGround = false;
+                    if (jumpsAvailable === 2) jumpsAvailable = 1; 
+                } else {
+                    onGround = true;
+                    if (velocity.y <= 0) {
+                        playerMesh.position.y = downCheck.max.y;
+                        velocity.y = 0;
+                        jumpsAvailable = 2;
+                    }
+                }
+            }
+
+            if (playerMesh.position.y < -30) {
+                playerMesh.position.set(0, 5, 0);
+                velocity.set(0, 0, 0);
+            }
+            
+            yawPivot.position.lerp(new THREE.Vector3(playerMesh.position.x, playerMesh.position.y + PLAYER_HALF + 0.5, playerMesh.position.z), 0.2);
+            updateParticles(delta);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isPlaying) {
+                updatePhysics(clock.getDelta());
+            } else {
+                clock.getDelta(); 
+            }
+            renderer.render(scene, camera);
+        }
+
+        init();
+    </script>
+</body>
+</html>
