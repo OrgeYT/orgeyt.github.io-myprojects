@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Meme Piano Roll</title>
+    <!-- Tone.js for Web Audio synthesis and scheduling -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- @tonejs/midi for parsing MIDI files -->
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --accent-color: #bd93f9;
+            --accent-hover: #ff79c6;
+            --note-color: #50fa7b;
+            --note-active: #f1fa8c; /* Highlight color for active notes */
+            --playhead-color: #ff5555;
+            --error-color: #ff5555;
+            --warning-color: #ffb86c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            margin: 0;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .controls-panel {
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-weight: bold;
+            color: var(--accent-color);
+        }
+
+        select, input[type="file"] {
+            background-color: #44475a;
+            color: white;
+            border: 1px solid #6272a4;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: inherit;
+            cursor: pointer;
+            max-width: 100%;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #282a36;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: var(--accent-hover);
+        }
+
+        button:disabled {
+            background-color: #6272a4;
+            color: #b1b1b1;
+            cursor: not-allowed;
+        }
+
+        .canvas-container {
+            width: 100%;
+            max-width: 800px;
+            overflow-x: auto;
+            background-color: #282a36;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            /* Smooth scrolling for playhead tracking */
+            scroll-behavior: auto; 
+        }
+
+        canvas {
+            image-rendering: pixelated;
+            display: block;
+            /* Force fixed height, let width expand based on song length */
+            height: 400px;
+        }
+
+        .status {
+            font-size: 14px;
+            color: #8be9fd;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>MIDI Meme Piano Roll</h1>
+
+    <div class="controls-panel">
+        <div class="control-group">
+            <label for="midiInput">1. Upload MIDI:</label>
+            <input type="file" id="midiInput" accept=".mid,.midi" />
+            <span id="midiStatus" class="status">Waiting for MIDI...</span>
+        </div>
+
+        <div class="control-group">
+            <label for="soundSelect">2. Choose Sound:</label>
+            <select id="soundSelect">
+                <!-- Hardcoded list of premade sounds -->
+                <option value="notification_014egLP.mp3">Notification</option>
+                <option value="mlg-airhorn.mp3">MLG Airhorn</option>
+                <option value="explosion-meme_dTCfAHs.mp3">Explosion</option>
+                <option value="fahhhhh.mp3">Fahhhhh</option>
+                <option value="error_CDOXCYm.mp3">Error</option>
+                <option value="censor-beep-1.mp3">Censor Beep</option>
+                <option value="anime-ahh.mp3">Anime Ahh</option>
+                <option value="perfect-fart.mp3">Perfect Fart</option>
+                <option value="tuco-get-out.mp3">Tuco Get Out</option>
+                <option value="spongebob-fail.mp3">Spongebob Fail</option>
+                <option value="dry-fart.mp3">Dry Fart</option>
+                <option value="applepay.mp3">Apple Pay</option>
+                <option value="pew-roblox.mp3">Roblox Pew</option>
+                <option value="custom">-- Upload Custom Audio --</option>
+            </select>
+            <input type="file" id="customSoundInput" accept="audio/*" style="display:none;" />
+            <span id="audioStatus" class="status">Loading Audio...</span>
+        </div>
+
+        <div class="control-group" style="justify-content: center; margin-top: 10px;">
+            <button id="btnPlay" disabled>Play</button>
+            <button id="btnPause" disabled>Pause</button>
+            <button id="btnStop" disabled>Stop</button>
+            <button id="btnExport" disabled style="background-color: #50fa7b; color: #282a36; margin-left: auto;">Export WAV</button>
+        </div>
+
+        <!-- Rendering Progress Bar -->
+        <div id="exportProgressWrapper" style="display: none; width: 100%; margin-top: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <span id="exportProgressLabel" class="status" style="color: var(--accent-color); font-weight: bold;">Rendering...</span>
+                <span id="exportProgressPercent" class="status" style="font-weight: bold;">0%</span>
+            </div>
+            <div style="width: 100%; background-color: #44475a; border-radius: 6px; height: 14px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);">
+                <div id="exportProgressBar" style="width: 0%; height: 100%; background-color: var(--note-color); transition: width 0.1s linear;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 800x400 Canvas for Piano Roll -->
+    <div class="canvas-container">
+        <canvas id="pianoRoll" width="800" height="400"></canvas>
+    </div>
+
+    <script>
+        // --- State Variables ---
+        let parsedMidi = null;
+        let allNotes = [];
+        let sampler = null;
+        let midiPart = null;
+        let isSamplerLoaded = false;
+        let currentAudioUrl = null;
+        
+        // Zoom and scaling configuration
+        const PIXELS_PER_SECOND = 150; 
+        let verticalMetrics = { minNote: 0, noteRange: 1 };
+        
+        // --- DOM Elements ---
+        const midiInput = document.getElementById('midiInput');
+        const soundSelect = document.getElementById('soundSelect');
+        const customSoundInput = document.getElementById('customSoundInput');
+        
+        const btnPlay = document.getElementById('btnPlay');
+        const btnPause = document.getElementById('btnPause');
+        const btnStop = document.getElementById('btnStop');
+        const btnExport = document.getElementById('btnExport');
+        
+        const midiStatus = document.getElementById('midiStatus');
+        const audioStatus = document.getElementById('audioStatus');
+        
+        // Progress Bar Elements
+        const exportProgressWrapper = document.getElementById('exportProgressWrapper');
+        const exportProgressLabel = document.getElementById('exportProgressLabel');
+        const exportProgressPercent = document.getElementById('exportProgressPercent');
+        const exportProgressBar = document.getElementById('exportProgressBar');
+        
+        const canvas = document.getElementById('pianoRoll');
+        const ctx = canvas.getContext('2d');
+        
+        // Offscreen canvas for performance (draw notes once, render background statically)
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = canvas.width;
+        bgCanvas.height = canvas.height;
+        const bgCtx = bgCanvas.getContext('2d');
+
+        // --- Sound Loading Logic ---
+        function loadSampler(url) {
+            isSamplerLoaded = false;
+            currentAudioUrl = url;
+            audioStatus.textContent = "Loading Audio...";
+            audioStatus.style.color = "var(--warning-color)";
+            updateButtons();
+
+            // Clear old sampler to prevent memory leaks
+            if (sampler) {
+                sampler.dispose();
+            }
+
+            try {
+                // Map the sample to C4 (MIDI note 60). Tone.js pitches automatically!
+                sampler = new Tone.Sampler({
+                    urls: {
+                        "C4": url
+                    },
+                    onload: () => {
+                        isSamplerLoaded = true;
+                        audioStatus.textContent = "Audio Ready!";
+                        audioStatus.style.color = "var(--note-color)";
+                        updateButtons();
+                    },
+                    // Added onerror callback to handle missing local files gracefully
+                    onerror: (err) => {
+                        console.warn("Failed to load audio file:", url, err);
+                        isSamplerLoaded = false;
+                        audioStatus.textContent = "Error: Sound file not found.";
+                        audioStatus.style.color = "var(--error-color)";
+                        updateButtons();
+                    }
+                }).toDestination();
+            } catch (error) {
+                console.error("Sampler setup error:", error);
+                isSamplerLoaded = false;
+                audioStatus.textContent = "Error setting up audio.";
+                audioStatus.style.color = "var(--error-color)";
+                updateButtons();
+            }
+        }
+
+        soundSelect.addEventListener('change', () => {
+            if (soundSelect.value === 'custom') {
+                customSoundInput.style.display = 'block';
+                if (customSoundInput.files.length > 0) {
+                    const url = URL.createObjectURL(customSoundInput.files[0]);
+                    loadSampler(url);
+                } else {
+                    isSamplerLoaded = false;
+                    audioStatus.textContent = "Please select a file.";
+                    audioStatus.style.color = "var(--warning-color)";
+                    updateButtons();
+                }
+            } else {
+                customSoundInput.style.display = 'none';
+                loadSampler(soundSelect.value); // Resolves relative to current directory
+            }
+        });
+
+        customSoundInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const url = URL.createObjectURL(e.target.files[0]);
+                loadSampler(url);
+            }
+        });
+
+        // Load the default selected sound initially
+        loadSampler(soundSelect.value);
+
+        // --- MIDI Parsing Logic ---
+        midiInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            midiStatus.textContent = "Parsing...";
+            midiStatus.style.color = "var(--warning-color)";
+            const arrayBuffer = await file.arrayBuffer();
+            
+            try {
+                parsedMidi = new Midi(arrayBuffer);
+                allNotes = [];
+                
+                // Flatten all notes from all tracks into a single array
+                parsedMidi.tracks.forEach(track => {
+                    track.notes.forEach(note => {
+                        allNotes.push({
+                            time: note.time,
+                            duration: note.duration,
+                            name: note.name, // e.g., "C4"
+                            midi: note.midi,
+                            velocity: note.velocity
+                        });
+                    });
+                });
+
+                // Calculate vertical metrics to properly scale notes vertically
+                if (allNotes.length > 0) {
+                    const minNote = Math.min(...allNotes.map(n => n.midi)) - 2;
+                    const maxNote = Math.max(...allNotes.map(n => n.midi)) + 2;
+                    verticalMetrics.minNote = minNote;
+                    verticalMetrics.noteRange = Math.max(1, maxNote - minNote);
+                }
+
+                // Adjust canvas width for zoom based on duration
+                const totalDuration = parsedMidi.duration || 1;
+                // Cap width at 32000px to prevent browser canvas crashing on super long songs
+                const newWidth = Math.min(32000, Math.max(800, totalDuration * PIXELS_PER_SECOND));
+                
+                canvas.width = newWidth;
+                bgCanvas.width = newWidth;
+
+                if (midiPart) midiPart.dispose();
+                
+                // Create a Tone.js Part to schedule playback
+                midiPart = new Tone.Part((time, note) => {
+                    if (isSamplerLoaded && sampler) {
+                        sampler.triggerAttackRelease(note.name, note.duration, time, note.velocity);
+                    }
+                }, allNotes).start(0);
+
+                midiStatus.textContent = `Loaded ${allNotes.length} notes (${parsedMidi.duration.toFixed(1)}s)`;
+                midiStatus.style.color = "var(--note-color)";
+                handleStop(); // Reset transport
+                renderBackground(); // Draw static notes onto offscreen canvas
+                updateButtons();
+            } catch (err) {
+                midiStatus.textContent = "Error parsing MIDI.";
+                midiStatus.style.color = "var(--error-color)";
+                console.error(err);
+            }
+        });
+
+        // --- Playback Controls ---
+        function updateButtons() {
+            // Can only play if both a valid sound is loaded AND a MIDI file is parsed
+            const canPlay = isSamplerLoaded && parsedMidi !== null;
+            btnPlay.disabled = !canPlay || Tone.Transport.state === 'started';
+            btnPause.disabled = !canPlay || Tone.Transport.state !== 'started';
+            btnStop.disabled = !canPlay;
+            btnExport.disabled = !canPlay;
+        }
+
+        function handleStop() {
+            Tone.Transport.stop();
+            if (sampler) sampler.releaseAll(); // Cut off hanging notes
+            updateButtons();
+        }
+
+        btnPlay.addEventListener('click', async () => {
+            await Tone.start(); // Required by browser policy
+            Tone.Transport.start();
+            updateButtons();
+        });
+
+        btnPause.addEventListener('click', () => {
+            Tone.Transport.pause();
+            if (sampler) sampler.releaseAll();
+            updateButtons();
+        });
+
+        btnStop.addEventListener('click', handleStop);
+
+        // Helper to convert Web Audio API AudioBuffer to standard WAV format
+        // Added async chunking so the UI doesn't freeze and we can animate the progress bar
+        async function audioBufferToWav(buffer, onProgress) {
+            let numOfChan = buffer.numberOfChannels,
+                length = buffer.length * numOfChan * 2 + 44,
+                bufferArray = new ArrayBuffer(length),
+                view = new DataView(bufferArray),
+                pos = 0;
+
+            function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+            function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length - 8); // file length - 8
+            setUint32(0x45564157); // "WAVE"
+            setUint32(0x20746d66); // "fmt " chunk
+            setUint32(16); // length = 16
+            setUint16(1); // PCM (uncompressed)
+            setUint16(numOfChan);
+            setUint32(buffer.sampleRate);
+            setUint32(buffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+            setUint16(numOfChan * 2); // block-align
+            setUint16(16); // 16-bit (hardcoded)
+            setUint32(0x61746164); // "data" - chunk
+            setUint32(length - pos - 4); // chunk length
+
+            // Grab data for all channels
+            const channels = [];
+            for (let i = 0; i < buffer.numberOfChannels; i++) {
+                channels.push(buffer.getChannelData(i));
+            }
+
+            // Write audio data using Int16Array for massive speedup
+            const pcmData = new Int16Array(bufferArray, 44);
+            let pcmIndex = 0;
+            const bufferLength = buffer.length;
+
+            // Process in chunks (1 second of audio at a time) to allow UI repaints
+            const chunkSize = buffer.sampleRate; 
+
+            for (let i = 0; i < bufferLength; i += chunkSize) {
+                const end = Math.min(i + chunkSize, bufferLength);
+                for (let j = i; j < end; j++) {
+                    for (let ch = 0; ch < numOfChan; ch++) {
+                        let sample = channels[ch][j];
+                        // Fast clamp
+                        sample = sample < -1 ? -1 : (sample > 1 ? 1 : sample);
+                        // Scale to 16-bit signed integer and push to array
+                        pcmData[pcmIndex++] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    }
+                }
+                
+                // Report progress percentage
+                const percent = Math.floor((end / bufferLength) * 100);
+                if (onProgress) onProgress(percent);
+                
+                // Yield to the browser's main thread to physically update the progress bar UI
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
+            return bufferArray;
+        }
+
+        btnExport.addEventListener('click', async () => {
+            if (!parsedMidi || !isSamplerLoaded || allNotes.length === 0) return;
+
+            // 1. Prepare UI
+            const originalText = btnExport.textContent;
+            btnExport.textContent = "Rendering...";
+            btnExport.disabled = true;
+            exportProgressWrapper.style.display = 'block';
+            exportProgressLabel.textContent = "Initializing synthesis...";
+            exportProgressBar.style.width = '0%';
+
+            // 2. Performance: Pre-calculate duration
+            const duration = parsedMidi.duration + 1.5; 
+
+            try {
+                // 3. Optimized Offline Render
+                // We use a clean OfflineContext. Note: We recreate the sampler 
+                // in the offline context, but ensure it points to the same audio URL.
+                const renderedBuffer = await Tone.Offline(async () => {
+                    const offlineSampler = new Tone.Sampler({
+                        urls: { "C4": currentAudioUrl },
+                        onload: () => console.log("Offline sampler ready.")
+                    }).toDestination();
+                    
+                    // Add notes to the offline transport
+                    new Tone.Part((time, note) => {
+                        offlineSampler.triggerAttackRelease(note.name, note.duration, time, note.velocity);
+                    }, allNotes).start(0);
+
+                    // Tone.Transport.start() is called automatically by Tone.Offline
+                }, duration);
+
+                // 4. Chunked Encoding (Prevents Freezing)
+                exportProgressLabel.textContent = "Encoding WAV...";
+                const wavData = await audioBufferToWav(renderedBuffer.get(), (percent) => {
+                    exportProgressBar.style.width = percent + '%';
+                    exportProgressPercent.textContent = percent + '%';
+                });
+                
+                // 5. Finalize
+                exportProgressLabel.textContent = "Download starting...";
+                const blob = new Blob([wavData], { type: 'audio/wav' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'meme_cover.wav';
+                a.click();
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+                console.error("Export Error:", err);
+                exportProgressLabel.textContent = "Export Failed: " + err.message;
+            } finally {
+                btnExport.textContent = originalText;
+                updateButtons();
+                setTimeout(() => exportProgressWrapper.style.display = 'none', 2000);
+            }
+        });
+
+        // --- Visualization Logic ---
+        const canvasContainer = document.querySelector('.canvas-container');
+
+        function renderBackground() {
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            if (!parsedMidi || allNotes.length === 0) return;
+
+            const { minNote, noteRange } = verticalMetrics;
+            bgCtx.fillStyle = 'var(--note-color)';
+            
+            // Draw every note onto the offscreen canvas
+            allNotes.forEach(note => {
+                const x = note.time * PIXELS_PER_SECOND;
+                const width = note.duration * PIXELS_PER_SECOND;
+                const height = bgCanvas.height / noteRange;
+                const y = bgCanvas.height - ((note.midi - minNote + 1) * height);
+
+                // Add slight border gap between notes
+                bgCtx.fillRect(x, y, Math.max(1, width - 1), Math.max(1, height - 1));
+            });
+        }
+
+        function drawLoop() {
+            requestAnimationFrame(drawLoop);
+            
+            // Clear main canvas and draw the pre-rendered static notes
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(bgCanvas, 0, 0);
+
+            if (!parsedMidi) return;
+
+            const currentTime = Tone.Transport.seconds;
+
+            // Stop automatically at end of track
+            if (Tone.Transport.state === 'started' && currentTime >= parsedMidi.duration + 0.5) {
+                handleStop();
+            }
+
+            const { minNote, noteRange } = verticalMetrics;
+
+            // Highlight currently playing notes
+            ctx.fillStyle = 'var(--note-active)';
+            allNotes.forEach(note => {
+                // Check if the current time falls within the note's duration
+                if (currentTime >= note.time && currentTime <= note.time + note.duration) {
+                    const x = note.time * PIXELS_PER_SECOND;
+                    const width = note.duration * PIXELS_PER_SECOND;
+                    const height = canvas.height / noteRange;
+                    const y = canvas.height - ((note.midi - minNote + 1) * height);
+                    
+                    // Draw highlight over the existing background note
+                    ctx.fillRect(x, y, Math.max(1, width - 1), Math.max(1, height - 1));
+                }
+            });
+
+            // Draw the moving playhead (red line) and handle scrolling
+            if (Tone.Transport.state !== 'stopped') {
+                const playX = currentTime * PIXELS_PER_SECOND;
+                
+                ctx.beginPath();
+                ctx.moveTo(playX, 0);
+                ctx.lineTo(playX, canvas.height);
+                ctx.strokeStyle = 'var(--playhead-color)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Auto-scroll logic: keep playhead in view during playback
+                if (Tone.Transport.state === 'started') {
+                    // Keep the playhead positioned 1/3 of the way across the visible screen
+                    const viewOffset = canvasContainer.clientWidth / 3;
+                    if (playX > viewOffset) {
+                        canvasContainer.scrollLeft = playX - viewOffset;
+                    } else {
+                        canvasContainer.scrollLeft = 0;
+                    }
+                }
+            }
+        }
+
+        // Start animation loop
+        drawLoop();
+
+    </script>
+</body>
+</html>
