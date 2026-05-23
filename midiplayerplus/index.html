@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,16 +25,20 @@
             --warning-color: #ffb86c;
         }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            margin: 0;
-        }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url("bg.jpeg");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    margin: 0;
+}
 
         h1 {
             color: var(--accent-color);
@@ -451,59 +457,84 @@
         btnExport.addEventListener('click', async () => {
             if (!parsedMidi || !isSamplerLoaded || allNotes.length === 0) return;
 
-            // 1. Prepare UI
             const originalText = btnExport.textContent;
-            btnExport.textContent = "Rendering...";
+            btnExport.textContent = "Processing...";
             btnExport.disabled = true;
+            
+            // Show Progress Bar
             exportProgressWrapper.style.display = 'block';
-            exportProgressLabel.textContent = "Initializing synthesis...";
+            exportProgressLabel.textContent = "Preparing Synthesis...";
             exportProgressBar.style.width = '0%';
+            exportProgressBar.style.transition = 'none'; 
+            exportProgressPercent.textContent = '0%';
 
-            // 2. Performance: Pre-calculate duration
-            const duration = parsedMidi.duration + 1.5; 
+            // Crucial: Wait for the browser to repaint the UI before blocking the thread
+            await new Promise(resolve => setTimeout(resolve, 200));
 
             try {
-                // 3. Optimized Offline Render
-                // We use a clean OfflineContext. Note: We recreate the sampler 
-                // in the offline context, but ensure it points to the same audio URL.
-                const renderedBuffer = await Tone.Offline(async () => {
+                console.log("Starting synthesis...");
+                exportProgressLabel.textContent = "Synthesizing Audio Engine...";
+                
+                const duration = parsedMidi.duration + 2; 
+
+                // Phase 1: Native Audio Synthesis
+                const renderedBuffer = await Tone.Offline(async ({ transport }) => {
                     const offlineSampler = new Tone.Sampler({
                         urls: { "C4": currentAudioUrl },
-                        onload: () => console.log("Offline sampler ready.")
+                        onload: () => console.log("Offline sampler loaded"),
+                        onerror: (e) => {
+                            console.error("Offline sampler failed to load:", e);
+                            throw new Error("Offline sampler load failed.");
+                        }
                     }).toDestination();
                     
-                    // Add notes to the offline transport
+                    await Tone.loaded(); 
+
                     new Tone.Part((time, note) => {
                         offlineSampler.triggerAttackRelease(note.name, note.duration, time, note.velocity);
                     }, allNotes).start(0);
 
-                    // Tone.Transport.start() is called automatically by Tone.Offline
+                    transport.start(0);
                 }, duration);
 
-                // 4. Chunked Encoding (Prevents Freezing)
-                exportProgressLabel.textContent = "Encoding WAV...";
+                console.log("Synthesis complete. Starting encoding...");
+                
+                // Phase 2: Encoding
+                exportProgressLabel.textContent = "Encoding WAV File...";
+                exportProgressBar.style.transition = 'width 0.1s linear';
+                
                 const wavData = await audioBufferToWav(renderedBuffer.get(), (percent) => {
                     exportProgressBar.style.width = percent + '%';
                     exportProgressPercent.textContent = percent + '%';
                 });
                 
-                // 5. Finalize
-                exportProgressLabel.textContent = "Download starting...";
+                exportProgressLabel.textContent = "Finalizing Download...";
                 const blob = new Blob([wavData], { type: 'audio/wav' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
+                a.style.display = 'none';
                 a.href = url;
                 a.download = 'meme_cover.wav';
+                document.body.appendChild(a);
                 a.click();
-                URL.revokeObjectURL(url);
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
 
             } catch (err) {
                 console.error("Export Error:", err);
-                exportProgressLabel.textContent = "Export Failed: " + err.message;
+                alert("Export failed: " + err.message);
+                exportProgressLabel.textContent = "Export Failed";
             } finally {
                 btnExport.textContent = originalText;
                 updateButtons();
-                setTimeout(() => exportProgressWrapper.style.display = 'none', 2000);
+                setTimeout(() => {
+                    if (exportProgressWrapper.style.display === 'block') {
+                        exportProgressWrapper.style.display = 'none';
+                    }
+                }, 2500);
             }
         });
 
