@@ -4,7 +4,7 @@ const projects = [
     "midiplayer", "mandelbrot", "gswitch", "pfpmaker", "platformer", 
     "throwplayground", { name: "boyfriend test", path: "boyfriend test/index.html" }, 
     "grapplinghook", "physicsandbox", "stacktower", "airhockey", "chess", "flappyarena", "solarsystem", "3dplatformerengine", "synchronizedsouls", { name: "midiplayerplus", path: "midiplayerplus/index.html" }, 
-    "flockybird"
+    "flockybird", { name: "bumfuzzle preview", path: "bumfuzzlepreview/index.html" }, 
     
 ];
 
