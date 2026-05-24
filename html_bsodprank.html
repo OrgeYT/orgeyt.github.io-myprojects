@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Video BSOD Prank</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #111;
+      color: white;
+      text-align: center;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    h1 { margin-bottom: 5px; }
+    input[type="file"] { margin: 15px 0; font-size: 18px; }
+    
+    .controls {
+      margin: 15px 0;
+      background: #222;
+      padding: 15px;
+      border-radius: 8px;
+    }
+    label {
+      display: inline-block;
+      margin: 0 10px;
+      font-size: 18px;
+    }
+    input[type="range"] {
+      width: 300px;
+      vertical-align: middle;
+    }
+    #cropValue {
+      width: 70px;
+      padding: 5px;
+      font-size: 18px;
+      text-align: center;
+    }
+
+    #bsodBtn {
+      background: #00ff00;
+      color: black;
+      font-weight: bold;
+      padding: 18px 40px;
+      font-size: 26px;
+      margin: 20px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+    }
+    #status { color: #0f0; margin: 10px; font-size: 18px; min-height: 24px; }
+    #videoContainer {
+      margin: 20px auto;
+      max-width: 900px;
+      background: #000;
+    }
+    video {
+      width: 100%;
+      max-height: 80vh;
+      display: block;
+    }
+    #bsodOverlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: #0078d7;
+      color: white;
+      font-family: 'Courier New', monospace;
+      z-index: 9999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+    .bsod-text {
+      font-size: 26px;
+      line-height: 1.7;
+      max-width: 850px;
+      text-align: left;
+      padding: 20px;
+    }
+    .scanlines {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(to bottom,
+        rgba(255,255,255,0.08) 0px,
+        rgba(255,255,255,0.08) 2px,
+        transparent 2px,
+        transparent 4px);
+      pointer-events: none;
+      animation: scan 3s linear infinite;
+    }
+    @keyframes scan {
+      0% { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>💾 Local Video BSOD Prank</h1>
+    <p>Upload a video and press the button at the perfect moment</p>
+    
+    <input type="file" id="videoInput" accept="video/*">
+    
+    <div class="controls">
+      <label>Crop Duration: </label>
+      <input type="range" id="cropSlider" min="0.01" max="0.5" step="0.01" value="0.05">
+      <input type="number" id="cropValue" value="0.05" step="0.01" min="0.01" max="0.5">
+      <span>seconds</span>
+    </div>
+
+    <div id="status"></div>
+    <div id="videoContainer"></div>
+    
+    <button id="bsodBtn">💥 BSOD AT THIS MOMENT 💥</button>
+  </div>
+
+  <!-- BSOD Screen -->
+  <div id="bsodOverlay">
+    <div class="scanlines"></div>
+    <div class="bsod-text">
+      A problem has been detected and Windows has been shut down to prevent damage to your computer.<br><br>
+      The problem seems to be caused by your terrible taste in video timing.<br><br>
+      TECHNICAL INFORMATION:<br>
+      *** STOP: 0xDEAD1337 (0xB4DC0DE, 0x00000000, 0x00000000, 0x00000000)<br><br>
+      Your video has been terminated.<br>
+      Press any key to cry in shame.
+    </div>
+  </div>
+
+  <script>
+    let videoElement = null;
+    let videoUrl = null;
+    let cropDuration = 0.05;
+
+    // Sync slider and number input
+    const slider = document.getElementById('cropSlider');
+    const numberInput = document.getElementById('cropValue');
+
+    slider.addEventListener('input', () => {
+      cropDuration = parseFloat(slider.value);
+      numberInput.value = cropDuration.toFixed(2);
+    });
+
+    numberInput.addEventListener('input', () => {
+      cropDuration = Math.max(0.01, Math.min(0.5, parseFloat(numberInput.value) || 0.05));
+      slider.value = cropDuration;
+      numberInput.value = cropDuration.toFixed(2);
+    });
+
+    // Upload video
+    document.getElementById('videoInput').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      videoUrl = URL.createObjectURL(file);
+      
+      const container = document.getElementById('videoContainer');
+      container.innerHTML = `
+        <video id="localVideo" controls>
+          <source src="${videoUrl}" type="${file.type}">
+        </video>`;
+
+      videoElement = document.getElementById('localVideo');
+      document.getElementById('status').textContent = "✅ Video loaded successfully!";
+    });
+
+    // BSOD Button
+    document.getElementById('bsodBtn').addEventListener('click', () => {
+      const status = document.getElementById('status');
+      
+      if (!videoElement || !videoUrl) {
+        status.textContent = "❌ Please upload a video first!";
+        status.style.color = "#f44";
+        return;
+      }
+
+      const currentTime = videoElement.currentTime;
+      if (currentTime < cropDuration + 0.1) {
+        status.textContent = `⚠️ Play the video longer than ${cropDuration.toFixed(2)}s first!`;
+        return;
+      }
+
+      // Freeze video
+      videoElement.pause();
+      videoElement.style.filter = 'brightness(0.2) saturate(2.5)';
+
+      status.textContent = `💥 Capturing ${cropDuration.toFixed(2)}s audio glitch...`;
+
+      // Use Web Audio API for precise looping
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      fetch(videoUrl)
+        .then(response => response.arrayBuffer())
+        .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+          const glitchAudio = audioContext.createBufferSource();
+          const startTime = Math.max(0, currentTime - cropDuration);
+
+          glitchAudio.buffer = audioBuffer;
+          glitchAudio.loop = true;
+          glitchAudio.loopStart = startTime;
+          glitchAudio.loopEnd = startTime + cropDuration;
+
+          const gainNode = audioContext.createGain();
+          gainNode.gain.value = 0.95;
+
+          glitchAudio.connect(gainNode);
+          gainNode.connect(audioContext.destination);
+
+          glitchAudio.start(0, startTime);
+
+          // Show BSOD after 1 second
+          setTimeout(() => {
+            showBSOD(glitchAudio, audioContext);
+          }, 1000);
+        })
+        .catch(err => {
+          console.error(err);
+          status.textContent = "❌ Audio processing failed. Try again.";
+        });
+    });
+
+    function showBSOD(glitchAudio, audioContext) {
+      const bsod = document.getElementById('bsodOverlay');
+      bsod.style.display = 'flex';
+
+      glitchAudio.loop = true;
+
+      bsod.addEventListener('click', () => {
+        glitchAudio.stop();
+        audioContext.close();
+        location.reload();
+      }, { once: true });
+    }
+  </script>
+</body>
+</html>
