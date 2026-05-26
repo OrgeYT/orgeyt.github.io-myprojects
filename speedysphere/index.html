@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Speedy sphere</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="ui-layer">
+        <div>
+            <div class="hud-text">SCORE: <span id="score-display">0</span></div>
+            <div class="hud-text" id="speed-display">SPEED: 0 km/h</div>
+            <div class="hud-text" id="combo-display" style="color: #ff0055; font-size: 30px; opacity: 0; transition: opacity 0.2s;">SICK AIR!</div>
+        </div>
+        <div id="crosshair"></div>
+    </div>
+
+    <div id="overlay">
+        <h1>Speedy sphere</h1>
+        <div class="controls-hint">
+            <div>
+                <strong>KEYBOARD & MOUSE</strong><br><br>
+                <span class="key">W</span> <span class="key">A</span> <span class="key">S</span> <span class="key">D</span> : Move / Flips in Air<br>
+                <span class="key">SPACE</span> : Jump<br>
+                <span class="key">MOUSE</span> : Look Around
+            </div>
+            <div>
+                <strong>GAMEPAD</strong><br><br>
+                <strong>L-Stick</strong> : Move / Flips in Air<br>
+                <strong>R-Stick</strong> : Look Around<br>
+                <strong>A Button / R-Trigger</strong> : Jump
+            </div>
+        </div>
+        <p>Hit <strong style="color:#00ffcc">GREEN PADS</strong> to boost. Avoid <strong style="color:#ff0055">RED WALLS</strong>.<br>Do flips in the air for massive points!</p>
+        <button class="btn" id="start-btn">CLICK TO SHRED</button>
+    </div>
+
+    <!-- Three.js and Cannon.js (kept as global scripts for compatibility with the original code) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
+    <script src="main.js"></script>
+</body>
+</html>
