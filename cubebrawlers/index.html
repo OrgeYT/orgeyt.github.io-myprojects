@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cube Brawlers 3D</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://esm.sh/three@0.128.0"
+    }
+  }
+  </script>
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <div id="loading-overlay">
+    <div class="loading-box">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading map...</div>
+    </div>
+  </div>
+
+  <div id="ui-layer">
+    <div id="crosshair"></div>
+
+    <div id="player-hud" class="panel">
+      <h2 class="text-xl font-bold mb-2 flex justify-between">
+        <span>Player</span>
+        <span id="hp-text">100/100</span>
+      </h2>
+      <div id="health-bar-bg"><div id="health-bar"></div></div>
+
+      <div id="ult-bar-bg"><div id="ult-bar"></div></div>
+      <div id="ult-timer">ULT ACTIVE: 120s</div>
+
+      <div id="moves-list">
+        <div id="desc-lclick"><span class="move-hotkey">L-Click</span> Punch</div>
+        <div id="desc-move1"><span class="move-hotkey">1</span> Strong Punch</div>
+        <div id="desc-move2"><span class="move-hotkey">2</span> Take Away (Dash & Grab)</div>
+        <div id="desc-move3"><span class="move-hotkey">3</span> Uppercut</div>
+        <div id="desc-move4"><span class="move-hotkey">4</span> Combo 'em up</div>
+        <div id="desc-block"><span class="move-hotkey">E</span> Block (Hold)</div>
+        <div id="desc-dash"><span class="move-hotkey">WASD+Shift</span> Dash</div>
+        <div id="desc-ult"><span class="move-hotkey" style="color: #eab308;">R</span> Transform (When meter full)</div>
+      </div>
+
+      <div id="cooldowns" class="panel" style="margin-top:12px; width:300px;">
+        <h3 class="font-bold mb-2">Cooldowns</h3>
+        <div class="cd-row"><span class="cd-label">Punch</span><div class="cd-bar-bg"><div id="cd-punch" class="cd-bar-fill"></div></div></div>
+        <div class="cd-row"><span class="cd-label">Skill 1</span><div class="cd-bar-bg"><div id="cd-skill1" class="cd-bar-fill"></div></div></div>
+        <div class="cd-row"><span class="cd-label">Skill 2</span><div class="cd-bar-bg"><div id="cd-skill2" class="cd-bar-fill"></div></div></div>
+        <div class="cd-row"><span class="cd-label">Skill 3</span><div class="cd-bar-bg"><div id="cd-skill3" class="cd-bar-fill"></div></div></div>
+        <div class="cd-row"><span class="cd-label">Skill 4</span><div class="cd-bar-bg"><div id="cd-skill4" class="cd-bar-fill"></div></div></div>
+        <div class="cd-row"><span class="cd-label">Dash</span><div class="cd-bar-bg"><div id="cd-dash" class="cd-bar-fill"></div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="start-overlay" style="display:none;">
+    <h1 class="text-5xl text-white font-bold mb-6 text-center">CUBE BRAWLERS 3D</h1>
+    <p class="text-gray-300 mb-2 max-w-md text-center">Click to lock cursor and start fighting. Press ESC to unlock cursor and use the spawn menu.</p>
+
+    <div id="credit" class="text-gray-400 mb-4 text-sm text-center">Inspired by Strongest Battle Grounds on Roblox</div>
+
+    <button class="btn text-xl px-8 py-4" id="start-btn">Click to Start</button>
+
+    <div id="spawn-menu" class="panel" style="margin-top:20px;">
+      <h3 class="font-bold text-center mb-2">System Menu</h3>
+      <div style="display:flex;gap:8px;flex-direction:column;">
+        <button class="btn" data-ai="none">No AI NPC</button>
+        <button class="btn" data-ai="average">Average NPC</button>
+        <button class="btn" data-ai="pro">Pro NPC</button>
+        <button class="btn" data-ai="pro_own">Pro (Targets Own Kind)</button>
+        <button class="btn" id="spawn-unfair" data-ai="unfair" style="background:#ef4444;">Spawn Unfair NPC</button>
+        <button class="btn" id="bring-npcs" style="background:#10b981;">Bring NPCs to each other</button>
+      </div>
+
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="spawn-with-ult" />
+        <label for="spawn-with-ult" style="color:#fff; font-weight:700; font-size:0.9rem;">Spawn NPCs with ULT</label>
+      </div>
+
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" id="auto-watch-spectate" />
+        <label for="auto-watch-spectate" style="color:#fff; font-weight:700; font-size:0.9rem;">Auto watch in spectate</label>
+      </div>
+
+      <div style="margin-top:8px; display:flex; gap:8px; flex-direction:column;">
+        <label style="color:#fff; font-weight:700; font-size:0.9rem;">Map</label>
+        <select id="map-select" style="padding:8px; border-radius:6px; background:#111; color:#fff; border:1px solid rgba(255,255,255,0.06);">
+          <option value="default">Green Arena</option>
+          <option value="small">Small Ring</option>
+          <option value="forest">Forest Ring</option>
+          <option value="wide">Wide Plains</option>
+        </select>
+
+        <button class="btn" id="remove-npcs" style="background:#6b7280; margin-top:6px;">Remove All NPCs</button>
+      </div>
+
+      <button class="btn" id="give-ult-btn" style="background:#eab308; color:#111; margin-top:8px;">Give Ult</button>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
