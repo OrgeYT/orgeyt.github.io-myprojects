@@ -62,6 +62,17 @@
             transform: scale(1.3);
             z-index: 10;
         }
+
+        /* Calendar Icon Invert for Dark Mode */
+        ::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            opacity: 0.5;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        ::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="antialiased h-screen w-screen flex items-center justify-center">
@@ -99,6 +110,18 @@
             </h1>
 
             <div class="space-y-5 text-left bg-black/30 p-5 rounded-2xl border border-white/5">
+                <!-- Mode Toggle -->
+                <div class="flex bg-black/50 rounded-xl p-1 border border-white/10">
+                    <button id="btn-live" class="flex-1 text-[10px] uppercase tracking-widest py-2 rounded-lg bg-white/20 text-white font-semibold transition-all">Live</button>
+                    <button id="btn-travel" class="flex-1 text-[10px] uppercase tracking-widest py-2 rounded-lg text-white/40 hover:text-white/80 transition-all">Time Travel</button>
+                </div>
+
+                <!-- Time Travel Input -->
+                <div id="travel-container" class="hidden">
+                    <label for="travel-input" class="block text-white/50 text-[10px] uppercase tracking-widest mb-1.5 ml-1">Destination Time</label>
+                    <input type="datetime-local" id="travel-input" class="w-full bg-white/5 border border-white/10 text-white/90 rounded-xl p-3 outline-none focus:border-white/30 transition-colors text-sm font-light">
+                </div>
+
                 <!-- Timezone Selector -->
                 <div>
                     <label for="tz-select" class="block text-white/50 text-[10px] uppercase tracking-widest mb-1.5 ml-1">Time Zone</label>
@@ -152,6 +175,10 @@
         const tzSelect = document.getElementById('tz-select');
         const basisSelect = document.getElementById('basis-select');
         const historyContainer = document.getElementById('hex-history');
+        const btnLive = document.getElementById('btn-live');
+        const btnTravel = document.getElementById('btn-travel');
+        const travelContainer = document.getElementById('travel-container');
+        const travelInput = document.getElementById('travel-input');
         
         // Audio Elements
         const bgMusic = document.getElementById('bg-music');
@@ -163,6 +190,45 @@
         let targetColor = { r: 0, g: 0, b: 0, hex: '#000000' };
         let currentColor = { r: 0, g: 0, b: 0 };
         let currentPeriodString = '';
+        let isTimeTravel = false;
+
+        // Format for datetime-local
+        function formatForInput(date) {
+            const d = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+            return d.toISOString().slice(0, 16);
+        }
+
+        // Time Travel Toggle Logic
+        btnLive.addEventListener('click', () => {
+            isTimeTravel = false;
+            btnLive.classList.add('bg-white/20', 'text-white', 'font-semibold');
+            btnLive.classList.remove('text-white/40');
+            btnTravel.classList.remove('bg-white/20', 'text-white', 'font-semibold');
+            btnTravel.classList.add('text-white/40');
+            travelContainer.classList.add('hidden');
+            currentPeriodString = ''; // force update
+            updateTimeAndColor();
+        });
+
+        btnTravel.addEventListener('click', () => {
+            isTimeTravel = true;
+            btnTravel.classList.add('bg-white/20', 'text-white', 'font-semibold');
+            btnTravel.classList.remove('text-white/40');
+            btnLive.classList.remove('bg-white/20', 'text-white', 'font-semibold');
+            btnLive.classList.add('text-white/40');
+            travelContainer.classList.remove('hidden');
+            
+            if (!travelInput.value) {
+                travelInput.value = formatForInput(new Date());
+            }
+            currentPeriodString = ''; // force update
+            updateTimeAndColor();
+        });
+
+        travelInput.addEventListener('input', () => {
+            currentPeriodString = ''; // force update
+            updateTimeAndColor();
+        });
 
         // Audio Logic
         musicToggle.addEventListener('click', () => {
@@ -342,7 +408,13 @@
         function updateTimeAndColor() {
             const tz = tzSelect.value;
             const basis = basisSelect.value;
-            const now = new Date();
+            
+            let now;
+            if (isTimeTravel && travelInput.value) {
+                now = new Date(travelInput.value);
+            } else {
+                now = new Date();
+            }
 
             const timeFormatter = new Intl.DateTimeFormat('en-US', {
                 timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
