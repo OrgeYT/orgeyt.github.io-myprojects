@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Random Word Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .typewriter-text {
+            font-family: 'Fira Code', monospace;
+        }
+        /* Blinking cursor effect */
+        .cursor::after {
+            content: '|';
+            animation: blink 1s step-start infinite;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        
+        /* Custom scrollbar for select dropdown */
+        select {
+            scrollbar-width: thin;
+            scrollbar-color: #475569 #1e293b;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-3xl w-full bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-700">
+        <div class="p-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Advanced Word Generator</h1>
+            <p class="text-slate-400 mb-8">Generate words from various Google Ngram datasets.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+                
+                <div class="md:col-span-3">
+                    <label for="wordCount" class="block text-sm font-medium text-slate-300 mb-2">Count (1-100)</label>
+                    <input 
+                        type="number" 
+                        id="wordCount" 
+                        min="1" 
+                        max="100" 
+                        value="10"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <div class="md:col-span-6">
+                    <label for="listSelector" class="block text-sm font-medium text-slate-300 mb-2">Dictionary Source</label>
+                    <select 
+                        id="listSelector" 
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                    >
+                        <!-- Options will be populated by JS -->
+                    </select>
+                </div>
+
+                <div class="md:col-span-3 flex items-end">
+                    <button 
+                        id="generateBtn"
+                        disabled
+                        class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:text-slate-300 disabled:cursor-not-allowed text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+                    >
+                        <span id="btnText">Loading...</span>
+                        <svg id="btnIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clip-rule="evenodd" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toggle section -->
+            <div class="flex items-center gap-3 mb-8">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="typingToggle" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    <span class="ml-3 text-sm font-medium text-slate-300">Enable Typing Effect</span>
+                </label>
+            </div>
+
+            <div class="bg-slate-900 rounded-xl p-6 min-h-[200px] border border-slate-700 relative">
+                <div id="loadingIndicator" class="hidden absolute inset-0 flex items-center justify-center bg-slate-900/80 rounded-xl backdrop-blur-sm z-10">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                </div>
+                <div id="output" class="typewriter-text text-lg text-emerald-400 leading-relaxed whitespace-pre-wrap break-words"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const fallbackDictionary = [
+            "apple", "brave", "crane", "dance", "eagle", "flame", "grape", "heart", "ivory", "jump",
+            "kite", "lemon", "magic", "noble", "ocean", "peach", "queen", "river", "snake", "tiger",
+            "uncle", "vivid", "whale", "xenon", "yacht", "zebra", "cloud", "dream", "earth", "frost"
+        ];
+
+        const dictionarySources = [
+            {
+                group: "All Words (Lowercase)",
+                options: [
+                    { name: "Top 1,000,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_1000000.txt" },
+                    { name: "Top 500,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_500000.txt" },
+                    { name: "Top 100,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_100000.txt" },
+                    { name: "Top 50,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_50000.txt" },
+                    { name: "Top 20,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_20000.txt" },
+                    { name: "Top 10,000 Words", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_10000.txt" }
+                ]
+            },
+            {
+                group: "All Words (Mixed Case)",
+                options: [
+                    { name: "Top 1,000,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_1000000.txt" },
+                    { name: "Top 500,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_500000.txt" },
+                    { name: "Top 100,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_100000.txt" },
+                    { name: "Top 50,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_50000.txt" },
+                    { name: "Top 20,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_20000.txt" },
+                    { name: "Top 10,000 Words (Mixed)", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_mixed_10000.txt" }
+                ]
+            },
+            {
+                group: "Nouns",
+                options: [
+                    { name: "Top 500,000 Nouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nouns_lower_500000.txt" },
+                    { name: "Top 100,000 Nouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nouns_lower_100000.txt" },
+                    { name: "Top 50,000 Nouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nouns_lower_50000.txt" },
+                    { name: "Top 20,000 Nouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nouns_lower_20000.txt" },
+                    { name: "Top 10,000 Nouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nouns_lower_10000.txt" }
+                ]
+            },
+            {
+                group: "Verbs",
+                options: [
+                    { name: "Top 100,000 Verbs", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_verbs_lower_100000.txt" },
+                    { name: "Top 50,000 Verbs", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_verbs_lower_50000.txt" },
+                    { name: "Top 20,000 Verbs", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_verbs_lower_20000.txt" },
+                    { name: "Top 10,000 Verbs", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_verbs_lower_10000.txt" }
+                ]
+            },
+            {
+                group: "Adjectives",
+                options: [
+                    { name: "Top 100,000 Adjectives", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_adjs_lower_100000.txt" },
+                    { name: "Top 50,000 Adjectives", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_adjs_lower_50000.txt" },
+                    { name: "Top 20,000 Adjectives", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_adjs_lower_20000.txt" },
+                    { name: "Top 10,000 Adjectives", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_adjs_lower_10000.txt" }
+                ]
+            },
+            {
+                group: "Other Parts of Speech",
+                options: [
+                    { name: "Top 10,000 Adverbs", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_advs_lower_10000.txt" },
+                    { name: "Top 10,000 Pronouns", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_prons_lower_10000.txt" },
+                    { name: "Top 500 Numbers", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_nums_lower_500.txt" },
+                    { name: "Top 500 Conjunctions", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_conjs_lower_500.txt" },
+                    { name: "Top 500 Determiners", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_dets_lower_500.txt" },
+                    { name: "Top 500 Particles", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_prts_lower_500.txt" },
+                    { name: "Top 500 Prepositions", url: "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_adps_lower_500.txt" }
+                ]
+            }
+        ];
+
+        const listCache = {};
+        let currentWordList = [];
+
+        const wordCountInput = document.getElementById('wordCount');
+        const listSelector = document.getElementById('listSelector');
+        const generateBtn = document.getElementById('generateBtn');
+        const btnText = document.getElementById('btnText');
+        const btnIcon = document.getElementById('btnIcon');
+        const outputDiv = document.getElementById('output');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const typingToggle = document.getElementById('typingToggle');
+        
+        let typeInterval;
+
+        function populateSelector() {
+            dictionarySources.forEach(group => {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = group.group;
+                
+                group.options.forEach(option => {
+                    const opt = document.createElement('option');
+                    opt.value = option.url;
+                    opt.textContent = option.name;
+                    optgroup.appendChild(opt);
+                });
+                
+                listSelector.appendChild(optgroup);
+            });
+            listSelector.value = "https://raw.githubusercontent.com/david47k/top-english-wordlists/master/top_english_words_lower_100000.txt";
+        }
+
+        async function loadDictionary(url) {
+            generateBtn.disabled = true;
+            btnText.textContent = "Downloading...";
+            btnIcon.classList.add('hidden');
+            loadingIndicator.classList.remove('hidden');
+
+            try {
+                if (listCache[url]) {
+                    currentWordList = listCache[url];
+                } else {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Failed to fetch dictionary');
+                    const text = await response.text();
+                    const parsedList = text.split(/\r?\n/).filter(word => word.trim().length > 0);
+                    listCache[url] = parsedList;
+                    currentWordList = parsedList;
+                }
+            } catch (error) {
+                console.warn("GitHub text file failed to load, using fallback dictionary", error);
+                currentWordList = fallbackDictionary;
+            } finally {
+                generateBtn.disabled = false;
+                btnText.textContent = "Generate";
+                btnIcon.classList.remove('hidden');
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        function getWords(count) {
+            const words = [];
+            const listLength = currentWordList.length;
+            for (let i = 0; i < count; i++) {
+                const randomIndex = Math.floor(Math.random() * listLength);
+                let rawWord = currentWordList[randomIndex];
+                if (rawWord) {
+                    // Remove any periods, then capitalize first letter and lowercase the rest
+                    let cleanWord = rawWord.replace(/\./g, '');
+                    let formattedWord = cleanWord.charAt(0).toUpperCase() + cleanWord.slice(1).toLowerCase();
+                    words.push(formattedWord);
+                }
+            }
+            return words;
+        }
+
+        function typeOutText(text) {
+            clearInterval(typeInterval);
+            outputDiv.textContent = '';
+            outputDiv.classList.add('cursor'); 
+
+            let index = 0;
+            const speed = Math.max(15, 50 - (text.length * 0.05)); 
+
+            typeInterval = setInterval(() => {
+                if (index < text.length) {
+                    outputDiv.textContent += text.charAt(index);
+                    index++;
+                } else {
+                    clearInterval(typeInterval);
+                    outputDiv.classList.remove('cursor');
+                    generateBtn.disabled = false;
+                }
+            }, speed);
+        }
+
+        generateBtn.addEventListener('click', () => {
+            let count = parseInt(wordCountInput.value);
+            if (isNaN(count) || count < 1) count = 1;
+            if (count > 100) count = 100;
+            wordCountInput.value = count;
+
+            generateBtn.disabled = true;
+            clearInterval(typeInterval);
+            outputDiv.textContent = '';
+            outputDiv.classList.remove('cursor');
+            loadingIndicator.classList.remove('hidden');
+
+            setTimeout(() => {
+                const words = getWords(count);
+                loadingIndicator.classList.add('hidden');
+                const formattedText = words.join(', ');
+
+                if (typingToggle.checked) {
+                    typeOutText(formattedText);
+                } else {
+                    outputDiv.textContent = formattedText;
+                    generateBtn.disabled = false;
+                }
+            }, 100);
+        });
+
+        listSelector.addEventListener('change', (e) => loadDictionary(e.target.value));
+
+        wordCountInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !generateBtn.disabled) generateBtn.click();
+        });
+
+        populateSelector();
+        loadDictionary(listSelector.value);
+    </script>
+</body>
+</html>
