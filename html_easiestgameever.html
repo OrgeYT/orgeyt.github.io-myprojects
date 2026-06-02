@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Easiest Game Ever</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+
+      background:
+        linear-gradient(#111 1px, transparent 1px),
+        linear-gradient(90deg, #111 1px, transparent 1px),
+        #000;
+      background-size: 40px 40px;
+      animation: moveGrid 3s linear infinite;
+    }
+
+    @keyframes moveGrid {
+      from { background-position: 0 0, 0 0, 0 0; }
+      to { background-position: 40px 40px, 40px 40px, 0 0; }
+    }
+
+    button {
+      padding: 20px 40px;
+      font-size: 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    #startBtn {
+      background: limegreen;
+      color: black;
+    }
+
+    #restartBtn {
+      background: dodgerblue;
+      color: white;
+      margin-top: 20px;
+    }
+
+    #win {
+      margin-top: 20px;
+      font-size: 28px;
+      color: gold;
+      display: none;
+      text-align: center;
+      z-index: 2;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 8px;
+      height: 8px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1 id="title">🎮 The Easiest Game Ever</h1>
+
+  <button id="startBtn" onclick="winGame()">Start</button>
+
+  <div id="win">
+    🏆 You won!
+    <br>
+    <button id="restartBtn" onclick="restartGame()">Restart Game</button>
+  </div>
+
+  <script>
+    function winGame() {
+      document.getElementById("title").style.display = "none";
+      document.getElementById("startBtn").style.display = "none";
+      document.getElementById("win").style.display = "block";
+
+      launchConfetti();
+    }
+
+    function restartGame() {
+      document.getElementById("title").style.display = "block";
+      document.getElementById("startBtn").style.display = "inline-block";
+      document.getElementById("win").style.display = "none";
+    }
+
+    function spawnConfettiFlake(x, y) {
+      const colors = ["#ff0", "#0f0", "#0ff", "#f0f", "#f00", "#fff"];
+
+      const c = document.createElement("div");
+      c.className = "confetti";
+
+      let vx = (Math.random() - 0.5) * 8;
+      let vy = -(Math.random() * 12 + 8);
+      let gravity = 0.35;
+
+      c.style.left = x + "px";
+      c.style.top = y + "px";
+      c.style.background = colors[Math.floor(Math.random() * colors.length)];
+
+      document.body.appendChild(c);
+
+      function update() {
+        vy += gravity;
+        x += vx;
+        y += vy;
+
+        c.style.left = x + "px";
+        c.style.top = y + "px";
+        c.style.transform = `rotate(${x + y}deg)`;
+
+        if (y < window.innerHeight + 50) {
+          requestAnimationFrame(update);
+        } else {
+          c.remove();
+        }
+      }
+
+      update();
+    }
+
+    function launchConfetti() {
+      for (let i = 0; i < 80; i++) {
+
+        // one "burst origin"
+        let baseX = window.innerWidth / 2 + (Math.random() - 0.5) * 200;
+        let baseY = window.innerHeight;
+
+        // spawn 5 flakes per burst
+        for (let j = 0; j < 5; j++) {
+          spawnConfettiFlake(
+            baseX + (Math.random() - 0.5) * 10,
+            baseY
+          );
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
