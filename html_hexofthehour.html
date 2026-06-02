@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hex of the Hour
-    </title>
+    <title>Hex of the Hour</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Space+Mono&display=swap');
@@ -48,18 +47,51 @@
             background-color: #111;
             color: #fff;
         }
+
+        /* History Swatches */
+        .history-swatch {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease-out;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+        .history-swatch:hover {
+            transform: scale(1.3);
+            z-index: 10;
+        }
     </style>
 </head>
 <body class="antialiased h-screen w-screen flex items-center justify-center">
+
+    <!-- Audio Player: Tries local file, then web fallback -->
+    <audio id="bg-music" loop>
+        <source src="music.mp3" type="audio/mpeg">
+        <source src="https://file.garden/Zj01o_oh-G9Y8APf/music.mp3" type="audio/mpeg">
+    </audio>
 
     <!-- Animated Background -->
     <canvas id="bg-canvas"></canvas>
 
     <!-- UI Overlay -->
     <main class="relative z-10 w-full max-w-md p-6">
-        <div class="glass-panel rounded-3xl p-8 text-center transition-all duration-700 hover:border-white/20">
+        <div class="glass-panel rounded-3xl p-8 text-center transition-all duration-700 hover:border-white/20 relative">
             
-            <p class="text-white/40 uppercase tracking-[0.4em] text-xs font-semibold mb-4">Current Hex</p>
+            <!-- Music Toggle Button -->
+            <button id="music-toggle" class="absolute top-6 right-6 text-white/30 hover:text-white transition-colors" title="Toggle Music">
+                <svg id="icon-music-off" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <!-- Muted Icon -->
+                    <path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>
+                </svg>
+                <svg id="icon-music-on" class="hidden" width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                    <!-- Playing Icon -->
+                    <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>
+                </svg>
+            </button>
+
+            <p class="text-white/40 uppercase tracking-[0.4em] text-xs font-semibold mb-4 mt-2">Current Hex</p>
             
             <!-- Hex Code Display -->
             <h1 id="hex-display" class="font-space-mono text-6xl font-light mb-8 tracking-wider transition-colors duration-200 cursor-pointer hover:scale-105 transform inline-block" title="Click to copy">
@@ -94,9 +126,17 @@
                 <p id="time-display" class="font-space-mono text-white/60 text-sm tracking-widest">
                     --:--:--
                 </p>
-                <p id="date-display" class="font-space-mono text-white/40 text-xs tracking-wider mt-1">
+                <p id="date-display" class="font-space-mono text-white/40 text-xs tracking-wider mt-1 mb-4">
                     ---
                 </p>
+            </div>
+
+            <!-- Past History Section -->
+            <div class="border-t border-white/10 pt-4 mt-2">
+                <p class="text-white/30 uppercase tracking-[0.2em] text-[10px] font-semibold mb-3">Past 10 Hex Codes</p>
+                <div id="hex-history" class="flex flex-wrap gap-2 justify-center">
+                    <!-- Populated by JS -->
+                </div>
             </div>
             
         </div>
@@ -111,11 +151,34 @@
         const dateDisplay = document.getElementById('date-display');
         const tzSelect = document.getElementById('tz-select');
         const basisSelect = document.getElementById('basis-select');
+        const historyContainer = document.getElementById('hex-history');
+        
+        // Audio Elements
+        const bgMusic = document.getElementById('bg-music');
+        const musicToggle = document.getElementById('music-toggle');
+        const iconMusicOn = document.getElementById('icon-music-on');
+        const iconMusicOff = document.getElementById('icon-music-off');
 
         // State
         let targetColor = { r: 0, g: 0, b: 0, hex: '#000000' };
         let currentColor = { r: 0, g: 0, b: 0 };
         let currentPeriodString = '';
+
+        // Audio Logic
+        musicToggle.addEventListener('click', () => {
+            if (bgMusic.paused) {
+                bgMusic.play().then(() => {
+                    iconMusicOn.classList.remove('hidden');
+                    iconMusicOff.classList.add('hidden');
+                    musicToggle.classList.replace('text-white/30', 'text-white/90');
+                }).catch(e => console.log("Audio play failed:", e));
+            } else {
+                bgMusic.pause();
+                iconMusicOn.classList.add('hidden');
+                iconMusicOff.classList.remove('hidden');
+                musicToggle.classList.replace('text-white/90', 'text-white/30');
+            }
+        });
 
         // Canvas Setup
         function resizeCanvas() {
@@ -197,30 +260,12 @@
             return { ...rgb, hex };
         }
 
-        // Time Logic
-        function updateTimeAndColor() {
-            const tz = tzSelect.value;
-            const basis = basisSelect.value;
-            const now = new Date();
-
-            // Formatters
-            const timeFormatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
-            });
-            const dateFormatter = new Intl.DateTimeFormat('en-US', {
-                timeZone: tz, year: 'numeric', month: 'long', day: 'numeric'
-            });
+        function getPeriodStringForDate(dateObj, tz, basis) {
             const partsFormatter = new Intl.DateTimeFormat('en-US', {
                 timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', 
                 hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
             });
-
-            // Display time
-            timeDisplay.textContent = timeFormatter.format(now);
-            dateDisplay.textContent = dateFormatter.format(now);
-
-            // Determine period string based on selection
-            const partsArray = partsFormatter.formatToParts(now);
+            const partsArray = partsFormatter.formatToParts(dateObj);
             const p = {};
             partsArray.forEach(({type, value}) => p[type] = value);
 
@@ -230,12 +275,95 @@
             if (['hour', 'minute', 'second'].includes(basis)) periodString += `-${p.hour}`;
             if (['minute', 'second'].includes(basis)) periodString += `-${p.minute}`;
             if (basis === 'second') periodString += `-${p.second}`;
+            return periodString;
+        }
 
-            // If period changed, calculate new color
+        function updatePastHistory(now, tz, basis) {
+            historyContainer.innerHTML = ''; // Clear previous
+            
+            // Generate the past 10 periods
+            for (let i = 1; i <= 10; i++) {
+                let pastDate = new Date(now.getTime());
+                
+                if (basis === 'second') pastDate.setSeconds(now.getSeconds() - i);
+                else if (basis === 'minute') pastDate.setMinutes(now.getMinutes() - i);
+                else if (basis === 'hour') pastDate.setHours(now.getHours() - i);
+                else if (basis === 'day') pastDate.setDate(now.getDate() - i);
+                else if (basis === 'month') pastDate.setMonth(now.getMonth() - i);
+                else if (basis === 'year') pastDate.setFullYear(now.getFullYear() - i);
+
+                const pStr = getPeriodStringForDate(pastDate, tz, basis);
+                const color = stringToColor(pStr);
+
+                // Create visual swatch
+                const swatch = document.createElement('div');
+                swatch.className = 'history-swatch';
+                swatch.style.backgroundColor = color.hex;
+                swatch.style.boxShadow = `0 0 5px ${color.hex}`;
+                swatch.title = `Past Hex: ${color.hex} (Click to copy)`;
+                
+                // Copy on click
+                swatch.addEventListener('click', () => copyToClipboard(color.hex, swatch));
+                
+                historyContainer.appendChild(swatch);
+            }
+        }
+
+        // Universal Copy Function
+        function copyToClipboard(text, element) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                // Brief visual feedback depending on which element was clicked
+                if (element.id === 'hex-display') {
+                    const originalText = element.textContent;
+                    element.textContent = "COPIED!";
+                    setTimeout(() => element.textContent = originalText, 1000);
+                } else {
+                    const originalShadow = element.style.boxShadow;
+                    element.style.boxShadow = `0 0 15px white`;
+                    setTimeout(() => element.style.boxShadow = originalShadow, 500);
+                }
+            } catch (err) {
+                console.error("Copy failed:", err);
+            }
+            
+            document.body.removeChild(textArea);
+        }
+
+        // Time Logic
+        function updateTimeAndColor() {
+            const tz = tzSelect.value;
+            const basis = basisSelect.value;
+            const now = new Date();
+
+            const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, year: 'numeric', month: 'long', day: 'numeric'
+            });
+
+            // Display time
+            timeDisplay.textContent = timeFormatter.format(now);
+            dateDisplay.textContent = dateFormatter.format(now);
+
+            // Check current period string
+            const periodString = getPeriodStringForDate(now, tz, basis);
+
+            // If period changed, calculate new target color and update history
             if (periodString !== currentPeriodString) {
                 currentPeriodString = periodString;
                 targetColor = stringToColor(periodString);
                 hexDisplay.textContent = targetColor.hex;
+                updatePastHistory(now, tz, basis);
             }
         }
 
@@ -307,32 +435,18 @@
         const spiralParticles = Array.from({ length: 400 }, () => new SpiralParticle());
         const floatingDots = Array.from({ length: 100 }, () => new FloatingDot());
 
-        // Copy to clipboard functionality
-        hexDisplay.addEventListener('click', () => {
-            // Use execCommand as a robust fallback for iframe environments
-            const textArea = document.createElement("textarea");
-            textArea.value = targetColor.hex;
-            textArea.style.position = "fixed"; // Avoid scrolling
-            textArea.style.opacity = "0";
-            document.body.appendChild(textArea);
-            textArea.focus();
-            textArea.select();
-
-            try {
-                document.execCommand('copy');
-                const originalText = hexDisplay.textContent;
-                hexDisplay.textContent = "COPIED!";
-                setTimeout(() => hexDisplay.textContent = originalText, 1000);
-            } catch (err) {
-                console.error("Copy failed:", err);
-            }
-            
-            document.body.removeChild(textArea);
-        });
+        // Copy to clipboard from main display
+        hexDisplay.addEventListener('click', () => copyToClipboard(targetColor.hex, hexDisplay));
 
         // Trigger update immediately on dropdown change
-        tzSelect.addEventListener('change', updateTimeAndColor);
-        basisSelect.addEventListener('change', updateTimeAndColor);
+        tzSelect.addEventListener('change', () => {
+            currentPeriodString = ''; // Force update
+            updateTimeAndColor();
+        });
+        basisSelect.addEventListener('change', () => {
+            currentPeriodString = ''; // Force update
+            updateTimeAndColor();
+        });
 
         // Main Animation Loop
         function animate() {
