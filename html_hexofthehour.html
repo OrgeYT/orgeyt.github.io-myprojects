@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hex of the Hour
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&family=Space+Mono&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000000;
+            font-family: 'Outfit', sans-serif;
+            color: white;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .glass-panel {
+            background: rgba(10, 10, 10, 0.4);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Custom Select Styling */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+            background-repeat: no-repeat;
+            background-position-x: 95%;
+            background-position-y: 50%;
+        }
+        select option {
+            background-color: #111;
+            color: #fff;
+        }
+    </style>
+</head>
+<body class="antialiased h-screen w-screen flex items-center justify-center">
+
+    <!-- Animated Background -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- UI Overlay -->
+    <main class="relative z-10 w-full max-w-md p-6">
+        <div class="glass-panel rounded-3xl p-8 text-center transition-all duration-700 hover:border-white/20">
+            
+            <p class="text-white/40 uppercase tracking-[0.4em] text-xs font-semibold mb-4">Current Hex</p>
+            
+            <!-- Hex Code Display -->
+            <h1 id="hex-display" class="font-space-mono text-6xl font-light mb-8 tracking-wider transition-colors duration-200 cursor-pointer hover:scale-105 transform inline-block" title="Click to copy">
+                #000000
+            </h1>
+
+            <div class="space-y-5 text-left bg-black/30 p-5 rounded-2xl border border-white/5">
+                <!-- Timezone Selector -->
+                <div>
+                    <label for="tz-select" class="block text-white/50 text-[10px] uppercase tracking-widest mb-1.5 ml-1">Time Zone</label>
+                    <select id="tz-select" class="w-full bg-white/5 border border-white/10 text-white/90 rounded-xl p-3 outline-none focus:border-white/30 transition-colors text-sm font-light">
+                        <!-- Populated by JS -->
+                    </select>
+                </div>
+
+                <!-- Frequency Basis Selector -->
+                <div>
+                    <label for="basis-select" class="block text-white/50 text-[10px] uppercase tracking-widest mb-1.5 ml-1">Color Changes Every</label>
+                    <select id="basis-select" class="w-full bg-white/5 border border-white/10 text-white/90 rounded-xl p-3 outline-none focus:border-white/30 transition-colors text-sm font-light">
+                        <option value="second">Second</option>
+                        <option value="minute">Minute</option>
+                        <option value="hour" selected>Hour</option>
+                        <option value="day">Day</option>
+                        <option value="month">Month</option>
+                        <option value="year">Year</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Current Time Display -->
+            <div class="mt-8">
+                <p id="time-display" class="font-space-mono text-white/60 text-sm tracking-widest">
+                    --:--:--
+                </p>
+                <p id="date-display" class="font-space-mono text-white/40 text-xs tracking-wider mt-1">
+                    ---
+                </p>
+            </div>
+            
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        const hexDisplay = document.getElementById('hex-display');
+        const timeDisplay = document.getElementById('time-display');
+        const dateDisplay = document.getElementById('date-display');
+        const tzSelect = document.getElementById('tz-select');
+        const basisSelect = document.getElementById('basis-select');
+
+        // State
+        let targetColor = { r: 0, g: 0, b: 0, hex: '#000000' };
+        let currentColor = { r: 0, g: 0, b: 0 };
+        let currentPeriodString = '';
+
+        // Canvas Setup
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Populate Timezones
+        function setupTimezones() {
+            let timezones = [];
+            try {
+                timezones = Intl.supportedValuesOf('timeZone');
+            } catch(e) {
+                timezones = ['UTC', 'America/New_York', 'America/Los_Angeles', 'Europe/London', 'Asia/Tokyo', 'Australia/Sydney'];
+            }
+            
+            const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            
+            timezones.forEach(tz => {
+                const option = document.createElement('option');
+                option.value = tz;
+                option.textContent = tz.replace(/_/g, ' ');
+                if (tz === userTZ) option.selected = true;
+                tzSelect.appendChild(option);
+            });
+        }
+        setupTimezones();
+
+        // HSL to Hex Conversion (keeps colors vibrant and calming)
+        function HSLToRGB(h, s, l) {
+            s /= 100;
+            l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+                m = l - c/2,
+                r = 0, g = 0, b = 0;
+
+            if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+            else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+            else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+            else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+            else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+
+            return {
+                r: Math.round((r + m) * 255),
+                g: Math.round((g + m) * 255),
+                b: Math.round((b + m) * 255)
+            };
+        }
+
+        function RGBToHex(r, g, b) {
+            return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).toUpperCase();
+        }
+
+        // Generate Color from String Hash
+        function stringToColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            
+            // Use a seeded pseudo-random function to ensure sequential times produce completely different colors
+            const seededRandom = (seed) => {
+                const x = Math.sin(seed) * 10000;
+                return x - Math.floor(x);
+            };
+
+            // Calming colors: Full Hue wheel, Saturation 60-90%, Lightness 50-70%
+            const h = Math.floor(seededRandom(hash) * 360);
+            const s = 60 + Math.floor(seededRandom(hash + 1) * 30);
+            const l = 50 + Math.floor(seededRandom(hash + 2) * 20);
+            
+            const rgb = HSLToRGB(h, s, l);
+            const hex = RGBToHex(rgb.r, rgb.g, rgb.b);
+            
+            return { ...rgb, hex };
+        }
+
+        // Time Logic
+        function updateTimeAndColor() {
+            const tz = tzSelect.value;
+            const basis = basisSelect.value;
+            const now = new Date();
+
+            // Formatters
+            const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+            });
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, year: 'numeric', month: 'long', day: 'numeric'
+            });
+            const partsFormatter = new Intl.DateTimeFormat('en-US', {
+                timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', 
+                hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            });
+
+            // Display time
+            timeDisplay.textContent = timeFormatter.format(now);
+            dateDisplay.textContent = dateFormatter.format(now);
+
+            // Determine period string based on selection
+            const partsArray = partsFormatter.formatToParts(now);
+            const p = {};
+            partsArray.forEach(({type, value}) => p[type] = value);
+
+            let periodString = `${p.year}`;
+            if (['month', 'day', 'hour', 'minute', 'second'].includes(basis)) periodString += `-${p.month}`;
+            if (['day', 'hour', 'minute', 'second'].includes(basis)) periodString += `-${p.day}`;
+            if (['hour', 'minute', 'second'].includes(basis)) periodString += `-${p.hour}`;
+            if (['minute', 'second'].includes(basis)) periodString += `-${p.minute}`;
+            if (basis === 'second') periodString += `-${p.second}`;
+
+            // If period changed, calculate new color
+            if (periodString !== currentPeriodString) {
+                currentPeriodString = periodString;
+                targetColor = stringToColor(periodString);
+                hexDisplay.textContent = targetColor.hex;
+            }
+        }
+
+        // Animation Particles
+        class SpiralParticle {
+            constructor() {
+                this.reset(true);
+            }
+            reset(randomRadius = false) {
+                this.angle = Math.random() * Math.PI * 2;
+                const maxRadius = Math.max(canvas.width, canvas.height) * 0.8;
+                this.radius = randomRadius ? Math.random() * maxRadius : maxRadius;
+                this.speed = Math.random() * 0.005 + 0.002;
+                this.size = Math.random() * 2 + 0.5;
+                this.inwardSpeed = Math.random() * 0.5 + 0.1;
+            }
+            update() {
+                this.angle -= this.speed; // Spin
+                this.radius -= this.radius * 0.005 + this.inwardSpeed; // Pull inward logarithmically
+                
+                if (this.radius < 5) {
+                    this.reset(); // Respawn at edge
+                }
+            }
+            draw(ctx, r, g, b) {
+                const x = canvas.width / 2 + Math.cos(this.angle) * this.radius;
+                const y = canvas.height / 2 + Math.sin(this.angle) * this.radius;
+                
+                // Fade out particles near the center
+                const alpha = Math.min(1, this.radius / 50); 
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(x, y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        class FloatingDot {
+            constructor() {
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 3 + 1;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.life = Math.random() * Math.PI * 2;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life += 0.01;
+                
+                if (this.x < 0 || this.x > canvas.width || this.y < 0 || this.y > canvas.height) {
+                    this.reset();
+                }
+            }
+            draw(ctx, r, g, b) {
+                const alpha = (Math.sin(this.life) + 1) / 4; // Gentle pulse
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        const spiralParticles = Array.from({ length: 400 }, () => new SpiralParticle());
+        const floatingDots = Array.from({ length: 100 }, () => new FloatingDot());
+
+        // Copy to clipboard functionality
+        hexDisplay.addEventListener('click', () => {
+            // Use execCommand as a robust fallback for iframe environments
+            const textArea = document.createElement("textarea");
+            textArea.value = targetColor.hex;
+            textArea.style.position = "fixed"; // Avoid scrolling
+            textArea.style.opacity = "0";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+
+            try {
+                document.execCommand('copy');
+                const originalText = hexDisplay.textContent;
+                hexDisplay.textContent = "COPIED!";
+                setTimeout(() => hexDisplay.textContent = originalText, 1000);
+            } catch (err) {
+                console.error("Copy failed:", err);
+            }
+            
+            document.body.removeChild(textArea);
+        });
+
+        // Trigger update immediately on dropdown change
+        tzSelect.addEventListener('change', updateTimeAndColor);
+        basisSelect.addEventListener('change', updateTimeAndColor);
+
+        // Main Animation Loop
+        function animate() {
+            updateTimeAndColor();
+
+            // Smoothly interpolate current color to target color (Lerp)
+            currentColor.r += (targetColor.r - currentColor.r) * 0.02;
+            currentColor.g += (targetColor.g - currentColor.g) * 0.02;
+            currentColor.b += (targetColor.b - currentColor.b) * 0.02;
+
+            const { r, g, b } = currentColor;
+            const cr = Math.round(r);
+            const cg = Math.round(g);
+            const cb = Math.round(b);
+
+            // Update UI Glow
+            hexDisplay.style.textShadow = `0 0 25px rgba(${cr}, ${cg}, ${cb}, 0.8)`;
+            
+            // Draw Background (Trails effect)
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Ambient Center Glow
+            const gradient = ctx.createRadialGradient(
+                canvas.width/2, canvas.height/2, 0, 
+                canvas.width/2, canvas.height/2, Math.max(canvas.width, canvas.height)/2
+            );
+            gradient.addColorStop(0, `rgba(${cr}, ${cg}, ${cb}, 0.08)`);
+            gradient.addColorStop(1, 'transparent');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Elements with global glow
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = `rgb(${cr}, ${cg}, ${cb})`;
+
+            spiralParticles.forEach(p => {
+                p.update();
+                p.draw(ctx, cr, cg, cb);
+            });
+
+            floatingDots.forEach(d => {
+                d.update();
+                d.draw(ctx, cr, cg, cb);
+            });
+
+            ctx.shadowBlur = 0; // Reset shadow for next frame's clear rect
+
+            requestAnimationFrame(animate);
+        }
+
+        // Initialize
+        updateTimeAndColor();
+        // Snap current color to first target color instantly on load
+        currentColor = { r: targetColor.r, g: targetColor.g, b: targetColor.b };
+        animate();
+
+    </script>
+</body>
+</html>
