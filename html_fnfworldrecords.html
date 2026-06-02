@@ -5,87 +5,113 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FNF World Records & Milestones</title>
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
-        body { background-color: #0f172a; color: #f8fafc; }
-
+        body { 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+        }
         .card {
-            transition: transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
-
         .card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-8px);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3), 
+                       0 8px 10px -6px rgb(0 0 0 / 0.3);
+        }
+        .thumbnail-container {
+            position: relative;
+            overflow: hidden;
+        }
+        .play-overlay {
+            transition: all 0.2s ease;
+        }
+        .card:hover .play-overlay {
+            background-color: rgba(0, 0, 0, 0.4);
         }
     </style>
 </head>
-
 <body class="min-h-screen p-4 md:p-8">
+    <header class="max-w-6xl mx-auto mb-12 text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-4">
+            FNF Records Archive
+        </h1>
+        <p class="text-slate-400 max-w-2xl mx-auto">
+            The most iconic milestones and world records in the Friday Night Funkin' community.
+        </p>
+    </header>
 
-<header class="max-w-6xl mx-auto mb-12 text-center">
-    <h1 class="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 mb-4">
-        FNF Records Archive
-    </h1>
-    <p class="text-slate-400">
-        The most iconic milestones and world records in the Friday Night Funkin' community.
-    </p>
-</header>
+    <main id="records-grid" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    </main>
 
-<main id="records-grid" class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-</main>
+    <script>
+    const records = [
+        { title: "Longest FNF song", id: "bfQN4F35PDU" },
+        { title: "FNF mod with the biggest community", id: "0FFuyRqKVKY" },
+        { title: "Hardest FNF song (Option 1)", id: "GMx5NyN1iHY" },
+        { title: "Hardest FNF song (Option 2)", id: "K0yBMmaP5NQ" },
+        { title: "Most popular / Revived FNF", id: "jwhSUmN5zTk" },
+        { title: "First character modded to FNF", id: "Rn3mCd8KmnU" },
+        { title: "First V-slice mod", id: "6S8ywxhvOtE" },
+        { title: "FNF mod with the most songs", id: "yfFtTlgA6m0" },
+        { title: "Most original FNF characters in 1 song", id: "dpn6pSBGCDA" },
+        { title: "Most FNF characters in 1 song", id: "CKcRAOhT9Gk" },
+        { title: "Most keys in a FNF song", id: "6zkHgQRyLs4" },
+        { title: "TRUE Longest FNF song", id: "o9c9HF2l9Pc" }
+    ];
 
-<script>
-const records = [
-    { title: "Longest FNF song", id: "bfQN4F35PDU" },
-    { title: "FNF mod with the biggest community", id: "0FFuyRqKVKY" },
-    { title: "Hardest FNF song (Option 1)", id: "GMx5NyN1iHY" },
-    { title: "Hardest FNF song (Option 2)", id: "K0yBMmaP5NQ" },
-    { title: "Most popular / Revived FNF", id: "jwhSUmN5zTk" },
-    { title: "First character modded to FNF", id: "Rn3mCd8KmnU" },
-    { title: "First V-slice mod", id: "6S8ywxhvOtE" },
-    { title: "FNF mod with the most songs", id: "yfFtTlgA6m0" },
-    { title: "Most original FNF characters in 1 song", id: "dpn6pSBGCDA" },
-    { title: "Most FNF characters in 1 song", id: "CKcRAOhT9Gk" },
-    { title: "Most keys in a FNF song", id: "6zkHgQRyLs4" },
-    { title: "TRUE Longest FNF song", id: "o9c9HF2l9Pc" }
-];
+    const grid = document.getElementById('records-grid');
 
-const grid = document.getElementById('records-grid');
+    records.forEach(rec => {
+        const thumb = `https://img.youtube.com/vi/${rec.id}/hqdefault.jpg`;
+        
+        const card = document.createElement('div');
+        card.className = `
+            card bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 
+            shadow-lg flex flex-col h-full group
+        `;
+        
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', `Watch ${rec.title}`);
 
-records.forEach(rec => {
-    const thumb = `https://img.youtube.com/vi/${rec.id}/hqdefault.jpg`;
-
-    const card = document.createElement('div');
-
-    card.className =
-        "card bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-lg flex flex-col justify-between";
-
-    card.onclick = () => {
-        window.open(`https://www.youtube.com/watch?v=${rec.id}`, "_blank");
-    };
-
-    card.innerHTML = `
-        <div>
-            <h2 class="text-lg font-bold mb-4 text-slate-200">${rec.title}</h2>
-
-            <div class="aspect-video rounded-lg overflow-hidden bg-black relative">
+        card.innerHTML = `
+            <div class="thumbnail-container aspect-video bg-black relative">
                 <img
                     src="${thumb}"
-                    class="w-full h-full object-cover opacity-90 hover:opacity-100 transition"
+                    alt="${rec.title}"
+                    class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    loading="lazy"
                 />
-
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <div class="bg-black/60 px-4 py-2 rounded text-white font-semibold">
-                        ▶ Play
+                <div class="play-overlay absolute inset-0 flex items-center justify-center bg-black/50">
+                    <div class="bg-white/90 text-black px-6 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 shadow-md">
+                        <span class="text-lg">▶</span>
+                        WATCH
                     </div>
                 </div>
             </div>
-        </div>
-    `;
+            <div class="p-5 flex-1 flex flex-col">
+                <h2 class="text-lg font-bold text-slate-100 leading-tight">
+                    ${rec.title}
+                </h2>
+            </div>
+        `;
 
-    grid.appendChild(card);
-});
-</script>
+        // Click handler
+        const openVideo = () => {
+            window.open(`https://www.youtube.com/watch?v=${rec.id}`, "_blank");
+        };
 
+        card.addEventListener('click', openVideo);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openVideo();
+            }
+        });
+
+        grid.appendChild(card);
+    });
+    </script>
 </body>
 </html>
