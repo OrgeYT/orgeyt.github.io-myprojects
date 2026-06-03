@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conway's Game of Life</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #000; color: #fbbf24; }
+        canvas { cursor: crosshair; }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <header class="p-4 border-b border-yellow-600 bg-gray-900 flex justify-between items-center text-sm">
+        <h1 class="font-bold text-lg text-yellow-500">Game of Life</h1>
+        <div id="stats" class="flex gap-4">
+            <span>Gen: <span id="gen">0</span></span>
+            <span>Pop: <span id="pop">0</span></span>
+            <span>Zoom: <span id="zoomDisp">100</span>%</span>
+        </div>
+        <div class="flex gap-2">
+            <button id="drawModeBtn" class="bg-yellow-600 text-black px-3 py-1 rounded font-bold hover:bg-yellow-500">Draw Mode: ON</button>
+            <button id="playBtn" class="bg-gray-700 px-3 py-1 rounded hover:bg-gray-600">Play</button>
+            <button id="clearBtn" class="border border-yellow-600 px-3 py-1 rounded hover:bg-yellow-900">Clear</button>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <aside class="w-56 bg-gray-900 border-r border-yellow-900 p-4 flex flex-col gap-1 overflow-y-auto">
+            <h2 class="text-xs uppercase tracking-widest text-yellow-700 mb-2">Classic</h2>
+            <button onclick="selectPattern('glider')" class="text-left hover:text-white p-1 text-xs">Glider</button>
+            <button onclick="selectPattern('lwss')" class="text-left hover:text-white p-1 text-xs">LWSS</button>
+            <button onclick="selectPattern('gosperGliderGun')" class="text-left hover:text-white p-1 text-xs">Gosper Glider Gun</button>
+            <button onclick="selectPattern('acorn')" class="text-left hover:text-white p-1 text-xs">Acorn</button>
+            <h2 class="text-xs uppercase tracking-widest text-yellow-700 mt-4 mb-2">Advanced</h2>
+            <button onclick="selectPattern('pulsar')" class="text-left hover:text-white p-1 text-xs">Pulsar</button>
+            <button onclick="selectPattern('diehard')" class="text-left hover:text-white p-1 text-xs">Diehard</button>
+            <button onclick="selectPattern('rPentomino')" class="text-left hover:text-white p-1 text-xs">R-Pentomino</button>
+            <button onclick="selectPattern('bunnies')" class="text-left hover:text-white p-1 text-xs">Bunnies</button>
+            <button onclick="selectPattern('queenBee')" class="text-left hover:text-white p-1 text-xs">Queen Bee Shuttle</button>
+            <button onclick="selectPattern('fountain')" class="text-left hover:text-white p-1 text-xs">Fountain</button>
+            <button onclick="selectPattern('blockSwitchEngine')" class="text-left hover:text-white p-1 text-xs">Block Switch Engine</button>
+            <button onclick="selectPattern('pentadecathlon')" class="text-left hover:text-white p-1 text-xs">Pentadecathlon</button>
+            <button onclick="selectPattern('galaxy')" class="text-left hover:text-white p-1 text-xs">Galaxy</button>
+            <button onclick="selectPattern('infiniteGrowth')" class="text-left hover:text-white p-1 text-xs">Infinite Growth</button>
+        </aside>
+        
+        <main class="flex-1 bg-black relative">
+            <canvas id="gridCanvas"></canvas>
+        </main>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+        let resolution = 20, offsetX = 0, offsetY = 0;
+        let isDrawing = false, isDragging = false, drawAction = 1, lastMouse = {x: 0, y: 0};
+        let drawMode = true, grid = new Map(), running = false, generation = 0;
+        let activePattern = null, mousePos = {x: 0, y: 0};
+
+        const patterns = {
+            glider: [[0,1],[1,2],[2,0],[2,1],[2,2]],
+            lwss: [[0,0],[0,3],[1,4],[2,0],[2,4],[3,1],[3,2],[3,3],[3,4]],
+            acorn: [[0,1],[1,3],[2,0],[2,1],[2,4],[2,5],[2,6]],
+            gosperGliderGun: [[0,4],[0,5],[1,4],[1,5],[10,4],[10,5],[10,6],[11,3],[11,7],[12,2],[12,8],[13,2],[13,8],[14,5],[15,3],[15,7],[16,4],[16,5],[16,6],[17,5],[20,2],[20,3],[20,4],[21,2],[21,3],[21,4],[22,1],[22,5],[24,0],[24,1],[24,5],[24,6],[34,2],[34,3],[35,2],[35,3]],
+            pulsar: [2,3,4,8,9,10].flatMap(i => [0,5,7,12].flatMap(j => [[i,j],[j,i]])),
+            diehard: [[6,1],[0,2],[1,2],[1,1],[5,0],[7,0],[7,2]],
+            rPentomino: [[1,0],[2,0],[0,1],[1,1],[1,2]],
+            bunnies: [[1,0],[2,2],[0,3],[3,3],[2,4],[0,5],[1,5],[3,5]],
+            queenBee: [[0,1],[0,2],[1,0],[1,3],[2,0],[2,3],[3,1],[3,2]],
+            fountain: [[1,0],[2,0],[3,0],[4,0],[1,6],[2,6],[3,6],[4,6],[0,1],[0,2],[0,4],[0,5],[5,1],[5,2],[5,4],[5,5]],
+            blockSwitchEngine: [[0,0],[0,1],[1,0],[1,1],[4,2],[4,3],[5,2],[5,3],[2,5]],
+            pentadecathlon: [[0,1],[1,1],[2,0],[2,2],[3,1],[4,1],[5,1],[6,1],[7,0],[7,2],[8,1],[9,1]],
+            galaxy: [[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[0,1],[6,1],[0,2],[2,2],[4,2],[6,2],[0,3],[2,3],[4,3],[6,3],[0,4],[2,4],[4,4],[6,4],[0,5],[6,5],[0,6],[1,6],[2,6],[3,6],[4,6],[5,6],[6,6]],
+            infiniteGrowth: [[0,0],[1,0],[2,0],[3,0],[4,0],[0,1],[4,1],[0,2],[2,2]]
+        };
+
+        function setCanvasSize() { canvas.width = window.innerWidth - 224; canvas.height = window.innerHeight - 60; }
+        window.addEventListener('resize', setCanvasSize);
+        setCanvasSize();
+
+        function draw() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#222'; ctx.lineWidth = 0.5;
+            for(let i = 0; i <= canvas.width/resolution; i++) { ctx.beginPath(); ctx.moveTo(i*resolution + (offsetX%resolution), 0); ctx.lineTo(i*resolution + (offsetX%resolution), canvas.height); ctx.stroke(); }
+            for(let j = 0; j <= canvas.height/resolution; j++) { ctx.beginPath(); ctx.moveTo(0, j*resolution + (offsetY%resolution)); ctx.lineTo(canvas.width, j*resolution + (offsetY%resolution)); ctx.stroke(); }
+            ctx.fillStyle = '#fbbf24';
+            grid.forEach((value, key) => { if(value === 1) { const [gx, gy] = key.split(',').map(Number); ctx.fillRect(gx * resolution + offsetX, gy * resolution + offsetY, resolution - 1, resolution - 1); }});
+            if (activePattern) {
+                ctx.fillStyle = 'rgba(251, 191, 36, 0.4)';
+                const gx = Math.floor((mousePos.x - offsetX) / resolution);
+                const gy = Math.floor((mousePos.y - offsetY) / resolution);
+                activePattern.forEach(([dx, dy]) => ctx.fillRect((gx + dx) * resolution + offsetX, (gy + dy) * resolution + offsetY, resolution - 1, resolution - 1));
+            }
+            document.getElementById('gen').innerText = generation; document.getElementById('pop').innerText = grid.size;
+        }
+
+        function selectPattern(name) { activePattern = patterns[name]; }
+
+        canvas.addEventListener('mousedown', e => {
+            const gx = Math.floor((e.offsetX - offsetX) / resolution);
+            const gy = Math.floor((e.offsetY - offsetY) / resolution);
+            if (activePattern) { activePattern.forEach(([dx, dy]) => grid.set(`${gx + dx},${gy + dy}`, 1)); activePattern = null; } 
+            else if(drawMode) { isDrawing = true; drawAction = grid.has(`${gx},${gy}`) ? 0 : 1; grid.set(`${gx},${gy}`, drawAction); } 
+            else { isDragging = true; lastMouse = {x: e.clientX, y: e.clientY}; }
+            draw();
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            mousePos = {x: e.offsetX, y: e.offsetY};
+            if(isDrawing && drawMode) { const gx = Math.floor((e.offsetX - offsetX) / resolution); const gy = Math.floor((e.offsetY - offsetY) / resolution); grid.set(`${gx},${gy}`, drawAction); } 
+            else if (isDragging) { offsetX += e.clientX - lastMouse.x; offsetY += e.clientY - lastMouse.y; lastMouse = {x: e.clientX, y: e.clientY}; }
+            draw();
+        });
+
+        window.addEventListener('mouseup', () => { isDrawing = false; isDragging = false; });
+        canvas.addEventListener('wheel', e => { resolution *= (e.deltaY > 0 ? 0.9 : 1.1); document.getElementById('zoomDisp').innerText = Math.round((resolution/20)*100); draw(); });
+
+        function update() {
+            let next = new Map(), counts = new Map();
+            grid.forEach((v, key) => { const [x, y] = key.split(',').map(Number); for(let i=-1; i<=1; i++) for(let j=-1; j<=1; j++) { if(i===0 && j===0) continue; const nKey = `${x+i},${y+j}`; counts.set(nKey, (counts.get(nKey) || 0) + 1); }});
+            counts.forEach((val, key) => { if(val === 3 || (val === 2 && grid.has(key))) next.set(key, 1); });
+            grid = next; generation++; draw();
+        }
+
+        document.getElementById('playBtn').addEventListener('click', e => {
+            running = !running;
+            e.target.innerText = running ? 'Pause' : 'Play';
+            if(running) { const loop = () => { if(running) { update(); setTimeout(loop, 100); } }; loop(); }
+        });
+
+        document.getElementById('drawModeBtn').addEventListener('click', e => { drawMode = !drawMode; e.target.innerText = `Draw Mode: ${drawMode ? 'ON' : 'OFF'}`; });
+        document.getElementById('clearBtn').addEventListener('click', () => { grid.clear(); generation=0; draw(); });
+        draw();
+    </script>
+</body>
+</html>
