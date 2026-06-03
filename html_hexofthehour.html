@@ -134,12 +134,15 @@
                 <div>
                     <label for="basis-select" class="block text-white/50 text-[10px] uppercase tracking-widest mb-1.5 ml-1">Color Changes Every</label>
                     <select id="basis-select" class="w-full bg-white/5 border border-white/10 text-white/90 rounded-xl p-3 outline-none focus:border-white/30 transition-colors text-sm font-light">
+                        <option value="millisecond">Millisecond</option>
                         <option value="second">Second</option>
                         <option value="minute">Minute</option>
                         <option value="hour" selected>Hour</option>
                         <option value="day">Day</option>
                         <option value="month">Month</option>
                         <option value="year">Year</option>
+                        <option value="decade">Decade</option>
+                        <option value="century">Century</option>
                     </select>
                 </div>
             </div>
@@ -335,12 +338,21 @@
             const p = {};
             partsArray.forEach(({type, value}) => p[type] = value);
 
-            let periodString = `${p.year}`;
-            if (['month', 'day', 'hour', 'minute', 'second'].includes(basis)) periodString += `-${p.month}`;
-            if (['day', 'hour', 'minute', 'second'].includes(basis)) periodString += `-${p.day}`;
-            if (['hour', 'minute', 'second'].includes(basis)) periodString += `-${p.hour}`;
-            if (['minute', 'second'].includes(basis)) periodString += `-${p.minute}`;
-            if (basis === 'second') periodString += `-${p.second}`;
+            let periodString = '';
+
+            if (basis === 'century') {
+                periodString = `${Math.floor(parseInt(p.year) / 100) * 100}`;
+            } else if (basis === 'decade') {
+                periodString = `${Math.floor(parseInt(p.year) / 10) * 10}`;
+            } else {
+                periodString = `${p.year}`;
+                if (['month', 'day', 'hour', 'minute', 'second', 'millisecond'].includes(basis)) periodString += `-${p.month}`;
+                if (['day', 'hour', 'minute', 'second', 'millisecond'].includes(basis)) periodString += `-${p.day}`;
+                if (['hour', 'minute', 'second', 'millisecond'].includes(basis)) periodString += `-${p.hour}`;
+                if (['minute', 'second', 'millisecond'].includes(basis)) periodString += `-${p.minute}`;
+                if (['second', 'millisecond'].includes(basis)) periodString += `-${p.second}`;
+                if (basis === 'millisecond') periodString += `-${dateObj.getMilliseconds()}`;
+            }
             return periodString;
         }
 
@@ -351,12 +363,15 @@
             for (let i = 1; i <= 10; i++) {
                 let pastDate = new Date(now.getTime());
                 
-                if (basis === 'second') pastDate.setSeconds(now.getSeconds() - i);
+                if (basis === 'millisecond') pastDate.setMilliseconds(now.getMilliseconds() - i);
+                else if (basis === 'second') pastDate.setSeconds(now.getSeconds() - i);
                 else if (basis === 'minute') pastDate.setMinutes(now.getMinutes() - i);
                 else if (basis === 'hour') pastDate.setHours(now.getHours() - i);
                 else if (basis === 'day') pastDate.setDate(now.getDate() - i);
                 else if (basis === 'month') pastDate.setMonth(now.getMonth() - i);
                 else if (basis === 'year') pastDate.setFullYear(now.getFullYear() - i);
+                else if (basis === 'decade') pastDate.setFullYear(now.getFullYear() - (i * 10));
+                else if (basis === 'century') pastDate.setFullYear(now.getFullYear() - (i * 100));
 
                 const pStr = getPeriodStringForDate(pastDate, tz, basis);
                 const color = stringToColor(pStr);
