@@ -218,7 +218,7 @@ export function initUI() {
   if (loadOrgeBtn) {
     loadOrgeBtn.addEventListener('click', async () => {
       try {
-        const res = await fetch('/OrgeYTsettings.yaml');
+        const res = await fetch('OrgeYTsettings.yaml');
         if (!res.ok) throw new Error('Failed to fetch preset');
         const txt = await res.text();
         const parsed = parseSettingsYAML(txt);
