@@ -1,0 +1,13 @@
+# DFJK settings export
+keys: "A,S,K,L"
+scroll: up
+length: 50
+lives: 10
+botNPS: 10
+doubles: false
+multis: false
+jacks: false
+wave: false
+bot: false
+noteSkin: circle
+noteColor: fnf
