@@ -82,6 +82,7 @@ body {
     flex: 1;
     display: flex;
     background-color: #000;
+    position: relative; /* Essential for button positioning */
 }
 
 #runner-frame {
@@ -91,17 +92,10 @@ body {
     background-color: #fff; /* Keeps the iframe background white for standard HTML files */
 }
 
-.main-content {
-    flex: 1;
-    display: flex;
-    background-color: #000;
-    position: relative; /* Essential for button positioning */
-}
-
-#fullscreen-btn {
+/* UI Control Buttons Layering */
+#fullscreen-btn, #share-btn {
     position: absolute;
     top: 10px;
-    right: 10px;
     z-index: 10;
     padding: 8px 12px;
     background: rgba(255, 255, 255, 0.1);
@@ -113,13 +107,15 @@ body {
     transition: background 0.2s;
 }
 
-#fullscreen-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
+#fullscreen-btn {
+    right: 10px;
 }
 
-#runner-frame {
-    width: 100%;
-    height: 100%;
-    border: none;
-    background-color: #fff;
+/* Placed immediately to the left of the Full Screen button */
+#share-btn {
+    right: 125px; 
+}
+
+#fullscreen-btn:hover, #share-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
 }
