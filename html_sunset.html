@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Sunset Landscape</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(20, 10, 30, 0.7);
+            color: white;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(255, 120, 50, 0.5);
+            letter-spacing: 2px;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            color: #ddd;
+        }
+
+        .controls-info {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px 40px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .controls-info span {
+            display: inline-block;
+            background: #fff;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.6);
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <h1>SUNSET HORIZONS</h1>
+        <p>An infinite procedural landscape</p>
+        
+        <div class="controls-info">
+            Movement: <span>W</span> <span>A</span> <span>S</span> <span>D</span><br><br>
+            Sprint: <span>SHIFT</span> &nbsp;|&nbsp; Look: <span>MOUSE</span>
+        </div>
+
+        <button id="start-btn">Click to Explore</button>
+    </div>
+
+    <div id="crosshair"></div>
+    <div id="canvas-container"></div>
+
+    <!-- We use ES Modules to import Three.js cleanly -->
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.136.0';
+        import { PointerLockControls } from 'https://cdn.skypack.dev/three@0.136.0/examples/jsm/controls/PointerLockControls.js';
+
+        // ==========================================
+        // 1. FAST SIMPLEX NOISE IMPLEMENTATION
+        // ==========================================
+        // A compact 2D simplex noise algorithm for procedural generation
+        const SimplexNoise = function() {
+            var F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+            var G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+            var p = new Uint8Array(256);
+            for (var i = 0; i < 256; i++) p[i] = Math.floor(Math.random() * 256);
+            var perm = new Uint8Array(512), permMod12 = new Uint8Array(512);
+            for (var i = 0; i < 512; i++) {
+                perm[i] = p[i & 255];
+                permMod12[i] = (perm[i] % 12);
+            }
+            return {
+                noise2D: function(xin, yin) {
+                    var n0, n1, n2; 
+                    var s = (xin + yin) * F2;
+                    var i = Math.floor(xin + s), j = Math.floor(yin + s);
+                    var t = (i + j) * G2;
+                    var X0 = i - t, Y0 = j - t;
+                    var x0 = xin - X0, y0 = yin - Y0;
+                    var i1, j1;
+                    if (x0 > y0) { i1 = 1; j1 = 0; } else { i1 = 0; j1 = 1; }
+                    var x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+                    var x2 = x0 - 1.0 + 2.0 * G2, y2 = y0 - 1.0 + 2.0 * G2;
+                    var ii = i & 255, jj = j & 255;
+                    var gi0 = permMod12[ii + perm[jj]], gi1 = permMod12[ii + i1 + perm[jj + j1]], gi2 = permMod12[ii + 1 + perm[jj + 1]];
+                    var t0 = 0.5 - x0 * x0 - y0 * y0;
+                    if (t0 < 0) n0 = 0.0; else { t0 *= t0; n0 = t0 * t0 * (grad3[gi0][0] * x0 + grad3[gi0][1] * y0); }
+                    var t1 = 0.5 - x1 * x1 - y1 * y1;
+                    if (t1 < 0) n1 = 0.0; else { t1 *= t1; n1 = t1 * t1 * (grad3[gi1][0] * x1 + grad3[gi1][1] * y1); }
+                    var t2 = 0.5 - x2 * x2 - y2 * y2;
+                    if (t2 < 0) n2 = 0.0; else { t2 *= t2; n2 = t2 * t2 * (grad3[gi2][0] * x2 + grad3[gi2][1] * y2); }
+                    return 70.0 * (n0 + n1 + n2);
+                }
+            };
+        };
+        const grad3 = [[1,1,0],[-1,1,0],[1,-1,0],[-1,-1,0],[1,0,1],[-1,0,1],[1,0,-1],[-1,0,-1],[0,1,1],[0,-1,1],[0,1,-1],[0,-1,-1]];
+        const noise = SimplexNoise();
+
+        // Terrain Height Function (Fractal Brownian Motion)
+        function getTerrainHeight(x, z) {
+            let y = 0;
+            // Base hills
+            y += noise.noise2D(x * 0.003, z * 0.003) * 60;
+            // Medium variations
+            y += noise.noise2D(x * 0.01, z * 0.01) * 20;
+            // Small bumps and roughness
+            y += noise.noise2D(x * 0.04, z * 0.04) * 4;
+            // Micro roughness for grass texture
+            y += noise.noise2D(x * 0.1, z * 0.1) * 0.5;
+            
+            // Flatten valleys slightly to create nice lowlands/lakes
+            if (y < 5) y = y * 0.5 + 2.5;
+            
+            return y;
+        }
+
+        // ==========================================
+        // 2. SCENE SETUP
+        // ==========================================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        
+        // Sunset Fog
+        const fogColor = new THREE.Color(0xff7b54);
+        scene.fog = new THREE.FogExp2(fogColor, 0.0035);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 2000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio for performance
+        container.appendChild(renderer.domElement);
+
+        // ==========================================
+        // 3. LIGHTING & ENVIRONMENT (Sunset)
+        // ==========================================
+        
+        // Hemisphere Light (Sky reflection + ground bounce)
+        const hemiLight = new THREE.HemisphereLight(0xffa07a, 0x2e8b57, 0.6); // Sunset pink/orange sky, dark green ground
+        scene.add(hemiLight);
+
+        // Directional Light (The Sun)
+        const dirLight = new THREE.DirectionalLight(0xffcc88, 2.0); // Increased intensity for stronger reflections
+        dirLight.position.set(500, 100, -800); // Low on the horizon
+        scene.add(dirLight);
+
+        // Custom Sky Shader for beautiful gradient
+        const vertexShader = `
+            varying vec3 vWorldPosition;
+            void main() {
+                vec4 worldPosition = modelMatrix * vec4( position, 1.0 );
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+            }
+        `;
+        const fragmentShader = `
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            uniform float offset;
+            uniform float exponent;
+            varying vec3 vWorldPosition;
+            void main() {
+                float h = normalize( vWorldPosition + offset ).y;
+                gl_FragColor = vec4( mix( bottomColor, topColor, max( pow( max( h , 0.0), exponent ), 0.0 ) ), 1.0 );
+            }
+        `;
+        
+        const skyGeo = new THREE.SphereGeometry(1000, 32, 15);
+        const skyMat = new THREE.ShaderMaterial({
+            uniforms: {
+                topColor: { value: new THREE.Color(0x2a1b3d) },     // Deep purple sky
+                bottomColor: { value: new THREE.Color(0xff8c42) },  // Bright orange horizon
+                offset: { value: 33 },
+                exponent: { value: 0.6 }
+            },
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            side: THREE.BackSide,
+            depthWrite: false
+        });
+        const sky = new THREE.Mesh(skyGeo, skyMat);
+        scene.add(sky);
+
+        // Sun Mesh
+        const sunGeo = new THREE.SphereGeometry(40, 32, 32);
+        const sunMat = new THREE.MeshBasicMaterial({ color: 0xffeebb, fog: false });
+        const sun = new THREE.Mesh(sunGeo, sunMat);
+        sun.position.copy(dirLight.position);
+        scene.add(sun);
+
+        // Water Plane (Translucent layer in valleys)
+        const waterGeo = new THREE.PlaneGeometry(5000, 5000);
+        const waterMat = new THREE.MeshStandardMaterial({ 
+            color: 0xff8866, // Reflects the sunset
+            transparent: true,
+            opacity: 0.6,
+            roughness: 0.1,
+            metalness: 0.8
+        });
+        const water = new THREE.Mesh(waterGeo, waterMat);
+        water.rotation.x = -Math.PI / 2;
+        water.position.y = 5; // Sea level
+        scene.add(water);
+
+        // ==========================================
+        // 4. INFINITE TERRAIN CHUNK SYSTEM
+        // ==========================================
+        const chunkSize = 150;
+        const chunkResolution = 45; // Lower = better performance, higher = smoother hills
+        const renderDistance = 3;   // Radius of chunks to render
+        const chunks = new Map();
+
+        // Shared material for terrain
+        const terrainMaterial = new THREE.MeshStandardMaterial({ 
+            vertexColors: true,
+            flatShading: true, // Gives a nice stylistic low-poly feel combined with smooth normals
+            roughness: 0.45,   // Lowered roughness to catch the sun's specular reflections
+            metalness: 0.15    // Slight metallic response makes the sun rays pop off the hills
+        });
+
+        function getChunkKey(x, z) {
+            return `${x},${z}`;
+        }
+
+        function generateChunk(chunkX, chunkZ) {
+            const geometry = new THREE.PlaneGeometry(chunkSize, chunkSize, chunkResolution, chunkResolution);
+            geometry.rotateX(-Math.PI / 2);
+
+            const positions = geometry.attributes.position;
+            const count = positions.count;
+            
+            // Setup vertex colors
+            geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+            const colors = geometry.attributes.color;
+
+            const colorObj = new THREE.Color();
+            
+            for (let i = 0; i < count; i++) {
+                const vx = positions.getX(i);
+                const vz = positions.getZ(i);
+                
+                // Absolute world position
+                const worldX = vx + (chunkX * chunkSize);
+                const worldZ = vz + (chunkZ * chunkSize);
+                
+                // Calculate height
+                const vy = getTerrainHeight(worldX, worldZ);
+                positions.setY(i, vy);
+
+                // Determine color based on height & slight randomness
+                let hexColor;
+                if (vy < 6) {
+                    hexColor = 0x8f7a5b; // Sand/Dirt near water
+                } else if (vy < 25) {
+                    hexColor = 0x4a7c59; // Lush grass
+                } else if (vy < 50) {
+                    hexColor = 0x688b58; // Highland grass
+                } else {
+                    hexColor = 0x5a6b5a; // Rocky peaks
+                }
+
+                colorObj.setHex(hexColor);
+                
+                // Add noise variance to break up solid colors
+                const colorNoise = noise.noise2D(worldX * 0.1, worldZ * 0.1) * 0.05;
+                colorObj.offsetHSL(0, 0, colorNoise);
+
+                // Add slight warmth to faces looking towards the sun (fake GI)
+                colorObj.r += vy * 0.001; 
+
+                colors.setXYZ(i, colorObj.r, colorObj.g, colorObj.b);
+            }
+
+            geometry.computeVertexNormals();
+
+            const mesh = new THREE.Mesh(geometry, terrainMaterial);
+            mesh.position.set(chunkX * chunkSize, 0, chunkZ * chunkSize);
+            mesh.matrixAutoUpdate = false;
+            mesh.updateMatrix();
+            
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function updateChunks() {
+            // Determine which chunk the player is currently in
+            const currentChunkX = Math.round(camera.position.x / chunkSize);
+            const currentChunkZ = Math.round(camera.position.z / chunkSize);
+
+            const chunksToKeep = new Set();
+
+            // Generate/Keep chunks within render distance
+            for (let x = -renderDistance; x <= renderDistance; x++) {
+                for (let z = -renderDistance; z <= renderDistance; z++) {
+                    // Make it circular rather than square
+                    if (x*x + z*z > renderDistance*renderDistance) continue;
+
+                    const targetX = currentChunkX + x;
+                    const targetZ = currentChunkZ + z;
+                    const key = getChunkKey(targetX, targetZ);
+                    
+                    chunksToKeep.add(key);
+
+                    if (!chunks.has(key)) {
+                        chunks.set(key, generateChunk(targetX, targetZ));
+                    }
+                }
+            }
+
+            // Remove chunks outside render distance
+            for (const [key, mesh] of chunks.entries()) {
+                if (!chunksToKeep.has(key)) {
+                    scene.remove(mesh);
+                    mesh.geometry.dispose();
+                    // Don't dispose shared material
+                    chunks.delete(key);
+                }
+            }
+        }
+
+        // ==========================================
+        // 5. PLAYER CONTROLS & MOVEMENT
+        // ==========================================
+        const controls = new PointerLockControls(camera, document.body);
+        const uiLayer = document.getElementById('ui-layer');
+        const startBtn = document.getElementById('start-btn');
+        const crosshair = document.getElementById('crosshair');
+
+        startBtn.addEventListener('click', () => {
+            controls.lock();
+        });
+
+        controls.addEventListener('lock', () => {
+            uiLayer.style.opacity = '0';
+            setTimeout(() => uiLayer.style.display = 'none', 500);
+            crosshair.style.display = 'block';
+        });
+
+        controls.addEventListener('unlock', () => {
+            uiLayer.style.display = 'flex';
+            setTimeout(() => uiLayer.style.opacity = '1', 10);
+            crosshair.style.display = 'none';
+        });
+
+        // Input state
+        const moveState = { forward: false, backward: false, left: false, right: false, sprint: false };
+        const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
+
+        document.addEventListener('keydown', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveState.forward = true; break;
+                case 'KeyA': moveState.left = true; break;
+                case 'KeyS': moveState.backward = true; break;
+                case 'KeyD': moveState.right = true; break;
+                case 'ShiftLeft': moveState.sprint = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveState.forward = false; break;
+                case 'KeyA': moveState.left = false; break;
+                case 'KeyS': moveState.backward = false; break;
+                case 'KeyD': moveState.right = false; break;
+                case 'ShiftLeft': moveState.sprint = false; break;
+            }
+        });
+
+        // Initial Position
+        camera.position.set(0, 50, 0);
+
+        // ==========================================
+        // 6. MAIN RENDER LOOP
+        // ==========================================
+        const clock = new THREE.Clock();
+        const playerHeight = 5.0; // Height of eyes above ground
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min(clock.getDelta(), 0.1); // Cap delta to prevent huge jumps
+
+            if (controls.isLocked) {
+                // Apply friction
+                velocity.x -= velocity.x * 10.0 * delta;
+                velocity.z -= velocity.z * 10.0 * delta;
+
+                // Determine movement direction
+                direction.z = Number(moveState.forward) - Number(moveState.backward);
+                direction.x = Number(moveState.right) - Number(moveState.left);
+                direction.normalize();
+
+                const speed = moveState.sprint ? 150.0 : 60.0;
+
+                if (moveState.forward || moveState.backward) velocity.z -= direction.z * speed * delta;
+                if (moveState.left || moveState.right) velocity.x -= direction.x * speed * delta;
+
+                controls.moveRight(-velocity.x * delta);
+                controls.moveForward(-velocity.z * delta);
+
+                // Terrain collision / smoothly follow heightmap
+                const targetY = getTerrainHeight(camera.position.x, camera.position.z) + playerHeight;
+                
+                // Smooth interpolation for walking over hills
+                camera.position.y += (targetY - camera.position.y) * 10.0 * delta;
+                
+                // Ensure camera doesn't dip into water
+                if (camera.position.y < water.position.y + 1) {
+                    camera.position.y = water.position.y + 1;
+                }
+            }
+
+            // Keep water relative to player for infinite illusion
+            water.position.x = camera.position.x;
+            water.position.z = camera.position.z;
+            
+            // Keep sky centered on player
+            sky.position.copy(camera.position);
+
+            updateChunks();
+
+            renderer.render(scene, camera);
+        }
+
+        // Handle Window Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Initialize first chunks and start loop
+        updateChunks();
+        animate();
+
+    </script>
+</body>
+</html>
