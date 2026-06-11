@@ -100,9 +100,23 @@ if (toggleBtn) {
     toggleBtn.addEventListener('click', toggleOverlayButtons);
 }
 
-// Bind toggle to the backtick (`) keypress
+// Bind toggle to the backtick (`) keypress on the main window
 document.addEventListener('keydown', (event) => {
     if (event.key === '`') {
         toggleOverlayButtons();
+    }
+});
+
+// FIX: Bind the shortcut inside the iframe so it works when a project is focused!
+runnerFrame.addEventListener('load', () => {
+    try {
+        runnerFrame.contentWindow.document.addEventListener('keydown', (event) => {
+            if (event.key === '`') {
+                toggleOverlayButtons();
+            }
+        });
+    } catch (error) {
+        // This catch block prevents the page from breaking if you ever load an external website in the iframe
+        console.warn("Could not attach keyboard shortcut to iframe.");
     }
 });
