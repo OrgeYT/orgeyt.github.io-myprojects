@@ -67,6 +67,8 @@
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
 
+        <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
+
         <div id="file-list"></div>
 
         <div class="gallery-section">
@@ -118,6 +120,26 @@
         });
 
         updateGallery();
+
+        // --- New UI Toggle Logic ---
+        const toggleBtn = document.getElementById('toggle-ui-btn');
+        const fullscreenBtn = document.getElementById('fullscreen-btn');
+        const shareBtn = document.getElementById('share-btn');
+
+        function toggleOverlayButtons() {
+            fullscreenBtn.classList.toggle('hidden');
+            shareBtn.classList.toggle('hidden');
+        }
+
+        // Listen for button click
+        toggleBtn.addEventListener('click', toggleOverlayButtons);
+
+        // Listen for backtick (`) keypress
+        document.addEventListener('keydown', (event) => {
+            if (event.key === '`') {
+                toggleOverlayButtons();
+            }
+        });
     </script>
     <script src="app.js"></script>
 </body>
