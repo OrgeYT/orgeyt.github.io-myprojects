@@ -90,7 +90,7 @@
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
-    <script>
+<script>
         const galleryImages = [
             { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
             { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
@@ -120,26 +120,6 @@
         });
 
         updateGallery();
-
-        // --- New UI Toggle Logic ---
-        const toggleBtn = document.getElementById('toggle-ui-btn');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        const shareBtn = document.getElementById('share-btn');
-
-        function toggleOverlayButtons() {
-            fullscreenBtn.classList.toggle('hidden');
-            shareBtn.classList.toggle('hidden');
-        }
-
-        // Listen for button click
-        toggleBtn.addEventListener('click', toggleOverlayButtons);
-
-        // Listen for backtick (`) keypress
-        document.addEventListener('keydown', (event) => {
-            if (event.key === '`') {
-                toggleOverlayButtons();
-            }
-        });
     </script>
     <script src="app.js"></script>
 </body>
