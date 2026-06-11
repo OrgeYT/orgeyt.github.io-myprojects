@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en" class="dark" id="html-root">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Notepad</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        gray: {
+                            850: '#1f2937',
+                            900: '#111827',
+                            950: '#030712',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; border: 2px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb:hover { background-color: #64748b; }
+
+        /* Ensure full-viewport layout so the notepad content fits exactly and nothing is clipped */
+        html, body, #html-root {
+            height: 100%;
+        }
+        body {
+            margin: 0;
+            min-height: 100%;
+            box-sizing: border-box;
+        }
+        /* allow flex children to properly shrink so main's internal scrolling works and nothing overflows the viewport */
+        main {
+            min-height: 0;
+            position: relative;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        /* make the absolute editor/highlighting fill main without creating extra off-screen space */
+        #highlighting, #editor {
+            inset: 0;
+            position: absolute;
+            box-sizing: border-box;
+            width: 100%;
+            height: 100%;
+        }
+
+        body, header, button, modal-content {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        /* hide native caret; we'll render our own in the highlighting layer */
+        #editor {
+            color: transparent;
+            caret-color: transparent;
+        }
+        .dark #editor {
+            caret-color: transparent;
+        }
+        #editor::selection {
+            background: rgba(59, 130, 246, 0.3);
+            color: transparent;
+        }
+        #editor::placeholder {
+            color: transparent;
+        }
+
+        /* Typing line / caret highlight in the preview layer */
+        .typing-line {
+            background: linear-gradient(90deg, rgba(99,102,241,0.06), rgba(99,102,241,0.02));
+            outline: 2px solid rgba(99,102,241,0.08);
+            border-radius: 6px;
+            padding: 0.05rem 0.35rem;
+            display: inline-block;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.12s ease, outline-color 0.12s ease;
+            position: relative;
+            min-height: 1.1em;
+        }
+        /* custom caret element positioned inside the typing-line (absolute fallback) */
+        .typing-line .caret-pos {
+            position: absolute;
+            top: 8%;
+            bottom: 8%;
+            width: 2px;
+            background: rgba(99,102,241,0.9);
+            border-radius: 2px;
+            opacity: 0.95;
+            animation: blink 1.1s steps(2, start) infinite;
+            transform: translateX(-1px); /* center on text edge */
+        }
+
+        /* inline caret we insert between characters for precise positioning */
+        .caret-pos-inline {
+            display: inline-block;
+            width: 2px;
+            height: 1em;
+            vertical-align: text-top;
+            margin-left: -1px; /* center on text edge */
+            background: rgba(99,102,241,0.95);
+            border-radius: 2px;
+            animation: blink 1.1s steps(2, start) infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        /* Ensure headings and other inline elements sit nicely within typing-line */
+        .typing-line .opacity-40 { opacity: 0.5; }
+
+        /* Mirror used for caret measurement (offscreen) */
+        #caret-mirror {
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            white-space: pre;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Mascot speech bubble: absolute container so JS can place it under the mascot; bubble is white with black text */
+        #mascot-bubble { position: absolute; pointer-events: none; }
+        .speech-bubble {
+            position: relative;
+            max-width: 160px;
+            background: #ffffff !important;
+            color: #000000 !important;
+            pointer-events: auto;
+        }
+        .speech-bubble::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            top: -8px;
+            border-width: 8px 8px 0 8px;
+            border-style: solid;
+            border-color: #ffffff transparent transparent transparent;
+            filter: drop-shadow(0 -1px 0 rgba(0,0,0,0.03));
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-950 dark:text-gray-100 flex flex-col h-screen font-sans">
+
+    <header class="flex-none flex flex-wrap items-center justify-between px-4 py-3 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm z-20 relative">
+        <div class="flex items-center gap-2">
+            <svg class="w-6 h-6 text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.5 3H5a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2V8.5L15.5 3Z"/><path d="M15 3v6h6"/><path d="M9 13h6"/><path d="M9 17h3"/></svg>
+            <h1 class="text-lg font-semibold tracking-tight hidden md:block">Notepad</h1>
+        </div>
+
+        <div class="flex items-center gap-1 sm:gap-2 overflow-x-auto max-w-full">
+            <div class="flex items-center gap-1 mr-1 sm:mr-2">
+                <button id="btn-bold" class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold font-serif" title="Bold">B</button>
+                <button id="btn-italic" class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 italic font-serif" title="Italic">I</button>
+                <button id="btn-underline" class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 underline font-serif" title="Underline">U</button>
+                <button id="btn-strike" class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 line-through font-serif" title="Strikethrough">S</button>
+                <button id="btn-heading" class="w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold" title="Heading">H</button>
+            </div>
+
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+
+            <button id="theme-toggle" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800" title="Toggle Theme">
+                <svg id="icon-sun" class="w-5 h-5 hidden dark:block" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                <svg id="icon-moon" class="w-5 h-5 block dark:hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </button>
+
+            <button id="asmr-btn" class="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400" title="Keyboard ASMR">
+                <svg id="icon-asmr-off" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                <svg id="icon-asmr-on" class="w-5 h-5 hidden text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+            </button>
+
+            <div class="w-px h-6 bg-gray-300 dark:bg-gray-700 mx-1"></div>
+
+            <input type="file" id="file-upload" class="hidden" accept=".txt,.md" />
+            <button id="btn-upload" class="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800">Upload</button>
+            <button id="btn-clear" class="px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 rounded-md hover:bg-red-50">Clear</button>
+            <button id="btn-save" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700">Save</button>
+            <img id="mascot" src="/fnf_idle.gif" alt="mascot" class="ml-3 w-9 h-9 rounded-md object-cover cursor-pointer" title="Mascot" />
+            <div id="mascot-bubble" class="hidden z-50">
+                <div class="speech-bubble text-sm px-3 py-2 rounded-lg shadow-lg border border-gray-200">
+                    Hi im red
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 relative w-full bg-white dark:bg-gray-950 min-h-0 overflow-auto">
+        <div id="highlighting" class="absolute inset-0 w-full h-full p-4 lg:p-8 text-base lg:text-lg leading-relaxed whitespace-pre-wrap break-words overflow-y-auto pointer-events-none z-0 text-gray-900 dark:text-gray-100" aria-hidden="true"></div>
+        <textarea id="editor" maxlength="1000000000" class="absolute inset-0 w-full h-full p-4 lg:p-8 text-base lg:text-lg leading-relaxed whitespace-pre-wrap break-words overflow-y-auto resize-none focus:outline-none bg-transparent z-10" spellcheck="false" placeholder="Start typing..."></textarea>
+    </main>
+
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <div id="clear-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-850 rounded-xl shadow-2xl max-w-sm w-full p-6 transform scale-95 opacity-0 transition-all duration-300" id="clear-modal-content">
+            <h3 class="text-lg font-bold text-center text-gray-900 dark:text-white mb-2">Are you sure?</h3>
+            <div class="flex gap-3">
+                <button id="clear-cancel" class="flex-1 px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+                <button id="clear-confirm" class="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg">Clear</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="save-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white dark:bg-gray-850 rounded-xl shadow-2xl max-w-md w-full p-6 transform scale-95 opacity-0 transition-all duration-300" id="save-modal-content">
+            <input type="text" id="filename" value="untitled" class="w-full mb-4 p-2 bg-gray-100 dark:bg-gray-900 rounded" />
+            <button id="save-confirm" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg">Save</button>
+        </div>
+    </div>
+
+    <div id="selection-toolbar" class="fixed z-50 opacity-0 pointer-events-none transition-all duration-150 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-md shadow-md px-2 py-1 flex gap-1 items-center" style="transform: translateY(-8px);">
+        <button class="sel-btn px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800" data-act="bold"><strong>B</strong></button>
+        <button class="sel-btn px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800" data-act="italic"><em>I</em></button>
+        <button class="sel-btn px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800" data-act="underline"><u>U</u></button>
+        <button class="sel-btn px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800" data-act="strike"><s>S</s></button>
+        <button class="sel-btn px-2 py-1 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800" data-act="heading">H</button>
+    </div>
+
+    <div id="toast" class="fixed bottom-4 right-4 flex items-center gap-2 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <span class="font-medium text-sm" id="toast-message"></span>
+    </div>
+
+    <script type="module" src="./app.js"></script>
+</body>
+</html>
