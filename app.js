@@ -57,8 +57,16 @@ if (projectToLoad) {
     runnerFrame.src = 'html_welcome.html';
 }
 
-// --- Share URL Generator Logic ---
+// ==========================================
+// --- Unified UI & Button Controls Logic ---
+// ==========================================
+
 const shareBtn = document.getElementById('share-btn');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
+const toggleBtn = document.getElementById('toggle-ui-btn');
+const mainContent = document.querySelector('.main-content');
+
+// --- Share URL Generator Logic ---
 shareBtn.addEventListener('click', () => {
     // Dynamically builds the URL based on the current domain and active project parameter
     const generatedUrl = `${window.location.origin}${window.location.pathname}?project=${encodeURIComponent(currentProjectParam)}`;
@@ -70,10 +78,7 @@ shareBtn.addEventListener('click', () => {
     });
 });
 
-// Fullscreen logic
-const fullscreenBtn = document.getElementById('fullscreen-btn');
-const mainContent = document.querySelector('.main-content');
-
+// --- Fullscreen Logic ---
 fullscreenBtn.addEventListener('click', () => {
     if (!document.fullscreenElement) {
         mainContent.requestFullscreen().catch(err => alert(`Error: ${err.message}`));
@@ -81,5 +86,23 @@ fullscreenBtn.addEventListener('click', () => {
     } else {
         document.exitFullscreen();
         fullscreenBtn.textContent = "Full Screen";
+    }
+});
+
+// --- UI Toggle Logic ---
+function toggleOverlayButtons() {
+    fullscreenBtn.classList.toggle('hidden');
+    shareBtn.classList.toggle('hidden');
+}
+
+// Bind toggle to the button click
+if (toggleBtn) {
+    toggleBtn.addEventListener('click', toggleOverlayButtons);
+}
+
+// Bind toggle to the backtick (`) keypress
+document.addEventListener('keydown', (event) => {
+    if (event.key === '`') {
+        toggleOverlayButtons();
     }
 });
