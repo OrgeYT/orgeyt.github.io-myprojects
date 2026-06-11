@@ -29,7 +29,29 @@ body {
 .subtitle {
     font-size: 0.8rem;
     color: #888;
-    margin-bottom: 20px;
+    margin-bottom: 15px; /* Slightly reduced to fit the new button */
+}
+
+/* New Toggle Button Styling */
+.toggle-btn {
+    background-color: #3a3a3a;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.85rem;
+    margin-bottom: 15px; /* Creates space between this button and the file list */
+}
+
+.toggle-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.toggle-btn:active {
+    transform: scale(0.98);
 }
 
 #file-list {
@@ -118,4 +140,9 @@ body {
 
 #fullscreen-btn:hover, #share-btn:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+/* New Utility Class to Hide Elements */
+.hidden {
+    display: none !important;
 }
