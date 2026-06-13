@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>3D Rubik's Cube Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="ui-layer">
+        <div class="flex justify-between h-full w-full">
+            <!-- Left Side -->
+            <div class="flex flex-col justify-between h-full pointer-events-none max-w-sm gap-4">
+                <div class="glass-panel p-4 pointer-events-auto shadow-xl">
+                    <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 drop-shadow-md tracking-tight">CubeOS Simulator</h1>
+                    <div class="mt-2 text-sm text-gray-300 space-y-1">
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Use right menu to turn faces.</p>
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Left-click & drag to orbit camera.</p>
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Scroll to zoom.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 flex flex-col gap-3 pointer-events-auto shadow-xl min-w-[200px]">
+                    <div class="flex flex-col gap-1 pb-2 border-b border-gray-700">
+                        <label class="text-xs font-bold text-gray-400 tracking-wider">CUBE DIMENSIONS</label>
+                        <select id="size-selector" class="bg-gray-800 text-white border border-gray-600 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+                            <option value="1">1x1 Pocket</option>
+                            <option value="2">2x2 Mini</option>
+                            <option value="3" selected>3x3 Standard</option>
+                            <option value="4">4x4 Revenge</option>
+                            <option value="5">5x5 Professor</option>
+                            <option value="6">6x6 V-Cube 6</option>
+                            <option value="7">7x7 V-Cube 7</option>
+                            <option value="8">8x8</option>
+                            <option value="9">9x9</option>
+                            <option value="10">10x10</option>
+                            <option value="21">21x21 (High)</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-scramble" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Normal Scramble
+                    </button>
+                    <button id="btn-scramble-twist" class="w-full bg-gray-800 hover:bg-gray-700 border border-purple-600/50 text-purple-300 px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        Scramble + Corner Twist
+                    </button>
+
+                    <div class="mt-3">
+                        <label for="bot-speed" class="text-xs text-gray-400 font-semibold">Bot Speed</label>
+                        <div class="flex items-center gap-3 mt-2">
+                            <input id="bot-speed" type="range" min="0.25" max="2" step="0.05" value="1" class="w-full" />
+                            <div id="bot-speed-value" class="text-sm font-mono text-gray-200 w-12 text-right">1.00x</div>
+                        </div>
+                        <p class="text-xs text-gray-400 mt-1">Lower = slower moves, Higher = faster moves</p>
+                    </div>
+
+                    <div class="h-px w-full bg-gray-700 my-1"></div>
+                    <button id="btn-solve" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-4 py-3 rounded shadow-lg transition font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-400 transform hover:scale-[1.02]">
+                        Initialize Bot Solver
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side Controls Menu -->
+            <div class="glass-panel p-4 pointer-events-auto shadow-xl flex flex-col gap-2 h-full w-36 overflow-y-auto">
+                <h2 class="text-center font-bold text-gray-200 border-b border-gray-600 pb-2 mb-1 tracking-widest text-sm">SLICES</h2>
+                <div id="controls-container" class="grid grid-cols-2 gap-2">
+                    <!-- Buttons injected dynamically via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Status Panel -->
+        <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+            <div id="status-panel" class="glass-panel px-6 py-3 opacity-0 transition-opacity duration-300 translate-y-4 shadow-2xl border-blue-500/30">
+                <p id="status-text" class="text-xl text-blue-400 font-mono font-bold tracking-wide"></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./main.js"></script>
+</body>
+</html>
