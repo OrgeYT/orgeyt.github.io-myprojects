@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Rubik's Cube Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111827; touch-action: none; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        #canvas-container { width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; padding: 1.5rem; box-sizing: border-box; }
+        .pointer-events-auto { pointer-events: auto; }
+        .glass-panel { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.75rem; }
+        /* Custom scrollbar for controls */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div id="ui-layer">
+        <div class="flex justify-between h-full w-full">
+            <!-- Left Side -->
+            <div class="flex flex-col justify-between h-full pointer-events-none max-w-sm gap-4">
+                <div class="glass-panel p-4 pointer-events-auto shadow-xl">
+                    <h1 class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 drop-shadow-md tracking-tight">CubeOS Simulator</h1>
+                    <div class="mt-2 text-sm text-gray-300 space-y-1">
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-blue-500"></span> Use right menu to turn faces.</p>
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-500"></span> Left-click & drag to orbit camera.</p>
+                        <p class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-500"></span> Scroll to zoom.</p>
+                    </div>
+                </div>
+
+                <div class="glass-panel p-4 flex flex-col gap-3 pointer-events-auto shadow-xl min-w-[240px]">
+                    <div class="flex flex-col gap-1 pb-2 border-b border-gray-700">
+                        <label class="text-xs font-bold text-gray-400 tracking-wider">CUBE DIMENSIONS</label>
+                        <select id="size-selector" class="bg-gray-800 text-white border border-gray-600 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+                            <option value="2">2x2x2 Mini</option>
+                            <option value="3" selected>3x3x3 Standard</option>
+                            <option value="4">4x4x4 Revenge</option>
+                            <option value="5">5x5x5 Professor</option>
+                            <option value="6">6x6x6 V-Cube 6</option>
+                            <option value="7">7x7x7 V-Cube 7</option>
+                            <option value="8">8x8x8</option>
+                            <option value="9">9x9x9</option>
+                            <option value="10">10x10x10</option>
+                        </select>
+                    </div>
+                    
+                    <button id="btn-scramble" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Normal Scramble
+                    </button>
+                    <button id="btn-scramble-twist" class="w-full bg-gray-800 hover:bg-gray-700 border border-purple-600/50 text-purple-300 px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        Scramble + Corner Twist
+                    </button>
+                    
+                    <!-- Custom Moves Interactive Section -->
+                    <div class="h-px w-full bg-gray-700 my-1"></div>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-bold text-gray-400 tracking-wider">EXECUTE CUSTOM MOVES</label>
+                        <div class="flex gap-2">
+                            <input id="input-custom-moves" type="text" placeholder="e.g. R U R' U' Fw2" class="flex-1 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-500" />
+                            <button id="btn-run-moves" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded transition text-xs shadow-md">Run</button>
+                        </div>
+                        <p class="text-[10px] text-gray-400">Supports standard WCA notations including primes ('), doubles (2), and wide moves (Rw2, Fw, 3Uw).</p>
+                    </div>
+
+                    <div class="h-px w-full bg-gray-700 my-1"></div>
+                    <button id="btn-solve" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-4 py-3 rounded shadow-lg transition font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-400 transform hover:scale-[1.02]">
+                        Initialize Bot Solver
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Side Controls Menu -->
+            <div class="glass-panel p-4 pointer-events-auto shadow-xl flex flex-col gap-2 h-full w-36 overflow-y-auto">
+                <h2 class="text-center font-bold text-gray-200 border-b border-gray-600 pb-2 mb-1 tracking-widest text-sm">SLICES</h2>
+                <div id="controls-container" class="grid grid-cols-2 gap-2">
+                    <!-- Buttons injected dynamically via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Center Status Panel -->
+        <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-auto">
+            <div id="status-panel" class="glass-panel px-6 py-3 opacity-0 transition-opacity duration-300 translate-y-4 shadow-2xl border-blue-500/30">
+                <p id="status-text" class="text-xl text-blue-400 font-mono font-bold tracking-wide"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- THREE.JS SETUP ---
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color('#111827');
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(5, 5, 7);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const orbitControls = new THREE.OrbitControls(camera, renderer.domElement);
+        orbitControls.enableDamping = true;
+        orbitControls.dampingFactor = 0.05;
+        orbitControls.minDistance = 3;
+        orbitControls.maxDistance = 30;
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+        const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+        backLight.position.set(-10, -10, -10);
+        scene.add(backLight);
+
+        // --- GLOBAL STATE ---
+        let cubes = [];
+        let cubeGroup = new THREE.Group();
+        scene.add(cubeGroup);
+        const pivot = new THREE.Object3D();
+
+        let isAnimating = false;
+        let moveHistory = []; 
+        let animationQueue = [];
+        let currentSize = 3;
+        let currentOffset = 1;
+        
+        let moveRegistry = {};
+
+        const colors = [
+            0xef4444, // Right: Red
+            0xf97316, // Left: Orange
+            0xffffff, // Top: White
+            0xeab308, // Bottom: Yellow
+            0x22c55e, // Front: Green
+            0x3b82f6  // Back: Blue
+        ];
+        const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
+
+        // --- CUBE BUILDER ---
+        function buildCube(size) {
+            currentSize = size;
+            currentOffset = (size - 1) / 2;
+
+            while(cubeGroup.children.length > 0) {
+                const child = cubeGroup.children[0];
+                cubeGroup.remove(child);
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+                    else child.material.dispose();
+                }
+            }
+            cubes.length = 0;
+            moveHistory = [];
+            animationQueue = [];
+
+            cubeGroup.add(pivot);
+
+            const coreGeo = new THREE.SphereGeometry(size * 0.47, 32, 32);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
+            const core = new THREE.Mesh(coreGeo, coreMat);
+            cubeGroup.add(core);
+
+            for (let x = -currentOffset; x <= currentOffset; x++) {
+                for (let y = -currentOffset; y <= currentOffset; y++) {
+                    for (let z = -currentOffset; z <= currentOffset; z++) {
+                        if (Math.abs(x) !== currentOffset && Math.abs(y) !== currentOffset && Math.abs(z) !== currentOffset) continue;
+
+                        const materials = colors.map((color, index) => {
+                            if (index === 0 && x === currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            if (index === 1 && x === -currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            if (index === 2 && y === currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            if (index === 3 && y === -currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            if (index === 4 && z === currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            if (index === 5 && z === -currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
+                            return new THREE.MeshPhongMaterial({ color: 0x080808 }); 
+                        });
+
+                        const mesh = new THREE.Mesh(geometry, materials);
+                        mesh.position.set(x, y, z);
+                        mesh.userData = { initialPosition: new THREE.Vector3(x, y, z), uuid: mesh.uuid };
+                        cubeGroup.add(mesh);
+                        cubes.push(mesh);
+                    }
+                }
+            }
+
+            camera.position.set(size * 1.5, size * 1.5, size * 2.2);
+            orbitControls.target.set(0,0,0);
+            orbitControls.update();
+
+            buildControls();
+        }
+
+        // --- UI & DYNAMIC CONTROLS ---
+        const controlsContainer = document.getElementById('controls-container');
+
+        function buildControls() {
+            controlsContainer.innerHTML = '';
+            moveRegistry = {}; 
+            
+            const axesConfig = [
+                { title: 'X (R/L)', axis: 'x', pos: 'R', neg: 'L', mid: 'M' },
+                { title: 'Y (U/D)', axis: 'y', pos: 'U', neg: 'D', mid: 'E' },
+                { title: 'Z (F/B)', axis: 'z', pos: 'F', neg: 'B', mid: 'S' }
+            ];
+
+            axesConfig.forEach(cfg => {
+                const header = document.createElement('div');
+                header.className = "col-span-2 text-center text-xs font-bold text-gray-400 mt-2 border-b border-gray-700 pb-1";
+                header.innerText = cfg.title;
+                controlsContainer.appendChild(header);
+
+                for (let layer = currentOffset; layer >= -currentOffset; layer--) {
+                    let moveLabel = '';
+                    
+                    if (layer === currentOffset) moveLabel = cfg.pos;
+                    else if (layer === -currentOffset) moveLabel = cfg.neg;
+                    else if (layer === 0) moveLabel = cfg.mid;
+                    else if (layer > 0) moveLabel = `${Math.round(currentOffset - layer + 1)}${cfg.pos}`;
+                    else moveLabel = `${Math.round(currentOffset + layer + 1)}${cfg.neg}`;
+
+                    let baseAngle = (layer > 0 || (layer === 0 && cfg.axis === 'y')) ? -Math.PI/2 : Math.PI/2;
+                    if (layer === 0) {
+                        if (cfg.axis === 'x') baseAngle = Math.PI/2;
+                        if (cfg.axis === 'y') baseAngle = Math.PI/2;
+                        if (cfg.axis === 'z') baseAngle = -Math.PI/2;
+                    }
+
+                    createBtn(moveLabel, cfg.axis, layer, baseAngle);
+                    createBtn(moveLabel + "'", cfg.axis, layer, -baseAngle);
+                }
+            });
+
+            // Add CORNERS section
+            const cornerHeader = document.createElement('div');
+            cornerHeader.className = "col-span-2 text-center text-xs font-bold text-gray-400 mt-4 border-b border-gray-700 pb-1";
+            cornerHeader.innerText = "CORNERS (TWIST)";
+            controlsContainer.appendChild(cornerHeader);
+
+            const corners = [
+                { label: 'URF', x: 1, y: 1, z: 1 },
+                { label: 'UFL', x: -1, y: 1, z: 1 },
+                { label: 'ULB', x: -1, y: 1, z: -1 },
+                { label: 'UBR', x: 1, y: 1, z: -1 },
+                { label: 'DFR', x: 1, y: -1, z: 1 },
+                { label: 'DFL', x: -1, y: -1, z: 1 },
+                { label: 'DLB', x: -1, y: -1, z: -1 },
+                { label: 'DBR', x: 1, y: -1, z: -1 }
+            ];
+
+            corners.forEach(c => {
+                createTwistBtn(c.label, c.x, c.y, c.z, (Math.PI * 2) / 3);
+                createTwistBtn(c.label + "'", c.x, c.y, c.z, -(Math.PI * 2) / 3);
+            });
+        }
+
+        // Modifed to store "layers" array to support multi-layer moves cleanly 
+        function createBtn(label, axis, layer, angle) {
+            moveRegistry[label.toUpperCase()] = { axis, layers: [layer], angle };
+
+            const btn = document.createElement('button');
+            btn.className = "bg-gray-800 hover:bg-gray-600 text-white font-mono font-bold text-sm py-1.5 rounded border border-gray-600 transition focus:ring-2 focus:ring-blue-500 focus:outline-none shadow";
+            btn.innerText = label;
+            btn.onclick = () => {
+                if (isAnimating || animationQueue.length > 0) return;
+                animationQueue.push({ axis, layers: [layer], angle, duration: 150 });
+                moveHistory.push({ axis, layers: [layer], angle });
+                processQueue();
+            };
+            controlsContainer.appendChild(btn);
+        }
+
+        function createTwistBtn(label, xDir, yDir, zDir, angle) {
+            moveRegistry[label.toUpperCase()] = { type: 'twist', xDir, yDir, zDir, angle };
+
+            const btn = document.createElement('button');
+            btn.className = "bg-purple-900/60 hover:bg-purple-700 text-purple-200 font-mono font-bold text-sm py-1.5 rounded border border-purple-700/50 transition focus:ring-2 focus:ring-purple-500 focus:outline-none shadow";
+            btn.innerText = label;
+            btn.onclick = () => {
+                if (isAnimating || animationQueue.length > 0) return;
+                
+                const targetX = xDir * currentOffset;
+                const targetY = yDir * currentOffset;
+                const targetZ = zDir * currentOffset;
+                
+                const targetCube = cubes.find(c => 
+                    Math.abs(c.position.x - targetX) < 0.1 && Math.abs(c.position.y - targetY) < 0.1 && Math.abs(c.position.z - targetZ) < 0.1
+                );
+
+                if (targetCube) {
+                    animationQueue.push({ type: 'twist', cubeUUID: targetCube.uuid, angle: angle, duration: 250 });
+                    moveHistory.push({ type: 'twist', cubeUUID: targetCube.uuid, angle: angle });
+                    processQueue();
+                }
+            };
+            controlsContainer.appendChild(btn);
+        }
+
+        // --- ROBUST DRIFT PREVENTION ---
+        function snapToGrid(mesh) {
+            const rem = currentOffset % 1; 
+            
+            mesh.position.x = Math.round(mesh.position.x - rem) + rem;
+            mesh.position.y = Math.round(mesh.position.y - rem) + rem;
+            mesh.position.z = Math.round(mesh.position.z - rem) + rem;
+            
+            const snap = Math.PI / 2;
+            mesh.rotation.x = Math.round(mesh.rotation.x / snap) * snap;
+            mesh.rotation.y = Math.round(mesh.rotation.y / snap) * snap;
+            mesh.rotation.z = Math.round(mesh.rotation.z / snap) * snap;
+            
+            mesh.scale.set(1, 1, 1);
+            mesh.updateMatrix();
+        }
+
+        // --- CORE ROTATION LOGIC ---
+        // Upgraded to mathematically process array of slices simultaneously
+        function executeMove(axis, layers, angle, duration = 300, onComplete = null) {
+            isAnimating = true;
+            pivot.rotation.set(0, 0, 0);
+            pivot.updateMatrixWorld();
+
+            const activeCubes = [];
+            cubes.forEach(cube => {
+                // Attach if it belongs to ANY of the specified layers
+                if (layers.some(l => Math.abs(cube.position[axis] - l) < 0.1)) {
+                    activeCubes.push(cube);
+                    pivot.attach(cube);
+                }
+            });
+
+            const startAngle = pivot.rotation[axis];
+            const endAngle = startAngle + angle;
+            const startTime = performance.now();
+
+            function animate(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                pivot.rotation[axis] = startAngle + (endAngle - startAngle) * ease;
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    pivot.rotation[axis] = endAngle;
+                    pivot.updateMatrixWorld();
+                    
+                    activeCubes.forEach(cube => {
+                        cubeGroup.attach(cube);
+                        snapToGrid(cube);
+                    });
+                    
+                    isAnimating = false;
+                    if (onComplete) onComplete();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function executeTwist(cubeUUID, angle, duration = 300, onComplete = null) {
+            isAnimating = true;
+            const cube = cubes.find(c => c.uuid === cubeUUID);
+            if (!cube) {
+                isAnimating = false;
+                if (onComplete) onComplete();
+                return;
+            }
+
+            const twistAxis = cube.position.clone().normalize();
+            const startQuat = cube.quaternion.clone();
+            const targetQuat = cube.quaternion.clone().premultiply(new THREE.Quaternion().setFromAxisAngle(twistAxis, angle));
+
+            const startTime = performance.now();
+
+            function animate(time) {
+                const elapsed = time - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+                cube.quaternion.slerpQuaternions(startQuat, targetQuat, ease);
+
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    cube.quaternion.copy(targetQuat);
+                    snapToGrid(cube);
+                    isAnimating = false;
+                    if (onComplete) onComplete();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function processQueue() {
+            if (animationQueue.length === 0) {
+                if(isAnimating) {
+                    showStatus("Cube Solved!", "text-green-400");
+                    setTimeout(() => document.getElementById('status-panel').classList.remove('opacity-100', '-translate-y-0'), 3000);
+                }
+                return;
+            }
+            if (isAnimating) return;
+
+            const move = animationQueue.shift();
+            if (move.type === 'twist') {
+                executeTwist(move.cubeUUID, move.angle, move.duration, processQueue);
+            } else {
+                executeMove(move.axis, move.layers, move.angle, move.duration, processQueue);
+            }
+        }
+
+        // --- BOT ALGORITHM & UTILITIES ---
+        function showStatus(text, colorClass = "text-blue-400") {
+            const panel = document.getElementById('status-panel');
+            const p = document.getElementById('status-text');
+            p.className = `text-xl font-mono font-bold tracking-wide ${colorClass}`;
+            p.innerText = text;
+            panel.classList.remove('opacity-0', 'translate-y-4');
+            panel.classList.add('opacity-100', 'translate-y-0');
+        }
+
+        // Helper functions for Array checks (Since multi-layer moves use layer arrays)
+        const layersOverlap = (arr1, arr2) => arr1.some(l1 => arr2.some(l2 => Math.abs(l1 - l2) < 0.1));
+        const layersEqual = (arr1, arr2) => arr1.length === arr2.length && arr1.every((val, index) => Math.abs(val - arr2[index]) < 0.1);
+
+        function optimizeBotSequence(history) {
+            let seq = history.slice().reverse().map(m => ({ ...m, angle: -m.angle }));
+            let changed = true;
+            
+            while(changed) {
+                changed = false;
+                for (let i = 0; i < seq.length - 1; i++) {
+                    const m1 = seq[i], m2 = seq[i+1];
+                    if (m1.type === 'twist' || m2.type === 'twist') continue;
+                    
+                    // Commutative Property (Swap non-intersecting parallel layers to bundle them)
+                    if (m1.axis === m2.axis && !layersOverlap(m1.layers, m2.layers)) {
+                        if (i + 2 < seq.length && seq[i+2].axis === m1.axis && layersEqual(seq[i+2].layers, m1.layers)) {
+                            seq[i+1] = seq[i+2]; seq[i+2] = m2;
+                            changed = true; continue;
+                        }
+                    }
+
+                    // Mathematical combination/reduction
+                    if (m1.axis === m2.axis && layersEqual(m1.layers, m2.layers)) {
+                        let newAngle = (m1.angle + m2.angle) % (Math.PI * 2);
+                        if (newAngle > Math.PI + 0.01) newAngle -= Math.PI * 2;
+                        if (newAngle < -Math.PI - 0.01) newAngle += Math.PI * 2;
+
+                        if (Math.abs(newAngle) < 0.01) {
+                            seq.splice(i, 2);
+                            changed = true; break;
+                        } else {
+                            seq.splice(i, 2, { axis: m1.axis, layers: m1.layers, angle: newAngle });
+                            changed = true; break;
+                        }
+                    }
+                }
+            }
+            return seq;
+        }
+
+        // --- BUTTON ACTIONS & TEXT PARSER ---
+        document.getElementById('size-selector').addEventListener('change', (e) => {
+            if (isAnimating || animationQueue.length > 0) {
+                e.target.value = currentSize; 
+                showStatus("Wait for animation to finish!", "text-red-400");
+                return;
+            }
+            buildCube(parseInt(e.target.value));
+            showStatus(`${e.target.value}x${e.target.value}x${e.target.value} Initialized!`, "text-blue-400");
+        });
+
+        // WCA Master Regex to detect any [Depth][Face][Wide][Modifier] combo
+        const wcaRegex = /^([1-9]\d*)?([RLUDFB])(w)?(2)?(')?(2)?$/i;
+
+        document.getElementById('btn-run-moves').addEventListener('click', () => {
+            if (isAnimating || animationQueue.length > 0) {
+                showStatus("Wait for current animation to finish!", "text-red-400");
+                return;
+            }
+
+            const inputField = document.getElementById('input-custom-moves');
+            const inputVal = inputField.value.trim();
+            if (!inputVal) return;
+
+            const cleaned = inputVal.replace(/’/g, "'").replace(/[^a-zA-Z0-9']/g, " ").trim();
+            const tokens = cleaned.split(/\s+/);
+
+            const validQueue = [];
+            const invalidTokens = [];
+
+            tokens.forEach(tok => {
+                let normalized = tok.toUpperCase();
+                let isDouble = false;
+                
+                // --- Step 1: Check Exact Registry Matches (UI Slice Button Names & Corners) ---
+                let baseRegTok = normalized;
+                if (baseRegTok.endsWith("2") || baseRegTok.endsWith("2'")) {
+                    isDouble = true;
+                    baseRegTok = baseRegTok.replace("2", ""); 
+                }
+
+                if (moveRegistry[baseRegTok]) {
+                    const moveData = moveRegistry[baseRegTok];
+                    if (moveData.type === 'twist') {
+                        const targetX = moveData.xDir * currentOffset;
+                        const targetY = moveData.yDir * currentOffset;
+                        const targetZ = moveData.zDir * currentOffset;
+                        
+                        const targetCube = cubes.find(c => Math.abs(c.position.x - targetX) < 0.1 && Math.abs(c.position.y - targetY) < 0.1 && Math.abs(c.position.z - targetZ) < 0.1);
+                        if (targetCube) validQueue.push({ label: tok, type: 'twist', cubeUUID: targetCube.uuid, angle: isDouble ? moveData.angle * 2 : moveData.angle });
+                        else invalidTokens.push(tok);
+                    } else {
+                        validQueue.push({ label: tok, axis: moveData.axis, layers: moveData.layers, angle: isDouble ? moveData.angle * 2 : moveData.angle });
+                    }
+                    return; // Skip step 2 if matched
+                }
+
+                // --- Step 2: Advanced WCA Standard Pattern Interpreter (Handles Wide Multi-Layer Moves natively) ---
+                const match = tok.match(wcaRegex);
+                if (match) {
+                    const depthStr = match[1];
+                    const face = match[2].toUpperCase();
+                    const isWide = !!match[3];
+                    const hasDouble = !!match[4] || !!match[6];
+                    const isPrime = !!match[5];
+                    
+                    const depth = depthStr ? parseInt(depthStr) : (isWide ? 2 : 1);
+                    
+                    // Reject impossible moves for current size
+                    if (depth > currentSize) { invalidTokens.push(tok); return; }
+                    
+                    let axis, startLayer, step, baseAngle;
+                    if (face === 'R') { axis = 'x'; startLayer = currentOffset; step = -1; baseAngle = -Math.PI/2; }
+                    if (face === 'L') { axis = 'x'; startLayer = -currentOffset; step = 1; baseAngle = Math.PI/2; }
+                    if (face === 'U') { axis = 'y'; startLayer = currentOffset; step = -1; baseAngle = -Math.PI/2; }
+                    if (face === 'D') { axis = 'y'; startLayer = -currentOffset; step = 1; baseAngle = Math.PI/2; }
+                    if (face === 'F') { axis = 'z'; startLayer = currentOffset; step = -1; baseAngle = -Math.PI/2; }
+                    if (face === 'B') { axis = 'z'; startLayer = -currentOffset; step = 1; baseAngle = Math.PI/2; }
+                    
+                    const generatedLayers = [];
+                    for (let i = 0; i < depth; i++) generatedLayers.push(startLayer + (i * step));
+                    
+                    let angle = baseAngle;
+                    if (isPrime) angle *= -1;
+                    if (hasDouble) angle *= 2;
+                    
+                    validQueue.push({ label: tok, axis, layers: generatedLayers, angle });
+                } else if (tok !== '') {
+                    invalidTokens.push(tok);
+                }
+            });
+
+            if (invalidTokens.length > 0) {
+                showStatus(`Invalid tokens ignored: ${invalidTokens.join(', ')}`, "text-red-400");
+                setTimeout(() => { if (validQueue.length > 0) executeParsedMoves(validQueue); }, 1500);
+            } else if (validQueue.length > 0) {
+                executeParsedMoves(validQueue);
+            }
+            
+            inputField.value = '';
+        });
+
+        document.getElementById('input-custom-moves').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('btn-run-moves').click();
+        });
+
+        function executeParsedMoves(moves) {
+            showStatus(`Executing ${moves.length} WCA moves...`, "text-blue-400");
+            moves.forEach(m => {
+                if (m.type === 'twist') {
+                    animationQueue.push({ type: 'twist', cubeUUID: m.cubeUUID, angle: m.angle, duration: 250 });
+                    moveHistory.push({ type: 'twist', cubeUUID: m.cubeUUID, angle: m.angle });
+                } else {
+                    animationQueue.push({ axis: m.axis, layers: m.layers, angle: m.angle, duration: 180 });
+                    moveHistory.push({ axis: m.axis, layers: m.layers, angle: m.angle });
+                }
+            });
+            processQueue();
+        }
+
+        function generateScramble(moves = 20) {
+            const axes = ['x', 'y', 'z'];
+            const angles = [Math.PI / 2, -Math.PI / 2];
+            
+            let possibleLayers = [];
+            for(let i = -currentOffset; i <= currentOffset; i++) possibleLayers.push(i);
+            
+            for (let i = 0; i < moves; i++) {
+                const axis = axes[Math.floor(Math.random() * axes.length)];
+                const layer = possibleLayers[Math.floor(Math.random() * possibleLayers.length)];
+                const angle = angles[Math.floor(Math.random() * angles.length)];
+                
+                animationQueue.push({ axis, layers: [layer], angle, duration: 60 });
+                moveHistory.push({ axis, layers: [layer], angle });
+            }
+        }
+
+        document.getElementById('btn-scramble').addEventListener('click', () => {
+            if (isAnimating || animationQueue.length > 0) return;
+            showStatus("Scrambling System...", "text-yellow-400");
+            generateScramble(currentSize * 10);
+            processQueue();
+        });
+
+        document.getElementById('btn-scramble-twist').addEventListener('click', () => {
+            if (isAnimating || animationQueue.length > 0) return;
+            showStatus("Injecting Parity Error...", "text-purple-400");
+            generateScramble(currentSize * 8);
+            
+            const corners = cubes.filter(c => Math.abs(c.position.x) > currentOffset - 0.1 && Math.abs(c.position.y) > currentOffset - 0.1 && Math.abs(c.position.z) > currentOffset - 0.1);
+            const cornerToTwist = corners[Math.floor(Math.random() * corners.length)];
+            const twistAngle = (Math.PI * 2) / 3;
+            
+            animationQueue.push({ type: 'twist', cubeUUID: cornerToTwist.uuid, angle: twistAngle, duration: 300 });
+            moveHistory.push({ type: 'twist', cubeUUID: cornerToTwist.uuid, angle: twistAngle });
+            
+            processQueue();
+        });
+
+        document.getElementById('btn-solve').addEventListener('click', () => {
+            if (isAnimating || animationQueue.length > 0) return;
+            if (moveHistory.length === 0) {
+                showStatus("Cube is already solved.", "text-green-400");
+                setTimeout(() => document.getElementById('status-panel').classList.remove('opacity-100', '-translate-y-0'), 2000);
+                return;
+            }
+
+            showStatus("Bot Analyzing History...", "text-blue-400");
+            
+            setTimeout(() => {
+                const originalLength = moveHistory.length;
+                const optimizedMoves = optimizeBotSequence(moveHistory);
+                const reduction = originalLength - optimizedMoves.length;
+
+                showStatus(`Path Optimized: Removed ${reduction} redundant moves. Executing...`, "text-cyan-400");
+                
+                optimizedMoves.forEach(m => {
+                    animationQueue.push({ ...m, duration: Math.max(50, 180 - currentSize * 5) }); 
+                });
+                
+                moveHistory = [];
+                processQueue();
+            }, 800);
+        });
+
+        // --- RENDER LOOP & RESIZE ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        function animateLoop() {
+            requestAnimationFrame(animateLoop);
+            orbitControls.update();
+            renderer.render(scene, camera);
+        }
+        
+        buildCube(3);
+        animateLoop();
+
+    </script>
+</body>
+</html>
