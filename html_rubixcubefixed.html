@@ -35,10 +35,12 @@
                     </div>
                 </div>
 
-                <div class="glass-panel p-4 flex flex-col gap-3 pointer-events-auto shadow-xl min-w-[240px]">
+                <!-- Upgraded Left Control Panel with Tab Selector -->
+                <div class="glass-panel p-4 flex flex-col gap-3 pointer-events-auto shadow-xl min-w-[280px] h-[520px]">
                     <div class="flex flex-col gap-1 pb-2 border-b border-gray-700">
                         <label class="text-xs font-bold text-gray-400 tracking-wider">CUBE DIMENSIONS</label>
                         <select id="size-selector" class="bg-gray-800 text-white border border-gray-600 rounded p-2 focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+                            <option value="1">1x1x1 (Joke)</option>
                             <option value="2">2x2x2 Mini</option>
                             <option value="3" selected>3x3x3 Standard</option>
                             <option value="4">4x4x4 Revenge</option>
@@ -48,31 +50,65 @@
                             <option value="8">8x8x8</option>
                             <option value="9">9x9x9</option>
                             <option value="10">10x10x10</option>
+                            <option value="11">11x11x11</option>
+                            <option value="12">12x12x12</option>
+                            <option value="13">13x13x13</option>
+                            <option value="14">14x14x14</option>
+                            <option value="15">15x15x15</option>
+                            <option value="16">16x16x16</option>
+                            <option value="17">17x17x17</option>
+                            <option value="18">18x18x18</option>
+                            <option value="19">19x19x19</option>
+                            <option value="20">20x20x20</option>
+                            <option value="21">21x21x21</option>
                         </select>
                     </div>
-                    
-                    <button id="btn-scramble" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        Normal Scramble
-                    </button>
-                    <button id="btn-scramble-twist" class="w-full bg-gray-800 hover:bg-gray-700 border border-purple-600/50 text-purple-300 px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        Scramble + Corner Twist
-                    </button>
-                    
-                    <!-- Custom Moves Interactive Section -->
-                    <div class="h-px w-full bg-gray-700 my-1"></div>
-                    <div class="flex flex-col gap-1.5">
-                        <label class="text-xs font-bold text-gray-400 tracking-wider">EXECUTE CUSTOM MOVES</label>
-                        <div class="flex gap-2">
-                            <input id="input-custom-moves" type="text" placeholder="e.g. R U R' U' Fw2" class="flex-1 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-500" />
-                            <button id="btn-run-moves" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded transition text-xs shadow-md">Run</button>
+
+                    <!-- Bot Speed Slider -->
+                    <div class="flex flex-col gap-1 pb-2 border-b border-gray-700">
+                        <div class="flex justify-between">
+                            <label class="text-xs font-bold text-gray-400 tracking-wider">BOT SPEED</label>
+                            <span id="speed-val" class="text-xs text-blue-400 font-mono">1.0x</span>
                         </div>
-                        <p class="text-[10px] text-gray-400">Supports standard WCA notations including primes ('), doubles (2), and wide moves (Rw2, Fw, 3Uw).</p>
+                        <input id="speed-slider" type="range" min="0.5" max="4" step="0.1" value="1.0" class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500">
                     </div>
 
-                    <div class="h-px w-full bg-gray-700 my-1"></div>
-                    <button id="btn-solve" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-4 py-3 rounded shadow-lg transition font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-400 transform hover:scale-[1.02]">
-                        Initialize Bot Solver
-                    </button>
+                    <!-- Interactive Tabs Selector -->
+                    <div class="flex border-b border-gray-700 pb-1 gap-1">
+                        <button id="tab-btn-utils" class="flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600">UTILS</button>
+                        <button id="tab-btn-patterns" class="flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white">PATTERNS</button>
+                    </div>
+
+                    <!-- Container 1: UTILS Panel -->
+                    <div id="panel-utils" class="flex flex-col gap-3 overflow-y-auto pr-1 flex-1">
+                        <button id="btn-scramble" class="w-full bg-gray-800 hover:bg-gray-700 border border-gray-600 text-white px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            Normal Scramble
+                        </button>
+                        <button id="btn-scramble-twist" class="w-full bg-gray-800 hover:bg-gray-700 border border-purple-600/50 text-purple-300 px-4 py-2 rounded shadow transition font-medium focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            Scramble + Corner Twist
+                        </button>
+                        
+                        <!-- Custom Moves Interactive Section -->
+                        <div class="h-px w-full bg-gray-700 my-1"></div>
+                        <div class="flex flex-col gap-1.5">
+                            <label class="text-xs font-bold text-gray-400 tracking-wider">EXECUTE CUSTOM MOVES</label>
+                            <div class="flex gap-2">
+                                <input id="input-custom-moves" type="text" placeholder="e.g. R U R' U' Fw2" class="flex-1 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-500" />
+                                <button id="btn-run-moves" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded transition text-xs shadow-md">Run</button>
+                            </div>
+                            <p class="text-[10px] text-gray-400">Supports standard WCA notations including primes ('), doubles (2), and wide moves (Rw2, Fw, 3Uw).</p>
+                        </div>
+
+                        <div class="h-px w-full bg-gray-700 my-1"></div>
+                        <button id="btn-solve" class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white px-4 py-3 rounded shadow-lg transition font-bold text-lg focus:outline-none focus:ring-2 focus:ring-green-400 transform hover:scale-[1.02]">
+                            Initialize Bot Solver
+                        </button>
+                    </div>
+
+                    <!-- Container 2: PATTERNS Panel -->
+                    <div id="panel-patterns" class="hidden flex flex-col gap-3 overflow-y-auto pr-1 flex-1">
+                        <!-- Dynamic patterns listing rendered via JS depending on Selected Cube Size -->
+                    </div>
                 </div>
             </div>
 
@@ -111,7 +147,7 @@
         orbitControls.enableDamping = true;
         orbitControls.dampingFactor = 0.05;
         orbitControls.minDistance = 3;
-        orbitControls.maxDistance = 30;
+        orbitControls.maxDistance = 150;
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -147,6 +183,34 @@
         ];
         const geometry = new THREE.BoxGeometry(0.96, 0.96, 0.96);
 
+        // --- CUBE PATTERNS DATABASE ---
+        const patternsData = {
+            1: [
+                { name: "Silly Solve", moves: "U R L D F B U' R' L' D' F' B'" }
+            ],
+            2: [
+                { name: "Cube in a Cube", moves: "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F'" }
+            ],
+            3: [
+                { name: "Checkerboard", moves: "M M E E S S" },
+                { name: "Super Flip", moves: "U R2 F B R B2 R U2 L B2 R U' D' R2 F R' L B2 U2 F2" },
+                { name: "Perfect Scramble", moves: "U F' L' U' R2 F' R2 B' U' R F' U F D' L2 F2 L2 U'" },
+                { name: "Snake", moves: "L U B' U' R L' B R' F B' D R D' F'" },
+                { name: "Cube in a Cube x3", moves: "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F'" },
+                { name: "Dots", moves: "U D' R L' F B' U D'" }
+            ],
+            4: [
+                { name: "3x3x3 inside 4x4x4", moves: "F L F U' R U F2 L2 U' L' B D' B' L2 U" },
+                { name: "Checkerboard", moves: "B2 R2 D' F2 D2 B2 U B2 L2 U L' R' B D U L2 R Fw2 Lw2 D U Bw2 Dw2 R2 B U2 R L" }
+            ],
+            20: [
+                { name: "Cube in a Cube Loop", moves: "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F' Uw' Lw' Uw' Fw' Rw2 Bw' Rw Fw Uw Bw2 Uw Bw' Lw Uw' Fw Uw Rw Fw' 3Uw' 3Lw' 3Uw' 3Fw' 3Rw2 3Bw' 3Rw 3Fw 3Uw 3Bw2 3Uw 3Bw' 3Lw 3Uw' 3Fw 3Uw 3Rw 3Fw' 4Uw' 4Lw' 4Uw' 4Fw' 4Rw2 4Bw' 4Rw 4Fw 4Uw 4Bw2 4Uw 4Bw' 4Lw 4Uw' 4Fw 4Uw 4Rw 4Fw' 5Uw' 5Lw' 5Uw' 5Fw' 5Rw2 5Bw' 5Rw 5Fw 5Uw 5Bw2 5Uw 5Bw' 5Lw 5Uw' 5Fw 5Uw 5Rw 5Fw' 6Uw' 6Lw' 6Uw' 6Fw' 6Rw2 6Bw' 6Rw 6Fw 6Uw 6Bw2 6Uw 6Bw' 6Lw 6Uw' 6Fw 6Uw 6Rw 6Fw' 7Uw' 7Lw' 7Uw' 7Fw' 7Rw2 7Bw' 7Rw 7Fw 7Uw 7Bw2 7Uw 7Bw' 7Lw 7Uw' 7Fw 7Uw 7Rw 7Fw' 8Uw' 8Lw' 8Uw' 8Fw' 8Rw2 8Bw' 8Rw 8Fw 8Uw 8Bw2 8Uw 8Bw' 8Lw 8Uw' 8Fw 8Uw 8Rw 8Fw' 9Uw' 9Lw' 9Uw' 9Fw' 9Rw2 9Bw' 9Rw 9Fw 9Uw 9Bw2 9Uw 9Bw' 9Lw 9Uw' 9Fw 9Uw 9Rw 9Fw' 10Uw' 10Lw' 10Uw' 10Fw' 10Rw2 10Bw' 10Rw 10Fw 10Uw 10Bw2 10Uw 10Bw' 10Lw 10Uw' 10Fw 10Uw 10Rw 10Fw'" }
+            ],
+            21: [
+                { name: "Cube in a Cube Loop", moves: "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F' Uw' Lw' Uw' Fw' Rw2 Bw' Rw Fw Uw Bw2 Uw Bw' Lw Uw' Fw Uw Rw Fw' 3Uw' 3Lw' 3Uw' 3Fw' 3Rw2 3Bw' 3Rw 3Fw 3Uw 3Bw2 3Uw 3Bw' 3Lw 3Uw' 3Fw 3Uw 3Rw 3Fw' 4Uw' 4Lw' 4Uw' 4Fw' 4Rw2 4Bw' 4Rw 4Fw 4Uw 4Bw2 4Uw 4Bw' 4Lw 4Uw' 4Fw 4Uw 4Rw 4Fw' 5Uw' 5Lw' 5Uw' 5Fw' 5Rw2 5Bw' 5Rw 5Fw 5Uw 5Bw2 5Uw 5Bw' 5Lw 5Uw' 5Fw 5Uw 5Rw 5Fw' 6Uw' 6Lw' 6Uw' 6Fw' 6Rw2 6Bw' 6Rw 6Fw 6Uw 6Bw2 6Uw 6Bw' 6Lw 6Uw' 6Fw 6Uw 6Rw 6Fw' 7Uw' 7Lw' 7Uw' 7Fw' 7Rw2 7Bw' 7Rw 7Fw 7Uw 7Bw2 7Uw 7Bw' 7Lw 7Uw' 7Fw 7Uw 7Rw 7Fw' 8Uw' 8Lw' 8Uw' 8Fw' 8Rw2 8Bw' 8Rw 8Fw 8Uw 8Bw2 8Uw 8Bw' 8Lw 8Uw' 8Fw 8Uw 8Rw 8Fw' 9Uw' 9Lw' 9Uw' 9Fw' 9Rw2 9Bw' 9Rw 9Fw 9Uw 9Bw2 9Uw 9Bw' 9Lw 9Uw' 9Fw 9Uw 9Rw 9Fw' 10Uw' 10Lw' 10Uw' 10Fw' 10Rw2 10Bw' 10Rw 10Fw 10Uw 10Bw2 10Uw 10Bw' 10Lw 10Uw' 10Fw 10Uw 10Rw 10Fw'" }
+            ]
+        };
+
         // --- CUBE BUILDER ---
         function buildCube(size) {
             currentSize = size;
@@ -167,15 +231,18 @@
 
             cubeGroup.add(pivot);
 
-            const coreGeo = new THREE.SphereGeometry(size * 0.47, 32, 32);
-            const coreMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
-            const core = new THREE.Mesh(coreGeo, coreMat);
-            cubeGroup.add(core);
+            // Hide central sphere for 1x1x1
+            if (size > 1) {
+                const coreGeo = new THREE.SphereGeometry(size * 0.47, 32, 32);
+                const coreMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
+                const core = new THREE.Mesh(coreGeo, coreMat);
+                cubeGroup.add(core);
+            }
 
             for (let x = -currentOffset; x <= currentOffset; x++) {
                 for (let y = -currentOffset; y <= currentOffset; y++) {
                     for (let z = -currentOffset; z <= currentOffset; z++) {
-                        if (Math.abs(x) !== currentOffset && Math.abs(y) !== currentOffset && Math.abs(z) !== currentOffset) continue;
+                        if (size > 1 && Math.abs(x) !== currentOffset && Math.abs(y) !== currentOffset && Math.abs(z) !== currentOffset) continue;
 
                         const materials = colors.map((color, index) => {
                             if (index === 0 && x === currentOffset) return new THREE.MeshPhongMaterial({ color, shininess: 30 });
@@ -201,6 +268,7 @@
             orbitControls.update();
 
             buildControls();
+            renderPatterns(); // Automatically update patterns lists on size adjustments
         }
 
         // --- UI & DYNAMIC CONTROLS ---
@@ -243,30 +311,31 @@
                 }
             });
 
-            // Add CORNERS section
-            const cornerHeader = document.createElement('div');
-            cornerHeader.className = "col-span-2 text-center text-xs font-bold text-gray-400 mt-4 border-b border-gray-700 pb-1";
-            cornerHeader.innerText = "CORNERS (TWIST)";
-            controlsContainer.appendChild(cornerHeader);
+            // Add CORNERS section (Only relevant for sizes > 1)
+            if (currentSize > 1) {
+                const cornerHeader = document.createElement('div');
+                cornerHeader.className = "col-span-2 text-center text-xs font-bold text-gray-400 mt-4 border-b border-gray-700 pb-1";
+                cornerHeader.innerText = "CORNERS (TWIST)";
+                controlsContainer.appendChild(cornerHeader);
 
-            const corners = [
-                { label: 'URF', x: 1, y: 1, z: 1 },
-                { label: 'UFL', x: -1, y: 1, z: 1 },
-                { label: 'ULB', x: -1, y: 1, z: -1 },
-                { label: 'UBR', x: 1, y: 1, z: -1 },
-                { label: 'DFR', x: 1, y: -1, z: 1 },
-                { label: 'DFL', x: -1, y: -1, z: 1 },
-                { label: 'DLB', x: -1, y: -1, z: -1 },
-                { label: 'DBR', x: 1, y: -1, z: -1 }
-            ];
+                const corners = [
+                    { label: 'URF', x: 1, y: 1, z: 1 },
+                    { label: 'UFL', x: -1, y: 1, z: 1 },
+                    { label: 'ULB', x: -1, y: 1, z: -1 },
+                    { label: 'UBR', x: 1, y: 1, z: -1 },
+                    { label: 'DFR', x: 1, y: -1, z: 1 },
+                    { label: 'DFL', x: -1, y: -1, z: 1 },
+                    { label: 'DLB', x: -1, y: -1, z: -1 },
+                    { label: 'DBR', x: 1, y: -1, z: -1 }
+                ];
 
-            corners.forEach(c => {
-                createTwistBtn(c.label, c.x, c.y, c.z, (Math.PI * 2) / 3);
-                createTwistBtn(c.label + "'", c.x, c.y, c.z, -(Math.PI * 2) / 3);
-            });
+                corners.forEach(c => {
+                    createTwistBtn(c.label, c.x, c.y, c.z, (Math.PI * 2) / 3);
+                    createTwistBtn(c.label + "'", c.x, c.y, c.z, -(Math.PI * 2) / 3);
+                });
+            }
         }
 
-        // Modifed to store "layers" array to support multi-layer moves cleanly 
         function createBtn(label, axis, layer, angle) {
             moveRegistry[label.toUpperCase()] = { axis, layers: [layer], angle };
 
@@ -296,7 +365,9 @@
                 const targetZ = zDir * currentOffset;
                 
                 const targetCube = cubes.find(c => 
-                    Math.abs(c.position.x - targetX) < 0.1 && Math.abs(c.position.y - targetY) < 0.1 && Math.abs(c.position.z - targetZ) < 0.1
+                    Math.abs(c.position.x - targetX) < 0.1 && 
+                    Math.abs(c.position.y - targetY) < 0.1 && 
+                    Math.abs(c.position.z - targetZ) < 0.1
                 );
 
                 if (targetCube) {
@@ -326,7 +397,6 @@
         }
 
         // --- CORE ROTATION LOGIC ---
-        // Upgraded to mathematically process array of slices simultaneously
         function executeMove(axis, layers, angle, duration = 300, onComplete = null) {
             isAnimating = true;
             pivot.rotation.set(0, 0, 0);
@@ -334,7 +404,6 @@
 
             const activeCubes = [];
             cubes.forEach(cube => {
-                // Attach if it belongs to ANY of the specified layers
                 if (layers.some(l => Math.abs(cube.position[axis] - l) < 0.1)) {
                     activeCubes.push(cube);
                     pivot.attach(cube);
@@ -407,7 +476,7 @@
         function processQueue() {
             if (animationQueue.length === 0) {
                 if(isAnimating) {
-                    showStatus("Cube Solved!", "text-green-400");
+                    showStatus("Sequence Completed!", "text-green-400");
                     setTimeout(() => document.getElementById('status-panel').classList.remove('opacity-100', '-translate-y-0'), 3000);
                 }
                 return;
@@ -415,10 +484,14 @@
             if (isAnimating) return;
 
             const move = animationQueue.shift();
+            
+            const speedMultiplier = parseFloat(document.getElementById('speed-slider').value) || 1.0;
+            const adjustedDuration = (move.duration || 180) / speedMultiplier;
+
             if (move.type === 'twist') {
-                executeTwist(move.cubeUUID, move.angle, move.duration, processQueue);
+                executeTwist(move.cubeUUID, move.angle, adjustedDuration, processQueue);
             } else {
-                executeMove(move.axis, move.layers, move.angle, move.duration, processQueue);
+                executeMove(move.axis, move.layers, move.angle, adjustedDuration, processQueue);
             }
         }
 
@@ -432,7 +505,79 @@
             panel.classList.add('opacity-100', 'translate-y-0');
         }
 
-        // Helper functions for Array checks (Since multi-layer moves use layer arrays)
+        // Clipboards helper
+        function copyToClipboard(text) {
+            const tempInput = document.createElement("textarea");
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand("copy");
+                showStatus("Copied to clipboard!", "text-green-400");
+            } catch (err) {
+                showStatus("Failed to copy!", "text-red-400");
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        // Render dynamic patterns list depending on Selected Cube Size
+        function renderPatterns() {
+            const panelPatterns = document.getElementById('panel-patterns');
+            panelPatterns.innerHTML = '';
+            
+            const list = patternsData[currentSize] || [];
+            
+            if (list.length === 0) {
+                panelPatterns.innerHTML = `
+                    <div class="text-center text-xs text-gray-400 py-6 px-2">
+                        No preset patterns loaded for ${currentSize}x${currentSize}x${currentSize}.
+                        <br><br>
+                        Use the <b class="text-blue-400">Custom Moves</b> input on the UTILS tab to run anything!
+                    </div>
+                `;
+                return;
+            }
+            
+            list.forEach(pattern => {
+                const card = document.createElement('div');
+                card.className = "bg-gray-800/80 p-3 rounded-lg border border-gray-700 flex flex-col gap-2 shadow-sm transition hover:border-blue-500/50";
+                
+                const title = document.createElement('h3');
+                title.className = "text-xs font-bold text-blue-400 tracking-wide uppercase";
+                title.innerText = pattern.name;
+                card.appendChild(title);
+                
+                const codeBlock = document.createElement('div');
+                codeBlock.className = "text-[10px] font-mono text-gray-300 break-words bg-black/40 p-1.5 rounded select-all max-h-[60px] overflow-y-auto";
+                codeBlock.innerText = pattern.moves;
+                card.appendChild(codeBlock);
+                
+                const btnContainer = document.createElement('div');
+                btnContainer.className = "grid grid-cols-2 gap-2 mt-1";
+                
+                const btnRun = document.createElement('button');
+                btnRun.className = "bg-blue-600 hover:bg-blue-500 text-white font-bold py-1 px-2 rounded text-[11px] transition shadow";
+                btnRun.innerText = "Run";
+                btnRun.onclick = () => {
+                    document.getElementById('input-custom-moves').value = pattern.moves;
+                    document.getElementById('btn-run-moves').click();
+                };
+                
+                const btnCopy = document.createElement('button');
+                btnCopy.className = "bg-gray-700 hover:bg-gray-600 text-gray-200 font-bold py-1 px-2 rounded text-[11px] transition border border-gray-600 shadow";
+                btnCopy.innerText = "Copy";
+                btnCopy.onclick = () => {
+                    copyToClipboard(pattern.moves);
+                };
+                
+                btnContainer.appendChild(btnRun);
+                btnContainer.appendChild(btnCopy);
+                card.appendChild(btnContainer);
+                
+                panelPatterns.appendChild(card);
+            });
+        }
+
         const layersOverlap = (arr1, arr2) => arr1.some(l1 => arr2.some(l2 => Math.abs(l1 - l2) < 0.1));
         const layersEqual = (arr1, arr2) => arr1.length === arr2.length && arr1.every((val, index) => Math.abs(val - arr2[index]) < 0.1);
 
@@ -446,7 +591,6 @@
                     const m1 = seq[i], m2 = seq[i+1];
                     if (m1.type === 'twist' || m2.type === 'twist') continue;
                     
-                    // Commutative Property (Swap non-intersecting parallel layers to bundle them)
                     if (m1.axis === m2.axis && !layersOverlap(m1.layers, m2.layers)) {
                         if (i + 2 < seq.length && seq[i+2].axis === m1.axis && layersEqual(seq[i+2].layers, m1.layers)) {
                             seq[i+1] = seq[i+2]; seq[i+2] = m2;
@@ -454,7 +598,6 @@
                         }
                     }
 
-                    // Mathematical combination/reduction
                     if (m1.axis === m2.axis && layersEqual(m1.layers, m2.layers)) {
                         let newAngle = (m1.angle + m2.angle) % (Math.PI * 2);
                         if (newAngle > Math.PI + 0.01) newAngle -= Math.PI * 2;
@@ -474,6 +617,10 @@
         }
 
         // --- BUTTON ACTIONS & TEXT PARSER ---
+        document.getElementById('speed-slider').addEventListener('input', (e) => {
+            document.getElementById('speed-val').innerText = `${parseFloat(e.target.value).toFixed(1)}x`;
+        });
+
         document.getElementById('size-selector').addEventListener('change', (e) => {
             if (isAnimating || animationQueue.length > 0) {
                 e.target.value = currentSize; 
@@ -484,8 +631,8 @@
             showStatus(`${e.target.value}x${e.target.value}x${e.target.value} Initialized!`, "text-blue-400");
         });
 
-        // WCA Master Regex to detect any [Depth][Face][Wide][Modifier] combo
-        const wcaRegex = /^([1-9]\d*)?([RLUDFB])(w)?(2)?(')?(2)?$/i;
+        // WCA Master Regex to detect standard slices, wide, and single/double prime values
+        const wcaRegex = /^([1-9]\d*)?([RLUDFBMES])(w)?(2)?(')?(2)?$/i;
 
         document.getElementById('btn-run-moves').addEventListener('click', () => {
             if (isAnimating || animationQueue.length > 0) {
@@ -507,7 +654,6 @@
                 let normalized = tok.toUpperCase();
                 let isDouble = false;
                 
-                // --- Step 1: Check Exact Registry Matches (UI Slice Button Names & Corners) ---
                 let baseRegTok = normalized;
                 if (baseRegTok.endsWith("2") || baseRegTok.endsWith("2'")) {
                     isDouble = true;
@@ -527,10 +673,9 @@
                     } else {
                         validQueue.push({ label: tok, axis: moveData.axis, layers: moveData.layers, angle: isDouble ? moveData.angle * 2 : moveData.angle });
                     }
-                    return; // Skip step 2 if matched
+                    return;
                 }
 
-                // --- Step 2: Advanced WCA Standard Pattern Interpreter (Handles Wide Multi-Layer Moves natively) ---
                 const match = tok.match(wcaRegex);
                 if (match) {
                     const depthStr = match[1];
@@ -541,7 +686,6 @@
                     
                     const depth = depthStr ? parseInt(depthStr) : (isWide ? 2 : 1);
                     
-                    // Reject impossible moves for current size
                     if (depth > currentSize) { invalidTokens.push(tok); return; }
                     
                     let axis, startLayer, step, baseAngle;
@@ -552,8 +696,22 @@
                     if (face === 'F') { axis = 'z'; startLayer = currentOffset; step = -1; baseAngle = -Math.PI/2; }
                     if (face === 'B') { axis = 'z'; startLayer = -currentOffset; step = 1; baseAngle = Math.PI/2; }
                     
-                    const generatedLayers = [];
-                    for (let i = 0; i < depth; i++) generatedLayers.push(startLayer + (i * step));
+                    // Center Slices (M, E, S) configurations
+                    if (face === 'M') { axis = 'x'; startLayer = 0; step = 0; baseAngle = Math.PI/2; }
+                    if (face === 'E') { axis = 'y'; startLayer = 0; step = 0; baseAngle = Math.PI/2; }
+                    if (face === 'S') { axis = 'z'; startLayer = 0; step = 0; baseAngle = -Math.PI/2; }
+
+                    let generatedLayers = [];
+                    if (['M', 'E', 'S'].includes(face)) {
+                        if (currentSize % 2 !== 0) {
+                            generatedLayers.push(0);
+                        } else {
+                            // On even size cubes, Middle represents the two central slice layers simultaneously
+                            generatedLayers.push(-0.5, 0.5);
+                        }
+                    } else {
+                        for (let i = 0; i < depth; i++) generatedLayers.push(startLayer + (i * step));
+                    }
                     
                     let angle = baseAngle;
                     if (isPrime) angle *= -1;
@@ -592,6 +750,27 @@
             });
             processQueue();
         }
+
+        // --- TAB SWITCHER LOGIC ---
+        const tabBtnUtils = document.getElementById('tab-btn-utils');
+        const tabBtnPatterns = document.getElementById('tab-btn-patterns');
+        const panelUtils = document.getElementById('panel-utils');
+        const panelPatterns = document.getElementById('panel-patterns');
+
+        tabBtnUtils.addEventListener('click', () => {
+            tabBtnUtils.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600";
+            tabBtnPatterns.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white";
+            panelUtils.classList.remove('hidden');
+            panelPatterns.classList.add('hidden');
+        });
+
+        tabBtnPatterns.addEventListener('click', () => {
+            tabBtnPatterns.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600";
+            tabBtnUtils.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white";
+            panelUtils.classList.add('hidden');
+            panelPatterns.classList.remove('hidden');
+            renderPatterns();
+        });
 
         function generateScramble(moves = 20) {
             const axes = ['x', 'y', 'z'];
