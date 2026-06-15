@@ -1,7 +1,7 @@
 /* assets.js - constants, XML strings, parsing utilities */
 
 export const CHAR_IMG_URL = "purplepostor.png";
-export const NOTE_IMG_URL = "NOTE_assets-Voiid-Chronicles.png";
+export const NOTE_IMG_URL = "NOTES.png";
 export const HIT_SOUND_URL = "osu-hit-sound.mp3";
 
 export let hitAudio = new Audio(HIT_SOUND_URL);
