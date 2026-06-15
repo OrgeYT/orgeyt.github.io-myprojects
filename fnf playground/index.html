@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>FNF Playground - Purple Impostor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #1a1a1a; }
+        canvas { display: block; width: 100%; height: 100%; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; padding: 20px; }
+        .panel { pointer-events: auto; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); border: 1px solid #444; border-radius: 12px; padding: 20px; color: white; width: 320px; font-family: sans-serif; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        h1 { margin: 0 0 10px 0; font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #a855f7; }
+        label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 14px; }
+        input[type="range"] { width: 150px; cursor: pointer; }
+        input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .controls-info { margin-top: 15px; font-size: 12px; color: #ccc; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px; }
+        .key { display: inline-block; background: #333; padding: 2px 5px; border-radius: 4px; border: 1px solid #555; color: #fff; font-weight: bold; margin: 1px; }
+        #loading { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #111; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; font-family: sans-serif; }
+        .spinner { border: 4px solid rgba(255,255,255,0.1); width: 40px; height: 40px; border-radius: 50%; border-left-color: #a855f7; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner"></div>
+        <h2 id="loading-text">Loading Assets...</h2>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="panel">
+            <h1>Settings</h1>
+            <label>
+                Hit Sound
+                <input type="checkbox" id="setting-hitsound">
+            </label>
+            <label>
+                Modchart
+                <input type="checkbox" id="setting-modchart">
+            </label>
+            <label>
+                Bot Missing
+                <input type="checkbox" id="setting-botmiss">
+            </label>
+            <label>
+                Scroll Speed (<span id="val-speed">10</span>)
+                <input type="range" id="setting-speed" min="0.01" max="156" step="0.1" value="10">
+            </label>
+            <label>
+                Spam Delay (<span id="val-spam">50</span>ms)
+                <input type="range" id="setting-spam" min="0.01" max="2000" step="0.1" value="50">
+            </label>
+
+            <div class="controls-info">
+                <strong>Controls:</strong><br>
+                <span class="key">A</span> <span class="key">S</span> <span class="key">K</span> <span class="key">L</span> or <span class="key">Arrows</span>: Normal Notes<br>
+                <span class="key">Q</span> <span class="key">W</span> <span class="key">I</span> <span class="key">O</span>: Hold to spam notes<br>
+                <span class="key">Z</span> <span class="key">X</span> <span class="key">,</span> <span class="key">.</span>: Danger Notes (Miss)<br>
+                <span class="key">1</span>: Sequence Macro<br>
+                <span class="key">Space</span>: All 4 Notes<br>
+                <span class="key">E</span>: Hold to spam ALL notes
+            </div>
+            <div class="mt-4 pt-3 border-t border-gray-600">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm">NPS: <strong id="val-nps" class="text-purple-400">0</strong></span>
+                    <span class="text-sm">Max: <strong id="val-maxnps" class="text-purple-400">0</strong></span>
+                    <button id="btn-resetnps" class="bg-purple-600 hover:bg-purple-500 text-white px-2 py-1 rounded text-xs transition-colors">Reset</button>
+                </div>
+                <div style="font-size: 11px; color: #888;">
+                    Notes on screen: <span id="note-count">0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./bootstrap.js"></script>
+</body>
+</html>
