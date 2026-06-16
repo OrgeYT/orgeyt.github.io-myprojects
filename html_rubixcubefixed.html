@@ -75,8 +75,9 @@
 
                     <!-- Interactive Tabs Selector -->
                     <div class="flex border-b border-gray-700 pb-1 gap-1">
-                        <button id="tab-btn-utils" class="flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600">UTILS</button>
-                        <button id="tab-btn-patterns" class="flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white">PATTERNS</button>
+                        <button id="tab-btn-utils" class="flex-1 py-1 text-[10px] font-bold tracking-wider rounded transition-colors text-white bg-blue-600">UTILS</button>
+                        <button id="tab-btn-patterns" class="flex-1 py-1 text-[10px] font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white">PATTERNS</button>
+                        <button id="tab-btn-pixel" class="flex-1 py-1 text-[10px] font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white">PIXEL ART</button>
                     </div>
 
                     <!-- Container 1: UTILS Panel -->
@@ -108,6 +109,23 @@
                     <!-- Container 2: PATTERNS Panel -->
                     <div id="panel-patterns" class="hidden flex flex-col gap-3 overflow-y-auto pr-1 flex-1">
                         <!-- Dynamic patterns listing rendered via JS depending on Selected Cube Size -->
+                    </div>
+
+                    <!-- Container 3: PIXEL ART Panel -->
+                    <div id="panel-pixel" class="hidden flex flex-col gap-3 overflow-y-auto pr-1 flex-1">
+                        <div class="text-[11px] text-gray-300 leading-tight text-center">Draw your art on the inner grid, then generate the WCA moves to safely stamp it onto the cube! (Borders locked to prevent scrambling)</div>
+                        
+                        <div class="w-full flex justify-center">
+                            <div id="pixel-grid-container" class="w-full max-w-[200px] aspect-square bg-gray-900 border border-gray-700 p-1 rounded-md shadow-inner"></div>
+                        </div>
+                        
+                        <div class="flex gap-2 mt-1">
+                            <button id="btn-generate-pixel" class="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-2 rounded text-xs shadow-md transition focus:ring-2 focus:ring-blue-400">Generate Moves</button>
+                            <button id="btn-clear-pixel" class="bg-gray-700 hover:bg-red-600 text-white font-bold py-2 px-3 rounded text-xs shadow-md transition border border-gray-600">Clear</button>
+                        </div>
+                        
+                        <textarea id="pixel-moves-output" class="hidden w-full h-16 bg-black/60 text-gray-300 text-[10px] font-mono p-2 rounded resize-none border border-gray-600 focus:outline-none focus:border-blue-500" readonly placeholder="Generated moves will appear here..."></textarea>
+                        <button id="btn-copy-pixel" class="hidden w-full bg-gray-800 hover:bg-gray-700 text-white font-bold py-1.5 rounded text-xs shadow transition border border-gray-600">Copy Moves to Clipboard</button>
                     </div>
                 </div>
             </div>
@@ -201,8 +219,7 @@
             ],
             4: [
                 { name: "3x3x3 inside 4x4x4", moves: "F L F U' R U F2 L2 U' L' B D' B' L2 U" },
-                { name: "Checkerboard", moves: "B2 R2 D' F2 D2 B2 U B2 L2 U L' R' B D U L2 R Fw2 Lw2 D U Bw2 Dw2 R2 B U2 R L" },
-                { name: "Scramble like a 2x2x2", moves: "uw2 rw' fw uw' bw2 lw' rw2 bw uw fw2' rw uw2' bw' fw lw2 rw' uw bw2 fw' lw rw2' uw' fw2" }
+                { name: "Checkerboard", moves: "B2 R2 D' F2 D2 B2 U B2 L2 U L' R' B D U L2 R Fw2 Lw2 D U Bw2 Dw2 R2 B U2 R L" }
             ],
             20: [
                 { name: "Cube in a Cube Loop", moves: "U' L' U' F' R2 B' R F U B2 U B' L U' F U R F' Uw' Lw' Uw' Fw' Rw2 Bw' Rw Fw Uw Bw2 Uw Bw' Lw Uw' Fw Uw Rw Fw' 3Uw' 3Lw' 3Uw' 3Fw' 3Rw2 3Bw' 3Rw 3Fw 3Uw 3Bw2 3Uw 3Bw' 3Lw 3Uw' 3Fw 3Uw 3Rw 3Fw' 4Uw' 4Lw' 4Uw' 4Fw' 4Rw2 4Bw' 4Rw 4Fw 4Uw 4Bw2 4Uw 4Bw' 4Lw 4Uw' 4Fw 4Uw 4Rw 4Fw' 5Uw' 5Lw' 5Uw' 5Fw' 5Rw2 5Bw' 5Rw 5Fw 5Uw 5Bw2 5Uw 5Bw' 5Lw 5Uw' 5Fw 5Uw 5Rw 5Fw' 6Uw' 6Lw' 6Uw' 6Fw' 6Rw2 6Bw' 6Rw 6Fw 6Uw 6Bw2 6Uw 6Bw' 6Lw 6Uw' 6Fw 6Uw 6Rw 6Fw' 7Uw' 7Lw' 7Uw' 7Fw' 7Rw2 7Bw' 7Rw 7Fw 7Uw 7Bw2 7Uw 7Bw' 7Lw 7Uw' 7Fw 7Uw 7Rw 7Fw' 8Uw' 8Lw' 8Uw' 8Fw' 8Rw2 8Bw' 8Rw 8Fw 8Uw 8Bw2 8Uw 8Bw' 8Lw 8Uw' 8Fw 8Uw 8Rw 8Fw' 9Uw' 9Lw' 9Uw' 9Fw' 9Rw2 9Bw' 9Rw 9Fw 9Uw 9Bw2 9Uw 9Bw' 9Lw 9Uw' 9Fw 9Uw 9Rw 9Fw' 10Uw' 10Lw' 10Uw' 10Fw' 10Rw2 10Bw' 10Rw 10Fw 10Uw 10Bw2 10Uw 10Bw' 10Lw 10Uw' 10Fw 10Uw 10Rw 10Fw'" }
@@ -270,6 +287,7 @@
 
             buildControls();
             renderPatterns(); // Automatically update patterns lists on size adjustments
+            renderPixelGrid(); // Auto update pixel grid size
         }
 
         // --- UI & DYNAMIC CONTROLS ---
@@ -579,6 +597,130 @@
             });
         }
 
+        // --- PIXEL ART LOGIC ---
+        function renderPixelGrid() {
+            const gridContainer = document.getElementById('pixel-grid-container');
+            if (!gridContainer) return;
+            
+            gridContainer.innerHTML = '';
+
+            if (currentSize <= 2) {
+                gridContainer.style.display = 'block';
+                gridContainer.innerHTML = '<div class="text-center text-[10px] font-bold text-red-400 p-4 border border-red-900/50 rounded bg-red-900/20 mt-4 shadow-inner">Pixel Art requires a 3x3 or larger cube.</div>';
+                return;
+            }
+
+            gridContainer.style.display = 'grid';
+            gridContainer.style.gridTemplateColumns = `repeat(${currentSize}, 1fr)`;
+            gridContainer.style.gap = currentSize > 10 ? '1px' : '2px';
+            
+            for (let y = 0; y < currentSize; y++) {
+                for (let x = 0; x < currentSize; x++) {
+                    const cell = document.createElement('div');
+                    
+                    // Core Fix: Lock outer edge/corner pieces.
+                    // Simple [A, B] slice commutators on outer edges unintentionally cycle other front-face pieces, 
+                    // which destroys the pixel art canvas. Real cube art is only drawn on inner centers.
+                    const isOuter = x === 0 || x === currentSize - 1 || y === 0 || y === currentSize - 1;
+                    
+                    if (isOuter) {
+                        cell.className = "w-full aspect-square bg-gray-800/40 rounded-[1px] cursor-not-allowed relative";
+                        cell.title = "Frame pieces locked. Commutators here would scramble the image.";
+                    } else {
+                        cell.className = "w-full aspect-square bg-gray-700 hover:bg-gray-500 cursor-pointer transition-colors rounded-[1px]";
+                        cell.dataset.active = "false";
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                        
+                        cell.onclick = () => {
+                            if (cell.dataset.active === "false") {
+                                cell.dataset.active = "true";
+                                cell.className = "w-full aspect-square bg-white shadow-[0_0_4px_rgba(255,255,255,0.8)] cursor-pointer transition-colors rounded-[1px]";
+                            } else {
+                                cell.dataset.active = "false";
+                                cell.className = "w-full aspect-square bg-gray-700 hover:bg-gray-500 cursor-pointer transition-colors rounded-[1px]";
+                            }
+                        };
+                    }
+                    gridContainer.appendChild(cell);
+                }
+            }
+            
+            // Hide outputs when grid changes
+            const outputArea = document.getElementById('pixel-moves-output');
+            if (outputArea) {
+                outputArea.classList.add('hidden');
+                outputArea.value = '';
+            }
+            const copyBtn = document.getElementById('btn-copy-pixel');
+            if (copyBtn) copyBtn.classList.add('hidden');
+        }
+
+        document.getElementById('btn-clear-pixel').addEventListener('click', () => {
+            renderPixelGrid();
+        });
+
+        document.getElementById('btn-generate-pixel').addEventListener('click', () => {
+            if (isAnimating || animationQueue.length > 0) {
+                showStatus("Wait for animation to finish!", "text-red-400");
+                return;
+            }
+
+            const gridContainer = document.getElementById('pixel-grid-container');
+            const cells = gridContainer.children;
+            let moves = [];
+            
+            for (let i = 0; i < cells.length; i++) {
+                const cell = cells[i];
+                if (cell.dataset.active === "true") {
+                    const x = parseInt(cell.dataset.x);
+                    const y = parseInt(cell.dataset.y);
+                    
+                    const layerX = x - currentOffset;
+                    const layerY = currentOffset - y;
+                    
+                    // X-axis label
+                    let lblX = '';
+                    if (layerX === currentOffset) lblX = 'R';
+                    else if (layerX === -currentOffset) lblX = 'L';
+                    else if (layerX === 0) lblX = 'M';
+                    else if (layerX > 0) lblX = `${Math.round(currentOffset - layerX + 1)}R`;
+                    else lblX = `${Math.round(currentOffset + layerX + 1)}L`;
+                    
+                    // Y-axis label
+                    let lblY = '';
+                    if (layerY === currentOffset) lblY = 'U';
+                    else if (layerY === -currentOffset) lblY = 'D';
+                    else if (layerY === 0) lblY = 'E';
+                    else if (layerY > 0) lblY = `${Math.round(currentOffset - layerY + 1)}U`;
+                    else lblY = `${Math.round(currentOffset + layerY + 1)}D`;
+                    
+                    // Apply Slice Commutator: X Y X' Y'
+                    moves.push(`${lblX} ${lblY} ${lblX}' ${lblY}'`);
+                }
+            }
+            
+            const finalString = moves.join(' ');
+            if (!finalString) {
+                showStatus("Draw something on the grid first!", "text-yellow-400");
+                return;
+            }
+            
+            // Execute the moves
+            const inputField = document.getElementById('input-custom-moves');
+            inputField.value = finalString;
+            document.getElementById('btn-run-moves').click();
+            
+            // Display for copying
+            const outputArea = document.getElementById('pixel-moves-output');
+            outputArea.value = finalString;
+            outputArea.classList.remove('hidden');
+            
+            const copyBtn = document.getElementById('btn-copy-pixel');
+            copyBtn.classList.remove('hidden');
+            copyBtn.onclick = () => copyToClipboard(finalString);
+        });
+
         const layersOverlap = (arr1, arr2) => arr1.some(l1 => arr2.some(l2 => Math.abs(l1 - l2) < 0.1));
         const layersEqual = (arr1, arr2) => arr1.length === arr2.length && arr1.every((val, index) => Math.abs(val - arr2[index]) < 0.1);
 
@@ -755,22 +897,31 @@
         // --- TAB SWITCHER LOGIC ---
         const tabBtnUtils = document.getElementById('tab-btn-utils');
         const tabBtnPatterns = document.getElementById('tab-btn-patterns');
+        const tabBtnPixel = document.getElementById('tab-btn-pixel');
         const panelUtils = document.getElementById('panel-utils');
         const panelPatterns = document.getElementById('panel-patterns');
+        const panelPixel = document.getElementById('panel-pixel');
 
-        tabBtnUtils.addEventListener('click', () => {
-            tabBtnUtils.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600";
-            tabBtnPatterns.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white";
-            panelUtils.classList.remove('hidden');
-            panelPatterns.classList.add('hidden');
-        });
+        function switchTab(activeBtn, activePanel) {
+            [tabBtnUtils, tabBtnPatterns, tabBtnPixel].forEach(btn => {
+                btn.className = "flex-1 py-1 text-[10px] font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white";
+            });
+            activeBtn.className = "flex-1 py-1 text-[10px] font-bold tracking-wider rounded transition-colors text-white bg-blue-600";
+            
+            [panelUtils, panelPatterns, panelPixel].forEach(panel => {
+                panel.classList.add('hidden');
+            });
+            activePanel.classList.remove('hidden');
+        }
 
+        tabBtnUtils.addEventListener('click', () => switchTab(tabBtnUtils, panelUtils));
         tabBtnPatterns.addEventListener('click', () => {
-            tabBtnPatterns.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-white bg-blue-600";
-            tabBtnUtils.className = "flex-1 py-1 text-xs font-bold tracking-wider rounded transition-colors text-gray-400 hover:text-white";
-            panelUtils.classList.add('hidden');
-            panelPatterns.classList.remove('hidden');
+            switchTab(tabBtnPatterns, panelPatterns);
             renderPatterns();
+        });
+        tabBtnPixel.addEventListener('click', () => {
+            switchTab(tabBtnPixel, panelPixel);
+            renderPixelGrid();
         });
 
         function generateScramble(moves = 20) {
