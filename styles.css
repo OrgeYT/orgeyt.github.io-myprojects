@@ -29,10 +29,10 @@ body {
 .subtitle {
     font-size: 0.8rem;
     color: #888;
-    margin-bottom: 15px; /* Slightly reduced to fit the new button */
+    margin-bottom: 15px;
 }
 
-/* New Toggle Button Styling */
+/* Toggle Button Styling */
 .toggle-btn {
     background-color: #3a3a3a;
     color: #fff;
@@ -43,7 +43,7 @@ body {
     text-align: center;
     transition: background-color 0.2s, transform 0.1s;
     font-size: 0.85rem;
-    margin-bottom: 15px; /* Creates space between this button and the file list */
+    margin-bottom: 15px; 
 }
 
 .toggle-btn:hover {
@@ -59,14 +59,13 @@ body {
     flex-direction: column;
     gap: 10px;
     
-    /* Scroll Fix Additions */
-    flex-grow: 1;              /* Pushes the image box to the bottom */
-    overflow-y: auto;          /* Enables vertical scrolling when content overflows */
-    padding-right: 5px;        /* Prevents the scrollbar from overlapping button text */
-    margin-bottom: 15px;       /* Adds a clean gap above the image box */
+    flex-grow: 1;              
+    overflow-y: auto;          
+    padding-right: 5px;        
+    margin-bottom: 15px;       
 }
 
-/* Custom Scrollbar Styling for a Sleeker Dark Mode Look */
+/* Custom Scrollbar Styling */
 #file-list::-webkit-scrollbar {
     width: 6px;
 }
@@ -104,14 +103,14 @@ body {
     flex: 1;
     display: flex;
     background-color: #000;
-    position: relative; /* Essential for button positioning */
+    position: relative; 
 }
 
 #runner-frame {
     width: 100%;
     height: 100%;
     border: none;
-    background-color: #fff; /* Keeps the iframe background white for standard HTML files */
+    background-color: #fff; 
 }
 
 /* UI Control Buttons Layering */
@@ -133,7 +132,6 @@ body {
     right: 10px;
 }
 
-/* Placed immediately to the left of the Full Screen button */
 #share-btn {
     right: 125px; 
 }
@@ -142,7 +140,108 @@ body {
     background: rgba(255, 255, 255, 0.2);
 }
 
-/* New Utility Class to Hide Elements */
+/* Utility Class to Hide Elements */
 .hidden {
     display: none !important;
+}
+
+/* ==========================================
+   Tab Settings Modal Styles 
+   ========================================== */
+.modal {
+    position: fixed;
+    z-index: 100;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-content {
+    background-color: #1e1e1e;
+    padding: 20px 25px;
+    border: 1px solid #444;
+    border-radius: 8px;
+    width: 320px;
+    position: relative;
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+}
+
+.modal-content h3 {
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+}
+
+.close-btn {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    color: #888;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-btn:hover {
+    color: #fff;
+}
+
+.setting-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.setting-group label {
+    font-size: 0.85rem;
+    color: #aaa;
+}
+
+.setting-group input[type="text"],
+.setting-group input[type="file"] {
+    padding: 8px;
+    background-color: #121212;
+    border: 1px solid #444;
+    color: white;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.modal-btn {
+    background-color: #3a3a3a;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s;
+    font-size: 0.85rem;
+    margin-top: 5px;
+}
+
+.modal-btn:hover {
+    background-color: #4a4a4a;
+}
+
+.modal-btn:active {
+    transform: scale(0.98);
+}
+
+.icon-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.icon-btn {
+    flex: 1;
+    margin-top: 0; 
 }
