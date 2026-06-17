@@ -121,3 +121,66 @@ runnerFrame.addEventListener('load', () => {
         console.warn("Could not attach keyboard shortcut to iframe.");
     }
 });
+
+// ==========================================
+// --- Tab Modifier (Cloak) Logic ---
+// ==========================================
+
+const tabModal = document.getElementById('tab-modal');
+const tabModifierBtn = document.getElementById('tab-modifier-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+
+// Open and Close Menu
+tabModifierBtn.addEventListener('click', () => {
+    tabModal.classList.remove('hidden');
+});
+
+closeModalBtn.addEventListener('click', () => {
+    tabModal.classList.add('hidden');
+});
+
+// Helper function to update the Favicon dynamically
+function changeFavicon(src) {
+    let link = document.querySelector("link[rel~='icon']");
+    if (!link) {
+        link = document.createElement('link');
+        link.rel = 'icon';
+        document.head.appendChild(link);
+    }
+    link.href = src;
+}
+
+// 1. Apply Title Change
+document.getElementById('apply-title-btn').addEventListener('click', () => {
+    const newTitle = document.getElementById('tab-title-input').value.trim();
+    if (newTitle) {
+        document.title = newTitle;
+    }
+});
+
+// 2. Apply Quick Icons (Default, Mungus, Classroom)
+document.querySelectorAll('.icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        changeFavicon(e.target.dataset.icon);
+    });
+});
+
+// 3. Apply Custom Icon via URL
+document.getElementById('apply-url-btn').addEventListener('click', () => {
+    const newUrl = document.getElementById('icon-url-input').value.trim();
+    if (newUrl) {
+        changeFavicon(newUrl);
+    }
+});
+
+// 4. Apply Custom Icon via Local File Upload
+document.getElementById('icon-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            changeFavicon(event.target.result); // Converts the file to a base64 string
+        };
+        reader.readAsDataURL(file);
+    }
+});
