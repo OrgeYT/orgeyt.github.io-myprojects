@@ -67,7 +67,10 @@
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
 
-        <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
+        <div class="sidebar-controls" style="display: flex; gap: 5px; margin-bottom: 15px;">
+            <button id="toggle-ui-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1;">Toggle UI (`)</button>
+            <button id="tab-modifier-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1;">Tab Settings</button>
+        </div>
 
         <div id="file-list"></div>
 
@@ -90,7 +93,40 @@
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
-<script>
+    <div id="tab-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-btn">&times;</span>
+            <h3>Tab Settings</h3>
+            
+            <div class="setting-group">
+                <label for="tab-title-input">Tab Title:</label>
+                <input type="text" id="tab-title-input" placeholder="Enter new title...">
+                <button id="apply-title-btn" class="modal-btn">Apply Title</button>
+            </div>
+
+            <div class="setting-group">
+                <label>Quick Icons:</label>
+                <div class="icon-buttons">
+                    <button class="modal-btn icon-btn" data-icon="favicon.ico">Default</button>
+                    <button class="modal-btn icon-btn" data-icon="icons/mungus.ico">Mungus</button>
+                    <button class="modal-btn icon-btn" data-icon="icons/googleclassroom.ico">Classroom</button>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <label for="icon-url-input">Custom Icon URL:</label>
+                <input type="text" id="icon-url-input" placeholder="https://example.com/icon.ico">
+                <button id="apply-url-btn" class="modal-btn">Apply URL</button>
+            </div>
+
+            <div class="setting-group">
+                <label for="icon-file-input">Upload Icon File:</label>
+                <input type="file" id="icon-file-input" accept="image/*,.ico">
+            </div>
+        </div>
+    </div>
+
+    <script>
         const galleryImages = [
             { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
             { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
