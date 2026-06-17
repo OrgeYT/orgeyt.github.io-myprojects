@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Extractor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Geist+Mono:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Geist', sans-serif;
+        }
+        .font-mono {
+            font-family: 'Geist Mono', monospace;
+        }
+    </style>
+</head>
+<body class="bg-black text-white min-h-screen flex flex-col justify-center items-center p-6 selection:bg-white selection:text-black">
+
+    <!-- Sharp Brutalist Webpage Container (Larger max-width and internal padding) -->
+    <div class="w-full max-w-xl bg-neutral-950 border-2 border-neutral-800 p-8 flex flex-col gap-8 shadow-2xl">
+        
+        <!-- Header Label (Bigger, cleaner text hierarchy) -->
+        <div class="flex items-center justify-between border-b-2 border-neutral-900 pb-5">
+            <span class="text-sm font-black uppercase tracking-widest text-white flex items-center gap-3">
+                <i class="fa-solid fa-square text-[10px] text-white animate-pulse"></i>
+                <span>Favicon Grabber</span>
+            </span>
+            <span class="text-xs font-mono text-neutral-500">v3.1 webpage</span>
+        </div>
+
+        <!-- Tool Form -->
+        <form id="extractorForm" class="space-y-6">
+            <!-- URL Input (Bigger text and padding) -->
+            <div class="space-y-2">
+                <label for="urlInput" class="block text-xs font-bold uppercase tracking-widest text-neutral-400">Target Address</label>
+                <div class="relative">
+                    <input 
+                        type="text" 
+                        id="urlInput" 
+                        placeholder="e.g., github.com" 
+                        class="w-full bg-black border-2 border-neutral-800 py-4 px-4 text-white placeholder-neutral-700 focus:outline-none focus:border-white transition-all text-sm font-mono"
+                        required
+                    >
+                </div>
+            </div>
+
+            <!-- Controls Matrix (Expanded fields) -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Engine Select -->
+                <div class="space-y-2">
+                    <label for="engineSelect" class="block text-xs font-bold uppercase tracking-widest text-neutral-400">Engine</label>
+                    <select 
+                        id="engineSelect" 
+                        class="w-full bg-black border-2 border-neutral-800 py-3.5 px-3.5 text-neutral-300 focus:outline-none focus:border-white transition-all text-sm rounded-none appearance-none cursor-pointer"
+                    >
+                        <option value="google" selected>Google API</option>
+                        <option value="duckduckgo">DuckDuckGo</option>
+                        <option value="faviconkit">Favicon Kit</option>
+                        <option value="simple">Simple Direct</option>
+                    </select>
+                </div>
+
+                <!-- Size Select -->
+                <div class="space-y-2">
+                    <label id="sizeLabel" for="sizeSelect" class="block text-xs font-bold uppercase tracking-widest text-neutral-400">Size</label>
+                    <select 
+                        id="sizeSelect" 
+                        class="w-full bg-black border-2 border-neutral-800 py-3.5 px-3.5 text-neutral-300 focus:outline-none focus:border-white transition-all text-sm rounded-none appearance-none cursor-pointer"
+                    >
+                        <option value="16">16 x 16 px</option>
+                        <option value="32">32 x 32 px</option>
+                        <option value="64" selected>64 x 64 px</option>
+                        <option value="128">128 x 128 px</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Action Button (Taller, bolder font) -->
+            <button 
+                type="submit" 
+                class="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 text-sm uppercase tracking-widest transition-all duration-150 active:scale-[0.99] border-2 border-transparent"
+            >
+                Extract Icon
+            </button>
+        </form>
+
+        <!-- Result Presentation (Expanded) -->
+        <div id="resultCard" class="hidden border-t-2 border-neutral-900 pt-6 flex flex-col gap-4">
+            <div class="bg-black border-2 border-neutral-800 p-5 flex items-center gap-5">
+                
+                <!-- Expanded Sharper Micro-Preview Frame -->
+                <div class="relative w-20 h-20 bg-neutral-950 border-2 border-neutral-800 flex items-center justify-center p-3 shrink-0">
+                    <div id="imageSpinner" class="absolute inset-0 flex items-center justify-center bg-black z-10">
+                        <i class="fa-solid fa-circle-notch fa-spin text-neutral-400 text-sm"></i>
+                    </div>
+                    <img 
+                        id="faviconPreviewImg" 
+                        src="" 
+                        alt="Favicon" 
+                        class="w-full h-full object-contain z-20"
+                    >
+                </div>
+
+                <!-- Output Specs & Quick Copy Actions -->
+                <div class="flex-grow min-w-0 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span id="domainLabel" class="text-xs font-mono font-bold text-white truncate max-w-[200px]">domain.com</span>
+                        <div class="flex gap-2.5 shrink-0">
+                            <!-- Copy URL Button -->
+                            <button 
+                                id="copyBtn"
+                                onclick="copyResultUrl()"
+                                class="text-xs font-mono font-bold text-neutral-400 hover:text-white border-2 border-neutral-800 hover:border-neutral-500 px-4 py-1.5 transition-all"
+                                title="Copy Icon Address"
+                            >
+                                Copy
+                            </button>
+                            <!-- Open Original Tab Button -->
+                            <a 
+                                id="openTabBtn" 
+                                href="#" 
+                                target="_blank" 
+                                class="text-neutral-400 hover:text-white border-2 border-neutral-800 hover:border-neutral-500 p-2.5 transition-all text-xs flex items-center justify-center"
+                                title="Open Link"
+                            >
+                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Generated URL String -->
+                    <input 
+                        type="text" 
+                        id="generatedUrlInput" 
+                        readonly 
+                        class="w-full bg-neutral-950 border border-neutral-900 py-2 px-3 text-xs font-mono text-neutral-400 focus:outline-none cursor-text select-all"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Integrated Mono Notification Banner -->
+        <div id="toast" class="hidden text-center text-xs font-mono font-bold text-black bg-white py-2.5 uppercase tracking-wider">
+            <span id="toastMessage">Copied!</span>
+        </div>
+    </div>
+
+    <!-- Script Block -->
+    <script>
+        const form = document.getElementById('extractorForm');
+        const engineSelect = document.getElementById('engineSelect');
+        const sizeSelect = document.getElementById('sizeSelect');
+        const sizeLabel = document.getElementById('sizeLabel');
+        const previewImg = document.getElementById('faviconPreviewImg');
+        const imageSpinner = document.getElementById('imageSpinner');
+        
+        let fallbackApplied = false;
+
+        // Handle successful icon loading programmatically
+        previewImg.addEventListener('load', () => {
+            imageSpinner.classList.add('hidden');
+        });
+
+        // Handle load failures cleanly using a fallback flag to prevent loops
+        previewImg.addEventListener('error', () => {
+            if (!fallbackApplied) {
+                fallbackApplied = true;
+                previewImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23444444" width="24" height="24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>';
+                imageSpinner.classList.add('hidden');
+                showToast("No icon found (fallback loaded)", "warning");
+            }
+        });
+
+        // Toggle size select options dynamically based on the engine
+        engineSelect.addEventListener('change', () => {
+            const disableSizes = (engineSelect.value === 'duckduckgo' || engineSelect.value === 'simple');
+            sizeSelect.disabled = disableSizes;
+            if (disableSizes) {
+                sizeSelect.classList.add('opacity-30', 'cursor-not-allowed');
+                sizeLabel.classList.add('opacity-30');
+            } else {
+                sizeSelect.classList.remove('opacity-30', 'cursor-not-allowed');
+                sizeLabel.classList.remove('opacity-30');
+            }
+        });
+
+        // Form router trigger
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            extractFavicon();
+        });
+
+        // Main domain processing and address output compiler
+        function extractFavicon() {
+            const rawUrl = document.getElementById('urlInput').value.trim();
+            const selectedEngine = engineSelect.value;
+            const selectedSize = sizeSelect.value;
+
+            if (!rawUrl) return;
+
+            // Extract bare domain string cleanly
+            let domain = rawUrl;
+            domain = domain.replace(/^(https?:\/\/)?(www\.)?/i, '');
+            domain = domain.split('/')[0];
+            domain = domain.split('?')[0];
+            domain = domain.split('#')[0];
+            domain = domain.trim();
+
+            if (!domain) {
+                showToast("Domain address unrecognized", "error");
+                return;
+            }
+
+            let generatedUrl = '';
+            
+            // Generate source endpoint depending on selected backend engine
+            switch (selectedEngine) {
+                case 'google':
+                    generatedUrl = `https://www.google.com/s2/favicons?sz=${selectedSize}&domain=${encodeURIComponent(domain)}`;
+                    break;
+                case 'duckduckgo':
+                    generatedUrl = `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`;
+                    break;
+                case 'faviconkit':
+                    generatedUrl = `https://api.faviconkit.com/${encodeURIComponent(domain)}/${selectedSize}`;
+                    break;
+                case 'simple':
+                    generatedUrl = `https://${domain}/favicon.ico`;
+                    break;
+            }
+
+            // Bind values directly back into the UI markup elements
+            const resultCard = document.getElementById('resultCard');
+            const generatedUrlInput = document.getElementById('generatedUrlInput');
+            const domainLabel = document.getElementById('domainLabel');
+            const openTabBtn = document.getElementById('openTabBtn');
+
+            imageSpinner.classList.remove('hidden');
+            fallbackApplied = false; // Reset fallback flag for new lookup requests
+            previewImg.src = '';
+            
+            previewImg.src = generatedUrl;
+            generatedUrlInput.value = generatedUrl;
+            domainLabel.textContent = domain.length > 25 ? domain.substring(0, 22) + '...' : domain;
+            openTabBtn.href = generatedUrl;
+
+            resultCard.classList.remove('hidden');
+        }
+
+        // Sandbox-compliant execution copy command
+        function copyResultUrl() {
+            const copyText = document.getElementById('generatedUrlInput');
+            const tempInput = document.createElement('input');
+            tempInput.value = copyText.value;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast("Copied!", "success");
+                } else {
+                    showToast("Copy fallback failed", "error");
+                }
+            } catch (err) {
+                showToast("Copy fallback failed", "error");
+            }
+            document.body.removeChild(tempInput);
+
+            // Change copy button visual state briefly
+            const copyBtn = document.getElementById('copyBtn');
+            copyBtn.textContent = 'Copied';
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+            }, 1500);
+        }
+
+        // Clean monochrome Toast alerts
+        function showToast(message, type = "success") {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toastMessage.textContent = message.toUpperCase();
+            
+            if (type === "success") {
+                toast.className = "text-center text-xs font-mono font-bold text-black bg-white py-2.5";
+            } else {
+                toast.className = "text-center text-xs font-mono font-bold text-white bg-neutral-900 border border-neutral-800 py-2.5";
+            }
+
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
