@@ -14,8 +14,9 @@ const projects = [
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
 
-// Track the current project identifier for URL generation
+// Track the current project identifier and exact file path
 let currentProjectParam = "welcome";
+let currentFilePath = "html_welcome.html";
 
 projects.forEach(project => {
     const button = document.createElement('button');
@@ -30,6 +31,7 @@ projects.forEach(project => {
     button.onclick = () => { 
         runnerFrame.src = filePath; 
         currentProjectParam = projectParam;
+        currentFilePath = filePath;
     };
     fileList.appendChild(button);
 });
@@ -51,11 +53,14 @@ if (projectToLoad) {
         let filePath = (typeof foundProject === 'object') ? foundProject.path : `html_${foundProject}.html`;
         runnerFrame.src = filePath;
         currentProjectParam = (typeof foundProject === 'object') ? foundProject.name : foundProject;
+        currentFilePath = filePath;
     } else {
         runnerFrame.src = 'html_welcome.html';
+        currentFilePath = 'html_welcome.html';
     }
 } else {
     runnerFrame.src = 'html_welcome.html';
+    currentFilePath = 'html_welcome.html';
 }
 
 // ==========================================
@@ -64,8 +69,15 @@ if (projectToLoad) {
 
 const shareBtn = document.getElementById('share-btn');
 const fullscreenBtn = document.getElementById('fullscreen-btn');
+const openFullBtn = document.getElementById('open-full-btn');
 const toggleBtn = document.getElementById('toggle-ui-btn');
 const mainContent = document.querySelector('.main-content');
+
+// --- Open Full Project Page Logic ---
+openFullBtn.addEventListener('click', () => {
+    // Opens the specific project's file path in a new tab
+    window.open(currentFilePath, '_blank');
+});
 
 // --- Share URL Generator Logic ---
 shareBtn.addEventListener('click', () => {
@@ -94,6 +106,7 @@ fullscreenBtn.addEventListener('click', () => {
 function toggleOverlayButtons() {
     fullscreenBtn.classList.toggle('hidden');
     shareBtn.classList.toggle('hidden');
+    openFullBtn.classList.toggle('hidden');
 }
 
 // Bind toggle to the button click
