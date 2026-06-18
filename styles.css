@@ -114,7 +114,7 @@ body {
 }
 
 /* UI Control Buttons Layering */
-#fullscreen-btn, #share-btn {
+#fullscreen-btn, #share-btn, #open-full-btn {
     position: absolute;
     top: 10px;
     z-index: 10;
@@ -133,10 +133,14 @@ body {
 }
 
 #share-btn {
-    right: 125px; 
+    right: 110px; 
 }
 
-#fullscreen-btn:hover, #share-btn:hover {
+#open-full-btn {
+    right: 235px;
+}
+
+#fullscreen-btn:hover, #share-btn:hover, #open-full-btn:hover {
     background: rgba(255, 255, 255, 0.2);
 }
 
