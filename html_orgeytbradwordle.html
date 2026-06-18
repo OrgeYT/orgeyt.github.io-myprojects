@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OrgeYT & Brad Wordle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #050505; /* Deep black background */
+            color: #ffffff;
+            touch-action: manipulation; /* Prevents double-tap zooming */
+        }
+
+        /* Dynamic row setup for varying word lengths */
+        .board-row {
+            display: grid;
+            grid-template-columns: repeat(var(--cols, 5), 1fr);
+            gap: 4px;
+            width: 100%;
+            /* Cap the width to look good on desktop, but allow full width on mobile */
+            max-width: calc(var(--cols, 5) * 3.5rem); 
+            margin: 0 auto;
+        }
+
+        .tile {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            /* Dynamically shrink text if the word is super long */
+            font-size: clamp(0.6rem, calc(60vw / var(--cols, 5)), 2rem);
+            border: 2px solid #333;
+            text-transform: uppercase;
+            user-select: none;
+            transition: transform 0.15s ease-in-out;
+        }
+
+        .tile.is-space {
+            background-color: #000000; /* Darker square for space */
+            border: none;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);
+        }
+
+        /* Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            40% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop {
+            animation: popIn 0.15s ease-in-out;
+            border-color: #555;
+        }
+
+        @keyframes flipIn {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(-90deg); }
+            100% { transform: rotateX(0); }
+        }
+        .flip {
+            animation: flipIn 0.5s ease-in;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+        .shake {
+            animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        /* Keyboard styles */
+        .key {
+            background-color: #1a1a1b;
+            color: #ffffff;
+            border-radius: 4px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        .key:active {
+            transform: scale(0.95);
+        }
+        .key.large {
+            flex-grow: 1.5;
+            font-size: 0.8rem;
+        }
+
+        /* Theme Colors */
+        .theme-cyan { background-color: #00FFFF !important; border-color: #00FFFF !important; color: #000 !important; }
+        .theme-orange { background-color: #FFA500 !important; border-color: #FFA500 !important; color: #000 !important; }
+        .theme-dark { background-color: #333333 !important; border-color: #333333 !important; color: #aaa !important; }
+        
+        /* Modal Backdrop */
+        #modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+<body class="flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="relative flex items-center justify-center p-4 border-b border-gray-800 shrink-0">
+        <h1 class="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-cyan-400 text-center tracking-tight">
+            OrgeYT & Brad Wordle
+        </h1>
+        <div class="absolute right-4 md:right-8 flex gap-2">
+            <button id="help-btn" class="w-8 h-8 rounded-full border-2 border-gray-500 text-gray-400 flex items-center justify-center font-bold hover:text-cyan-400 hover:border-cyan-400 transition-colors cursor-pointer" title="Word Solver">
+                💡
+            </button>
+            <button id="about-btn" class="w-8 h-8 rounded-full border-2 border-gray-500 text-gray-400 flex items-center justify-center font-bold hover:text-white hover:border-white transition-colors cursor-pointer" title="How to play">
+                ?
+            </button>
+        </div>
+    </header>
+
+    <!-- Game Board -->
+    <main class="flex-grow flex items-center justify-center overflow-y-auto px-2 py-4">
+        <div id="board" class="w-full flex flex-col gap-1 md:gap-2">
+            <!-- Rows will be injected here by JS -->
+        </div>
+    </main>
+
+    <!-- Virtual Keyboard -->
+    <div id="keyboard" class="w-full max-w-3xl mx-auto p-2 pb-6 shrink-0 flex flex-col gap-2 select-none">
+        <div class="flex justify-center gap-1.5 h-12">
+            <button class="key flex-1" data-key="1">1</button>
+            <button class="key flex-1" data-key="2">2</button>
+            <button class="key flex-1" data-key="3">3</button>
+            <button class="key flex-1" data-key="4">4</button>
+            <button class="key flex-1" data-key="5">5</button>
+            <button class="key flex-1" data-key="6">6</button>
+            <button class="key flex-1" data-key="7">7</button>
+            <button class="key flex-1" data-key="8">8</button>
+            <button class="key flex-1" data-key="9">9</button>
+            <button class="key flex-1" data-key="0">0</button>
+        </div>
+        <div class="flex justify-center gap-1.5 h-12">
+            <button class="key flex-1" data-key="Q">Q</button>
+            <button class="key flex-1" data-key="W">W</button>
+            <button class="key flex-1" data-key="E">E</button>
+            <button class="key flex-1" data-key="R">R</button>
+            <button class="key flex-1" data-key="T">T</button>
+            <button class="key flex-1" data-key="Y">Y</button>
+            <button class="key flex-1" data-key="U">U</button>
+            <button class="key flex-1" data-key="I">I</button>
+            <button class="key flex-1" data-key="O">O</button>
+            <button class="key flex-1" data-key="P">P</button>
+        </div>
+        <div class="flex justify-center gap-1.5 h-12 px-4">
+            <button class="key flex-1" data-key="A">A</button>
+            <button class="key flex-1" data-key="S">S</button>
+            <button class="key flex-1" data-key="D">D</button>
+            <button class="key flex-1" data-key="F">F</button>
+            <button class="key flex-1" data-key="G">G</button>
+            <button class="key flex-1" data-key="H">H</button>
+            <button class="key flex-1" data-key="J">J</button>
+            <button class="key flex-1" data-key="K">K</button>
+            <button class="key flex-1" data-key="L">L</button>
+        </div>
+        <div class="flex justify-center gap-1.5 h-12">
+            <button class="key large" data-key="ENTER">ENTER</button>
+            <button class="key flex-1" data-key="Z">Z</button>
+            <button class="key flex-1" data-key="X">X</button>
+            <button class="key flex-1" data-key="C">C</button>
+            <button class="key flex-1" data-key="V">V</button>
+            <button class="key flex-1" data-key="B">B</button>
+            <button class="key flex-1" data-key="N">N</button>
+            <button class="key flex-1" data-key="M">M</button>
+            <button class="key flex-1" data-key=".">.</button>
+            <button class="key large" data-key="BACKSPACE">⌫</button>
+        </div>
+    </div>
+
+    <!-- Modals / Messages -->
+    <div id="help-backdrop" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 border-2 border-cyan-500 rounded-2xl p-6 max-w-md w-full text-left shadow-2xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[80vh]" id="help-modal">
+            <div class="flex justify-between items-center mb-4 shrink-0">
+                <h2 class="text-2xl font-bold text-white">Word Solver</h2>
+                <button id="close-help-btn" class="text-gray-400 hover:text-white font-bold text-3xl leading-none focus:outline-none">&times;</button>
+            </div>
+            <div class="space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                <p class="text-sm text-gray-300">Stuck? Enter the word length and known letters to get hints!</p>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2">Word Length (includes spaces)</label>
+                    <input type="number" id="help-length" class="w-full bg-black text-white border border-gray-700 rounded p-3 focus:border-cyan-500 focus:outline-none" placeholder="e.g. 6">
+                </div>
+                <div>
+                    <label class="block text-gray-300 text-sm font-bold mb-2">Known Letters</label>
+                    <input type="text" id="help-letters" class="w-full bg-black text-white border border-gray-700 rounded p-3 focus:border-cyan-500 focus:outline-none uppercase" placeholder="e.g. ORG">
+                </div>
+                <button id="help-solve-btn" class="w-full py-3 px-4 rounded font-bold text-black bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 transition-colors shadow-lg active:scale-95">
+                    Find Possible Words
+                </button>
+                
+                <div id="help-results" class="mt-4 space-y-2 font-bold empty:hidden border-t border-gray-700 pt-4 pb-2">
+                    <!-- Results injected here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="about-backdrop" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 border-2 border-cyan-500 rounded-2xl p-6 max-w-md w-full text-left shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="about-modal">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-white">How To Play</h2>
+                <button id="close-about-btn" class="text-gray-400 hover:text-white font-bold text-3xl leading-none focus:outline-none">&times;</button>
+            </div>
+            <p class="text-gray-300 mb-6">Guess the word or phrase in 6 tries. The color of the tiles will change to show how close your guess was.</p>
+            <div class="space-y-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 flex items-center justify-center font-black text-xl text-black bg-[#00FFFF] rounded shrink-0">C</div>
+                    <p class="text-sm text-gray-300"><strong class="text-cyan-400">Cyan</strong> means the letter is in the word and in the correct spot.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 flex items-center justify-center font-black text-xl text-black bg-[#FFA500] rounded shrink-0">O</div>
+                    <p class="text-sm text-gray-300"><strong class="text-orange-500">Orange</strong> means the letter is in the word but in the wrong spot.</p>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 flex items-center justify-center font-black text-xl text-gray-400 bg-[#333333] rounded shrink-0">D</div>
+                    <p class="text-sm text-gray-300"><strong class="text-gray-500">Dark Gray</strong> means the letter is not in the word in any spot.</p>
+                </div>
+                <div class="flex items-center gap-4 pt-4 border-t border-gray-700">
+                    <div class="w-12 h-12 flex items-center justify-center font-black text-transparent bg-black rounded shrink-0" style="box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.05);">_</div>
+                    <p class="text-sm text-gray-300">Darker blocks are <strong>spaces</strong> for phrases. They skip automatically.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message-container" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 flex flex-col items-center pointer-events-none"></div>
+
+    <div id="modal-backdrop" class="fixed inset-0 bg-black/80 hidden z-40 flex items-center justify-center p-4">
+        <div class="bg-gray-900 border-2 border-orange-500 rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl transform scale-95 opacity-0 transition-all duration-300" id="end-modal">
+            <h2 id="modal-title" class="text-3xl font-bold mb-4 text-cyan-400">Game Over</h2>
+            <p id="modal-message" class="text-lg mb-6 text-gray-300">The word was: <span id="modal-word" class="font-bold text-white"></span></p>
+            <button onclick="initGame()" class="w-full py-3 px-6 rounded-full font-bold text-black bg-gradient-to-r from-orange-500 to-cyan-500 hover:from-orange-400 hover:to-cyan-400 transition-colors shadow-lg shadow-orange-500/20 active:scale-95">
+                Play Again
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const WORDS = [
+            "OrgeYT", "Noob", "Boon", "Brad", "Bradbot2020", "Poon", "Fcr", 
+            "Flying car retake", "Maverick", "Flying car", "Lisa", "Ryan", 
+            "Dave", "President Car", "Overdrive", "Overide", "Rockcar", 
+            "Ajax", "Ario", "Roblox", "Orge", "Owner", "Ultimate Dodging Two", 
+            "Ultimate Dodging", "Scratch", "Polygon Printer", "Polygon Printer 2", 
+            "Longname", "Shortname", "Bnoob", "Cooking with Bnoob", "Project Bnoob", 
+            "Retake", "Orange", "Cyan", "Fast Noob", "Heart Kinded Noob", "Small Guy", 
+            "Red noob", "Scratch Cat", "Dummy", "Rodamrix", "Fcr Official", "Among us", 
+            "OrgeYTs Html Projects", "OrgeYT.exe", "Bdong", "hex of the hour", "bpm", "fcr music maker", "youtube channel", "youtube"
+        ];
+
+        const MAX_GUESSES = 6;
+        let targetWord = "";
+        let targetWordUpper = "";
+        let currentGuessRow = 0;
+        let currentTileIndex = 0;
+        let isGameOver = false;
+        let isAnimating = false;
+
+        const boardElement = document.getElementById("board");
+        const messageContainer = document.getElementById("message-container");
+        const modalBackdrop = document.getElementById("modal-backdrop");
+        const endModal = document.getElementById("end-modal");
+        
+        const aboutBackdrop = document.getElementById("about-backdrop");
+        const aboutModal = document.getElementById("about-modal");
+
+        const helpBackdrop = document.getElementById("help-backdrop");
+        const helpModal = document.getElementById("help-modal");
+
+        document.getElementById("help-btn").addEventListener("click", () => {
+            // Auto-fill the length field based on current targetWord
+            if (targetWord) {
+                document.getElementById("help-length").value = targetWord.length;
+            }
+            
+            helpBackdrop.classList.remove("hidden");
+            setTimeout(() => {
+                helpModal.classList.remove("scale-95", "opacity-0");
+                helpModal.classList.add("scale-100", "opacity-100");
+            }, 10);
+        });
+
+        document.getElementById("close-help-btn").addEventListener("click", () => {
+            helpModal.classList.remove("scale-100", "opacity-100");
+            helpModal.classList.add("scale-95", "opacity-0");
+            setTimeout(() => {
+                helpBackdrop.classList.add("hidden");
+            }, 300);
+        });
+
+        document.getElementById("help-solve-btn").addEventListener("click", () => {
+            const lengthInput = document.getElementById("help-length").value;
+            // Extract only valid letters, numbers, and dots from input
+            const lettersInput = document.getElementById("help-letters").value.toUpperCase().replace(/[^A-Z0-9\.]/g, '');
+            const resultsContainer = document.getElementById("help-results");
+            
+            resultsContainer.innerHTML = ''; // clear previous results
+
+            const knownLetters = lettersInput.split('');
+            const targetLength = parseInt(lengthInput);
+
+            let possibleWords = WORDS.filter(word => {
+                // 1. Check length
+                if (!isNaN(targetLength) && targetLength > 0) {
+                    if (word.length !== targetLength) return false;
+                }
+                
+                // 2. Check if all known letters are present
+                const wordUpper = word.toUpperCase();
+                for (let letter of knownLetters) {
+                    if (!wordUpper.includes(letter)) {
+                        return false;
+                    }
+                }
+                return true;
+            });
+
+            if (possibleWords.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-gray-400 font-normal">No words found matching those criteria.</p>';
+            } else {
+                resultsContainer.innerHTML = '<p class="text-gray-300 font-normal text-sm mb-2">Possible words (' + possibleWords.length + '):</p>';
+                possibleWords.forEach(w => {
+                    const el = document.createElement("div");
+                    el.className = "bg-black p-2 rounded border border-orange-500 text-cyan-400 flex items-center justify-between tracking-wide";
+                    el.innerText = w;
+                    resultsContainer.appendChild(el);
+                });
+            }
+        });
+
+        document.getElementById("about-btn").addEventListener("click", () => {
+            aboutBackdrop.classList.remove("hidden");
+            // Delay added so display:block registers before starting transition
+            setTimeout(() => {
+                aboutModal.classList.remove("scale-95", "opacity-0");
+                aboutModal.classList.add("scale-100", "opacity-100");
+            }, 10);
+        });
+
+        document.getElementById("close-about-btn").addEventListener("click", () => {
+            aboutModal.classList.remove("scale-100", "opacity-100");
+            aboutModal.classList.add("scale-95", "opacity-0");
+            setTimeout(() => {
+                aboutBackdrop.classList.add("hidden");
+            }, 300);
+        });
+
+        function initGame() {
+            // Pick random word
+            targetWord = WORDS[Math.floor(Math.random() * WORDS.length)];
+            targetWordUpper = targetWord.toUpperCase();
+            
+            // Reset state
+            currentGuessRow = 0;
+            currentTileIndex = 0;
+            isGameOver = false;
+            isAnimating = false;
+            boardElement.innerHTML = '';
+            
+            // Hide Modals
+            modalBackdrop.classList.add("hidden");
+            endModal.classList.remove("scale-100", "opacity-100");
+            endModal.classList.add("scale-95", "opacity-0");
+
+            // Reset keyboard colors
+            document.querySelectorAll(".key").forEach(key => {
+                key.classList.remove("theme-cyan", "theme-orange", "theme-dark");
+            });
+
+            // Set CSS variable for dynamic column sizing
+            const columns = targetWordUpper.length;
+            document.documentElement.style.setProperty('--cols', columns);
+
+            // Generate Grid
+            for (let r = 0; r < MAX_GUESSES; r++) {
+                const row = document.createElement("div");
+                row.className = "board-row";
+                row.id = `row-${r}`;
+                
+                for (let c = 0; c < columns; c++) {
+                    const tile = document.createElement("div");
+                    tile.className = "tile rounded";
+                    tile.id = `tile-${r}-${c}`;
+                    
+                    // Pre-fill and style spaces
+                    if (targetWordUpper[c] === ' ') {
+                        tile.classList.add("is-space");
+                        // We put an invisible space so grid sizing doesn't collapse
+                        tile.innerText = " "; 
+                    }
+                    
+                    row.appendChild(tile);
+                }
+                boardElement.appendChild(row);
+            }
+
+            // Immediately skip leading spaces if any exist
+            skipSpacesForward();
+        }
+
+        function skipSpacesForward() {
+            while (currentTileIndex < targetWordUpper.length && targetWordUpper[currentTileIndex] === ' ') {
+                currentTileIndex++;
+            }
+        }
+
+        function skipSpacesBackward() {
+            while (currentTileIndex >= 0 && targetWordUpper[currentTileIndex] === ' ') {
+                currentTileIndex--;
+            }
+        }
+
+        function showMessage(msg, duration = 2000) {
+            const el = document.createElement("div");
+            el.className = "bg-white text-black font-bold px-4 py-2 rounded shadow-lg mb-2 transform transition-all duration-300 opacity-0 scale-90";
+            el.innerText = msg;
+            messageContainer.appendChild(el);
+            
+            // Fade in
+            setTimeout(() => {
+                el.classList.remove("opacity-0", "scale-90");
+                el.classList.add("opacity-100", "scale-100");
+            }, 10);
+
+            // Fade out and remove
+            setTimeout(() => {
+                el.classList.remove("opacity-100", "scale-100");
+                el.classList.add("opacity-0", "scale-90");
+                setTimeout(() => el.remove(), 300);
+            }, duration);
+        }
+
+        function handleKeyClick(key) {
+            if (isGameOver || isAnimating) return;
+
+            const letter = key.toUpperCase();
+
+            if (letter === 'ENTER') {
+                submitGuess();
+            } else if (letter === 'BACKSPACE') {
+                deleteLetter();
+            } else if (/^[A-Z0-9\.]$/.test(letter)) {
+                addLetter(letter);
+            }
+        }
+
+        function addLetter(letter) {
+            skipSpacesForward(); // Ensure we aren't on a space
+            
+            if (currentTileIndex < targetWordUpper.length) {
+                const tile = document.getElementById(`tile-${currentGuessRow}-${currentTileIndex}`);
+                tile.innerText = letter;
+                
+                // Trigger pop animation
+                tile.classList.remove("pop");
+                void tile.offsetWidth; // trigger reflow
+                tile.classList.add("pop");
+
+                currentTileIndex++;
+                skipSpacesForward(); // Skip spaces for the next input
+            }
+        }
+
+        function deleteLetter() {
+            // First step back
+            currentTileIndex--;
+            skipSpacesBackward();
+
+            // If we haven't retreated before the start of the row
+            if (currentTileIndex >= 0) {
+                const tile = document.getElementById(`tile-${currentGuessRow}-${currentTileIndex}`);
+                tile.innerText = '';
+                tile.classList.remove("pop"); // Reset border highlight
+            } else {
+                // Keep index clamped
+                currentTileIndex = 0;
+                skipSpacesForward();
+            }
+        }
+
+        function submitGuess() {
+            // Check if the row is fully filled (ignoring spaces)
+            let isRowFull = true;
+            for (let i = 0; i < targetWordUpper.length; i++) {
+                if (targetWordUpper[i] !== ' ') {
+                    const tileText = document.getElementById(`tile-${currentGuessRow}-${i}`).innerText;
+                    if (tileText === '' || tileText === ' ') {
+                        isRowFull = false;
+                        break;
+                    }
+                }
+            }
+
+            if (!isRowFull) {
+                showMessage("Not enough letters!");
+                const row = document.getElementById(`row-${currentGuessRow}`);
+                row.classList.remove("shake");
+                void row.offsetWidth; // trigger reflow
+                row.classList.add("shake");
+                return;
+            }
+
+            evaluateAndAnimateGuess();
+        }
+
+        function updateKeyboardColor(keyString, colorClass) {
+            const keys = document.querySelectorAll(".key");
+            for (let key of keys) {
+                if (key.getAttribute("data-key") === keyString) {
+                    // Precedence: Cyan > Orange > Dark
+                    if (key.classList.contains("theme-cyan")) return;
+                    if (key.classList.contains("theme-orange") && colorClass === "theme-dark") return;
+                    
+                    key.classList.remove("theme-cyan", "theme-orange", "theme-dark");
+                    key.classList.add(colorClass);
+                    return;
+                }
+            }
+        }
+
+        function evaluateAndAnimateGuess() {
+            isAnimating = true;
+            let guessString = "";
+            let unallocatedTarget = {};
+            const tileResults = new Array(targetWordUpper.length).fill(null);
+
+            // Tally letters for 'Present' evaluation (ignoring spaces)
+            for (let i = 0; i < targetWordUpper.length; i++) {
+                let char = targetWordUpper[i];
+                if (char !== ' ') {
+                    unallocatedTarget[char] = (unallocatedTarget[char] || 0) + 1;
+                }
+            }
+
+            // PASS 1: Find Exact Matches (Cyan)
+            for (let i = 0; i < targetWordUpper.length; i++) {
+                if (targetWordUpper[i] === ' ') continue;
+
+                const tileText = document.getElementById(`tile-${currentGuessRow}-${i}`).innerText;
+                guessString += tileText;
+
+                if (tileText === targetWordUpper[i]) {
+                    tileResults[i] = "theme-cyan";
+                    unallocatedTarget[tileText]--;
+                }
+            }
+
+            // PASS 2: Find Present / Absent
+            for (let i = 0; i < targetWordUpper.length; i++) {
+                if (targetWordUpper[i] === ' ' || tileResults[i] !== null) continue;
+
+                const tileText = document.getElementById(`tile-${currentGuessRow}-${i}`).innerText;
+                
+                if (unallocatedTarget[tileText] && unallocatedTarget[tileText] > 0) {
+                    tileResults[i] = "theme-orange";
+                    unallocatedTarget[tileText]--;
+                } else {
+                    tileResults[i] = "theme-dark";
+                }
+            }
+
+            // Execute Animations
+            const targetLengthWithoutSpaces = targetWordUpper.replace(/ /g, '').length;
+            const targetWordWithoutSpaces = targetWordUpper.replace(/ /g, '');
+            let animationDelay = 0;
+            const delayStep = 300; // ms
+
+            for (let i = 0; i < targetWordUpper.length; i++) {
+                if (targetWordUpper[i] === ' ') continue;
+
+                const tile = document.getElementById(`tile-${currentGuessRow}-${i}`);
+                const colorClass = tileResults[i];
+                const letter = tile.innerText;
+
+                setTimeout(() => {
+                    tile.classList.add("flip");
+                    
+                    // Change color half-way through the flip (at 250ms)
+                    setTimeout(() => {
+                        tile.classList.add(colorClass);
+                        tile.style.borderColor = "transparent"; // Remove standard border when colored
+                        updateKeyboardColor(letter, colorClass);
+                    }, 250);
+
+                }, animationDelay);
+                
+                animationDelay += delayStep;
+            }
+
+            // Check Win / Loss after animations finish
+            setTimeout(() => {
+                const won = (guessString === targetWordWithoutSpaces);
+                
+                if (won) {
+                    showEndGame(true);
+                } else if (currentGuessRow >= MAX_GUESSES - 1) {
+                    showEndGame(false);
+                } else {
+                    currentGuessRow++;
+                    currentTileIndex = 0;
+                    skipSpacesForward();
+                    isAnimating = false;
+                }
+            }, animationDelay + 300);
+        }
+
+        function showEndGame(won) {
+            isGameOver = true;
+            isAnimating = false;
+
+            const title = document.getElementById("modal-title");
+            const wordSpan = document.getElementById("modal-word");
+
+            if (won) {
+                title.innerText = "Fantastic!";
+                title.className = "text-3xl font-bold mb-4 text-cyan-400";
+            } else {
+                title.innerText = "Game Over";
+                title.className = "text-3xl font-bold mb-4 text-orange-500";
+            }
+
+            // Keep original casing for display
+            wordSpan.innerText = targetWord;
+
+            modalBackdrop.classList.remove("hidden");
+            // Tiny delay for transitions
+            setTimeout(() => {
+                endModal.classList.remove("scale-95", "opacity-0");
+                endModal.classList.add("scale-100", "opacity-100");
+            }, 50);
+        }
+
+        // Attach event listeners for Physical Keyboard
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") handleKeyClick("ENTER");
+            else if (e.key === "Backspace") handleKeyClick("BACKSPACE");
+            else if (/^[a-zA-Z0-9\.]$/.test(e.key)) handleKeyClick(e.key);
+        });
+
+        // Attach event listeners for Virtual Keyboard
+        document.querySelectorAll(".key").forEach(key => {
+            key.addEventListener("click", () => {
+                handleKeyClick(key.getAttribute("data-key"));
+            });
+        });
+
+        // Start game on load
+        window.onload = initGame;
+
+    </script>
+</body>
+</html>
