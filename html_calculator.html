@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Scientific Calculator</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            black: '#090d16',
+                            dark: '#111827',
+                            gray: '#1f2937',
+                            blue: '#3b82f6',
+                            cyan: '#06b6d4',
+                            glow: '#00d2ff'
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(59, 130, 246, 0.4)',
+                        'neon-strong': '0 0 25px rgba(6, 182, 212, 0.6)',
+                        'inner-dark': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.6)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar for display */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1f2937;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b82f6;
+        }
+        .btn-active-glow:active {
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-brand-black text-slate-100 flex flex-col min-h-full font-sans overflow-x-hidden antialiased">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-gray-800/80 bg-brand-dark/90 backdrop-blur-md sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-neon">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-md font-bold tracking-wider bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">QUANTUM</h1>
+                    <p class="text-[10px] text-slate-500 tracking-widest leading-none">SCIENTIFIC ENGINE</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4 text-xs">
+                <!-- Angle Mode Toggle Indicator -->
+                <div class="flex bg-brand-black rounded-full p-0.5 border border-gray-800">
+                    <button id="degBtn" onclick="setAngleMode('DEG')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 bg-blue-600 text-white shadow-neon">DEG</button>
+                    <button id="radBtn" onclick="setAngleMode('RAD')" class="px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 text-slate-400">RAD</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Grid -->
+    <main class="flex-grow max-w-6xl w-full mx-auto p-3 sm:p-6 flex flex-col items-center justify-center">
+        
+        <!-- Calculator Unit -->
+        <div class="w-full max-w-2xl bg-brand-dark/40 border border-slate-800/80 rounded-3xl p-4 sm:p-6 flex flex-col justify-between shadow-2xl backdrop-blur-xl relative overflow-hidden">
+            <!-- Background Glows -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <!-- Display Area -->
+            <div class="mb-5 bg-brand-black/95 rounded-2xl p-4 sm:p-5 border border-slate-800 shadow-inner-dark relative group">
+                <!-- Status Row -->
+                <div class="flex justify-between items-center text-xs text-slate-500 mb-2 font-mono">
+                    <div class="flex items-center gap-1.5">
+                        <span id="modeDisplay" class="px-1.5 py-0.5 rounded bg-blue-950 text-blue-400 text-[10px] font-bold tracking-wider">DEG</span>
+                        <span id="memoryIndicator" class="hidden px-1.5 py-0.5 rounded bg-cyan-950 text-cyan-400 text-[10px] font-bold">M</span>
+                    </div>
+                    <!-- Copy Formula Button -->
+                    <button onclick="copyDisplay()" class="hover:text-blue-400 transition-colors flex items-center gap-1 bg-slate-900/50 hover:bg-slate-900 px-2 py-0.5 rounded" title="Copy expression">
+                        <span id="copyFeedback" class="text-[10px]">Copy</span>
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Equation/Expression Output (scrollable) -->
+                <div id="equationDisplay" class="text-right text-slate-400 text-sm sm:text-base font-mono min-h-[1.5rem] overflow-x-auto whitespace-nowrap scrollbar-none opacity-80 leading-tight"></div>
+                
+                <!-- Main Value Output -->
+                <div id="valueDisplay" class="text-right text-3xl sm:text-4xl md:text-5xl font-semibold font-mono text-white overflow-x-auto whitespace-nowrap mt-1 tracking-tight">0</div>
+            </div>
+
+            <!-- Warning/Alert Toast UI -->
+            <div id="toastMessage" class="hidden mb-4 bg-red-950/80 border border-red-800 text-red-200 px-4 py-2 rounded-xl text-xs flex justify-between items-center animate-pulse">
+                <span id="toastText">Error: Invalid Syntax</span>
+                <button onclick="dismissToast()" class="text-red-400 hover:text-red-200 font-bold">&times;</button>
+            </div>
+
+            <!-- Scientific Mode & Basic Buttons Wrapper Grid -->
+            <div class="flex flex-col gap-4">
+                <!-- Memory and Toggle Row -->
+                <div class="grid grid-cols-6 gap-2 text-xs font-semibold font-mono">
+                    <button onclick="handleMemory('MC')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition-all duration-150 active:scale-95">MC</button>
+                    <button onclick="handleMemory('MR')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition-all duration-150 active:scale-95">MR</button>
+                    <button onclick="handleMemory('M+')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition-all duration-150 active:scale-95">M+</button>
+                    <button onclick="handleMemory('M-')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-slate-300 transition-all duration-150 active:scale-95">M-</button>
+                    <button onclick="inputConstant('Math.PI')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-cyan-400 transition-all duration-150 active:scale-95">π</button>
+                    <button onclick="inputConstant('Math.E')" class="py-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800 text-cyan-400 transition-all duration-150 active:scale-95">e</button>
+                </div>
+
+                <!-- Responsive Keypad Container -->
+                <div class="grid grid-cols-4 sm:grid-cols-7 gap-2">
+
+                    <!-- Scientific Controls -->
+                    <!-- Row 1 Sci -->
+                    <button onclick="inputFunction('sin')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">sin</button>
+                    <button onclick="inputFunction('cos')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">cos</button>
+                    <button onclick="inputFunction('tan')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">tan</button>
+
+                    <!-- Standard Operator Block -->
+                    <button onclick="clearAll()" class="py-3 rounded-2xl bg-red-950/80 hover:bg-red-900/90 text-red-300 text-sm font-bold border border-red-900/50 transition-all duration-150 active:scale-95">C</button>
+                    <button onclick="backspace()" class="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-sm font-semibold flex items-center justify-center transition-all duration-150 active:scale-95" title="Backspace">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.41-6.41A2 2 0 0110.83 5H19a2 2 0 012 2v10a2 2 0 01-2 2h-8.17a2 2 0 01-1.42-.59L3 12z" />
+                        </svg>
+                    </button>
+                    <button onclick="inputOperator('%')" class="py-3 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all duration-150 active:scale-95">mod</button>
+                    <button onclick="inputOperator('/')" class="py-3 rounded-2xl bg-blue-950 hover:bg-blue-900/80 text-blue-400 text-lg font-bold border border-blue-900/30 transition-all duration-150 active:scale-95">/</button>
+
+                    <!-- Row 2 Sci -->
+                    <button onclick="inputFunction('asin')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">sin⁻¹</button>
+                    <button onclick="inputFunction('acos')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">cos⁻¹</button>
+                    <button onclick="inputFunction('atan')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">tan⁻¹</button>
+
+                    <!-- Standard Numbers Row 7-9 -->
+                    <button onclick="inputNumber('7')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">7</button>
+                    <button onclick="inputNumber('8')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">8</button>
+                    <button onclick="inputNumber('9')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">9</button>
+                    <button onclick="inputOperator('*')" class="py-3 rounded-2xl bg-blue-950 hover:bg-blue-900/80 text-blue-400 text-lg font-bold border border-blue-900/30 transition-all duration-150 active:scale-95">×</button>
+
+                    <!-- Row 3 Sci -->
+                    <button onclick="inputFunction('ln')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">ln</button>
+                    <button onclick="inputFunction('log')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">log</button>
+                    <button onclick="inputOperator('^')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">xʸ</button>
+
+                    <!-- Standard Numbers Row 4-6 -->
+                    <button onclick="inputNumber('4')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">4</button>
+                    <button onclick="inputNumber('5')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">5</button>
+                    <button onclick="inputNumber('6')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">6</button>
+                    <button onclick="inputOperator('-')" class="py-3 rounded-2xl bg-blue-950 hover:bg-blue-900/80 text-blue-400 text-lg font-bold border border-blue-900/30 transition-all duration-150 active:scale-95">-</button>
+
+                    <!-- Row 4 Sci -->
+                    <button onclick="inputFunction('sqrt')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">√</button>
+                    <button onclick="inputSquare()" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">x²</button>
+                    <button onclick="inputFactorial()" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">x!</button>
+
+                    <!-- Standard Numbers Row 1-3 -->
+                    <button onclick="inputNumber('1')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">1</button>
+                    <button onclick="inputNumber('2')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">2</button>
+                    <button onclick="inputNumber('3')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">3</button>
+                    <button onclick="inputOperator('+')" class="py-3 rounded-2xl bg-blue-950 hover:bg-blue-900/80 text-blue-400 text-lg font-bold border border-blue-900/30 transition-all duration-150 active:scale-95">+</button>
+
+                    <!-- Row 5 Sci (Extra functionality & parentheses) -->
+                    <button onclick="inputParenthesis('(')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">(</button>
+                    <button onclick="inputParenthesis(')')" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">)</button>
+                    <button onclick="inputExp()" class="py-3 px-1 rounded-2xl bg-brand-dark hover:bg-slate-800/80 text-cyan-400 text-xs font-semibold tracking-wide border border-slate-800/40 btn-active-glow transition-all duration-150">EXP</button>
+
+                    <!-- Bottom Row: 0, Dec, Neg, Equals -->
+                    <button onclick="inputSign()" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">±</button>
+                    <button onclick="inputNumber('0')" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">0</button>
+                    <button onclick="inputDecimal()" class="py-3 rounded-2xl bg-slate-900/80 hover:bg-slate-850 text-white text-base font-semibold transition-all duration-150 active:scale-95">.</button>
+                    <button onclick="calculate()" class="py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-slate-950 text-lg font-black border border-cyan-400/50 shadow-neon-strong transition-all duration-150 btn-active-glow">=</button>
+
+                </div>
+            </div>
+
+            <!-- Footer Quick Info -->
+            <div class="mt-4 flex justify-between items-center text-[10px] text-slate-500 border-t border-slate-800/60 pt-3">
+                <span class="flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Engine Live
+                </span>
+                <span>Press keys or click buttons</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App JavaScript Logic -->
+    <script>
+        // Internal State
+        let currentInput = '0';
+        let currentExpression = ''; // The user-friendly visual equation
+        let rawExpression = '';     // The code-friendly JS equation
+        let angleMode = 'DEG';      // 'DEG' or 'RAD'
+        let memoryValue = 0;
+        let lastAnswer = '0';
+        let isEvaluated = false;    // To handle continuous entry after outputting a value
+
+        // Setup Keyboard Event Listeners
+        document.addEventListener('keydown', handleKeyboardInput);
+
+        function setAngleMode(mode) {
+            angleMode = mode;
+            document.getElementById('modeDisplay').innerText = mode;
+            
+            const degBtn = document.getElementById('degBtn');
+            const radBtn = document.getElementById('radBtn');
+
+            if (mode === 'DEG') {
+                degBtn.className = "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 bg-blue-600 text-white shadow-neon";
+                radBtn.className = "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 text-slate-400";
+            } else {
+                radBtn.className = "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 bg-blue-600 text-white shadow-neon";
+                degBtn.className = "px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all duration-200 text-slate-400";
+            }
+        }
+
+        function updateDisplays() {
+            const valDisp = document.getElementById('valueDisplay');
+            const eqDisp = document.getElementById('equationDisplay');
+
+            valDisp.innerText = formatNumberDisplay(currentInput);
+            eqDisp.innerText = currentExpression;
+
+            // Handle dynamic font size for ultra-long values
+            if (currentInput.length > 12) {
+                valDisp.classList.replace('text-3xl', 'text-2xl');
+                valDisp.classList.replace('text-4xl', 'text-2xl');
+                valDisp.classList.replace('text-5xl', 'text-2xl');
+            } else {
+                valDisp.className = "text-right text-3xl sm:text-4xl md:text-5xl font-semibold font-mono text-white overflow-x-auto whitespace-nowrap mt-1 tracking-tight";
+            }
+        }
+
+        function formatNumberDisplay(numStr) {
+            if (numStr.includes('e') || numStr.includes('E')) return numStr;
+            if (numStr === 'Infinity' || numStr === '-Infinity' || numStr === 'NaN') return numStr;
+            return numStr;
+        }
+
+        function inputNumber(num) {
+            dismissToast();
+            if (isEvaluated) {
+                currentInput = num;
+                currentExpression = '';
+                rawExpression = '';
+                isEvaluated = false;
+            } else {
+                if (currentInput === '0') {
+                    currentInput = num;
+                } else {
+                    currentInput += num;
+                }
+            }
+            updateDisplays();
+        }
+
+        function inputDecimal() {
+            dismissToast();
+            if (isEvaluated) {
+                currentInput = '0.';
+                currentExpression = '';
+                rawExpression = '';
+                isEvaluated = false;
+            } else {
+                if (!currentInput.includes('.')) {
+                    currentInput += '.';
+                }
+            }
+            updateDisplays();
+        }
+
+        function inputOperator(op) {
+            dismissToast();
+            
+            if (isEvaluated) {
+                currentExpression = currentInput + ' ' + op + ' ';
+                rawExpression = currentInput + ' ' + (op === '^' ? '**' : op) + ' ';
+                currentInput = '0';
+                isEvaluated = false;
+            } else {
+                currentExpression += currentInput + ' ' + op + ' ';
+                rawExpression += currentInput + ' ' + (op === '^' ? '**' : op) + ' ';
+                currentInput = '0';
+            }
+            updateDisplays();
+        }
+
+        function inputFunction(func) {
+            dismissToast();
+            
+            let displaySymbol = func + '(';
+            let rawSymbol = '';
+
+            switch (func) {
+                case 'sin':
+                    rawSymbol = angleMode === 'DEG' ? 'Math.sin((Math.PI/180)*' : 'Math.sin(';
+                    break;
+                case 'cos':
+                    rawSymbol = angleMode === 'DEG' ? 'Math.cos((Math.PI/180)*' : 'Math.cos(';
+                    break;
+                case 'tan':
+                    rawSymbol = angleMode === 'DEG' ? 'Math.tan((Math.PI/180)*' : 'Math.tan(';
+                    break;
+                case 'asin':
+                    rawSymbol = angleMode === 'DEG' ? '(180/Math.PI)*Math.asin(' : 'Math.asin(';
+                    displaySymbol = 'asin(';
+                    break;
+                case 'acos':
+                    rawSymbol = angleMode === 'DEG' ? '(180/Math.PI)*Math.acos(' : 'Math.acos(';
+                    displaySymbol = 'acos(';
+                    break;
+                case 'atan':
+                    rawSymbol = angleMode === 'DEG' ? '(180/Math.PI)*Math.atan(' : 'Math.atan(';
+                    displaySymbol = 'atan(';
+                    break;
+                case 'ln':
+                    rawSymbol = 'Math.log(';
+                    displaySymbol = 'ln(';
+                    break;
+                case 'log':
+                    rawSymbol = 'Math.log10(';
+                    displaySymbol = 'log10(';
+                    break;
+                case 'sqrt':
+                    rawSymbol = 'Math.sqrt(';
+                    displaySymbol = '√(';
+                    break;
+            }
+
+            if (isEvaluated) {
+                currentExpression = displaySymbol;
+                rawExpression = rawSymbol;
+                currentInput = '0';
+                isEvaluated = false;
+            } else {
+                if (currentInput !== '0') {
+                    currentExpression += currentInput + ' × ' + displaySymbol;
+                    rawExpression += currentInput + ' * ' + rawSymbol;
+                } else {
+                    currentExpression += displaySymbol;
+                    rawExpression += rawSymbol;
+                }
+                currentInput = '0';
+            }
+            updateDisplays();
+        }
+
+        function inputConstant(constName) {
+            dismissToast();
+            const val = constName === 'Math.PI' ? Math.PI.toString() : Math.E.toString();
+            
+            if (isEvaluated) {
+                currentInput = val;
+                currentExpression = '';
+                rawExpression = '';
+                isEvaluated = false;
+            } else {
+                currentInput = val;
+            }
+            updateDisplays();
+        }
+
+        function inputSquare() {
+            dismissToast();
+            if (isEvaluated) {
+                currentExpression = `sqr(${currentInput})`;
+                rawExpression = `Math.pow(${currentInput}, 2)`;
+                calculate();
+            } else {
+                currentExpression += `sqr(${currentInput})`;
+                rawExpression += `Math.pow(${currentInput}, 2)`;
+                currentInput = '0';
+                updateDisplays();
+            }
+        }
+
+        function inputFactorial() {
+            dismissToast();
+            const num = parseFloat(currentInput);
+            if (num < 0 || !Number.isInteger(num)) {
+                showToast("Factorial supports non-negative integers only");
+                return;
+            }
+            
+            const factResult = factorial(num);
+            if (isEvaluated) {
+                currentExpression = `${num}!`;
+                currentInput = factResult.toString();
+            } else {
+                currentInput = factResult.toString();
+            }
+            updateDisplays();
+        }
+
+        function factorial(n) {
+            if (n === 0 || n === 1) return 1;
+            let result = 1;
+            for (let i = 2; i <= n; i++) {
+                result *= i;
+            }
+            return result;
+        }
+
+        function inputParenthesis(char) {
+            dismissToast();
+            if (isEvaluated) {
+                currentExpression = char;
+                rawExpression = char;
+                currentInput = '0';
+                isEvaluated = false;
+            } else {
+                if (char === '(') {
+                    if (currentInput !== '0') {
+                        currentExpression += currentInput + ' × ' + char;
+                        rawExpression += currentInput + ' * ' + char;
+                    } else {
+                        currentExpression += char;
+                        rawExpression += char;
+                    }
+                } else {
+                    currentExpression += currentInput + char;
+                    rawExpression += currentInput + char;
+                }
+                currentInput = '0';
+            }
+            updateDisplays();
+        }
+
+        // Expanded Base (10^x support format)
+        function inputExp() {
+            dismissToast();
+            if (!currentInput.includes('e')) {
+                currentInput += 'e';
+            }
+            updateDisplays();
+        }
+
+        function inputSign() {
+            dismissToast();
+            if (currentInput !== '0') {
+                if (currentInput.startsWith('-')) {
+                    currentInput = currentInput.slice(1);
+                } else {
+                    currentInput = '-' + currentInput;
+                }
+                updateDisplays();
+            }
+        }
+
+        function backspace() {
+            dismissToast();
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplays();
+        }
+
+        function clearAll() {
+            dismissToast();
+            currentInput = '0';
+            currentExpression = '';
+            rawExpression = '';
+            isEvaluated = false;
+            updateDisplays();
+        }
+
+        function handleMemory(op) {
+            dismissToast();
+            const val = parseFloat(currentInput);
+            switch (op) {
+                case 'MC':
+                    memoryValue = 0;
+                    document.getElementById('memoryIndicator').classList.add('hidden');
+                    break;
+                case 'MR':
+                    currentInput = memoryValue.toString();
+                    isEvaluated = false;
+                    break;
+                case 'M+':
+                    memoryValue += val;
+                    document.getElementById('memoryIndicator').classList.remove('hidden');
+                    break;
+                case 'M-':
+                    memoryValue -= val;
+                    document.getElementById('memoryIndicator').classList.remove('hidden');
+                    break;
+            }
+            updateDisplays();
+        }
+
+        function calculate() {
+            try {
+                let finalExpr = rawExpression + currentInput;
+                let displayExpr = currentExpression + (currentInput !== '0' ? currentInput : '');
+
+                if (finalExpr.trim() === '') return;
+
+                const openBrackets = (finalExpr.match(/\(/g) || []).length;
+                const closeBrackets = (finalExpr.match(/\)/g) || []).length;
+                if (openBrackets > closeBrackets) {
+                    const diff = openBrackets - closeBrackets;
+                    finalExpr += ')'.repeat(diff);
+                    displayExpr += ')'.repeat(diff);
+                }
+
+                let result = evaluateExpression(finalExpr);
+                
+                if (typeof result === 'number' && !Number.isInteger(result)) {
+                    result = parseFloat(result.toFixed(10));
+                }
+
+                lastAnswer = result.toString();
+                currentInput = result.toString();
+                currentExpression = '';
+                rawExpression = '';
+                isEvaluated = true;
+
+                updateDisplays();
+            } catch (err) {
+                showToast("Calculation Syntax Error");
+            }
+        }
+
+        function evaluateExpression(expr) {
+            let sanitized = expr
+                .replace(/×/g, '*')
+                .replace(/÷/g, '/');
+
+            const calcFunc = new Function(`return (${sanitized});`);
+            const val = calcFunc();
+            if (val === undefined || isNaN(val)) {
+                throw new Error("Invalid Output");
+            }
+            return val;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toastMessage');
+            const toastTxt = document.getElementById('toastText');
+            toastTxt.innerText = msg;
+            toast.classList.remove('hidden');
+        }
+
+        function dismissToast() {
+            const toast = document.getElementById('toastMessage');
+            toast.classList.add('hidden');
+        }
+
+        function copyDisplay() {
+            const tempInput = document.createElement('input');
+            tempInput.value = currentInput;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            const feedback = document.getElementById('copyFeedback');
+            feedback.innerText = "Copied!";
+            feedback.classList.add('text-cyan-400');
+            setTimeout(() => {
+                feedback.innerText = "Copy";
+                feedback.classList.remove('text-cyan-400');
+            }, 1500);
+        }
+
+        function handleKeyboardInput(e) {
+            const key = e.key;
+            if (key >= '0' && key <= '9') {
+                inputNumber(key);
+            } else if (key === '.') {
+                inputDecimal();
+            } else if (key === '+' || key === '-' || key === '*' || key === '/' || key === '%') {
+                inputOperator(key);
+            } else if (key === '^') {
+                inputOperator('^');
+            } else if (key === '(' || key === ')') {
+                inputParenthesis(key);
+            } else if (key === 'Enter' || key === '=') {
+                e.preventDefault();
+                calculate();
+            } else if (key === 'Backspace') {
+                backspace();
+            } else if (key === 'Escape' || key === 'c' || key === 'C') {
+                clearAll();
+            }
+        }
+    </script>
+</body>
+</html>
