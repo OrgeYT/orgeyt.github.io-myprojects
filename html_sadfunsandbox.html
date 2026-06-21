@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In Loving Memory - Fun Sandbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .tombstone-font {
+            font-family: 'Crimson Text', serif;
+        }
+
+        .grayscale-img {
+            filter: grayscale(100%) contrast(1.2);
+            transition: filter 0.5s ease;
+        }
+        
+        .grayscale-img:hover {
+            filter: grayscale(80%) contrast(1.1);
+        }
+
+        .grave-gradient {
+            background: linear-gradient(180deg, #111827 0%, #1f2937 100%);
+        }
+    </style>
+</head>
+<body class="grave-gradient min-h-screen flex items-center justify-center p-4 text-gray-200">
+
+    <main class="max-w-md w-full bg-gray-900 border-t-8 border-gray-600 rounded-t-3xl rounded-b-lg shadow-2xl p-8 text-center border-x border-b border-gray-700">
+        
+        <!-- Game Icon -->
+        <div class="mb-6">
+            <img src="https://tr.rbxcdn.com/180DAY-357023e47e44b1e931879e9ea1a61e82/352/352/Image/Png/noFilter" 
+                 alt="Fun Sandbox Icon" 
+                 class="w-32 h-32 mx-auto rounded-xl shadow-lg grayscale-img border-2 border-gray-700"
+                 onerror="this.src='https://placehold.co/352x352/333/666?text=?'">
+        </div>
+
+        <!-- Epitaph -->
+        <div class="space-y-4">
+            <h1 class="tombstone-font text-4xl text-gray-300 italic">In Loving Memory</h1>
+            <h2 class="text-2xl font-semibold tracking-wider text-white">Fun Sandbox</h2>
+            
+            <div class="py-4 border-y border-gray-700 my-6">
+                <p class="text-gray-400 text-sm uppercase tracking-widest mb-2">A creative world now silent.</p>
+                <p class="text-xl font-light">11/20/2021 — 11/30/2025</p>
+            </div>
+
+            <p class="text-gray-500 italic text-sm leading-relaxed">
+                Though the creator has departed, the memories of the sandbox remain within the code. Rest in peace.
+            </p>
+        </div>
+
+        <!-- CTA -->
+        <div class="mt-10">
+            <a href="https://www.roblox.com/games/8050968512/Fun-Sandbox" 
+               target="_blank"
+               class="inline-block bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-full transition-all duration-300 hover:scale-105 border border-gray-500">
+                Visit the Grounds
+            </a>
+        </div>
+
+        <div class="mt-6">
+            <audio id="tributeMusic" src="https://file.garden/Zj01o_oh-G9Y8APf/Goodbye%20World%20-%20Friday%20Night%20Funkin%20but%20Boyfriend%20Die%20-%20VERY%20EASY%20Piano%20tutorial%20-%20Piano%20for%20Beginners%20(128k)%20(mp3cut.net).mp3" loop></audio>
+            <button onclick="toggleMusic()" class="text-xs text-gray-500 hover:text-gray-300 transition-colors uppercase tracking-widest cursor-pointer underline underline-offset-4">
+                [Play Requiem]
+            </button>
+        </div>
+        
+        <script>
+            function toggleMusic() {
+                const audio = document.getElementById('tributeMusic');
+                if (audio.paused) {
+                    audio.play();
+                } else {
+                    audio.pause();
+                }
+            }
+        </script>
+    </main>
+
+    <footer class="fixed bottom-4 text-gray-600 text-xs">
+        Memorial created for Fun Sandbox
+    </footer>
+
+</body>
+</html>
