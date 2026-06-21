@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>COLOR MIX!</title>
+
+  <!-- Tailwind and font kept as before -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+
+  <!-- Refactored CSS moved to external file -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="w-full h-screen flex flex-col items-center justify-center">
+
+  <!-- Title Screen -->
+  <div id="title-screen" class="absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#121212]">
+      <h1 class="text-7xl md:text-9xl text-outline float mb-12 text-center text-[#32ade6]">COLOR<br>MIX!</h1>
+      <div class="flex flex-col items-center gap-4">
+          <div class="flex items-center gap-4">
+              <button id="play-btn" class="float-fast bg-[#34c759] text-white text-outline text-4xl md:text-5xl py-4 px-10 rounded-full border-4 border-black hover:bg-[#2fb350] transition-colors shadow-[0_8px_0_black] active:translate-y-2 active:shadow-[0_0px_0_black]">
+                  PLAY
+              </button>
+              <button id="freeplay-btn" class="float-fast bg-[#32ade6] text-white text-outline text-4xl md:text-5xl py-4 px-8 rounded-full border-4 border-black hover:bg-[#2aa6db] transition-colors shadow-[0_8px_0_black] active:translate-y-2 active:shadow-[0_0px_0_black]">
+                  FREEPLAY
+              </button>
+          </div>
+
+          <!-- Cheat Toggle -->
+          <div class="mt-4 flex items-center gap-3 bg-black/40 p-4 rounded-xl border-2 border-[#ff2d55]/50">
+              <input type="checkbox" id="cheat-toggle" class="cheat-checkbox">
+              <label for="cheat-toggle" class="text-2xl md:text-3xl text-outline cursor-pointer text-[#ff2d55] select-none hover:scale-105 transition-transform">
+                  CHEAT MODE
+              </label>
+          </div>
+      </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game-screen" class="hidden w-full h-full max-w-5xl mx-auto flex-col p-4 md:p-8 relative transition-all duration-300">
+      
+      <!-- Annoying Cheat Hint Container -->
+      <div id="cheat-hint" class="hidden absolute text-xl md:text-2xl text-outline-annoying annoying-jiggle pointer-events-none z-50 whitespace-nowrap bg-black/60 px-4 py-2 rounded-lg border-2 border-[#ff00ff]">
+          <!-- Text injected by JS -->
+      </div>
+
+      <!-- Header -->
+      <div class="flex justify-between items-center w-full mt-4">
+          <div class="text-3xl md:text-4xl text-outline tracking-wider flex items-center gap-2 z-10">
+              LIVES: <span id="lives-display" class="text-2xl md:text-3xl tracking-[0.2em] ml-2"></span>
+          </div>
+          <div class="flex items-center gap-4 z-10">
+              <div class="text-3xl md:text-4xl text-outline tracking-wider text-[#ffcc00]">
+                  SCORE: <span id="score-display">0</span>
+              </div>
+              <!-- Exit button: returns to title screen (available in freeplay and normal) -->
+              <button id="exit-btn" class="px-3 py-2 rounded-full bg-[#ff3b30] text-white text-outline-sm border-2 border-black hover:bg-[#e2332a] transition-colors">
+                  EXIT
+              </button>
+          </div>
+      </div>
+
+      <div class="text-center w-full mt-6 mb-2 z-10">
+          <h2 class="text-3xl md:text-4xl text-outline">TARGET COLOR: <span id="target-name" class="uppercase"></span></h2>
+      </div>
+
+      <!-- Main Game Area -->
+      <div class="flex-1 flex flex-col md:flex-row items-center justify-between w-full mt-4 gap-8 md:gap-4 z-10">
+          
+          <!-- Left: Target Indicator -->
+          <div class="flex flex-col items-center justify-center w-full md:w-1/4">
+              <div id="target-circle" class="w-32 h-32 md:w-48 md:h-48 rounded-full border-8 border-black float-delay"></div>
+          </div>
+
+          <!-- Center: Mixing Area -->
+          <div class="flex flex-col items-center justify-center w-full md:w-2/4 h-48 md:h-64 relative">
+              <div class="w-full max-w-[300px] h-full relative" id="mix-container">
+                  <!-- Slots -->
+                  <div id="mix-1" class="mix-circle mix-left w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-black z-10"></div>
+                  <div id="mix-2" class="mix-circle mix-right w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-black z-10"></div>
+                  <!-- Result -->
+                  <div id="mix-result" class="mix-result w-32 h-32 md:w-40 md:h-40 rounded-full border-8 border-black z-20 flex items-center justify-center text-4xl text-outline"></div>
+              </div>
+              
+              <div id="mix-status" class="mt-4 text-3xl md:text-4xl text-outline h-10 transition-opacity duration-300 opacity-0"></div>
+          </div>
+
+          <!-- Right: Palette -->
+          <div class="flex flex-col items-center justify-center w-full md:w-1/4">
+              <div class="w-full max-w-xs flex flex-col items-center gap-2">
+                  <div class="w-full flex justify-between items-center gap-2">
+                      <button id="palette-prev" class="px-3 py-2 rounded-full bg-black/40 border-2 border-black text-lg text-outline-sm">◀</button>
+                      <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 w-full" id="palette">
+                          <!-- Buttons generated by JS -->
+                      </div>
+                      <button id="palette-next" class="px-3 py-2 rounded-full bg-black/40 border-2 border-black text-lg text-outline-sm">▶</button>
+                  </div>
+                  <div id="palette-page-indicator" class="text-sm text-outline-sm opacity-80"></div>
+              </div>
+          </div>
+
+      </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="game-over-screen" class="hidden absolute inset-0 flex flex-col items-center justify-center z-50 bg-[#121212]/95 backdrop-blur-sm">
+      <h1 class="text-6xl md:text-8xl text-outline text-[#ff3b30] float mb-6">GAME OVER!</h1>
+      <p class="text-3xl md:text-5xl text-outline mb-12">FINAL SCORE: <span id="final-score" class="text-[#ffcc00]">0</span></p>
+      <p id="cheat-shame" class="hidden text-xl md:text-2xl text-outline text-[#ff00ff] mb-8 animate-pulse">And you still lost while CHEATING? Embarrassing.</p>
+      <button id="play-again-btn" class="float-fast bg-[#34c759] text-white text-outline text-3xl md:text-4xl py-4 px-10 rounded-full border-4 border-black hover:bg-[#2fb350] transition-colors shadow-[0_8px_0_black] active:translate-y-2 active:shadow-[0_0px_0_black]">
+          PLAY AGAIN
+      </button>
+  </div>
+
+  <!-- Tombstone: large inline styles and script moved to external files -->
+  <!-- removed large inline <style> {} -->
+  <!-- removed large inline <script> {} -->
+
+  <script src="core.js" type="module"></script>
+</body>
+</html>

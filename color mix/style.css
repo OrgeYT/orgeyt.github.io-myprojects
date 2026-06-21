@@ -1,0 +1,215 @@
+/* Moved CSS from index.html to this file (tombstone in index.html notes removal) */
+
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #121212; /* Dark theme */
+    color: white;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Text Styles */
+.text-outline {
+    color: white;
+    font-weight: 900;
+    -webkit-text-stroke: 2px black;
+    text-shadow: 0px 4px 0px black;
+}
+
+.text-outline-sm {
+    color: white;
+    font-weight: 900;
+    -webkit-text-stroke: 1.5px black;
+    text-shadow: 0px 3px 0px black;
+}
+
+.text-outline-annoying {
+    color: white;
+    font-weight: 900;
+    -webkit-text-stroke: 2px #ff00ff; /* Jarring magenta */
+    text-shadow: 0px 4px 0px black, 0px 0px 10px #ff00ff;
+}
+
+/* Animations */
+.float {
+    animation: float 3s ease-in-out infinite;
+}
+
+.float-fast {
+    animation: float 2s ease-in-out infinite;
+}
+
+.float-delay {
+    animation: float 3.5s ease-in-out infinite 1s;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+}
+
+@keyframes jiggle {
+    0% { transform: translate(0, 0) rotate(0deg); }
+    25% { transform: translate(2px, -2px) rotate(2deg); }
+    50% { transform: translate(-2px, 2px) rotate(-2deg); }
+    75% { transform: translate(2px, 2px) rotate(1deg); }
+    100% { transform: translate(-2px, -2px) rotate(-1deg); }
+}
+
+.annoying-jiggle {
+    animation: jiggle 0.3s infinite;
+}
+
+/* Button interactions */
+.palette-btn {
+    transition: all 0.18s;
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,0.28), 0 6px 0 black;
+    padding: 1.4rem 1.6rem;      /* larger padding for bigger buttons / touch targets */
+    font-size: 1.15rem;          /* slightly larger label text */
+    min-height: 80px;            /* bigger comfortable touch target */
+    border-radius: 1rem;
+    /* let the grid control spacing; remove internal margins so buttons align neatly */
+    width: 100%;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    justify-self: stretch;
+    align-self: stretch;
+    box-sizing: border-box;
+    min-width: 0;                /* prevent overflow in tight grid columns */
+}
+
+.palette-btn:active:not(:disabled) {
+    transform: translateY(4px) scale(0.95);
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.3), 0 1px 0 black;
+}
+
+.palette-btn:disabled {
+    opacity: 0.25;
+    filter: grayscale(80%);
+    cursor: not-allowed;
+    transform: none;
+    animation: none;
+    box-shadow: none;
+}
+
+/* Palette layout tweaks: larger gaps and responsive grid, nav buttons auto-fit */
+/* Make the palette a flexible element inside its parent row so nav buttons sit outside the grid */
+#palette {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem; /* larger mobile gap */
+    width: 100%;
+    flex: 1 1 auto;    /* allow the palette to shrink/grow between nav buttons */
+    min-width: 0;      /* prevent long button labels from forcing overflow/overlap */
+    z-index: 1;        /* keep palette beneath nav controls */
+}
+@media (min-width: 768px) {
+    #palette {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2rem; /* larger desktop gap */
+        flex: 4 1 0;   /* desktop: palette takes 4 flex units */
+    }
+}
+
+/* Make prev/next stretch to match a palette column width and keep comfortable touch size */
+#palette-prev, #palette-next {
+    flex: 0 0 auto;       /* do not stretch like a palette column */
+    width: auto;          /* size to content */
+    min-width: 44px;
+    padding: 0.75rem 0.9rem;
+    height: auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;          /* keep nav buttons above the palette so they never sit "inside" a color */
+    background: rgba(0,0,0,0.35); /* subtle backdrop so buttons remain visible over bright colors */
+    border-radius: 0.5rem;
+}
+
+@media (min-width: 768px) {
+    /* nav flex behavior already set globally; keep media query placeholder for future tweaks if needed */
+}
+
+/* Mixing Area Animations */
+.mix-circle {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: inset 0 -5px 0 rgba(0,0,0,0.3), 0 5px 0 black;
+}
+
+.mix-left { left: 0; opacity: 0; }
+.mix-right { right: 0; opacity: 0; }
+
+.mix-left.active { opacity: 1; }
+.mix-right.active { opacity: 1; }
+
+.mix-left.merge { left: 50%; transform: translate(-50%, -50%); opacity: 0; }
+.mix-right.merge { right: 50%; transform: translate(50%, -50%); opacity: 0; }
+
+.mix-result {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: inset 0 -8px 0 rgba(0,0,0,0.3), 0 8px 0 black;
+}
+
+.mix-result.show {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+/* Shake for wrong answer */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-10px); }
+    40%, 80% { transform: translateX(10px); }
+}
+.shake-screen {
+    animation: shake 0.4s ease-in-out;
+}
+
+/* Glow for correct answer */
+.glow-screen {
+    box-shadow: inset 0 0 100px rgba(52, 199, 89, 0.5);
+    transition: box-shadow 0.3s ease;
+}
+
+/* Custom Checkbox */
+.cheat-checkbox {
+    appearance: none;
+    background-color: #222;
+    margin: 0;
+    font: inherit;
+    color: currentColor;
+    width: 1.5em;
+    height: 1.5em;
+    border: 3px solid black;
+    border-radius: 0.25em;
+    display: grid;
+    place-content: center;
+    cursor: pointer;
+    box-shadow: inset 0 -2px 0 rgba(0,0,0,0.5);
+}
+
+.cheat-checkbox::before {
+    content: "";
+    width: 0.85em;
+    height: 0.85em;
+    transform: scale(0);
+    transition: 120ms transform ease-in-out;
+    box-shadow: inset 1em 1em #ff2d55;
+    background-color: #ff2d55;
+    transform-origin: center;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+.cheat-checkbox:checked::before {
+    transform: scale(1);
+}
