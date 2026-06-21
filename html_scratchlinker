@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch Linker Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+        .code-block {
+            font-family: 'Courier New', Courier, monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .preview-img {
+            transition: transform 0.2s ease-in-out;
+        }
+        .preview-img:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform transition-all duration-300 translate-y-[-150%] opacity-0 z-50 flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        HTML Copied to Clipboard!
+    </div>
+
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-bold text-indigo-600 mb-3 flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-500"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                Scratch Linker
+            </h1>
+            <p class="text-gray-600 text-lg">Generate customizable embeds and thumbnail buttons for your Scratch projects and users.</p>
+        </header>
+
+        <!-- Tabs -->
+        <div class="flex justify-center gap-4 mb-8">
+            <button onclick="switchTab('projects')" id="tab-projects" class="px-6 py-2 rounded-full font-semibold text-white bg-indigo-600 shadow-md transition-colors">Projects</button>
+            <button onclick="switchTab('users')" id="tab-users" class="px-6 py-2 rounded-full font-semibold text-gray-600 bg-white border border-gray-200 hover:bg-gray-50 transition-colors">Users</button>
+        </div>
+
+        <!-- Projects Tab Content -->
+        <div id="projects-content">
+            <!-- Input Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 max-w-2xl mx-auto">
+                <label for="projectIdInput" class="block text-sm font-semibold text-gray-700 mb-2">Scratch Project ID or URL</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <input type="text" id="projectIdInput" class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-lg" placeholder="e.g. 1045952671">
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Paste the numbers from the URL (or the full link) to see your generated codes.</p>
+            </div>
+
+            <!-- Results Section (Hidden until valid ID is entered) -->
+            <div id="resultsContainer" class="hidden opacity-0 transition-opacity duration-500 space-y-8">
+                
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2">Embeds (iFrames)</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+                    
+                    <!-- Default Embed -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800">1. Default Embed</h3>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">Scratch Player</span>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <textarea id="code-embed-default" class="w-full h-32 p-3 bg-gray-900 text-gray-100 rounded-lg code-block text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" readonly></textarea>
+                            <button onclick="copyCode('code-embed-default')" class="mt-auto w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expert Embed -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800">2. Expert Embed</h3>
+                            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-semibold">TurboWarp Player</span>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <textarea id="code-embed-expert" class="w-full h-32 p-3 bg-gray-900 text-gray-100 rounded-lg code-block text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" readonly></textarea>
+                            <button onclick="copyCode('code-embed-expert')" class="mt-auto w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy HTML
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mt-10">Link Buttons (Images)</h2>
+                <div class="grid md:grid-cols-2 gap-6">
+
+                    <!-- Default Link Button -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800">3. Default Link Button</h3>
+                            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-semibold">Leads to Scratch</span>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <div class="mb-4 bg-gray-100 rounded-lg p-4 flex justify-center items-center h-48 border border-dashed border-gray-300 relative group">
+                                <span class="absolute top-2 left-2 text-xs font-bold text-gray-400 uppercase">Preview</span>
+                                <div id="preview-link-default"></div>
+                            </div>
+                            <textarea id="code-link-default" class="w-full h-32 p-3 bg-gray-900 text-gray-100 rounded-lg code-block text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" readonly></textarea>
+                            <button onclick="copyCode('code-link-default')" class="mt-auto w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy HTML
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Expert Link Button -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800">4. Expert Link Button</h3>
+                            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-semibold">Leads to TurboWarp</span>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <div class="mb-4 bg-gray-100 rounded-lg p-4 flex justify-center items-center h-48 border border-dashed border-gray-300 relative group">
+                                <span class="absolute top-2 left-2 text-xs font-bold text-gray-400 uppercase">Preview</span>
+                                <div id="preview-link-expert"></div>
+                            </div>
+                            <textarea id="code-link-expert" class="w-full h-32 p-3 bg-gray-900 text-gray-100 rounded-lg code-block text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" readonly></textarea>
+                            <button onclick="copyCode('code-link-expert')" class="mt-auto w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy HTML
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            
+            <div id="emptyState" class="text-center py-16 text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <p>Enter a Project ID above to generate the HTML codes.</p>
+            </div>
+
+        </div> <!-- End Projects Content -->
+
+        <!-- Users Tab Content -->
+        <div id="users-content" class="hidden">
+            <!-- User Input Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8 max-w-2xl mx-auto space-y-4">
+                <div>
+                    <label for="usernameInput" class="block text-sm font-semibold text-gray-700 mb-2">Scratch Username</label>
+                    <input type="text" id="usernameInput" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-lg" placeholder="e.g. griffpatch">
+                </div>
+                <div>
+                    <label for="userIdInput" class="block text-sm font-semibold text-gray-700 mb-2">Scratch User ID</label>
+                    <input type="text" id="userIdInput" class="block w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-lg" placeholder="e.g. 4347973">
+                    <p class="mt-2 text-sm text-gray-500">Hint: You can use Scratch Addons to easily find a user's ID on their profile.</p>
+                </div>
+            </div>
+
+            <!-- User Results Section -->
+            <div id="userResultsContainer" class="hidden opacity-0 transition-opacity duration-500">
+                <h2 class="text-2xl font-bold text-gray-800 border-b pb-2 mb-6">User Link Button</h2>
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+                        <div class="bg-gray-50 border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+                            <h3 class="font-bold text-gray-800">User Profile Link</h3>
+                            <span class="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full font-semibold">Profile Picture</span>
+                        </div>
+                        <div class="p-5 flex-grow flex flex-col">
+                            <div class="mb-4 bg-gray-100 rounded-lg p-4 flex justify-center items-center h-48 border border-dashed border-gray-300 relative group">
+                                <span class="absolute top-2 left-2 text-xs font-bold text-gray-400 uppercase">Preview</span>
+                                <div id="preview-link-user"></div>
+                            </div>
+                            <textarea id="code-link-user" class="w-full h-32 p-3 bg-gray-900 text-gray-100 rounded-lg code-block text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4" readonly></textarea>
+                            <button onclick="copyCode('code-link-user')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                Copy HTML
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="userEmptyState" class="text-center py-16 text-gray-500">
+                <svg class="mx-auto h-12 w-12 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                <p>Enter both a Username and User ID to generate the button.</p>
+            </div>
+        </div> <!-- End Users Content -->
+
+    </div>
+
+    <script>
+        const inputField = document.getElementById('projectIdInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const toast = document.getElementById('toast');
+
+        // New Elements for Users Tab
+        const usernameInput = document.getElementById('usernameInput');
+        const userIdInput = document.getElementById('userIdInput');
+        const userResultsContainer = document.getElementById('userResultsContainer');
+        const userEmptyState = document.getElementById('userEmptyState');
+
+        // Tab Switching Logic
+        function switchTab(tab) {
+            const projectsContent = document.getElementById('projects-content');
+            const usersContent = document.getElementById('users-content');
+            const tabProjects = document.getElementById('tab-projects');
+            const tabUsers = document.getElementById('tab-users');
+
+            const activeClasses = ['text-white', 'bg-indigo-600', 'shadow-md'];
+            const inactiveClasses = ['text-gray-600', 'bg-white', 'border', 'border-gray-200', 'hover:bg-gray-50'];
+
+            if (tab === 'projects') {
+                projectsContent.classList.remove('hidden');
+                usersContent.classList.add('hidden');
+                
+                tabProjects.classList.add(...activeClasses);
+                tabProjects.classList.remove(...inactiveClasses);
+                
+                tabUsers.classList.add(...inactiveClasses);
+                tabUsers.classList.remove(...activeClasses);
+            } else {
+                projectsContent.classList.add('hidden');
+                usersContent.classList.remove('hidden');
+                
+                tabUsers.classList.add(...activeClasses);
+                tabUsers.classList.remove(...inactiveClasses);
+                
+                tabProjects.classList.add(...inactiveClasses);
+                tabProjects.classList.remove(...activeClasses);
+            }
+        }
+
+        // Extract ID (handles pure numbers or if a user pastes a full scratch URL)
+        function extractId(input) {
+            if (!input) return null;
+            const match = input.match(/\d+/);
+            return match ? match[0] : null;
+        }
+
+        function updateOutputs() {
+            if (!inputField) return;
+            const rawInput = inputField.value.trim();
+            const projectId = extractId(rawInput);
+
+            if (projectId && projectId.length > 3) {
+                // Generate HTML Strings
+                
+                // 1. Default Embed
+                const defaultEmbedHtml = `<iframe src="https://scratch.mit.edu/projects/${projectId}/embed" allowtransparency="true" width="485" height="402" frameborder="0" scrolling="no" allowfullscreen></iframe>`;
+                
+                // 2. Expert Embed
+                const expertEmbedHtml = `<iframe src="https://turbowarp.org/${projectId}/embed?addons=pause,gamepad,mute-project,clones,remove-curved-stage-border&settings-button" allowtransparency="true" width="499" height="416" frameborder="0" scrolling="no" allowfullscreen></iframe>`;
+                
+                // 3. Default Link Button
+                const defaultLinkHtml = `<a href="https://scratch.mit.edu/projects/${projectId}/" target="_blank" rel="noopener noreferrer">
+  <img src="https://cdn2.scratch.mit.edu/get_image/project/${projectId}_216x163.png" alt="Play on Scratch" width="216" height="163" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #e5e7eb; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/project/0_216x163.png'">
+</a>`;
+                
+                // 4. Expert Link Button
+                const expertLinkHtml = `<a href="https://turbowarp.org/${projectId}/embed?addons=pause,gamepad,mute-project,clones,remove-curved-stage-border&settings-button" target="_blank" rel="noopener noreferrer">
+  <img src="https://cdn2.scratch.mit.edu/get_image/project/${projectId}_216x163.png" alt="Play on TurboWarp" width="216" height="163" style="border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #e5e7eb; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/project/0_216x163.png'">
+</a>`;
+
+                // Update text areas
+                document.getElementById('code-embed-default').value = defaultEmbedHtml;
+                document.getElementById('code-embed-expert').value = expertEmbedHtml;
+                document.getElementById('code-link-default').value = defaultLinkHtml;
+                document.getElementById('code-link-expert').value = expertLinkHtml;
+
+                // Update Previews
+                document.getElementById('preview-link-default').innerHTML = defaultLinkHtml;
+                document.getElementById('preview-link-expert').innerHTML = expertLinkHtml;
+
+                // Show Results UI
+                emptyState.style.display = 'none';
+                resultsContainer.classList.remove('hidden');
+                // Small delay to allow display:block to apply before changing opacity
+                setTimeout(() => {
+                    resultsContainer.classList.remove('opacity-0');
+                    resultsContainer.classList.add('opacity-100');
+                }, 10);
+                
+            } else {
+                // Hide Results UI if invalid/empty
+                resultsContainer.classList.add('opacity-0');
+                resultsContainer.classList.remove('opacity-100');
+                setTimeout(() => {
+                    if(!extractId(inputField.value.trim())) {
+                        resultsContainer.classList.add('hidden');
+                        emptyState.style.display = 'block';
+                    }
+                }, 500);
+            }
+        }
+
+        // Copy Function using document.execCommand as fallback/requirement for iframes
+        function copyCode(elementId) {
+            const textArea = document.getElementById(elementId);
+            
+            // Create a temporary textarea to ensure reliable copying across browsers/iframes
+            const tempTextArea = document.createElement("textarea");
+            tempTextArea.value = textArea.value;
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast();
+            } catch (err) {
+                console.error('Failed to copy', err);
+                alert("Failed to copy text. Please try manually.");
+            }
+            
+            document.body.removeChild(tempTextArea);
+        }
+
+        // Toast Notification
+        let toastTimeout;
+        function showToast() {
+            toast.classList.remove('translate-y-[-150%]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-150%]', 'opacity-0');
+            }, 3000);
+        }
+
+        // Update User Outputs
+        function updateUserOutputs() {
+            if (!usernameInput || !userIdInput) return;
+            const username = usernameInput.value.trim();
+            const rawUserId = userIdInput.value.trim();
+            const userId = extractId(rawUserId);
+
+            if (username && userId) {
+                const userLinkHtml = `<a href="https://scratch.mit.edu/users/${username}/" target="_blank" rel="noopener noreferrer">
+  <img src="https://uploads.scratch.mit.edu/get_image/user/${userId}_90x90.png" alt="${username} on Scratch" width="90" height="90" style="border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid #e5e7eb; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onerror="this.src='https://uploads.scratch.mit.edu/get_image/user/0_90x90.png'">
+</a>`;
+
+                document.getElementById('code-link-user').value = userLinkHtml;
+                document.getElementById('preview-link-user').innerHTML = userLinkHtml;
+
+                userEmptyState.style.display = 'none';
+                userResultsContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    userResultsContainer.classList.remove('opacity-0');
+                    userResultsContainer.classList.add('opacity-100');
+                }, 10);
+            } else {
+                userResultsContainer.classList.add('opacity-0');
+                userResultsContainer.classList.remove('opacity-100');
+                setTimeout(() => {
+                    if(!usernameInput.value.trim() || !extractId(userIdInput.value.trim())) {
+                        userResultsContainer.classList.add('hidden');
+                        userEmptyState.style.display = 'block';
+                    }
+                }, 500);
+            }
+        }
+
+        // Listen for input changes - safely checking if the element actually exists
+        if (inputField) inputField.addEventListener('input', updateOutputs);
+        if (usernameInput) usernameInput.addEventListener('input', updateUserOutputs);
+        if (userIdInput) userIdInput.addEventListener('input', updateUserOutputs);
+    </script>
+</body>
+</html>
