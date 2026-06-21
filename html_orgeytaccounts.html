@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrgeYT - Projects & Profiles</title>
+  <style>
+    :root {
+      --bg-deep: #181512;
+      --bg-card: #201b16;
+      --accent-orange: #f97316;
+      --accent-hover: #fb923c;
+      --text-main: #fff7ed;
+      --text-sub: #fdba74;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      color: var(--text-main);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 5px;
+      color: var(--accent-orange);
+      text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      margin-top: 50px;
+      border-bottom: 2px solid var(--accent-orange);
+      padding-bottom: 10px;
+      width: 100%;
+      color: var(--text-sub);
+    }
+
+    main {
+      max-width: 800px;
+      width: 90%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 50px;
+    }
+
+    .section-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .grid-container {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 30px;
+      margin-top: 20px;
+    }
+
+    .profile-card, .project-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: var(--text-main);
+      gap: 12px;
+      transition: transform 0.2s;
+    }
+
+    .profile-card:hover, .project-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .hover-effect {
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      border: 3px solid var(--bg-card);
+      transition: all 0.3s ease;
+    }
+
+    .hover-effect:hover {
+      border-color: var(--accent-orange);
+      box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+    }
+
+    .img-rounded { border-radius: 12px; }
+    .img-circle { border-radius: 50%; }
+
+    .gb-name {
+      height: 25px;
+      object-fit: contain;
+      filter: drop-shadow(0 0 2px rgba(249, 115, 22, 0.5));
+    }
+    
+    p {
+      margin: 0;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: var(--text-sub);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>OrgeYT</h1>
+    <p>Developer & Content Creator</p>
+  </header>
+
+  <main>
+    <!-- Bio Section -->
+    <section class="section-container">
+      <h2>My OC's Bio</h2>
+      <div class="grid-container">
+        <a href="https://turbowarp.org/1334190891/embed?addons=pause,gamepad,mute-project,clones,remove-curved-stage-border&settings-button" target="_blank" rel="noopener noreferrer" class="project-card">
+          <img src="https://cdn2.scratch.mit.edu/get_image/project/1334190891_216x163.png" alt="Play on TurboWarp" width="216" height="163" class="hover-effect img-rounded" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/project/0_216x163.png'">
+          <p>OrgeYT's Bio</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Profiles Section -->
+    <section class="section-container">
+      <h2>My Profiles</h2>
+      <div class="grid-container">
+        
+        <!-- Official Website -->
+        <a href="https://orgeyt.github.io/orgeyt.github.io-myprojects/" target="_blank" rel="noopener noreferrer" class="profile-card">
+          <img src="https://orgeyt.github.io/orgeyt.github.io-myprojects/favicon.ico" alt="OrgeYT Website" width="90" height="90" class="hover-effect img-circle" onerror="this.src='https://placehold.co/90x90/201b16/f97316?text=Web'">
+          <p>Official Website</p>
+        </a>
+
+        <!-- Scratch Profile -->
+        <a href="https://scratch.mit.edu/users/scratch_r0bl0x/" target="_blank" rel="noopener noreferrer" class="profile-card">
+          <img src="https://uploads.scratch.mit.edu/get_image/user/107566283_90x90.png" alt="scratch_r0bl0x on Scratch" width="90" height="90" class="hover-effect img-circle" onerror="this.src='https://uploads.scratch.mit.edu/get_image/user/0_90x90.png'">
+          <p>Scratch</p>
+        </a>
+
+        <!-- YouTube Profile -->
+        <a href="https://www.youtube.com/@OrgeYT" target="_blank" rel="noopener noreferrer" class="profile-card">
+          <img src="https://yt3.googleusercontent.com/3T618gKtzsWkLCA8Mw4SHTkZVONNsOHHoEpa-1OTZpJlKwJuZTBtyF4xSKe5bSJsIF27IoR8MQ=s160-c-k-c0x00ffffff-no-rj" alt="OrgeYT on YouTube" width="90" height="90" class="hover-effect img-circle">
+          <p>YouTube</p>
+        </a>
+
+        <!-- GameBanana Profile -->
+        <a href="https://gamebanana.com/members/4315286" target="_blank" rel="noopener noreferrer" class="profile-card">
+          <img src="https://images.gamebanana.com/img/av/69edf70317ba2.jpg" alt="GameBanana PFP" width="90" height="90" class="hover-effect img-circle">
+          <img src="https://images.gamebanana.com/img/upic/69edf97a03efe.gif" alt="GameBanana Name" class="gb-name">
+        </a>
+      </div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="section-container">
+      <h2>Awesome Scratch Projects</h2>
+      <div class="grid-container">
+        <a href="https://scratch.mit.edu/projects/1333226909/" target="_blank" rel="noopener noreferrer" class="project-card">
+          <img src="https://cdn2.scratch.mit.edu/get_image/project/1333226909_216x163.png" alt="Arrownese" width="216" height="163" class="hover-effect img-rounded" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/project/0_216x163.png'">
+          <p>Arrownese</p>
+        </a>
+        <a href="https://scratch.mit.edu/projects/1331390137/" target="_blank" rel="noopener noreferrer" class="project-card">
+          <img src="https://cdn2.scratch.mit.edu/get_image/project/1331390137_216x163.png" alt="Ultimate Dodging Two" width="216" height="163" class="hover-effect img-rounded" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/project/0_216x163.png'">
+          <p>Ultimate Dodging Two</p>
+        </a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
