@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch Project Embed</title>
+    <style>
+        /* Reset margins and make the page fill the screen */
+        * {
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121212; /* Deep dark background */
+            color: #e0e0e0; /* Light text for readability */
+            overflow: hidden; /* Prevents scrollbars on desktop */
+        }
+
+        /* Container taking up the full viewport */
+        .project-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* Game section takes up all remaining space */
+        .game-embed {
+            flex-grow: 1;
+            background-color: #000000; /* Pure black backdrop for the game */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Iframe stretches to fill the game container */
+        .game-embed iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Fixed-width description sidebar on the right */
+        .description-box {
+            width: 350px;
+            background-color: #1e1e1e; /* Slightly lighter dark gray */
+            padding: 40px 30px;
+            border-left: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Centers the text vertically */
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.6);
+            z-index: 10;
+        }
+
+        .description-box h2 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: #ffffff; /* Bright white for the title */
+            margin-bottom: 20px;
+        }
+
+        .description-box p {
+            line-height: 1.6;
+            color: #bbbbbb; /* Soft gray for the text */
+            font-size: 1.1rem;
+            margin: 10px 0;
+        }
+
+        /* Responsive behavior: Stacks vertically on small screens */
+        @media (max-width: 800px) {
+            .project-container {
+                flex-direction: column;
+            }
+            body, html {
+                overflow: auto; /* Re-enables scrolling for phones */
+            }
+            .game-embed {
+                height: 60vh; /* Game takes up 60% of screen height on phones */
+                flex-grow: 0;
+            }
+            .description-box {
+                width: 100%;
+                height: 40vh;
+                border-left: none;
+                border-top: 1px solid #333;
+                box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+                justify-content: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="project-container">
+        
+        <!-- TurboWarp Embed on the Left -->
+        <div class="game-embed">
+            <iframe 
+                src="https://turbowarp.org/1334564830/embed?addons=pause%2Cgamepad&settings-button&interpolate" 
+                allowtransparency="true" 
+                frameborder="0" 
+                scrolling="no" 
+                allowfullscreen>
+            </iframe>
+        </div>
+
+        <!-- Description on the Right -->
+        <div class="description-box">
+            <h2>Pong but its made with Scratch Blocks</h2>
+            <p>🖱️ Control Yellow Cat with Cursor</p>
+            <p>🏆 First one to reach 8 points win!</p>
+        </div>
+
+    </div>
+
+</body>
+</html>
