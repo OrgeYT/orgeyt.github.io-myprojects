@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FCR Episodes</title>
+    <!-- Using Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Scrollbar styled for the dark red theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a0000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #5a0000;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #8a0000;
+        }
+        
+        /* Smooth transitions */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#2a0000] via-[#150000] to-[#0a0000] text-gray-200 h-screen flex flex-col overflow-hidden font-sans selection:bg-red-900 selection:text-white">
+
+    <!-- Header -->
+    <header class="bg-[#3a0000]/80 backdrop-blur-md border-b border-[#6a0000] p-4 shadow-lg z-10 flex-shrink-0">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl md:text-2xl font-bold text-red-500 tracking-wider uppercase flex items-center gap-3 drop-shadow-md">
+                <svg class="w-8 h-8 text-red-600 drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"></path>
+                </svg>
+                FCR Episodes
+            </h1>
+            
+            <div class="flex items-center gap-4">
+                <button id="manual-jumpscare-btn" class="px-3 py-1 bg-red-900 hover:bg-red-700 text-white rounded text-xs uppercase font-bold border border-red-500 transition-colors shadow-lg">
+                    Trigger Jumpscare
+                </button>
+                
+                <label class="flex items-center gap-2 cursor-pointer text-xs uppercase font-bold text-red-300">
+                    <span class="hidden sm:inline">Random Jumpscares</span>
+                    <div class="relative">
+                        <input type="checkbox" id="random-jumpscare-toggle" class="sr-only peer">
+                        <div class="w-9 h-5 bg-[#1a0000] border border-[#5a0000] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[1px] after:left-[2px] after:bg-gray-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                    </div>
+                </label>
+
+                <div class="hidden md:block text-sm font-medium text-red-300 bg-[#5a0000]/40 px-3 py-1 rounded-full border border-red-900/50">
+                    6 Tracks
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex flex-col lg:flex-row flex-grow overflow-hidden max-w-screen-2xl w-full mx-auto">
+        
+        <!-- Video Player Section -->
+        <section class="flex-grow flex items-center justify-center p-0 lg:p-6 bg-black/20">
+            <div class="w-full h-full lg:h-auto lg:max-w-5xl lg:aspect-video lg:rounded-xl overflow-hidden shadow-[0_0_40px_rgba(139,0,0,0.15)] border-y lg:border border-[#5a0000] bg-black relative">
+                <!-- Iframe is populated via JavaScript -->
+                <iframe 
+                    id="video-player" 
+                    class="absolute inset-0 w-full h-full" 
+                    title="YouTube video player" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
+            </div>
+        </section>
+
+        <!-- Playlist Sidebar Section -->
+        <aside class="w-full lg:w-[400px] flex-shrink-0 bg-[#1a0000]/60 border-l border-[#4a0000] flex flex-col h-[45vh] lg:h-auto overflow-hidden shadow-2xl backdrop-blur-sm">
+            <div class="p-4 bg-gradient-to-r from-[#3a0000] to-[#2a0000] font-semibold text-lg border-b border-[#5a0000] shadow-md flex justify-between items-center z-10">
+                <span class="text-gray-100 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
+                    Up Next
+                </span>
+            </div>
+            
+            <div id="playlist-container" class="flex-grow overflow-y-auto p-3 space-y-3">
+                <!-- Playlist Items dynamically inserted here by JS -->
+            </div>
+        </aside>
+    </main>
+
+    <!-- Jumpscare Fullscreen Overlay -->
+    <div id="jumpscare-overlay" class="fixed inset-0 z-[9999] hidden bg-black items-center justify-center pointer-events-none">
+        <img id="jumpscare-image" src="" class="w-full h-full object-contain" alt="Jumpscare!">
+    </div>
+
+    <script>
+        // Data containing the requested YouTube video IDs
+        const videos = [
+            { id: '1zZUcnxgqvQ', title: 'FCR Episode 1 part 1' },
+            { id: 'z5bmM2_LplE', title: 'FCR Episode 1 part 2' },
+            { id: 'vTvCrviNxxc', title: 'FCR Bonus Scene' },
+            { id: '5OMeb64eGq8', title: 'FCR Episode 2 part 1' },
+            { id: '20fUx3nrX4E', title: 'FCR Episode 2 part 2' },
+            { id: 'Zc2CvPmzLA4', title: 'FCR Episode 2 part 3' }
+        ];
+
+        const player = document.getElementById('video-player');
+        const playlistContainer = document.getElementById('playlist-container');
+
+        let currentActiveIndex = 0;
+
+        function loadVideo(index, autoplay = true) {
+            const videoId = videos[index].id;
+            // Use youtube-nocookie to prevent iframe environment configuration errors
+            player.src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0${autoplay ? '&autoplay=1' : ''}`;
+            currentActiveIndex = index;
+            renderPlaylist();
+        }
+
+        function renderPlaylist() {
+            playlistContainer.innerHTML = '';
+            
+            videos.forEach((video, index) => {
+                const isActive = index === currentActiveIndex;
+                
+                // Fetch the high quality thumbnail from YouTube
+                const thumbnailUrl = `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+                
+                // Create the playlist item button
+                const item = document.createElement('button');
+                item.className = `fade-in w-full text-left flex items-start gap-3 p-2 rounded-lg transition-all duration-300 group focus:outline-none focus:ring-2 focus:ring-red-600 ${isActive ? 'bg-[#5a0000]/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)] border border-[#7a0000]' : 'hover:bg-[#3a0000]/60 border border-transparent'}`;
+                
+                item.onclick = () => loadVideo(index, true);
+
+                item.innerHTML = `
+                    <div class="relative flex-shrink-0 w-36 aspect-video rounded-md overflow-hidden bg-black shadow-md border border-[#4a0000] group-hover:border-[#7a0000] transition-colors">
+                        <img src="${thumbnailUrl}" alt="Thumbnail for video ${index + 1}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-300 ${isActive ? 'opacity-100' : ''}">
+                        
+                        ${isActive ? `
+                            <div class="absolute inset-0 bg-red-900/40 flex items-center justify-center backdrop-blur-[1px]">
+                                <svg class="w-8 h-8 text-white drop-shadow-md animate-pulse" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M4 4l12 6-12 6z"></path>
+                                </svg>
+                            </div>
+                        ` : `
+                            <div class="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors"></div>
+                        `}
+                        
+                        <div class="absolute bottom-1 right-1 bg-black/90 text-[10px] font-bold px-1.5 py-0.5 rounded text-gray-200 tracking-wider">
+                            ${index + 1}
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col py-1 overflow-hidden h-full justify-center">
+                        <span class="font-bold text-sm md:text-base text-gray-100 truncate tracking-wide ${isActive ? 'text-red-400' : 'group-hover:text-red-300'}">
+                            ${video.title}
+                        </span>
+                        <span class="text-xs text-gray-400 mt-1 truncate ${isActive ? 'text-gray-300' : ''}">
+                            Episode ${index + 1}
+                        </span>
+                    </div>
+                `;
+                playlistContainer.appendChild(item);
+            });
+        }
+
+        // Initialize the app: Load the first video without autoplaying immediately
+        loadVideo(0, false);
+
+        // --- Jumpscare Logic ---
+        const JUMPSCARE_SOUND_URL = "https://file.garden/Zj01o_oh-G9Y8APf/fcr%20characters/jumpscare%20sound.mp3";
+        const JUMPSCARE_IMG_BASE = "https://file.garden/Zj01o_oh-G9Y8APf/fcr%20characters/jumpscare%20(";
+        
+        const jumpscareOverlay = document.getElementById('jumpscare-overlay');
+        const jumpscareImage = document.getElementById('jumpscare-image');
+        const manualJumpscareBtn = document.getElementById('manual-jumpscare-btn');
+        const randomJumpscareToggle = document.getElementById('random-jumpscare-toggle');
+        
+        const jumpscareAudio = new Audio(JUMPSCARE_SOUND_URL);
+        let randomJumpscareTimeout = null;
+        let isJumpscareActive = false;
+
+        function triggerJumpscare() {
+            if (isJumpscareActive) return; // Prevent multiple jumpscares overlapping
+            isJumpscareActive = true;
+            
+            // Random number between 1 and 31
+            const randomNum = Math.floor(Math.random() * 31) + 1;
+            
+            // Set the image source
+            jumpscareImage.src = `${JUMPSCARE_IMG_BASE}${randomNum}).png`;
+            
+            // Display the overlay
+            jumpscareOverlay.classList.remove('hidden');
+            jumpscareOverlay.classList.add('flex');
+            
+            // Reset and play the sound
+            jumpscareAudio.currentTime = 0;
+            jumpscareAudio.play().catch(e => console.log("Audio play blocked until user interaction", e));
+            
+            // Wait for sound to end to hide the jumpscare
+            jumpscareAudio.onended = () => {
+                jumpscareOverlay.classList.remove('flex');
+                jumpscareOverlay.classList.add('hidden');
+                isJumpscareActive = false;
+            };
+        }
+
+        function scheduleNextRandomJumpscare() {
+            if (!randomJumpscareToggle.checked) return;
+            
+            // Pick a random delay between 15 seconds and 45 seconds
+            const randomDelay = Math.floor(Math.random() * 30000) + 15000;
+            
+            randomJumpscareTimeout = setTimeout(() => {
+                triggerJumpscare();
+                scheduleNextRandomJumpscare(); // Loop it for the next one
+            }, randomDelay);
+        }
+
+        // Event Listeners
+        manualJumpscareBtn.addEventListener('click', triggerJumpscare);
+        
+        randomJumpscareToggle.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                scheduleNextRandomJumpscare();
+            } else {
+                clearTimeout(randomJumpscareTimeout);
+            }
+        });
+    </script>
+</body>
+</html>
