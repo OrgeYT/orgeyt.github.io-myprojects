@@ -1,133 +1,133 @@
-<!DOCTYPE html>
+<!DOCTYPE html> <!-- I completely changed this file omg bro (atleast its better) -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome</title>
+    <title>Welcome - OrgeYT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --bg-color: #0f172a; 
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --accent-1: #38bdf8;
-            --accent-2: #818cf8;
-            --accent-3: #c084fc;
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes entrance {
+            0% { opacity: 0; transform: translateY(20px); }
+            100% { opacity: 1; transform: translateY(0); }
         }
 
         body {
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-            background: var(--bg-color);
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            color: var(--text-main);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
+            background: linear-gradient(-45deg, #1a0b00, #3d1500, #1a0b00, #260c00);
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+            min-height: 100vh;
+            color: #f8fafc;
+            font-family: 'Inter', system-ui, sans-serif;
         }
 
-        .welcome-container {
-            max-width: 650px;
-            text-align: center;
-            position: relative;
-            padding: 20px;
+        .animated-entry {
+            animation: entrance 0.8s ease-out forwards;
         }
 
-        h1 {
-            font-size: 4.5rem;
-            letter-spacing: -0.04em;
-            margin: 0 0 20px 0;
-            cursor: default;
-            text-transform: uppercase;
-            background: linear-gradient(90deg, var(--accent-1), var(--accent-2), var(--accent-3));
-            background-size: 200% auto;
+        .glow-orange {
+            box-shadow: 0 0 15px rgba(249, 115, 22, 0.3);
+        }
+
+        .glow-orange-hover:hover {
+            box-shadow: 0 0 25px rgba(249, 115, 22, 0.5);
+            border-color: #f97316;
+            transform: translateY(-5px);
+        }
+
+        .text-glow {
+            text-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, #fb923c, #ea580c);
             -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            animation: shine 3s linear infinite;
-            display: inline-block;
-            position: relative;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Subtle glowing background behind the text */
-        h1::after {
-            content: "WELCOME";
-            position: absolute;
-            left: 50%;
-            top: 0;
-            transform: translateX(-50%);
-            z-index: -1;
-            filter: blur(35px);
-            opacity: 0.35;
-            background: linear-gradient(90deg, var(--accent-1), var(--accent-3));
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            width: 100%;
+        .icon-pulse {
+            animation: pulse-icon 3s infinite ease-in-out;
         }
 
-        .description {
-            color: var(--text-muted);
-            font-size: 1.25rem;
-            line-height: 1.7;
-            margin: 0 0 35px 0;
-        }
-
-        .highlight {
-            color: var(--accent-1);
-            font-weight: 600;
-        }
-
-        /* Animated pointer pointing left toward your sidebar */
-        .sidebar-hint {
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--text-main);
-            font-size: 1.05rem;
-            font-weight: 500;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            background: rgba(30, 41, 59, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 12px 24px;
-            border-radius: 50px;
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .arrow {
-            color: var(--accent-1);
-            display: inline-block;
-            font-size: 1.2rem;
-            animation: pointLeft 1.5s infinite ease-in-out;
-        }
-
-        /* Animations */
-        @keyframes shine {
-            to { background-position: 200% center; }
-        }
-
-        @keyframes pointLeft {
-            0%, 100% { transform: translateX(0); }
-            50% { transform: translateX(-6px); }
+        @keyframes pulse-icon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
         }
     </style>
 </head>
-<body>
+<body class="flex items-center justify-center p-6 min-h-screen">
 
-    <div class="welcome-container">
-        <h1>Welcome</h1>
+    <div class="max-w-4xl w-full text-center animated-entry">
         
-        <p class="description">
-            Welcome to my GitHub website! This is my first working hub built to share all the random applications, tools, and mini-projects I design.
-        </p>
+        <header class="mb-12">
+            <div class="flex items-center justify-center gap-4 mb-4">
+                <img src="https://orgeyt.github.io/orgeyt.github.io-myprojects/favicon.ico" 
+                     alt="Icon" 
+                     class="w-12 h-12 icon-pulse"
+                     onerror="this.style.display='none'">
+                <h1 class="text-5xl md:text-7xl font-extrabold gradient-text tracking-tighter text-glow">WELCOME</h1>
+            </div>
+            <p class="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                Yo welcome to my website! I used Github for this site.<br>
+                I know its mostly AI, but i swear i cannot code HTML ;-;<br>
+                But atleast the IDEAS are not AI.<br>
+                Anyways, enjoy using my website! My socials/etc are linked below
+            </p>
+        </header>
 
-        <div class="sidebar-hint">
-            <span class="arrow">←</span> Choose a project from the sidebar to load it
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
+            
+            <a href="https://web.roblox.com/users/25500698/profile" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">Roblox</h3>
+                <p class="text-sm text-slate-400">View my profile</p>
+            </a>
+
+            <a href="https://scratch.mit.edu/users/scratch_r0bl0x" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">Scratch</h3>
+                <p class="text-sm text-slate-400">Check my creations</p>
+            </a>
+
+            <a href="https://www.youtube.com/@FlyingCarRetake" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">My Friend</h3>
+                <p class="text-sm text-slate-400">Visit FlyingCarRetake</p>
+            </a>
+
+            <a href="https://websim.ai/@OrgeYT" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">Websim</h3>
+                <p class="text-sm text-slate-400">My profile page</p>
+            </a>
+
+            <a href="https://orgeyt.github.io/orgeyt.github.io-myprojects" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">HTML Projects</h3>
+                <p class="text-sm text-slate-400">Full project list</p>
+            </a>
+
+            <a href="https://gamebanana.com/members/4315286" target="_blank" class="glow-orange-hover bg-orange-950/40 p-6 rounded-2xl border border-orange-900 transition-all backdrop-blur-sm">
+                <h3 class="font-bold text-orange-500 mb-1">Gamebanana</h3>
+                <p class="text-sm text-slate-400">My modding profile</p>
+            </a>
+
+            <a href="https://scratch.mit.edu/projects/1331390137" target="_blank" class="glow-orange-hover bg-orange-600/20 p-6 rounded-2xl border border-orange-500/50 transition-all backdrop-blur-sm sm:col-span-2 lg:col-span-1">
+                <h3 class="font-bold text-orange-400 mb-1">Ultimate Dodging TWO</h3>
+                <p class="text-sm text-orange-200/70">Play on Scratch</p>
+            </a>
+
+            <a href="https://orgeyt.github.io/orgeyt.github.io-myprojects/?project=Ultimate Dodging TWO" target="_blank" class="glow-orange-hover bg-orange-600/20 p-6 rounded-2xl border border-orange-500/50 transition-all backdrop-blur-sm sm:col-span-2 lg:col-span-2">
+                <h3 class="font-bold text-orange-400 mb-1">Ultimate Dodging TWO Alt</h3>
+                <p class="text-sm text-orange-200/70">Play via GitHub Projects</p>
+            </a>
         </div>
+
+        <div class="inline-flex items-center gap-3 bg-orange-950/50 px-6 py-3 rounded-full border border-orange-900 backdrop-blur-md">
+            <span class="text-orange-500 animate-pulse">←</span>
+            <span class="text-slate-300 font-medium text-sm">Select a project or link to get started</span>
+        </div>
+
     </div>
 
 </body>
