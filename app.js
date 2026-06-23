@@ -1,4 +1,4 @@
-// 1. List your projects..
+// yall should i remove this comment? this comment is useless af
 const projects = [
     "welcome", "fnftools", "spritesheetmerger", "3danimator", "catmemory", 
     "midiplayer", "mandelbrot", "gswitch", "pfpmaker", "platformer", 
@@ -197,4 +197,21 @@ document.getElementById('icon-file-input').addEventListener('change', (e) => {
         };
         reader.readAsDataURL(file);
     }
+});
+
+// ==========================================
+// --- Friend's Website Modal Logic ---
+// ==========================================
+
+const friendsModal = document.getElementById('friends-modal');
+const friendsWebsiteBtn = document.getElementById('friends-website-btn');
+const closeFriendsModalBtn = document.getElementById('close-friends-modal-btn');
+
+// Open and Close Friend's Menu
+friendsWebsiteBtn.addEventListener('click', () => {
+    friendsModal.classList.remove('hidden');
+});
+
+closeFriendsModalBtn.addEventListener('click', () => {
+    friendsModal.classList.add('hidden');
 });
