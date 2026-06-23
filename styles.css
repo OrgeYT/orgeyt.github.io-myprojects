@@ -249,3 +249,29 @@ body {
     flex: 1;
     margin-top: 0; 
 }
+
+/* ==========================================
+   New Styles for the RETAKE button
+   ========================================== */
+.retake-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #8b0000;
+    color: #ffffff;
+    border: 1px solid #550000;
+    padding: 10px 15px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.2s, transform 0.1s;
+    width: 100%;
+}
+
+.retake-btn:hover {
+    background-color: #a50000;
+}
+
+.retake-btn:active {
+    transform: scale(0.98);
+}
