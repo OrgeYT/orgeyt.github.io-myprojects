@@ -67,9 +67,10 @@
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
 
-        <div class="sidebar-controls" style="display: flex; gap: 5px; margin-bottom: 15px;">
-            <button id="toggle-ui-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1;">Toggle UI (`)</button>
-            <button id="tab-modifier-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1;">Tab Settings</button>
+        <div class="sidebar-controls" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button id="toggle-ui-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Toggle UI (`)</button>
+            <button id="tab-modifier-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Tab Settings</button>
+            <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">My friend's website</button>
         </div>
 
         <div id="file-list"></div>
@@ -124,6 +125,20 @@
             <div class="setting-group">
                 <label for="icon-file-input">Upload Icon File:</label>
                 <input type="file" id="icon-file-input" accept="image/*,.ico">
+            </div>
+        </div>
+    </div>
+
+    <div id="friends-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-friends-modal-btn" class="close-btn">&times;</span>
+            <h3>My friend's website</h3>
+            <div class="setting-group" style="text-align: center; margin-top: 10px;">
+                <p style="margin-bottom: 15px; color: #ccc;">Check out my friend's website!</p>
+                <a href="https://fcr-official.github.io/RETAKE/" target="_blank" class="retake-btn">
+                    RETAKE
+                    <img src="https://fcr-official.github.io/RETAKE/favicon.ico" alt="RETAKE Icon" style="width: 16px; height: 16px; margin-left: 8px;">
+                </a>
             </div>
         </div>
     </div>
