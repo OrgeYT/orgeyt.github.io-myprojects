@@ -215,3 +215,26 @@ friendsWebsiteBtn.addEventListener('click', () => {
 closeFriendsModalBtn.addEventListener('click', () => {
     friendsModal.classList.add('hidden');
 });
+
+// ==========================================
+// --- Secret Logo Click Logic ---
+// ==========================================
+
+const sidebarLogo = document.getElementById('sidebar-logo');
+let logoClickCount = 0;
+let secretUnlocked = false;
+
+if (sidebarLogo) {
+    sidebarLogo.addEventListener('click', () => {
+        // If they already unlocked it, do nothing
+        if (secretUnlocked) return; 
+        
+        logoClickCount++;
+        
+        // Trigger the easter egg on the 15th click
+        if (logoClickCount === 15) {
+            secretUnlocked = true; // Lock it so it doesn't trigger again
+            window.open('https://orgeyt.github.io/orgeyt.github.io-myprojects/secret_5Hd82K8Fb8.html', '_blank');
+        }
+    });
+}
