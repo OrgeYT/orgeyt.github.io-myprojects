@@ -21,6 +21,21 @@ body {
     border-right: 1px solid #333;
 }
 
+/* Sidebar Logo Styling */
+#sidebar-logo {
+    width: 100%;
+    max-width: 180px;
+    margin: 0 auto 15px auto;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.1s ease;
+    user-select: none;
+}
+
+#sidebar-logo:active {
+    transform: scale(0.95);
+}
+
 .sidebar h2 {
     font-size: 1.2rem;
     margin-bottom: 5px;
