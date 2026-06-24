@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Bat Survival</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a202c; /* Tailwind gray-900 */
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+        .ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to canvas by default */
+            display: flex;
+            flex-direction: column;
+        }
+        .interactive-ui {
+            pointer-events: auto;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Game Canvas -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- UI Overlay -->
+    <div id="uiLayer" class="ui-layer">
+        
+        <!-- HUD -->
+        <div id="hud" class="p-4 flex justify-between items-start hidden">
+            <div>
+                <h1 class="text-2xl font-bold text-red-500 tracking-wider" style="text-shadow: 2px 2px 0 #000;">WAVE <span id="waveDisplay">1</span></h1>
+                <p class="text-lg font-semibold text-gray-200" style="text-shadow: 1px 1px 0 #000;">Zombies Left: <span id="zombiesLeftDisplay">0</span></p>
+            </div>
+            <div class="w-64">
+                <div class="text-sm font-bold mb-1 text-right" style="text-shadow: 1px 1px 0 #000;">HP</div>
+                <div class="w-full bg-gray-700 h-6 border-2 border-gray-900 rounded-md overflow-hidden relative">
+                    <div id="healthBar" class="bg-red-500 h-full w-full transition-all duration-200"></div>
+                    <span id="healthText" class="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none" style="text-shadow: 1px 1px 0 #000;">100/100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="mainMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 interactive-ui transition-opacity">
+            <h1 class="text-6xl font-black text-red-600 mb-2 uppercase tracking-widest text-center" style="text-shadow: 4px 4px 0 #4a0000;">Bat<br>Survival</h1>
+            <p class="text-gray-300 mb-8 max-w-md text-center text-lg">Use WASD or Arrows to move. Use Mouse to aim and hold Left Click to swing. Use walls to your advantage. Survive as long as you can.</p>
+            <button id="startBtn" class="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 active:scale-95 text-xl">START SURVIVAL</button>
+        </div>
+
+        <!-- Upgrade Menu -->
+        <div id="upgradeMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 interactive-ui hidden">
+            <h2 class="text-4xl font-bold text-yellow-400 mb-2" style="text-shadow: 2px 2px 0 #000;">WAVE CLEARED!</h2>
+            <p class="text-gray-300 mb-8 text-xl">Choose your upgrade:</p>
+            <div id="upgradeOptions" class="flex gap-6 flex-wrap justify-center max-w-4xl px-4">
+                <!-- Upgrade buttons injected here -->
+            </div>
+        </div>
+
+        <!-- Game Over Menu -->
+        <div id="gameOverMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/90 interactive-ui hidden">
+            <h1 class="text-6xl font-black text-white mb-4" style="text-shadow: 4px 4px 0 #000;">YOU DIED</h1>
+            <p class="text-2xl text-gray-200 mb-8">You survived until <span id="finalWave" class="font-bold text-yellow-400">Wave X</span></p>
+            <button id="restartBtn" class="px-8 py-4 bg-black hover:bg-gray-800 text-white border-2 border-red-500 font-bold rounded transition-transform hover:scale-105 active:scale-95 text-xl">PLAY AGAIN</button>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="pauseMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 interactive-ui hidden backdrop-blur-sm z-40">
+            <h1 class="text-6xl font-black text-white mb-4 tracking-widest text-center" style="text-shadow: 4px 4px 0 #000;">PAUSED</h1>
+            <p class="text-xl text-gray-200 mb-8">Press ESC to resume</p>
+            <button id="resumeBtn" class="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white border-2 border-gray-500 font-bold rounded transition-transform hover:scale-105 active:scale-95 text-xl">RESUME</button>
+        </div>
+
+        <!-- Cheat Menu -->
+        <div id="cheatMenu" class="absolute top-4 left-4 bg-gray-900 border-2 border-red-500 rounded-lg p-4 w-64 interactive-ui hidden shadow-2xl z-50">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-red-500" style="text-shadow: 1px 1px 0 #000;">DEV CHEATS</h3>
+                <button id="minimizeCheatBtn" class="text-gray-400 hover:text-white font-bold text-2xl leading-none px-2 focus:outline-none">-</button>
+            </div>
+            <div id="cheatContent" class="flex flex-col gap-3">
+                <p class="text-xs text-gray-400 italic">Game must be running to edit player stats.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * INITIALIZATION & ENGINE SETUP
+         */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const ui = {
+            hud: document.getElementById('hud'),
+            mainMenu: document.getElementById('mainMenu'),
+            upgradeMenu: document.getElementById('upgradeMenu'),
+            gameOverMenu: document.getElementById('gameOverMenu'),
+            pauseMenu: document.getElementById('pauseMenu'),
+            cheatMenu: document.getElementById('cheatMenu'),
+            cheatContent: document.getElementById('cheatContent'),
+            startBtn: document.getElementById('startBtn'),
+            restartBtn: document.getElementById('restartBtn'),
+            resumeBtn: document.getElementById('resumeBtn'),
+            minimizeCheatBtn: document.getElementById('minimizeCheatBtn'),
+            upgradeOptions: document.getElementById('upgradeOptions'),
+            waveDisplay: document.getElementById('waveDisplay'),
+            zombiesLeftDisplay: document.getElementById('zombiesLeftDisplay'),
+            healthBar: document.getElementById('healthBar'),
+            healthText: document.getElementById('healthText'),
+            finalWave: document.getElementById('finalWave')
+        };
+
+        // Resize Canvas
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        /**
+         * GAME CONSTANTS & STATE
+         */
+        const WORLD_SIZE = 2500;
+        let lastTime = 0;
+        let gameState = 'MENU'; // MENU, PLAYING, UPGRADE, GAMEOVER
+        
+        const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+        const mouse = { x: 0, y: 0, worldX: 0, worldY: 0, down: false };
+
+        // Core Game Objects
+        let player;
+        let zombies = [];
+        let walls = [];
+        let particles = [];
+        let damageTexts = [];
+        let camera = { x: 0, y: 0 };
+
+        // Wave Management
+        let wave = 1;
+        let zombiesToSpawn = 0;
+        let spawnTimer = 0;
+
+        // Cheats & Pause State
+        const konamiCode = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+        let konamiIndex = 0;
+        let cheatMenuUnlocked = false;
+        let isCheatMinimized = false;
+
+        /**
+         * INPUT HANDLING
+         */
+        window.addEventListener('keydown', (e) => { 
+            if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
+            
+            // Toggle Pause
+            if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                if (gameState === 'PLAYING') {
+                    gameState = 'PAUSED';
+                    ui.pauseMenu.classList.remove('hidden');
+                } else if (gameState === 'PAUSED') {
+                    gameState = 'PLAYING';
+                    ui.pauseMenu.classList.add('hidden');
+                }
+            }
+
+            // Konami Code Tracking
+            if (!cheatMenuUnlocked) {
+                let expected = konamiCode[konamiIndex];
+                if (e.key === expected || e.key.toLowerCase() === expected.toLowerCase()) {
+                    konamiIndex++;
+                    if (konamiIndex === konamiCode.length) {
+                        unlockCheatMenu();
+                    }
+                } else {
+                    konamiIndex = 0;
+                }
+            }
+        });
+        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+        
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            // Calculate world coordinates of mouse based on camera
+            mouse.worldX = mouse.x + camera.x;
+            mouse.worldY = mouse.y + camera.y;
+        });
+        window.addEventListener('mousedown', (e) => { if(e.button === 0) mouse.down = true; });
+        window.addEventListener('mouseup', (e) => { if(e.button === 0) mouse.down = false; });
+
+        /**
+         * UTILITY MATH FUNCTIONS
+         */
+        const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+        const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+        // Circle-Rectangle Collision
+        function checkCircleRectCollision(circle, rect) {
+            let testX = circle.x;
+            let testY = circle.y;
+
+            if (circle.x < rect.x) testX = rect.x;
+            else if (circle.x > rect.x + rect.w) testX = rect.x + rect.w;
+            if (circle.y < rect.y) testY = rect.y;
+            else if (circle.y > rect.y + rect.h) testY = rect.y + rect.h;
+
+            let distX = circle.x - testX;
+            let distY = circle.y - testY;
+            let distance = Math.sqrt((distX*distX) + (distY*distY));
+
+            if (distance <= circle.r) {
+                return {
+                    collided: true,
+                    overlap: circle.r - distance,
+                    dx: distX / distance || 0,
+                    dy: distY / distance || 0
+                };
+            }
+            return { collided: false };
+        }
+
+        /**
+         * CLASSES
+         */
+        class Player {
+            constructor() {
+                this.x = WORLD_SIZE / 2;
+                this.y = WORLD_SIZE / 2;
+                this.r = 20;
+                
+                // Base Stats
+                this.maxHp = 150;
+                this.hp = 150;
+                this.regenRate = 10; // HP regenerated per second
+                this.speed = 4;
+                this.combatTimer = 0; // ms to wait before healing
+                
+                // Bat Stats
+                this.bats = 1; // Number of bats (for multi-bat upgrade)
+                this.batLength = 60;
+                this.batWidth = 12;
+                this.damage = 15; // Base damage. 100 HP Zombie / 15 = ~7 hits
+                this.cooldown = 600; // ms between swings
+                this.swingDuration = 200; // ms
+                this.swingArc = Math.PI * 0.8; // 144 degrees
+                
+                // State
+                this.lastSwingTime = 0;
+                this.isSwinging = false;
+                this.swingProgress = 0; // 0 to 1
+                this.baseAngle = 0; // Angle to mouse
+                
+                this.hitZombiesThisSwing = new Set();
+                this.flashTimer = 0;
+            }
+
+            update(dt, now) {
+                // Out of combat timer
+                if (this.combatTimer > 0) {
+                    this.combatTimer -= dt;
+                } else if (this.hp > 0 && this.hp < this.maxHp) {
+                    // Auto-healing when out of combat
+                    this.hp = Math.min(this.maxHp, this.hp + this.regenRate * (dt / 1000));
+                    updateHUD();
+                }
+
+                // Flash effect
+                if (this.flashTimer > 0) this.flashTimer -= dt;
+
+                // Movement
+                let dx = 0; let dy = 0;
+                if (keys.w || keys.ArrowUp) dy -= 1;
+                if (keys.s || keys.ArrowDown) dy += 1;
+                if (keys.a || keys.ArrowLeft) dx -= 1;
+                if (keys.d || keys.ArrowRight) dx += 1;
+
+                // Normalize diagonal speed
+                if (dx !== 0 && dy !== 0) {
+                    const len = Math.hypot(dx, dy);
+                    dx /= len; dy /= len;
+                }
+
+                let targetX = this.x + dx * this.speed * (dt/(1000/60));
+                let targetY = this.y + dy * this.speed * (dt/(1000/60));
+
+                // Map bounds
+                targetX = clamp(targetX, this.r, WORLD_SIZE - this.r);
+                targetY = clamp(targetY, this.r, WORLD_SIZE - this.r);
+
+                // Try moving X, check collisions
+                this.x = targetX;
+                for (let wall of walls) {
+                    let col = checkCircleRectCollision(this, wall);
+                    if (col.collided) {
+                        this.x += col.dx * col.overlap;
+                    }
+                }
+
+                // Try moving Y, check collisions
+                this.y = targetY;
+                for (let wall of walls) {
+                    let col = checkCircleRectCollision(this, wall);
+                    if (col.collided) {
+                        this.y += col.dy * col.overlap;
+                    }
+                }
+
+                // Update aim angle
+                mouse.worldX = mouse.x + camera.x;
+                mouse.worldY = mouse.y + camera.y;
+                if (!this.isSwinging) {
+                    this.baseAngle = Math.atan2(mouse.worldY - this.y, mouse.worldX - this.x);
+                }
+
+                // Bat Logic
+                if (mouse.down && !this.isSwinging && now - this.lastSwingTime > this.cooldown) {
+                    this.isSwinging = true;
+                    this.swingProgress = 0;
+                    this.hitZombiesThisSwing.clear();
+                    this.lastSwingTime = now;
+                    this.combatTimer = 4000; // Attacking puts you in combat
+                }
+
+                if (this.isSwinging) {
+                    this.swingProgress += dt / this.swingDuration;
+                    if (this.swingProgress >= 1) {
+                        this.isSwinging = false;
+                        this.swingProgress = 1;
+                    } else {
+                        this.checkBatCollisions();
+                    }
+                }
+            }
+
+            checkBatCollisions() {
+                // Calculate current swing angles for all bats
+                // Swing goes from -arc/2 to +arc/2
+                const halfArc = this.swingArc / 2;
+                // Add a bit of easing
+                const easeOutQuad = t => t * (2 - t);
+                const currentRelAngle = -halfArc + (this.swingArc * easeOutQuad(this.swingProgress));
+
+                for (let i = 0; i < this.bats; i++) {
+                    const batOffset = (Math.PI * 2 / this.bats) * i;
+                    const absoluteCurrentAngle = this.baseAngle + batOffset + currentRelAngle;
+
+                    for (let z of zombies) {
+                        if (this.hitZombiesThisSwing.has(z)) continue; // Already hit this swing
+
+                        // Broad phase: distance check
+                        const d = dist(this.x, this.y, z.x, z.y);
+                        if (d > this.batLength + z.r + this.r) continue;
+
+                        // Narrow phase: angle check
+                        const angleToZombie = Math.atan2(z.y - this.y, z.x - this.x);
+                        
+                        // Normalize angle difference to -PI to PI
+                        let angleDiff = absoluteCurrentAngle - angleToZombie;
+                        while (angleDiff <= -Math.PI) angleDiff += Math.PI * 2;
+                        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+                        // Check if within hitting arc threshold (width of bat basically)
+                        if (Math.abs(angleDiff) < 0.4) {
+                            // HIT!
+                            this.hitZombiesThisSwing.add(z);
+                            z.takeDamage(this.damage, absoluteCurrentAngle);
+                            createParticles(z.x, z.y, '#eab308', 5); // Sparks
+                        }
+                    }
+                }
+            }
+
+            takeDamage(amount) {
+                if (this.flashTimer > 0) return; // Invincibility frames
+                this.hp -= amount;
+                this.flashTimer = 500;
+                this.combatTimer = 4000; // Taking damage puts you in combat
+                createParticles(this.x, this.y, '#ef4444', 10);
+                updateHUD();
+                
+                if (this.hp <= 0) {
+                    this.hp = 0;
+                    endGame();
+                }
+            }
+
+            draw(ctx) {
+                // Draw Bats
+                for (let i = 0; i < this.bats; i++) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    
+                    let batOffset = (Math.PI * 2 / this.bats) * i;
+                    let angle = this.baseAngle + batOffset;
+                    
+                    if (this.isSwinging) {
+                        const halfArc = this.swingArc / 2;
+                        const easeOutQuad = t => t * (2 - t);
+                        angle += -halfArc + (this.swingArc * easeOutQuad(this.swingProgress));
+                    }
+                    
+                    ctx.rotate(angle);
+                    
+                    // Draw bat
+                    ctx.fillStyle = '#8b5a2b'; // Wooden brown
+                    ctx.beginPath();
+                    ctx.roundRect(this.r, -this.batWidth/2, this.batLength, this.batWidth, 5);
+                    ctx.fill();
+                    ctx.strokeStyle = '#3e2723';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Whoosh trail
+                    if (this.isSwinging) {
+                        ctx.fillStyle = `rgba(255, 255, 255, ${0.3 * (1-this.swingProgress)})`;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.r + this.batLength, -this.swingArc/2, 0, false);
+                        ctx.lineTo(0,0);
+                        ctx.fill();
+                    }
+                    
+                    ctx.restore();
+                }
+
+                // Draw Player Body
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = this.flashTimer > 0 && Math.floor(this.flashTimer / 100) % 2 === 0 ? '#ffffff' : '#3b82f6'; // Blue or white flash
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#1e3a8a';
+                ctx.stroke();
+            }
+        }
+
+        class Zombie {
+            constructor(x, y, hp) {
+                this.x = x;
+                this.y = y;
+                this.r = 16;
+                this.maxHp = hp;
+                this.hp = hp;
+                this.speed = 1.5 + Math.random() * 1.5; // Random speed variation
+                this.damage = 10;
+                
+                this.flashTimer = 0;
+                
+                // Knockback state
+                this.kbX = 0;
+                this.kbY = 0;
+            }
+
+            update(dt) {
+                if (this.flashTimer > 0) this.flashTimer -= dt;
+
+                // Apply Knockback
+                if (Math.abs(this.kbX) > 0.1 || Math.abs(this.kbY) > 0.1) {
+                    this.x += this.kbX * (dt/(1000/60));
+                    this.y += this.kbY * (dt/(1000/60));
+                    this.kbX *= 0.85; // Friction
+                    this.kbY *= 0.85;
+                } else {
+                    // Normal Movement towards player
+                    const angle = Math.atan2(player.y - this.y, player.x - this.x);
+                    let targetX = this.x + Math.cos(angle) * this.speed * (dt/(1000/60));
+                    let targetY = this.y + Math.sin(angle) * this.speed * (dt/(1000/60));
+
+                    // Try moving X
+                    this.x = targetX;
+                    for (let wall of walls) {
+                        let col = checkCircleRectCollision(this, wall);
+                        if (col.collided) this.x += col.dx * col.overlap;
+                    }
+
+                    // Try moving Y
+                    this.y = targetY;
+                    for (let wall of walls) {
+                        let col = checkCircleRectCollision(this, wall);
+                        if (col.collided) this.y += col.dy * col.overlap;
+                    }
+                }
+
+                // Check Map Bounds
+                this.x = clamp(this.x, this.r, WORLD_SIZE - this.r);
+                this.y = clamp(this.y, this.r, WORLD_SIZE - this.r);
+
+                // Collision with player
+                if (dist(this.x, this.y, player.x, player.y) < this.r + player.r) {
+                    player.takeDamage(this.damage);
+                }
+
+                // Separation from other zombies (crowd behavior)
+                for (let other of zombies) {
+                    if (other === this) continue;
+                    let d = dist(this.x, this.y, other.x, other.y);
+                    if (d < this.r + other.r) {
+                        let overlap = (this.r + other.r) - d;
+                        let nx = (this.x - other.x) / d;
+                        let ny = (this.y - other.y) / d;
+                        this.x += nx * overlap * 0.1;
+                        this.y += ny * overlap * 0.1;
+                    }
+                }
+            }
+
+            takeDamage(amount, angle) {
+                this.hp -= amount;
+                this.flashTimer = 150;
+                
+                // Knockback
+                const kbForce = 10;
+                this.kbX = Math.cos(angle) * kbForce;
+                this.kbY = Math.sin(angle) * kbForce;
+
+                // Damage Text
+                damageTexts.push(new DamageText(this.x, this.y - 20, Math.floor(amount)));
+
+                if (this.hp <= 0) {
+                    createParticles(this.x, this.y, '#16a34a', 15); // Green blood
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+                ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : '#22c55e'; // Flash white or green
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#14532d';
+                ctx.stroke();
+
+                // Health bar (small)
+                if (this.hp < this.maxHp) {
+                    const hpPercent = this.hp / this.maxHp;
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(this.x - 15, this.y - 25, 30, 4);
+                    ctx.fillStyle = '#22c55e';
+                    ctx.fillRect(this.x - 15, this.y - 25, 30 * hpPercent, 4);
+                }
+            }
+        }
+
+        class Wall {
+            constructor(x, y, w, h) {
+                this.x = x;
+                this.y = y;
+                this.w = w;
+                this.h = h;
+            }
+            draw(ctx) {
+                ctx.fillStyle = '#475569'; // slate-600
+                ctx.fillRect(this.x, this.y, this.w, this.h);
+                
+                // Bevel/3D effect
+                ctx.fillStyle = '#64748b'; // Lighter top
+                ctx.fillRect(this.x, this.y, this.w, 5);
+                ctx.fillStyle = '#334155'; // Darker bottom
+                ctx.fillRect(this.x, this.y + this.h - 5, this.w, 5);
+                
+                ctx.strokeStyle = '#1e293b'; // slate-800 outline
+                ctx.lineWidth = 2;
+                ctx.strokeRect(this.x, this.y, this.w, this.h);
+            }
+        }
+
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.05 + 0.02;
+                this.r = Math.random() * 3 + 2;
+            }
+            update(dt) {
+                this.x += this.vx * (dt/16);
+                this.y += this.vy * (dt/16);
+                this.vx *= 0.9;
+                this.vy *= 0.9;
+                this.life -= this.decay * (dt/16);
+            }
+            draw(ctx) {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class DamageText {
+            constructor(x, y, text) {
+                this.x = x + (Math.random() * 20 - 10);
+                this.y = y;
+                this.text = text;
+                this.life = 1.0;
+                this.vy = -1;
+            }
+            update(dt) {
+                this.y += this.vy * (dt/16);
+                this.life -= 0.03 * (dt/16);
+            }
+            draw(ctx) {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px sans-serif';
+                ctx.strokeStyle = 'black';
+                ctx.lineWidth = 2;
+                ctx.strokeText(this.text, this.x, this.y);
+                ctx.fillText(this.text, this.x, this.y);
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        /**
+         * GAME LOGIC
+         */
+        function initGame() {
+            player = new Player();
+            zombies = [];
+            particles = [];
+            damageTexts = [];
+            wave = 1;
+            
+            // Generate Map (Walls)
+            walls = [];
+            // Outer boundaries (invisible logic blocks, but let's just use clamping for player, and visual walls inside)
+            
+            // Random blocks to act as cover
+            for(let i=0; i<20; i++) {
+                const w = 100 + Math.random() * 150;
+                const h = 100 + Math.random() * 150;
+                const x = Math.random() * (WORLD_SIZE - w);
+                const y = Math.random() * (WORLD_SIZE - h);
+                
+                // Don't spawn walls on player
+                if (dist(x + w/2, y + h/2, player.x, player.y) > 300) {
+                    walls.push(new Wall(x, y, w, h));
+                }
+            }
+
+            startWave();
+            
+            ui.mainMenu.classList.add('hidden');
+            ui.gameOverMenu.classList.add('hidden');
+            ui.pauseMenu.classList.add('hidden');
+            ui.hud.classList.remove('hidden');
+            gameState = 'PLAYING';
+            updateHUD();
+
+            if (cheatMenuUnlocked) {
+                renderCheatMenu();
+            }
+        }
+
+        function startWave() {
+            zombiesToSpawn = 5 + (wave * 5); // Wave 1 = 10, Wave 2 = 15...
+            spawnTimer = 0;
+            updateHUD();
+        }
+
+        function spawnZombie() {
+            // Spawn outside camera view but within world bounds if possible
+            let angle = Math.random() * Math.PI * 2;
+            let distFromPlayer = Math.max(canvas.width, canvas.height) / 1.5; 
+            
+            let x = player.x + Math.cos(angle) * distFromPlayer;
+            let y = player.y + Math.sin(angle) * distFromPlayer;
+            
+            x = clamp(x, 50, WORLD_SIZE - 50);
+            y = clamp(y, 50, WORLD_SIZE - 50);
+
+            // Zombie health scales slightly with wave
+            let hp = 100 + (wave - 1) * 20; 
+            zombies.push(new Zombie(x, y, hp));
+        }
+
+        function createParticles(x, y, color, amount) {
+            for(let i=0; i<amount; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        const upgradePool = [
+            { id: 'size', name: 'Bigger Bat', desc: 'Increases bat size and reach.', color: 'bg-blue-600' },
+            { id: 'strength', name: 'Strength', desc: 'Hit much harder. Zombies go down faster!', color: 'bg-red-600' },
+            { id: 'cooldown', name: 'Haste', desc: 'Swing faster with less cooldown.', color: 'bg-yellow-600' },
+            { id: 'speed', name: 'Swiftness', desc: 'Move faster around the map.', color: 'bg-green-600' },
+            { id: 'maxhp', name: 'More HP', desc: 'Increases your Maximum HP by 50.', color: 'bg-orange-600' },
+            { id: 'heal', name: 'Heal HP', desc: 'Fully restores your missing health.', color: 'bg-pink-600' },
+            { id: 'multibat', name: 'Double Bat', desc: 'Add an EXTRA bat spinning around you! (RARE)', color: 'bg-purple-600', rare: true }
+        ];
+
+        function showUpgrades() {
+            gameState = 'UPGRADE';
+            ui.upgradeMenu.classList.remove('hidden');
+            ui.upgradeOptions.innerHTML = '';
+
+            // Pick 3 random unique upgrades
+            let available = [...upgradePool];
+            let choices = [];
+            
+            while(choices.length < 3 && available.length > 0) {
+                // Adjust probabilities (Multi-bat is rarer)
+                let totalWeight = available.reduce((sum, u) => sum + (u.rare ? 0.2 : 1), 0);
+                let rand = Math.random() * totalWeight;
+                let currentWeight = 0;
+                let selectedIdx = 0;
+                
+                for(let i=0; i<available.length; i++) {
+                    currentWeight += (available[i].rare ? 0.2 : 1);
+                    if (rand <= currentWeight) {
+                        selectedIdx = i;
+                        break;
+                    }
+                }
+
+                choices.push(available[selectedIdx]);
+                available.splice(selectedIdx, 1);
+            }
+
+            choices.forEach(upg => {
+                const btn = document.createElement('button');
+                btn.className = `${upg.color} hover:brightness-110 text-left p-6 rounded-lg shadow-lg border-2 border-white/20 transition-transform hover:scale-105 active:scale-95 w-72 flex flex-col`;
+                btn.innerHTML = `
+                    <h3 class="text-2xl font-black text-white mb-2" style="text-shadow: 1px 1px 0 #000;">${upg.name}</h3>
+                    <p class="text-gray-100 text-sm font-semibold">${upg.desc}</p>
+                `;
+                btn.onclick = () => applyUpgrade(upg.id);
+                ui.upgradeOptions.appendChild(btn);
+            });
+        }
+
+        function applyUpgrade(id) {
+            switch(id) {
+                case 'size':
+                    player.batLength += 15;
+                    player.batWidth += 3;
+                    player.r += 2; // Make player slightly bigger too
+                    break;
+                case 'strength':
+                    player.damage += 15; // Doubles initial base damage almost
+                    break;
+                case 'cooldown':
+                    player.cooldown = Math.max(100, player.cooldown * 0.8); // 20% reduction
+                    player.speed += 0.2; // slight speed buff with haste
+                    break;
+                case 'speed':
+                    player.speed += 1.5;
+                    break;
+                case 'maxhp':
+                    player.maxHp += 50;
+                    player.hp += 50;
+                    break;
+                case 'heal':
+                    player.hp = player.maxHp;
+                    break;
+                case 'multibat':
+                    player.bats += 1;
+                    break;
+            }
+            
+            // Heal player slightly between waves
+            player.hp = Math.min(player.maxHp, player.hp + 30);
+
+            ui.upgradeMenu.classList.add('hidden');
+            wave++;
+            startWave();
+            gameState = 'PLAYING';
+        }
+
+        function endGame() {
+            gameState = 'GAMEOVER';
+            ui.hud.classList.add('hidden');
+            ui.gameOverMenu.classList.remove('hidden');
+            ui.finalWave.innerText = `Wave ${wave}`;
+        }
+
+        function updateHUD() {
+            ui.waveDisplay.innerText = wave;
+            ui.zombiesLeftDisplay.innerText = zombies.length + zombiesToSpawn;
+            
+            const hpPercent = Math.max(0, player.hp / player.maxHp * 100);
+            ui.healthBar.style.width = `${hpPercent}%`;
+            ui.healthText.innerText = `${Math.ceil(player.hp)}/${player.maxHp}`;
+        }
+
+        /**
+         * CHEAT MENU LOGIC
+         */
+        function unlockCheatMenu() {
+            cheatMenuUnlocked = true;
+            ui.cheatMenu.classList.remove('hidden');
+            renderCheatMenu();
+        }
+
+        function renderCheatMenu() {
+            ui.cheatContent.innerHTML = '';
+            
+            if (!player) {
+                ui.cheatContent.innerHTML = '<p class="text-xs text-gray-400 italic">Start game to edit player stats.</p>';
+                return;
+            }
+            
+            const stats = ['hp', 'maxHp', 'speed', 'damage', 'cooldown', 'bats', 'batLength', 'regenRate'];
+            
+            stats.forEach(stat => {
+                const row = document.createElement('div');
+                row.className = 'flex justify-between items-center';
+                
+                const label = document.createElement('label');
+                label.innerText = stat;
+                label.className = 'text-sm text-gray-200 font-mono capitalize';
+                
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.value = player[stat];
+                input.className = 'w-24 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-sm text-right';
+                
+                input.onchange = (e) => {
+                    player[stat] = parseFloat(e.target.value) || 0;
+                    if(stat === 'hp' || stat === 'maxHp') updateHUD();
+                };
+                
+                row.appendChild(label);
+                row.appendChild(input);
+                ui.cheatContent.appendChild(row);
+            });
+            
+            const refreshBtn = document.createElement('button');
+            refreshBtn.innerText = 'Refresh Values';
+            refreshBtn.className = 'mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs py-2 transition-colors';
+            refreshBtn.onclick = renderCheatMenu;
+            ui.cheatContent.appendChild(refreshBtn);
+        }
+
+        /**
+         * MAIN GAME LOOP
+         */
+        function update(dt, now) {
+            if (gameState !== 'PLAYING') return;
+
+            // Spawn Logic
+            if (zombiesToSpawn > 0) {
+                spawnTimer += dt;
+                // Spawn faster as waves progress
+                const spawnRate = Math.max(200, 1500 - (wave * 100)); 
+                if (spawnTimer > spawnRate) {
+                    spawnZombie();
+                    zombiesToSpawn--;
+                    spawnTimer = 0;
+                    updateHUD();
+                }
+            }
+
+            player.update(dt, now);
+
+            // Update Zombies
+            for (let i = zombies.length - 1; i >= 0; i--) {
+                zombies[i].update(dt);
+                if (zombies[i].hp <= 0) {
+                    zombies.splice(i, 1);
+                    updateHUD();
+                }
+            }
+
+            // Wave completion
+            if (zombiesToSpawn === 0 && zombies.length === 0 && gameState === 'PLAYING') {
+                showUpgrades();
+            }
+
+            // Update Particles & Text
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].update(dt);
+                if (particles[i].life <= 0) particles.splice(i, 1);
+            }
+            for (let i = damageTexts.length - 1; i >= 0; i--) {
+                damageTexts[i].update(dt);
+                if (damageTexts[i].life <= 0) damageTexts.splice(i, 1);
+            }
+
+            // Camera follow player with simple lerp
+            camera.x += ((player.x - canvas.width / 2) - camera.x) * 0.1;
+            camera.y += ((player.y - canvas.height / 2) - camera.y) * 0.1;
+            
+            // Clamp camera to world bounds
+            camera.x = clamp(camera.x, 0, WORLD_SIZE - canvas.width);
+            camera.y = clamp(camera.y, 0, WORLD_SIZE - canvas.height);
+        }
+
+        function draw() {
+            // Clear screen
+            ctx.fillStyle = '#1e293b'; // Base ground color
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (gameState === 'MENU') return;
+
+            ctx.save();
+            ctx.translate(-camera.x, -camera.y);
+
+            // Draw grid pattern for ground
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            const gridSize = 100;
+            const startX = Math.floor(camera.x / gridSize) * gridSize;
+            const startY = Math.floor(camera.y / gridSize) * gridSize;
+            
+            ctx.beginPath();
+            for(let x = startX; x < camera.x + canvas.width; x += gridSize) {
+                ctx.moveTo(x, camera.y);
+                ctx.lineTo(x, camera.y + canvas.height);
+            }
+            for(let y = startY; y < camera.y + canvas.height; y += gridSize) {
+                ctx.moveTo(camera.x, y);
+                ctx.lineTo(camera.x + canvas.width, y);
+            }
+            ctx.stroke();
+
+            // Draw World Bounds (Red warning area outside)
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
+            ctx.fillRect(-1000, -1000, WORLD_SIZE + 2000, 1000); // Top
+            ctx.fillRect(-1000, WORLD_SIZE, WORLD_SIZE + 2000, 1000); // Bottom
+            ctx.fillRect(-1000, 0, 1000, WORLD_SIZE); // Left
+            ctx.fillRect(WORLD_SIZE, 0, 1000, WORLD_SIZE); // Right
+
+            // Draw entities
+            walls.forEach(w => w.draw(ctx));
+            zombies.forEach(z => z.draw(ctx));
+            player.draw(ctx);
+            particles.forEach(p => p.draw(ctx));
+            damageTexts.forEach(t => t.draw(ctx));
+
+            ctx.restore();
+            
+            // Blood vignette when low HP
+            if (gameState === 'PLAYING' && player.hp < player.maxHp * 0.3) {
+                const intensity = 1 - (player.hp / (player.maxHp * 0.3));
+                const gradient = ctx.createRadialGradient(
+                    canvas.width/2, canvas.height/2, canvas.height/4,
+                    canvas.width/2, canvas.height/2, canvas.width
+                );
+                gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
+                gradient.addColorStop(1, `rgba(255, 0, 0, ${0.4 * intensity})`);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function gameLoop(timestamp) {
+            if (!lastTime) lastTime = timestamp;
+            const dt = Math.min(timestamp - lastTime, 50); // cap dt to prevent huge jumps
+            lastTime = timestamp;
+
+            update(dt, timestamp);
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        /**
+         * EVENT LISTENERS
+         */
+        ui.startBtn.addEventListener('click', () => {
+            initGame();
+        });
+
+        ui.restartBtn.addEventListener('click', () => {
+            initGame();
+        });
+
+        ui.resumeBtn.addEventListener('click', () => {
+            gameState = 'PLAYING';
+            ui.pauseMenu.classList.add('hidden');
+        });
+
+        ui.minimizeCheatBtn.addEventListener('click', () => {
+            isCheatMinimized = !isCheatMinimized;
+            if (isCheatMinimized) {
+                ui.cheatContent.classList.add('hidden');
+                ui.minimizeCheatBtn.innerText = '+';
+            } else {
+                ui.cheatContent.classList.remove('hidden');
+                ui.minimizeCheatBtn.innerText = '-';
+            }
+        });
+
+        // Start Loop
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
