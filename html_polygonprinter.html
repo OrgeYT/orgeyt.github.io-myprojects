@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polygon Printer Menu</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .menu-bg {
+            background-image: url('https://cdn2.scratch.mit.edu/get_image/project/1328269671_216x163.png');
+            background-size: cover;
+            background-position: center;
+        }
+        #fullscreen-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: black;
+        }
+    </style>
+</head>
+<body class="m-0 p-0 font-sans h-screen">
+
+    <!-- Menu Screen -->
+    <div class="menu-bg h-full w-full flex flex-col items-center justify-center gap-8">
+        <!-- Styled title to match buttons -->
+        <h1 class="px-10 py-5 bg-black border-2 border-white text-white text-3xl font-black uppercase tracking-widest">
+            Polygon Printer        </h1>
+        
+        <button onclick="openProject('1288760669')" class="px-10 py-5 bg-black border-2 border-white text-white text-xl font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors duration-200">
+            Polygon Printer 1
+        </button>
+        
+        <button onclick="openProject('1328269671')" class="px-10 py-5 bg-black border-2 border-white text-white text-xl font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors duration-200">
+            Polygon Printer 2
+        </button>
+    </div>
+
+    <!-- Fullscreen Embed Container -->
+    <div id="fullscreen-container">
+        <button onclick="closeProject()" class="absolute bottom-6 right-6 z-[1001] bg-black border-2 border-white text-white px-8 py-3 font-black uppercase tracking-widest hover:bg-white hover:text-black transition-colors duration-200 shadow-md">
+            EXIT
+        </button>
+        <iframe id="project-frame" class="w-full h-full border-none" allowtransparency="true" frameborder="0" scrolling="no" allowfullscreen></iframe>
+    </div>
+
+    <script>
+        const container = document.getElementById('fullscreen-container');
+        const frame = document.getElementById('project-frame');
+
+        function openProject(id) {
+            const url = `https://turbowarp.org/${id}/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones`;
+            frame.src = url;
+            container.style.display = 'block';
+        }
+
+        function closeProject() {
+            container.style.display = 'none';
+            frame.src = '';
+        }
+    </script>
+</body>
+</html>
