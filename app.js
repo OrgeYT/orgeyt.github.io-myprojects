@@ -10,7 +10,7 @@ const projects = [
     { name: "Notepad", path: "notepad/index.html" }, "jumpscareprank", { name: "Rubix Cube", path: "rubixcube/index.html" }, "rubixcubefixed", { name: "FNF Playground", path: "fnf playground/index.html" },
     "blobfighting", "faviconextractor", "freegamesorgeyt", "calculator", "orgeytbradwordle", "arrownesetranslator", "scratchlinker", "orgeytaccounts",
     { name: "COLOR MIX!", path: "color mix/index.html" }, "sadfunsandbox", { name: "My OC's lore", path: "loredrop.txt" }, "pongbutitsmadewithscratchblocks", "FCR",
-    { name: "idk (By Brad)", path: "idk/index.html" }, { name: "magnet playground", path: "magnet/index.html" }, "batsurvival", { name: "Platformer Chaos", path: "platformerchaos/index.html" },
+    { name: "idk (By Brad)", path: "idk/index.html" }, { name: "magnet playground", path: "magnet/index.html" }, "batsurvival", { name: "Platformer Chaos (Kinda Broken)", path: "platformerchaos/index.html" },
 ];
 
 const fileList = document.getElementById('file-list');
