@@ -69,6 +69,29 @@ body {
     transform: scale(0.98);
 }
 
+/* Search Bar Styling */
+#search-bar {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    background-color: #1a0a00;
+    border: 1px solid #662900;
+    color: #ffffff;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    transition: border-color 0.2s;
+}
+
+#search-bar::placeholder {
+    color: #e6a873;
+    opacity: 0.7;
+}
+
+#search-bar:focus {
+    outline: none;
+    border-color: #cc5500;
+}
+
 #file-list {
     display: flex;
     flex-direction: column;
