@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Websim Projects</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        #app-container { width: 100vw; height: 100vh; }
+        #embed-frame { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body class="bg-slate-900 text-white font-sans">
+
+    <div id="app-container" class="flex flex-col items-center justify-center p-6 text-center">
+        <h1 class="text-5xl font-bold mb-8 text-blue-400">Websim Projects</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
+            <button onclick="loadGame('https://platformer-chaos--orgeyt.on.websim.com/')" 
+                    class="bg-blue-600 hover:bg-blue-500 px-8 py-4 rounded-xl font-semibold transition">
+                Parkour Chaos
+            </button>
+            <button onclick="loadGame('https://pass-the-bomb--orgeyt.on.websim.com/')" 
+                    class="bg-red-600 hover:bg-red-500 px-8 py-4 rounded-xl font-semibold transition">
+                Pass the Bomb
+            </button>
+            <button onclick="loadGame('https://among-us-character-maker--orgeyt.on.websim.com/')" 
+                    class="bg-emerald-600 hover:bg-emerald-500 px-8 py-4 rounded-xl font-semibold transition">
+                Among Us Maker
+            </button>
+        </div>
+
+        <div class="max-w-md bg-slate-800 p-6 rounded-2xl border border-slate-700">
+            <p class="text-slate-400 text-sm italic">
+                i WAS gonna add these fully to my site (full source code, etc), but i decided it would explode my storage so they are hosted on websim, with embed. if websim goes down this goes down too.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function loadGame(url) {
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <iframe id="embed-frame" src="${url}" allow="fullscreen; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe>
+                <button onclick="location.reload()" class="fixed top-4 right-4 bg-slate-700/80 hover:bg-slate-600 px-4 py-2 rounded-full text-sm backdrop-blur-sm z-50">
+                    Exit Game
+                </button>
+            `;
+        }
+    </script>
+</body>
+</html>
