@@ -12,9 +12,9 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #1a202c; /* Tailwind gray-900 */
+            background-color: #0f172a; /* Tailwind slate-900 */
             color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             touch-action: none;
         }
         canvas {
@@ -49,27 +49,32 @@
         <!-- HUD -->
         <div id="hud" class="p-4 flex justify-between items-start hidden">
             <div>
-                <h1 class="text-2xl font-bold text-red-500 tracking-wider" style="text-shadow: 2px 2px 0 #000;">WAVE <span id="waveDisplay">1</span></h1>
-                <p class="text-lg font-semibold text-gray-200" style="text-shadow: 1px 1px 0 #000;">Zombies Left: <span id="zombiesLeftDisplay">0</span></p>
+                <h1 class="text-2xl font-black text-red-500 tracking-wider" style="text-shadow: 2px 2px 0 #000;">WAVE <span id="waveDisplay">1</span></h1>
+                <p class="text-lg font-bold text-gray-200" style="text-shadow: 1px 1px 0 #000;">Zombies Left: <span id="zombiesLeftDisplay">0</span></p>
             </div>
             <div class="w-64">
-                <div class="text-sm font-bold mb-1 text-right" style="text-shadow: 1px 1px 0 #000;">HP</div>
-                <div class="w-full bg-gray-700 h-6 border-2 border-gray-900 rounded-md overflow-hidden relative">
+                <div class="text-sm font-bold mb-1 text-right flex justify-between" style="text-shadow: 1px 1px 0 #000;">
+                    <span id="regenIndicator" class="text-green-400 opacity-0 transition-opacity">Healing...</span>
+                    <span>HP</span>
+                </div>
+                <div class="w-full bg-gray-700 h-6 border-2 border-gray-900 rounded-md overflow-hidden relative shadow-lg">
                     <div id="healthBar" class="bg-red-500 h-full w-full transition-all duration-200"></div>
-                    <span id="healthText" class="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none" style="text-shadow: 1px 1px 0 #000;">100/100</span>
+                    <span id="healthText" class="absolute inset-0 flex items-center justify-center text-xs font-bold pointer-events-none" style="text-shadow: 1px 1px 0 #000;">150/150</span>
                 </div>
             </div>
         </div>
 
         <!-- Main Menu -->
-        <div id="mainMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 interactive-ui transition-opacity">
+        <div id="mainMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/85 interactive-ui transition-opacity">
             <h1 class="text-6xl font-black text-red-600 mb-2 uppercase tracking-widest text-center" style="text-shadow: 4px 4px 0 #4a0000;">Bat<br>Survival</h1>
-            <p class="text-gray-300 mb-8 max-w-md text-center text-lg">Use WASD or Arrows to move. Use Mouse to aim and hold Left Click to swing. Use walls to your advantage. Survive as long as you can.</p>
+            <p class="text-gray-300 mb-2 max-w-md text-center text-lg font-semibold">Use WASD or Arrow Keys to move.</p>
+            <p class="text-gray-300 mb-2 max-w-md text-center text-lg">Use Mouse or Screen Buttons to Zoom.</p>
+            <p class="text-gray-400 mb-8 max-w-md text-center text-sm">Aim with your mouse cursor and hold Left Click to swing your bat. Smash zombies into walls to deal crushing damage. Survive the horde!</p>
             <button id="startBtn" class="px-8 py-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-transform hover:scale-105 active:scale-95 text-xl">START SURVIVAL</button>
         </div>
 
         <!-- Upgrade Menu -->
-        <div id="upgradeMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 interactive-ui hidden">
+        <div id="upgradeMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/90 interactive-ui hidden z-30">
             <h2 class="text-4xl font-bold text-yellow-400 mb-2" style="text-shadow: 2px 2px 0 #000;">WAVE CLEARED!</h2>
             <p class="text-gray-300 mb-8 text-xl">Choose your upgrade:</p>
             <div id="upgradeOptions" class="flex gap-6 flex-wrap justify-center max-w-4xl px-4">
@@ -78,26 +83,65 @@
         </div>
 
         <!-- Game Over Menu -->
-        <div id="gameOverMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/90 interactive-ui hidden">
+        <div id="gameOverMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-red-900/90 interactive-ui hidden z-40">
             <h1 class="text-6xl font-black text-white mb-4" style="text-shadow: 4px 4px 0 #000;">YOU DIED</h1>
             <p class="text-2xl text-gray-200 mb-8">You survived until <span id="finalWave" class="font-bold text-yellow-400">Wave X</span></p>
             <button id="restartBtn" class="px-8 py-4 bg-black hover:bg-gray-800 text-white border-2 border-red-500 font-bold rounded transition-transform hover:scale-105 active:scale-95 text-xl">PLAY AGAIN</button>
         </div>
 
         <!-- Pause Menu -->
-        <div id="pauseMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/70 interactive-ui hidden backdrop-blur-sm z-40">
+        <div id="pauseMenu" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 interactive-ui hidden backdrop-blur-sm z-40">
             <h1 class="text-6xl font-black text-white mb-4 tracking-widest text-center" style="text-shadow: 4px 4px 0 #000;">PAUSED</h1>
-            <p class="text-xl text-gray-200 mb-8">Press ESC to resume</p>
-            <button id="resumeBtn" class="px-8 py-4 bg-gray-800 hover:bg-gray-700 text-white border-2 border-gray-500 font-bold rounded transition-transform hover:scale-105 active:scale-95 text-xl">RESUME</button>
+            <p class="text-xl text-gray-200 mb-6">Press ESC to resume</p>
+            
+            <div class="flex flex-col gap-4 items-center mb-8">
+                <button id="resumeBtn" class="px-8 py-4 bg-gray-850 hover:bg-gray-800 text-white border-2 border-gray-600 hover:border-red-500 font-bold rounded-lg transition-transform hover:scale-105 active:scale-95 text-xl w-64 shadow-xl">
+                    RESUME
+                </button>
+                <button id="pauseActivateCheatBtn" class="px-6 py-3 bg-red-950/80 hover:bg-red-900 text-red-400 border border-red-800 hover:border-red-500 font-mono text-sm font-bold rounded-lg transition-all hover:scale-105 active:scale-95 w-64 shadow-md">
+                    🔓 ACTIVATE DEV CHEATS
+                </button>
+            </div>
+
+            <!-- Interactively lit-up Konami tracker -->
+            <div id="clickableCheatText" class="text-center bg-black/60 p-5 rounded-lg border border-gray-800 max-w-sm cursor-pointer hover:border-yellow-600 transition-colors shadow-2xl">
+                <p class="text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">Classic Konami Code:</p>
+                <div id="konamiSpans" class="flex justify-center gap-1.5 mb-2">
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">↑</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">↑</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">↓</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">↓</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">←</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">→</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">←</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">→</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">B</span>
+                    <span class="px-1.5 py-0.5 bg-gray-950 rounded text-gray-600 font-mono text-sm transition-colors duration-200">A</span>
+                </div>
+                <p class="text-[10px] text-gray-500 font-medium">Click this panel to force-unlock instantly!</p>
+            </div>
         </div>
 
-        <!-- Cheat Menu -->
-        <div id="cheatMenu" class="absolute top-4 left-4 bg-gray-900 border-2 border-red-500 rounded-lg p-4 w-64 interactive-ui hidden shadow-2xl z-50">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-xl font-bold text-red-500" style="text-shadow: 1px 1px 0 #000;">DEV CHEATS</h3>
-                <button id="minimizeCheatBtn" class="text-gray-400 hover:text-white font-bold text-2xl leading-none px-2 focus:outline-none">-</button>
+        <!-- Zoom Controls Overlay -->
+        <div id="zoomControls" class="absolute bottom-6 right-6 flex flex-col items-center gap-2 interactive-ui z-30 hidden select-none">
+            <button id="zoomInBtn" class="w-12 h-12 bg-gray-950/80 border-2 border-gray-800 hover:bg-gray-850 hover:border-red-500 text-white font-extrabold rounded-lg flex items-center justify-center text-xl shadow-2xl transition-transform hover:scale-110 active:scale-90" title="Zoom In">
+                ➕
+            </button>
+            <button id="zoomOutBtn" class="w-12 h-12 bg-gray-950/80 border-2 border-gray-800 hover:bg-gray-850 hover:border-red-500 text-white font-extrabold rounded-lg flex items-center justify-center text-xl shadow-2xl transition-transform hover:scale-110 active:scale-90" title="Zoom Out">
+                ➖
+            </button>
+            <button id="zoomResetBtn" class="px-3 py-1 bg-gray-950/90 border border-gray-850 hover:bg-gray-850 text-gray-400 hover:text-white font-mono text-[10px] font-bold rounded-full text-center shadow-lg transition-all" title="Reset Zoom">
+                100%
+            </button>
+        </div>
+
+        <!-- Cheat Menu (Initially hidden, unlocked via Pause panel or Konami code) -->
+        <div id="cheatMenu" class="absolute top-4 left-4 bg-gray-900/95 border-2 border-red-500 rounded-lg p-4 w-64 interactive-ui hidden shadow-2xl z-50 cursor-move">
+            <div id="cheatHeader" class="flex justify-between items-center mb-3 border-b border-gray-800 pb-2">
+                <h3 class="text-lg font-black text-red-500 tracking-wider" style="text-shadow: 1px 1px 0 #000;">DEV CHEATS</h3>
+                <button id="minimizeCheatBtn" class="text-gray-400 hover:text-white font-bold text-xl leading-none px-2 focus:outline-none cursor-pointer">-</button>
             </div>
-            <div id="cheatContent" class="flex flex-col gap-3">
+            <div id="cheatContent" class="flex flex-col gap-2 cursor-default">
                 <p class="text-xs text-gray-400 italic">Game must be running to edit player stats.</p>
             </div>
         </div>
@@ -106,7 +150,7 @@
 
     <script>
         /**
-         * INITIALIZATION & ENGINE SETUP
+         * STREAMING_CHUNK: Initializing canvas context and mapping UI elements...
          */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -119,20 +163,28 @@
             gameOverMenu: document.getElementById('gameOverMenu'),
             pauseMenu: document.getElementById('pauseMenu'),
             cheatMenu: document.getElementById('cheatMenu'),
+            cheatHeader: document.getElementById('cheatHeader'),
             cheatContent: document.getElementById('cheatContent'),
+            zoomControls: document.getElementById('zoomControls'),
             startBtn: document.getElementById('startBtn'),
             restartBtn: document.getElementById('restartBtn'),
             resumeBtn: document.getElementById('resumeBtn'),
+            pauseActivateCheatBtn: document.getElementById('pauseActivateCheatBtn'),
+            clickableCheatText: document.getElementById('clickableCheatText'),
+            zoomInBtn: document.getElementById('zoomInBtn'),
+            zoomOutBtn: document.getElementById('zoomOutBtn'),
+            zoomResetBtn: document.getElementById('zoomResetBtn'),
             minimizeCheatBtn: document.getElementById('minimizeCheatBtn'),
             upgradeOptions: document.getElementById('upgradeOptions'),
             waveDisplay: document.getElementById('waveDisplay'),
             zombiesLeftDisplay: document.getElementById('zombiesLeftDisplay'),
             healthBar: document.getElementById('healthBar'),
             healthText: document.getElementById('healthText'),
+            regenIndicator: document.getElementById('regenIndicator'),
             finalWave: document.getElementById('finalWave')
         };
 
-        // Resize Canvas
+        // Resize Canvas dynamically
         function resize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -141,11 +193,11 @@
         resize();
 
         /**
-         * GAME CONSTANTS & STATE
+         * STREAMING_CHUNK: Setting up core game variables and map parameters...
          */
         const WORLD_SIZE = 2500;
         let lastTime = 0;
-        let gameState = 'MENU'; // MENU, PLAYING, UPGRADE, GAMEOVER
+        let gameState = 'MENU'; // MENU, PLAYING, UPGRADE, PAUSED, GAMEOVER
         
         const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
         const mouse = { x: 0, y: 0, worldX: 0, worldY: 0, down: false };
@@ -156,7 +208,7 @@
         let walls = [];
         let particles = [];
         let damageTexts = [];
-        let camera = { x: 0, y: 0 };
+        let camera = { x: 0, y: 0, zoom: 1.0 };
 
         // Wave Management
         let wave = 1;
@@ -169,8 +221,13 @@
         let cheatMenuUnlocked = false;
         let isCheatMinimized = false;
 
+        // Draggable Cheat Menu variables
+        let isDraggingCheatMenu = false;
+        let cheatMenuDragOffsetX = 0;
+        let cheatMenuDragOffsetY = 0;
+
         /**
-         * INPUT HANDLING
+         * STREAMING_CHUNK: Configuring event listeners and key trackers...
          */
         window.addEventListener('keydown', (e) => { 
             if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
@@ -186,33 +243,113 @@
                 }
             }
 
-            // Konami Code Tracking
+            // Tracking Konami progression codes
             if (!cheatMenuUnlocked) {
                 let expected = konamiCode[konamiIndex];
                 if (e.key === expected || e.key.toLowerCase() === expected.toLowerCase()) {
                     konamiIndex++;
+                    updateKonamiVisuals();
                     if (konamiIndex === konamiCode.length) {
                         unlockCheatMenu();
                     }
                 } else {
                     konamiIndex = 0;
+                    updateKonamiVisuals();
                 }
             }
         });
-        window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
         
+        window.addEventListener('keyup', (e) => { 
+            if(keys.hasOwnProperty(e.key)) keys[e.key] = false; 
+        });
+        
+        window.addEventListener('mousedown', (e) => { 
+            if(e.button === 0) mouse.down = true; 
+        });
+
+        window.addEventListener('mouseup', (e) => { 
+            if(e.button === 0) {
+                mouse.down = false; 
+                isDraggingCheatMenu = false;
+            }
+        });
+
+        // Draggable Cheat Menu Logic
+        ui.cheatMenu.addEventListener('mousedown', (e) => {
+            if (e.target === ui.minimizeCheatBtn || ui.cheatContent.contains(e.target)) return;
+            isDraggingCheatMenu = true;
+            const rect = ui.cheatMenu.getBoundingClientRect();
+            cheatMenuDragOffsetX = e.clientX - rect.left;
+            cheatMenuDragOffsetY = e.clientY - rect.top;
+        });
+
         window.addEventListener('mousemove', (e) => {
             mouse.x = e.clientX;
             mouse.y = e.clientY;
-            // Calculate world coordinates of mouse based on camera
-            mouse.worldX = mouse.x + camera.x;
-            mouse.worldY = mouse.y + camera.y;
+
+            if (isDraggingCheatMenu) {
+                // Keep the menu within the bounds of the window
+                let newX = e.clientX - cheatMenuDragOffsetX;
+                let newY = e.clientY - cheatMenuDragOffsetY;
+                
+                const rect = ui.cheatMenu.getBoundingClientRect();
+                const maxX = window.innerWidth - rect.width;
+                const maxY = window.innerHeight - rect.height;
+
+                newX = clamp(newX, 0, maxX);
+                newY = clamp(newY, 0, maxY);
+
+                ui.cheatMenu.style.left = `${newX}px`;
+                ui.cheatMenu.style.top = `${newY}px`;
+            }
         });
-        window.addEventListener('mousedown', (e) => { if(e.button === 0) mouse.down = true; });
-        window.addEventListener('mouseup', (e) => { if(e.button === 0) mouse.down = false; });
+
+        // Wheel-based Camera Zooming
+        window.addEventListener('wheel', (e) => {
+            if (gameState !== 'PLAYING') return;
+            const zoomAmount = 0.15;
+            if (e.deltaY < 0) {
+                camera.zoom = Math.min(3.0, camera.zoom + zoomAmount);
+            } else {
+                camera.zoom = Math.max(0.4, camera.zoom - zoomAmount);
+            }
+            updateZoomLabel();
+        }, { passive: true });
+
+        // Touchscreen Zoom Action Handlers
+        ui.zoomInBtn.onclick = () => {
+            camera.zoom = Math.min(3.0, camera.zoom + 0.2);
+            updateZoomLabel();
+        };
+        ui.zoomOutBtn.onclick = () => {
+            camera.zoom = Math.max(0.4, camera.zoom - 0.2);
+            updateZoomLabel();
+        };
+        ui.zoomResetBtn.onclick = () => {
+            camera.zoom = 1.0;
+            updateZoomLabel();
+        };
+
+        function updateZoomLabel() {
+            ui.zoomResetBtn.innerText = `${Math.round(camera.zoom * 100)}%`;
+        }
+
+        // Highlighting Konami Progress
+        function updateKonamiVisuals() {
+            const spans = document.querySelectorAll('#konamiSpans span');
+            spans.forEach((span, idx) => {
+                if (idx < konamiIndex) {
+                    span.classList.remove('bg-gray-950', 'text-gray-600');
+                    span.classList.add('bg-red-600', 'text-white', 'animate-pulse');
+                } else {
+                    span.classList.remove('bg-red-600', 'text-white', 'animate-pulse');
+                    span.classList.add('bg-gray-950', 'text-gray-600');
+                }
+            });
+        }
 
         /**
-         * UTILITY MATH FUNCTIONS
+         * STREAMING_CHUNK: Formulating math helpers and collision detectors...
          */
         const dist = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
         const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
@@ -243,7 +380,7 @@
         }
 
         /**
-         * CLASSES
+         * STREAMING_CHUNK: Drafting Player combat and auto-healing logic...
          */
         class Player {
             constructor() {
@@ -254,50 +391,54 @@
                 // Base Stats
                 this.maxHp = 150;
                 this.hp = 150;
-                this.regenRate = 10; // HP regenerated per second
+                this.regenRate = 10; // HP per second
+                this.combatTimer = 0; // Out of combat timer
                 this.speed = 4;
-                this.combatTimer = 0; // ms to wait before healing
                 
                 // Bat Stats
-                this.bats = 1; // Number of bats (for multi-bat upgrade)
+                this.bats = 1;
                 this.batLength = 60;
                 this.batWidth = 12;
-                this.damage = 15; // Base damage. 100 HP Zombie / 15 = ~7 hits
-                this.cooldown = 600; // ms between swings
+                this.damage = 15;
+                this.cooldown = 600; // ms
                 this.swingDuration = 200; // ms
-                this.swingArc = Math.PI * 0.8; // 144 degrees
+                this.swingArc = Math.PI * 0.8;
                 
                 // State
                 this.lastSwingTime = 0;
                 this.isSwinging = false;
-                this.swingProgress = 0; // 0 to 1
-                this.baseAngle = 0; // Angle to mouse
+                this.swingProgress = 0; 
+                this.baseAngle = 0; 
                 
                 this.hitZombiesThisSwing = new Set();
                 this.flashTimer = 0;
             }
 
             update(dt, now) {
-                // Out of combat timer
+                // Out of combat healing
                 if (this.combatTimer > 0) {
                     this.combatTimer -= dt;
+                    ui.regenIndicator.classList.remove('opacity-100');
+                    ui.regenIndicator.classList.add('opacity-0');
                 } else if (this.hp > 0 && this.hp < this.maxHp) {
-                    // Auto-healing when out of combat
                     this.hp = Math.min(this.maxHp, this.hp + this.regenRate * (dt / 1000));
+                    ui.regenIndicator.classList.remove('opacity-0');
+                    ui.regenIndicator.classList.add('opacity-100');
                     updateHUD();
+                } else {
+                    ui.regenIndicator.classList.remove('opacity-100');
+                    ui.regenIndicator.classList.add('opacity-0');
                 }
 
-                // Flash effect
                 if (this.flashTimer > 0) this.flashTimer -= dt;
 
-                // Movement
+                // Move actions
                 let dx = 0; let dy = 0;
                 if (keys.w || keys.ArrowUp) dy -= 1;
                 if (keys.s || keys.ArrowDown) dy += 1;
                 if (keys.a || keys.ArrowLeft) dx -= 1;
                 if (keys.d || keys.ArrowRight) dx += 1;
 
-                // Normalize diagonal speed
                 if (dx !== 0 && dy !== 0) {
                     const len = Math.hypot(dx, dy);
                     dx /= len; dy /= len;
@@ -306,42 +447,38 @@
                 let targetX = this.x + dx * this.speed * (dt/(1000/60));
                 let targetY = this.y + dy * this.speed * (dt/(1000/60));
 
-                // Map bounds
                 targetX = clamp(targetX, this.r, WORLD_SIZE - this.r);
                 targetY = clamp(targetY, this.r, WORLD_SIZE - this.r);
 
-                // Try moving X, check collisions
+                // Collision X
                 this.x = targetX;
                 for (let wall of walls) {
                     let col = checkCircleRectCollision(this, wall);
-                    if (col.collided) {
-                        this.x += col.dx * col.overlap;
-                    }
+                    if (col.collided) this.x += col.dx * col.overlap;
                 }
 
-                // Try moving Y, check collisions
+                // Collision Y
                 this.y = targetY;
                 for (let wall of walls) {
                     let col = checkCircleRectCollision(this, wall);
-                    if (col.collided) {
-                        this.y += col.dy * col.overlap;
-                    }
+                    if (col.collided) this.y += col.dy * col.overlap;
                 }
 
-                // Update aim angle
-                mouse.worldX = mouse.x + camera.x;
-                mouse.worldY = mouse.y + camera.y;
+                // Transform visual coordinates with Zoom factor accounted for
+                mouse.worldX = (mouse.x - canvas.width / 2) / camera.zoom + camera.x;
+                mouse.worldY = (mouse.y - canvas.height / 2) / camera.zoom + camera.y;
+                
                 if (!this.isSwinging) {
                     this.baseAngle = Math.atan2(mouse.worldY - this.y, mouse.worldX - this.x);
                 }
 
-                // Bat Logic
+                // Initiate swings
                 if (mouse.down && !this.isSwinging && now - this.lastSwingTime > this.cooldown) {
                     this.isSwinging = true;
                     this.swingProgress = 0;
                     this.hitZombiesThisSwing.clear();
                     this.lastSwingTime = now;
-                    this.combatTimer = 4000; // Attacking puts you in combat
+                    this.combatTimer = 4000;
                 }
 
                 if (this.isSwinging) {
@@ -355,11 +492,11 @@
                 }
             }
 
+            /**
+             * STREAMING_CHUNK: Inspecting collision impacts...
+             */
             checkBatCollisions() {
-                // Calculate current swing angles for all bats
-                // Swing goes from -arc/2 to +arc/2
                 const halfArc = this.swingArc / 2;
-                // Add a bit of easing
                 const easeOutQuad = t => t * (2 - t);
                 const currentRelAngle = -halfArc + (this.swingArc * easeOutQuad(this.swingProgress));
 
@@ -368,36 +505,31 @@
                     const absoluteCurrentAngle = this.baseAngle + batOffset + currentRelAngle;
 
                     for (let z of zombies) {
-                        if (this.hitZombiesThisSwing.has(z)) continue; // Already hit this swing
+                        if (this.hitZombiesThisSwing.has(z)) continue;
 
-                        // Broad phase: distance check
                         const d = dist(this.x, this.y, z.x, z.y);
                         if (d > this.batLength + z.r + this.r) continue;
 
-                        // Narrow phase: angle check
                         const angleToZombie = Math.atan2(z.y - this.y, z.x - this.x);
                         
-                        // Normalize angle difference to -PI to PI
                         let angleDiff = absoluteCurrentAngle - angleToZombie;
                         while (angleDiff <= -Math.PI) angleDiff += Math.PI * 2;
                         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
 
-                        // Check if within hitting arc threshold (width of bat basically)
                         if (Math.abs(angleDiff) < 0.4) {
-                            // HIT!
                             this.hitZombiesThisSwing.add(z);
                             z.takeDamage(this.damage, absoluteCurrentAngle);
-                            createParticles(z.x, z.y, '#eab308', 5); // Sparks
+                            createParticles(z.x, z.y, '#eab308', 5);
                         }
                     }
                 }
             }
 
             takeDamage(amount) {
-                if (this.flashTimer > 0) return; // Invincibility frames
+                if (this.flashTimer > 0) return;
                 this.hp -= amount;
                 this.flashTimer = 500;
-                this.combatTimer = 4000; // Taking damage puts you in combat
+                this.combatTimer = 4000;
                 createParticles(this.x, this.y, '#ef4444', 10);
                 updateHUD();
                 
@@ -408,7 +540,7 @@
             }
 
             draw(ctx) {
-                // Draw Bats
+                // Drawing Swinging Bats
                 for (let i = 0; i < this.bats; i++) {
                     ctx.save();
                     ctx.translate(this.x, this.y);
@@ -424,31 +556,30 @@
                     
                     ctx.rotate(angle);
                     
-                    // Draw bat
-                    ctx.fillStyle = '#8b5a2b'; // Wooden brown
+                    // Wooden baseball bat shape
+                    ctx.fillStyle = '#b45309';
                     ctx.beginPath();
-                    ctx.roundRect(this.r, -this.batWidth/2, this.batLength, this.batWidth, 5);
+                    ctx.roundRect(this.r, -this.batWidth/2, this.batLength, this.batWidth, 4);
                     ctx.fill();
-                    ctx.strokeStyle = '#3e2723';
+                    ctx.strokeStyle = '#451a03';
                     ctx.lineWidth = 2;
                     ctx.stroke();
 
-                    // Whoosh trail
+                    // Speed swoosh animation
                     if (this.isSwinging) {
-                        ctx.fillStyle = `rgba(255, 255, 255, ${0.3 * (1-this.swingProgress)})`;
+                        ctx.fillStyle = `rgba(255, 255, 255, ${0.25 * (1-this.swingProgress)})`;
                         ctx.beginPath();
                         ctx.arc(0, 0, this.r + this.batLength, -this.swingArc/2, 0, false);
                         ctx.lineTo(0,0);
                         ctx.fill();
                     }
-                    
                     ctx.restore();
                 }
 
-                // Draw Player Body
+                // Drawing Main Player Sphere
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                ctx.fillStyle = this.flashTimer > 0 && Math.floor(this.flashTimer / 100) % 2 === 0 ? '#ffffff' : '#3b82f6'; // Blue or white flash
+                ctx.fillStyle = this.flashTimer > 0 && Math.floor(this.flashTimer / 100) % 2 === 0 ? '#ffffff' : '#3b82f6';
                 ctx.fill();
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = '#1e3a8a';
@@ -456,6 +587,9 @@
             }
         }
 
+        /**
+         * STREAMING_CHUNK: Detailing Zombie physics and entity interactions...
+         */
         class Zombie {
             constructor(x, y, hp) {
                 this.x = x;
@@ -463,12 +597,10 @@
                 this.r = 16;
                 this.maxHp = hp;
                 this.hp = hp;
-                this.speed = 1.5 + Math.random() * 1.5; // Random speed variation
+                this.speed = 1.5 + Math.random() * 1.5; 
                 this.damage = 10;
                 
                 this.flashTimer = 0;
-                
-                // Knockback state
                 this.kbX = 0;
                 this.kbY = 0;
             }
@@ -476,26 +608,23 @@
             update(dt) {
                 if (this.flashTimer > 0) this.flashTimer -= dt;
 
-                // Apply Knockback
+                // Applying Knockback force vs chasing player
                 if (Math.abs(this.kbX) > 0.1 || Math.abs(this.kbY) > 0.1) {
                     this.x += this.kbX * (dt/(1000/60));
                     this.y += this.kbY * (dt/(1000/60));
-                    this.kbX *= 0.85; // Friction
+                    this.kbX *= 0.85; 
                     this.kbY *= 0.85;
                 } else {
-                    // Normal Movement towards player
                     const angle = Math.atan2(player.y - this.y, player.x - this.x);
                     let targetX = this.x + Math.cos(angle) * this.speed * (dt/(1000/60));
                     let targetY = this.y + Math.sin(angle) * this.speed * (dt/(1000/60));
 
-                    // Try moving X
                     this.x = targetX;
                     for (let wall of walls) {
                         let col = checkCircleRectCollision(this, wall);
                         if (col.collided) this.x += col.dx * col.overlap;
                     }
 
-                    // Try moving Y
                     this.y = targetY;
                     for (let wall of walls) {
                         let col = checkCircleRectCollision(this, wall);
@@ -503,20 +632,18 @@
                     }
                 }
 
-                // Check Map Bounds
                 this.x = clamp(this.x, this.r, WORLD_SIZE - this.r);
                 this.y = clamp(this.y, this.r, WORLD_SIZE - this.r);
 
-                // Collision with player
                 if (dist(this.x, this.y, player.x, player.y) < this.r + player.r) {
                     player.takeDamage(this.damage);
                 }
 
-                // Separation from other zombies (crowd behavior)
+                // Prevent overlap cluster
                 for (let other of zombies) {
                     if (other === this) continue;
                     let d = dist(this.x, this.y, other.x, other.y);
-                    if (d < this.r + other.r) {
+                    if (d < this.r + other.r && d > 0) {
                         let overlap = (this.r + other.r) - d;
                         let nx = (this.x - other.x) / d;
                         let ny = (this.y - other.y) / d;
@@ -530,138 +657,113 @@
                 this.hp -= amount;
                 this.flashTimer = 150;
                 
-                // Knockback
                 const kbForce = 10;
                 this.kbX = Math.cos(angle) * kbForce;
                 this.kbY = Math.sin(angle) * kbForce;
 
-                // Damage Text
                 damageTexts.push(new DamageText(this.x, this.y - 20, Math.floor(amount)));
 
                 if (this.hp <= 0) {
-                    createParticles(this.x, this.y, '#16a34a', 15); // Green blood
+                    createParticles(this.x, this.y, '#22c55e', 15);
                 }
             }
 
             draw(ctx) {
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
-                ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : '#22c55e'; // Flash white or green
+                ctx.fillStyle = this.flashTimer > 0 ? '#ffffff' : '#22c55e';
                 ctx.fill();
                 ctx.lineWidth = 2;
                 ctx.strokeStyle = '#14532d';
                 ctx.stroke();
 
-                // Health bar (small)
                 if (this.hp < this.maxHp) {
                     const hpPercent = this.hp / this.maxHp;
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(this.x - 15, this.y - 25, 30, 4);
+                    ctx.fillStyle = '#7f1d1d';
+                    ctx.fillRect(this.x - 15, this.y - 24, 30, 4);
                     ctx.fillStyle = '#22c55e';
-                    ctx.fillRect(this.x - 15, this.y - 25, 30 * hpPercent, 4);
+                    ctx.fillRect(this.x - 15, this.y - 24, 30 * hpPercent, 4);
                 }
             }
         }
 
+        /**
+         * STREAMING_CHUNK: Structuring environment walls and particles...
+         */
         class Wall {
             constructor(x, y, w, h) {
-                this.x = x;
-                this.y = y;
-                this.w = w;
-                this.h = h;
+                this.x = x; this.y = y; this.w = w; this.h = h;
             }
             draw(ctx) {
-                ctx.fillStyle = '#475569'; // slate-600
+                ctx.fillStyle = '#475569';
                 ctx.fillRect(this.x, this.y, this.w, this.h);
                 
-                // Bevel/3D effect
-                ctx.fillStyle = '#64748b'; // Lighter top
-                ctx.fillRect(this.x, this.y, this.w, 5);
-                ctx.fillStyle = '#334155'; // Darker bottom
-                ctx.fillRect(this.x, this.y + this.h - 5, this.w, 5);
+                ctx.fillStyle = '#64748b'; ctx.fillRect(this.x, this.y, this.w, 5);
+                ctx.fillStyle = '#334155'; ctx.fillRect(this.x, this.y + this.h - 5, this.w, 5);
                 
-                ctx.strokeStyle = '#1e293b'; // slate-800 outline
-                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2;
                 ctx.strokeRect(this.x, this.y, this.w, this.h);
             }
         }
 
         class Particle {
             constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
+                this.x = x; this.y = y; this.color = color;
                 const angle = Math.random() * Math.PI * 2;
                 const speed = Math.random() * 4 + 1;
-                this.vx = Math.cos(angle) * speed;
-                this.vy = Math.sin(angle) * speed;
-                this.life = 1.0;
-                this.decay = Math.random() * 0.05 + 0.02;
+                this.vx = Math.cos(angle) * speed; this.vy = Math.sin(angle) * speed;
+                this.life = 1.0; this.decay = Math.random() * 0.05 + 0.02;
                 this.r = Math.random() * 3 + 2;
             }
             update(dt) {
-                this.x += this.vx * (dt/16);
-                this.y += this.vy * (dt/16);
-                this.vx *= 0.9;
-                this.vy *= 0.9;
+                this.x += this.vx * (dt/16); this.y += this.vy * (dt/16);
+                this.vx *= 0.9; this.vy *= 0.9;
                 this.life -= this.decay * (dt/16);
             }
             draw(ctx) {
                 ctx.globalAlpha = Math.max(0, this.life);
                 ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
-                ctx.fill();
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.r, 0, Math.PI*2); ctx.fill();
                 ctx.globalAlpha = 1.0;
             }
         }
 
         class DamageText {
             constructor(x, y, text) {
-                this.x = x + (Math.random() * 20 - 10);
-                this.y = y;
-                this.text = text;
-                this.life = 1.0;
-                this.vy = -1;
+                this.x = x + (Math.random() * 20 - 10); this.y = y; this.text = text;
+                this.life = 1.0; this.vy = -1;
             }
             update(dt) {
-                this.y += this.vy * (dt/16);
-                this.life -= 0.03 * (dt/16);
+                this.y += this.vy * (dt/16); this.life -= 0.03 * (dt/16);
             }
             draw(ctx) {
                 ctx.globalAlpha = Math.max(0, this.life);
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 16px sans-serif';
-                ctx.strokeStyle = 'black';
-                ctx.lineWidth = 2;
-                ctx.strokeText(this.text, this.x, this.y);
-                ctx.fillText(this.text, this.x, this.y);
+                ctx.fillStyle = 'white'; ctx.font = 'bold 16px monospace';
+                ctx.strokeStyle = 'black'; ctx.lineWidth = 2;
+                ctx.strokeText(this.text, this.x, this.y); ctx.fillText(this.text, this.x, this.y);
                 ctx.globalAlpha = 1.0;
             }
         }
 
         /**
-         * GAME LOGIC
+         * STREAMING_CHUNK: Initializing levels and generating map bounds...
          */
         function initGame() {
             player = new Player();
-            zombies = [];
-            particles = [];
-            damageTexts = [];
+            zombies = []; particles = []; damageTexts = []; walls = [];
             wave = 1;
             
-            // Generate Map (Walls)
-            walls = [];
-            // Outer boundaries (invisible logic blocks, but let's just use clamping for player, and visual walls inside)
+            camera.x = player.x;
+            camera.y = player.y;
+            camera.zoom = 1.0;
+            updateZoomLabel();
             
-            // Random blocks to act as cover
+            // Generate Random Obstacle cover
             for(let i=0; i<20; i++) {
                 const w = 100 + Math.random() * 150;
                 const h = 100 + Math.random() * 150;
                 const x = Math.random() * (WORLD_SIZE - w);
                 const y = Math.random() * (WORLD_SIZE - h);
-                
-                // Don't spawn walls on player
                 if (dist(x + w/2, y + h/2, player.x, player.y) > 300) {
                     walls.push(new Wall(x, y, w, h));
                 }
@@ -673,40 +775,33 @@
             ui.gameOverMenu.classList.add('hidden');
             ui.pauseMenu.classList.add('hidden');
             ui.hud.classList.remove('hidden');
+            ui.zoomControls.classList.remove('hidden');
             gameState = 'PLAYING';
             updateHUD();
 
-            if (cheatMenuUnlocked) {
-                renderCheatMenu();
-            }
+            if (cheatMenuUnlocked) renderCheatMenu();
         }
 
         function startWave() {
-            zombiesToSpawn = 5 + (wave * 5); // Wave 1 = 10, Wave 2 = 15...
+            zombiesToSpawn = 5 + (wave * 5);
             spawnTimer = 0;
             updateHUD();
         }
 
         function spawnZombie() {
-            // Spawn outside camera view but within world bounds if possible
             let angle = Math.random() * Math.PI * 2;
-            let distFromPlayer = Math.max(canvas.width, canvas.height) / 1.5; 
+            let distFromPlayer = Math.max(canvas.width, canvas.height) / (1.5 * camera.zoom); 
             
             let x = player.x + Math.cos(angle) * distFromPlayer;
             let y = player.y + Math.sin(angle) * distFromPlayer;
-            
-            x = clamp(x, 50, WORLD_SIZE - 50);
-            y = clamp(y, 50, WORLD_SIZE - 50);
+            x = clamp(x, 50, WORLD_SIZE - 50); y = clamp(y, 50, WORLD_SIZE - 50);
 
-            // Zombie health scales slightly with wave
             let hp = 100 + (wave - 1) * 20; 
             zombies.push(new Zombie(x, y, hp));
         }
 
         function createParticles(x, y, color, amount) {
-            for(let i=0; i<amount; i++) {
-                particles.push(new Particle(x, y, color));
-            }
+            for(let i=0; i<amount; i++) particles.push(new Particle(x, y, color));
         }
 
         const upgradePool = [
@@ -724,25 +819,16 @@
             ui.upgradeMenu.classList.remove('hidden');
             ui.upgradeOptions.innerHTML = '';
 
-            // Pick 3 random unique upgrades
             let available = [...upgradePool];
             let choices = [];
-            
             while(choices.length < 3 && available.length > 0) {
-                // Adjust probabilities (Multi-bat is rarer)
                 let totalWeight = available.reduce((sum, u) => sum + (u.rare ? 0.2 : 1), 0);
                 let rand = Math.random() * totalWeight;
-                let currentWeight = 0;
-                let selectedIdx = 0;
-                
+                let currentWeight = 0, selectedIdx = 0;
                 for(let i=0; i<available.length; i++) {
                     currentWeight += (available[i].rare ? 0.2 : 1);
-                    if (rand <= currentWeight) {
-                        selectedIdx = i;
-                        break;
-                    }
+                    if (rand <= currentWeight) { selectedIdx = i; break; }
                 }
-
                 choices.push(available[selectedIdx]);
                 available.splice(selectedIdx, 1);
             }
@@ -750,10 +836,7 @@
             choices.forEach(upg => {
                 const btn = document.createElement('button');
                 btn.className = `${upg.color} hover:brightness-110 text-left p-6 rounded-lg shadow-lg border-2 border-white/20 transition-transform hover:scale-105 active:scale-95 w-72 flex flex-col`;
-                btn.innerHTML = `
-                    <h3 class="text-2xl font-black text-white mb-2" style="text-shadow: 1px 1px 0 #000;">${upg.name}</h3>
-                    <p class="text-gray-100 text-sm font-semibold">${upg.desc}</p>
-                `;
+                btn.innerHTML = `<h3 class="text-2xl font-black text-white mb-2">${upg.name}</h3><p class="text-gray-100 text-sm font-semibold">${upg.desc}</p>`;
                 btn.onclick = () => applyUpgrade(upg.id);
                 ui.upgradeOptions.appendChild(btn);
             });
@@ -761,45 +844,169 @@
 
         function applyUpgrade(id) {
             switch(id) {
-                case 'size':
-                    player.batLength += 15;
-                    player.batWidth += 3;
-                    player.r += 2; // Make player slightly bigger too
-                    break;
-                case 'strength':
-                    player.damage += 15; // Doubles initial base damage almost
-                    break;
-                case 'cooldown':
-                    player.cooldown = Math.max(100, player.cooldown * 0.8); // 20% reduction
-                    player.speed += 0.2; // slight speed buff with haste
-                    break;
-                case 'speed':
-                    player.speed += 1.5;
-                    break;
-                case 'maxhp':
-                    player.maxHp += 50;
-                    player.hp += 50;
-                    break;
-                case 'heal':
-                    player.hp = player.maxHp;
-                    break;
-                case 'multibat':
-                    player.bats += 1;
-                    break;
+                case 'size': player.batLength += 15; player.batWidth += 3; player.r += 2; break;
+                case 'strength': player.damage += 15; break;
+                case 'cooldown': player.cooldown = Math.max(100, player.cooldown * 0.8); player.speed += 0.2; break;
+                case 'speed': player.speed += 1.5; break;
+                case 'maxhp': player.maxHp += 50; player.hp += 50; break;
+                case 'heal': player.hp = player.maxHp; break;
+                case 'multibat': player.bats += 1; break;
+            }
+            player.hp = Math.min(player.maxHp, player.hp + 30);
+            ui.upgradeMenu.classList.add('hidden');
+            wave++; startWave(); gameState = 'PLAYING';
+        }
+
+        /**
+         * STREAMING_CHUNK: Unlocking and generating Cheat panel parameters...
+         */
+        function unlockCheatMenu() {
+            cheatMenuUnlocked = true;
+            ui.cheatMenu.classList.remove('hidden');
+            
+            // Update Pause UI button state to indicate success
+            ui.pauseActivateCheatBtn.innerText = "🔓 DEV CHEATS ACTIVATED";
+            ui.pauseActivateCheatBtn.className = "px-6 py-3 bg-green-950/80 hover:bg-green-900 text-green-400 border border-green-700 font-mono text-sm font-bold rounded-lg transition-all w-64 shadow-md";
+            
+            renderCheatMenu();
+        }
+
+        // Direct Pause UI Activation trigger
+        ui.pauseActivateCheatBtn.onclick = () => {
+            unlockCheatMenu();
+            if (player) {
+                damageTexts.push(new DamageText(player.x, player.y - 45, "Cheats Unlocked!"));
+            }
+        };
+
+        // Panel text direct unlock force click
+        ui.clickableCheatText.onclick = () => {
+            ui.pauseActivateCheatBtn.click();
+        };
+
+        function renderCheatMenu() {
+            ui.cheatContent.innerHTML = '';
+            if (!player) {
+                ui.cheatContent.innerHTML = '<p class="text-xs text-gray-400 italic">Start game to edit player stats.</p>';
+                return;
             }
             
-            // Heal player slightly between waves
-            player.hp = Math.min(player.maxHp, player.hp + 30);
+            // Editable list of character dynamic properties
+            const stats = [
+                { id: 'hp', name: 'HP' },
+                { id: 'maxHp', name: 'Max HP' },
+                { id: 'speed', name: 'Speed' },
+                { id: 'damage', name: 'Damage' },
+                { id: 'cooldown', name: 'Cooldown' },
+                { id: 'bats', name: 'Bats Count' },
+                { id: 'batLength', name: 'Bat Length' },
+                { id: 'regenRate', name: 'Regen HP/s' },
+                { id: 'r', name: 'Player Size' }
+            ];
 
-            ui.upgradeMenu.classList.add('hidden');
-            wave++;
-            startWave();
-            gameState = 'PLAYING';
+            const grid = document.createElement('div');
+            grid.className = 'grid grid-cols-2 gap-2 mb-3';
+
+            stats.forEach(item => {
+                const stat = item.id;
+                const row = document.createElement('div');
+                row.className = 'flex flex-col';
+                
+                const label = document.createElement('label');
+                label.innerText = item.name; 
+                label.className = 'text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5';
+                
+                const input = document.createElement('input');
+                input.type = 'number'; 
+                input.value = Math.round(player[stat]);
+                input.className = 'w-full bg-gray-800 text-white border border-gray-700 rounded px-2 py-1 text-xs text-right focus:outline-none focus:border-red-500';
+                
+                input.oninput = (e) => {
+                    let val = parseFloat(e.target.value);
+                    if (isNaN(val)) val = 0;
+                    player[stat] = val;
+                    if(stat === 'hp' || stat === 'maxHp') updateHUD();
+                };
+                row.appendChild(label); 
+                row.appendChild(input); 
+                grid.appendChild(row);
+            });
+            ui.cheatContent.appendChild(grid);
+
+            // Divider line
+            const divider = document.createElement('div');
+            divider.className = 'border-t border-gray-800 my-2';
+            ui.cheatContent.appendChild(divider);
+
+            // BRING ALL BUTTON: pull all zombies immediately with spiral spacing
+            const bringAllBtn = document.createElement('button');
+            bringAllBtn.innerText = '🧲 BRING ALL ZOMBIES';
+            bringAllBtn.className = 'w-full mb-2 bg-gradient-to-r from-red-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-extrabold rounded text-xs py-2 transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg border border-red-500/20';
+            bringAllBtn.onclick = () => {
+                if (zombies.length === 0) {
+                    damageTexts.push(new DamageText(player.x, player.y - 40, "No zombies alive!"));
+                    return;
+                }
+                zombies.forEach((z, idx) => {
+                    let angleStep = (Math.PI * 2) / zombies.length;
+                    let radius = 80 + Math.random() * 50;
+                    z.x = player.x + Math.cos(angleStep * idx) * radius;
+                    z.y = player.y + Math.sin(angleStep * idx) * radius;
+                    
+                    // Display spawn-in spark effects
+                    createParticles(z.x, z.y, '#fbbf24', 3);
+                });
+                damageTexts.push(new DamageText(player.x, player.y - 45, `Pushed ${zombies.length} Zombies!`));
+            };
+            ui.cheatContent.appendChild(bringAllBtn);
+
+            // Action row buttons
+            const actionRow = document.createElement('div');
+            actionRow.className = 'grid grid-cols-2 gap-2 mb-2';
+
+            const spawnOneBtn = document.createElement('button');
+            spawnOneBtn.innerText = '🧟 Spawn 1';
+            spawnOneBtn.className = 'bg-gray-800 hover:bg-gray-700 text-green-400 border border-green-900/30 text-[10px] font-bold rounded py-1.5 transition-colors';
+            spawnOneBtn.onclick = () => {
+                spawnZombie();
+                damageTexts.push(new DamageText(player.x, player.y - 40, "+1 Zombie"));
+            };
+            actionRow.appendChild(spawnOneBtn);
+
+            const killAllBtn = document.createElement('button');
+            killAllBtn.innerText = '💀 Kill All';
+            killAllBtn.className = 'bg-gray-800 hover:bg-gray-700 text-red-400 border border-red-900/30 text-[10px] font-bold rounded py-1.5 transition-colors';
+            killAllBtn.onclick = () => {
+                const count = zombies.length;
+                zombies.forEach(z => z.takeDamage(999999, 0));
+                damageTexts.push(new DamageText(player.x, player.y - 40, `Slayed ${count} Zs`));
+            };
+            actionRow.appendChild(killAllBtn);
+
+            ui.cheatContent.appendChild(actionRow);
+
+            const spawnTenBtn = document.createElement('button');
+            spawnTenBtn.innerText = '🧟 Spawn 10 Zombies';
+            spawnTenBtn.className = 'w-full bg-gray-800 hover:bg-gray-700 text-green-400 border border-green-900/30 text-[10px] font-bold rounded py-1.5 transition-colors shadow-sm';
+            spawnTenBtn.onclick = () => {
+                for (let i = 0; i < 10; i++) {
+                    spawnZombie();
+                }
+                damageTexts.push(new DamageText(player.x, player.y - 40, "+10 Zombies"));
+            };
+            ui.cheatContent.appendChild(spawnTenBtn);
+
+            const refreshBtn = document.createElement('button');
+            refreshBtn.innerText = '🔄 Sync Stats';
+            refreshBtn.className = 'mt-2 bg-gray-950 hover:bg-gray-850 text-gray-400 font-semibold rounded text-[10px] py-1 transition-colors w-full border border-gray-800';
+            refreshBtn.onclick = renderCheatMenu;
+            ui.cheatContent.appendChild(refreshBtn);
         }
 
         function endGame() {
             gameState = 'GAMEOVER';
             ui.hud.classList.add('hidden');
+            ui.zoomControls.classList.add('hidden');
             ui.gameOverMenu.classList.remove('hidden');
             ui.finalWave.innerText = `Wave ${wave}`;
         }
@@ -807,97 +1014,38 @@
         function updateHUD() {
             ui.waveDisplay.innerText = wave;
             ui.zombiesLeftDisplay.innerText = zombies.length + zombiesToSpawn;
-            
             const hpPercent = Math.max(0, player.hp / player.maxHp * 100);
             ui.healthBar.style.width = `${hpPercent}%`;
             ui.healthText.innerText = `${Math.ceil(player.hp)}/${player.maxHp}`;
         }
 
         /**
-         * CHEAT MENU LOGIC
-         */
-        function unlockCheatMenu() {
-            cheatMenuUnlocked = true;
-            ui.cheatMenu.classList.remove('hidden');
-            renderCheatMenu();
-        }
-
-        function renderCheatMenu() {
-            ui.cheatContent.innerHTML = '';
-            
-            if (!player) {
-                ui.cheatContent.innerHTML = '<p class="text-xs text-gray-400 italic">Start game to edit player stats.</p>';
-                return;
-            }
-            
-            const stats = ['hp', 'maxHp', 'speed', 'damage', 'cooldown', 'bats', 'batLength', 'regenRate'];
-            
-            stats.forEach(stat => {
-                const row = document.createElement('div');
-                row.className = 'flex justify-between items-center';
-                
-                const label = document.createElement('label');
-                label.innerText = stat;
-                label.className = 'text-sm text-gray-200 font-mono capitalize';
-                
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.value = player[stat];
-                input.className = 'w-24 bg-gray-800 text-white border border-gray-600 rounded px-2 py-1 text-sm text-right';
-                
-                input.onchange = (e) => {
-                    player[stat] = parseFloat(e.target.value) || 0;
-                    if(stat === 'hp' || stat === 'maxHp') updateHUD();
-                };
-                
-                row.appendChild(label);
-                row.appendChild(input);
-                ui.cheatContent.appendChild(row);
-            });
-            
-            const refreshBtn = document.createElement('button');
-            refreshBtn.innerText = 'Refresh Values';
-            refreshBtn.className = 'mt-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs py-2 transition-colors';
-            refreshBtn.onclick = renderCheatMenu;
-            ui.cheatContent.appendChild(refreshBtn);
-        }
-
-        /**
-         * MAIN GAME LOOP
+         * STREAMING_CHUNK: Core game loop - Update logic and bounds clamping...
          */
         function update(dt, now) {
             if (gameState !== 'PLAYING') return;
 
-            // Spawn Logic
+            // Spawning wave timer
             if (zombiesToSpawn > 0) {
                 spawnTimer += dt;
-                // Spawn faster as waves progress
                 const spawnRate = Math.max(200, 1500 - (wave * 100)); 
                 if (spawnTimer > spawnRate) {
-                    spawnZombie();
-                    zombiesToSpawn--;
-                    spawnTimer = 0;
-                    updateHUD();
+                    spawnZombie(); zombiesToSpawn--; spawnTimer = 0; updateHUD();
                 }
             }
 
             player.update(dt, now);
 
-            // Update Zombies
+            // Tick active zombies
             for (let i = zombies.length - 1; i >= 0; i--) {
                 zombies[i].update(dt);
-                if (zombies[i].hp <= 0) {
-                    zombies.splice(i, 1);
-                    updateHUD();
-                }
+                if (zombies[i].hp <= 0) { zombies.splice(i, 1); updateHUD(); }
             }
 
-            // Wave completion
             if (zombiesToSpawn === 0 && zombies.length === 0 && gameState === 'PLAYING') {
                 showUpgrades();
             }
 
-            // Update Particles & Text
             for (let i = particles.length - 1; i >= 0; i--) {
                 particles[i].update(dt);
                 if (particles[i].life <= 0) particles.splice(i, 1);
@@ -907,114 +1055,118 @@
                 if (damageTexts[i].life <= 0) damageTexts.splice(i, 1);
             }
 
-            // Camera follow player with simple lerp
-            camera.x += ((player.x - canvas.width / 2) - camera.x) * 0.1;
-            camera.y += ((player.y - canvas.height / 2) - camera.y) * 0.1;
+            // Tracking camera smooth damping
+            camera.x += (player.x - camera.x) * 0.1;
+            camera.y += (player.y - camera.y) * 0.1;
             
-            // Clamp camera to world bounds
-            camera.x = clamp(camera.x, 0, WORLD_SIZE - canvas.width);
-            camera.y = clamp(camera.y, 0, WORLD_SIZE - canvas.height);
+            // Limit camera panning matching zoom factor aspect ratios
+            let viewW = canvas.width / camera.zoom;
+            let viewH = canvas.height / camera.zoom;
+            
+            if (viewW >= WORLD_SIZE) camera.x = WORLD_SIZE / 2;
+            else camera.x = clamp(camera.x, viewW / 2, WORLD_SIZE - viewW / 2);
+            
+            if (viewH >= WORLD_SIZE) camera.y = WORLD_SIZE / 2;
+            else camera.y = clamp(camera.y, viewH / 2, WORLD_SIZE - viewH / 2);
         }
 
+        /**
+         * STREAMING_CHUNK: Drawing canvas environment, grids, boundaries and objects...
+         */
         function draw() {
-            // Clear screen
-            ctx.fillStyle = '#1e293b'; // Base ground color
+            ctx.fillStyle = '#0f172a'; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (gameState === 'MENU') return;
 
             ctx.save();
+            // Transform matrix projection scaling centered on window viewport 
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(camera.zoom, camera.zoom);
             ctx.translate(-camera.x, -camera.y);
 
-            // Draw grid pattern for ground
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 2;
+            // Arena ground grid design
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 1;
             const gridSize = 100;
-            const startX = Math.floor(camera.x / gridSize) * gridSize;
-            const startY = Math.floor(camera.y / gridSize) * gridSize;
             
             ctx.beginPath();
-            for(let x = startX; x < camera.x + canvas.width; x += gridSize) {
-                ctx.moveTo(x, camera.y);
-                ctx.lineTo(x, camera.y + canvas.height);
+            for (let x = 0; x <= WORLD_SIZE; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, WORLD_SIZE);
             }
-            for(let y = startY; y < camera.y + canvas.height; y += gridSize) {
-                ctx.moveTo(camera.x, y);
-                ctx.lineTo(camera.x + canvas.width, y);
+            for (let y = 0; y <= WORLD_SIZE; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(WORLD_SIZE, y);
             }
             ctx.stroke();
 
-            // Draw World Bounds (Red warning area outside)
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.1)';
-            ctx.fillRect(-1000, -1000, WORLD_SIZE + 2000, 1000); // Top
-            ctx.fillRect(-1000, WORLD_SIZE, WORLD_SIZE + 2000, 1000); // Bottom
-            ctx.fillRect(-1000, 0, 1000, WORLD_SIZE); // Left
-            ctx.fillRect(WORLD_SIZE, 0, 1000, WORLD_SIZE); // Right
+            // Render glowing red arena boundaries
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 10;
+            ctx.strokeRect(0, 0, WORLD_SIZE, WORLD_SIZE);
 
-            // Draw entities
-            walls.forEach(w => w.draw(ctx));
-            zombies.forEach(z => z.draw(ctx));
+            // Draw level objects
+            for (let wall of walls) {
+                wall.draw(ctx);
+            }
+
+            for (let zombie of zombies) {
+                zombie.draw(ctx);
+            }
+
             player.draw(ctx);
-            particles.forEach(p => p.draw(ctx));
-            damageTexts.forEach(t => t.draw(ctx));
+
+            for (let p of particles) {
+                p.draw(ctx);
+            }
+
+            for (let text of damageTexts) {
+                text.draw(ctx);
+            }
 
             ctx.restore();
-            
-            // Blood vignette when low HP
-            if (gameState === 'PLAYING' && player.hp < player.maxHp * 0.3) {
-                const intensity = 1 - (player.hp / (player.maxHp * 0.3));
-                const gradient = ctx.createRadialGradient(
-                    canvas.width/2, canvas.height/2, canvas.height/4,
-                    canvas.width/2, canvas.height/2, canvas.width
-                );
-                gradient.addColorStop(0, 'rgba(255, 0, 0, 0)');
-                gradient.addColorStop(1, `rgba(255, 0, 0, ${0.4 * intensity})`);
-                ctx.fillStyle = gradient;
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-            }
         }
 
-        function gameLoop(timestamp) {
-            if (!lastTime) lastTime = timestamp;
-            const dt = Math.min(timestamp - lastTime, 50); // cap dt to prevent huge jumps
-            lastTime = timestamp;
+        /**
+         * STREAMING_CHUNK: Running animation frames and starting loop...
+         */
+        function gameLoop(now) {
+            if (!lastTime) lastTime = now;
+            let dt = now - lastTime;
+            if (dt > 100) dt = 100; // Cap leap frame rates
+            lastTime = now;
 
-            update(dt, timestamp);
+            update(dt, now);
             draw();
 
             requestAnimationFrame(gameLoop);
         }
 
-        /**
-         * EVENT LISTENERS
-         */
-        ui.startBtn.addEventListener('click', () => {
-            initGame();
-        });
-
-        ui.restartBtn.addEventListener('click', () => {
-            initGame();
-        });
-
-        ui.resumeBtn.addEventListener('click', () => {
+        // Action triggers
+        ui.startBtn.onclick = () => { initGame(); };
+        ui.restartBtn.onclick = () => { initGame(); };
+        ui.resumeBtn.onclick = () => {
             gameState = 'PLAYING';
             ui.pauseMenu.classList.add('hidden');
-        });
+        };
 
-        ui.minimizeCheatBtn.addEventListener('click', () => {
+        ui.minimizeCheatBtn.onclick = () => {
             isCheatMinimized = !isCheatMinimized;
             if (isCheatMinimized) {
                 ui.cheatContent.classList.add('hidden');
                 ui.minimizeCheatBtn.innerText = '+';
+                ui.cheatMenu.style.width = '120px';
             } else {
                 ui.cheatContent.classList.remove('hidden');
                 ui.minimizeCheatBtn.innerText = '-';
+                ui.cheatMenu.style.width = '16rem';
             }
-        });
+        };
 
-        // Start Loop
-        requestAnimationFrame(gameLoop);
-
+        window.onload = function () {
+            requestAnimationFrame(gameLoop);
+        };
     </script>
 </body>
 </html>
