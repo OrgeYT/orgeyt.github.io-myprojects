@@ -15,6 +15,7 @@ const projects = [
 
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
+const searchBar = document.getElementById('search-bar'); // NEW: Reference to search bar
 
 // Track the current project identifier and exact file path
 let currentProjectParam = "welcome";
@@ -28,6 +29,10 @@ projects.forEach(project => {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
     
+    // NEW: Save the project name as a data attribute so we can easily search it
+    button.dataset.projectName = projectParam.toLowerCase();
+    
+    // NEW: Updated to "Launch" instead of "Run"
     button.textContent = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
     
     button.onclick = () => { 
@@ -37,6 +42,23 @@ projects.forEach(project => {
     };
     fileList.appendChild(button);
 });
+
+// NEW: Search Filter Logic
+if (searchBar) {
+    searchBar.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const buttons = fileList.querySelectorAll('.file-btn');
+        
+        buttons.forEach(btn => {
+            const projectName = btn.dataset.projectName;
+            if (projectName.includes(searchTerm)) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        });
+    });
+}
 
 // --- URL Parameter Auto-Open Logic ---
 const urlParams = new URLSearchParams(window.location.search);
