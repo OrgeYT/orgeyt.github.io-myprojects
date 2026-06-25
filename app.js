@@ -28,7 +28,7 @@ projects.forEach(project => {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
     
-    button.textContent = (typeof project === 'object') ? `Run ${project.name}` : `Run ${project}`;
+    button.textContent = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
     
     button.onclick = () => { 
         runnerFrame.src = filePath; 
