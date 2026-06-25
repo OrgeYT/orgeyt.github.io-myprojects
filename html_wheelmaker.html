@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Ultimate Custom Wheel Maker</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: radial-gradient(circle at top left, #111827, #030712);
+    }
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    /* Hide scrollbar for IE, Edge and Firefox */
+    .no-scrollbar {
+      -ms-overflow-style: none;  /* IE and Edge */
+      scrollbar-width: none;  /* Firefox */
+    }
+  </style>
+</head>
+<body class="text-gray-100 min-h-screen flex flex-col overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 bg-gray-950/50 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-gradient-to-tr from-indigo-500 to-purple-500 p-2.5 rounded-xl shadow-lg shadow-indigo-500/20">
+          <svg class="w-6 h-6 text-white animate-spin-slow" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707m0-12.728l.707.707m12.728 12.728l.707.707M12 8a4 4 0 100 8 4 4 0 000-8z" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-gray-200 to-indigo-400 bg-clip-text text-transparent">
+            Wheel Maker Pro
+          </h1>
+          <p class="text-xs text-gray-400">Design custom-weighted decision spinners</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Bar -->
+      <div class="flex items-center gap-3 flex-wrap">
+        <button id="importBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-gray-900 border border-gray-800 hover:border-gray-700 hover:bg-gray-800/80 transition active:scale-95 text-gray-300">
+          <i data-lucide="upload" class="w-4 h-4"></i>
+          <span>Import JSON</span>
+        </button>
+        <button id="exportBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-gray-900 border border-gray-800 hover:border-gray-700 hover:bg-gray-800/80 transition active:scale-95 text-gray-300">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>Export JSON</span>
+        </button>
+        <button id="resetDefaultBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-indigo-950/40 border border-indigo-900/60 hover:bg-indigo-900/40 transition active:scale-95 text-indigo-300">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reset Default AI</span>
+        </button>
+        <!-- Hidden Inputs -->
+        <input type="file" id="jsonFileInput" accept=".json" class="hidden" />
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- Left Column: The Wheel Viewport -->
+    <div class="lg:col-span-7 flex flex-col items-center gap-6 bg-gray-950/40 border border-gray-900 rounded-2xl p-6 md:p-8 backdrop-blur-sm self-stretch justify-center relative overflow-hidden group">
+      
+      <!-- Ambient background glow behind the wheel -->
+      <div class="absolute w-72 h-72 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-12"></div>
+
+      <!-- Pointer & Wheel Box -->
+      <div class="relative w-full max-w-[420px] aspect-square flex items-center justify-center">
+        <!-- Spinner Marker (Indicator) at top -->
+        <div class="absolute -top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none drop-shadow-[0_10px_12px_rgba(0,0,0,0.5)]">
+          <!-- Fun physical-like pin marker -->
+          <svg class="w-10 h-12 text-rose-500 fill-rose-500 drop-shadow-md" viewBox="0 0 24 24">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+          </svg>
+        </div>
+
+        <!-- HTML5 Canvas rendering our wheel -->
+        <canvas id="wheelCanvas" class="w-full h-full max-w-full drop-shadow-[0_20px_50px_rgba(0,0,0,0.45)] cursor-pointer transition-transform duration-75 active:scale-[0.99] z-10"></canvas>
+      </div>
+
+      <!-- Action Button Group -->
+      <div class="w-full max-w-sm flex flex-col gap-3 z-20">
+        <button id="spinBtn" class="relative group overflow-hidden w-full py-4 px-6 rounded-xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 font-extrabold text-white text-lg tracking-wider shadow-lg shadow-indigo-600/25 hover:shadow-indigo-600/40 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200">
+          <span class="relative z-10 flex items-center justify-center gap-2">
+            <i data-lucide="play-circle" class="w-6 h-6"></i>
+            SPIN THE WHEEL
+          </span>
+          <div class="absolute inset-0 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        </button>
+
+        <div class="flex items-center gap-2">
+          <!-- Toggle Mute -->
+          <button id="muteBtn" class="flex-grow flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-gray-900 border border-gray-800 text-sm hover:bg-gray-800 text-gray-300 transition active:scale-95">
+            <i id="muteIcon" data-lucide="volume-2" class="w-4 h-4"></i>
+            <span id="muteText">Sound On</span>
+          </button>
+          
+          <!-- Fair Mode / Randomizer Toggle -->
+          <button id="fairModeBtn" class="flex-grow flex items-center justify-center gap-2 py-2 px-4 rounded-lg bg-gray-900 border border-gray-800 text-sm hover:bg-gray-800 text-gray-300 transition active:scale-95" title="Use true chances or override with equal chances">
+            <i data-lucide="scale" class="w-4 h-4"></i>
+            <span id="fairModeText">Use Weights</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Readout / Results Container -->
+      <div id="resultWidget" class="w-full max-w-md hidden transition-all duration-500 scale-95 opacity-0">
+        <div class="bg-gradient-to-b from-indigo-950/80 to-purple-950/80 border-2 border-indigo-500/30 rounded-xl p-5 text-center relative overflow-hidden shadow-2xl">
+          <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+          <span class="text-xs font-bold uppercase tracking-widest text-indigo-300">Result Selected</span>
+          <h3 id="resultText" class="text-3xl font-extrabold text-white mt-1 mb-2 tracking-tight">AI Name</h3>
+          <p id="resultDetails" class="text-xs text-gray-400">Won with static 20% slice probability!</p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column: Settings & Live Sector Customizer -->
+    <div class="lg:col-span-5 flex flex-col gap-6 self-stretch">
+      
+      <!-- Editor Card -->
+      <div class="bg-gray-950/40 border border-gray-900 rounded-2xl p-6 backdrop-blur-sm flex flex-col flex-grow">
+        <div class="flex items-center justify-between border-b border-gray-800 pb-4 mb-4">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sliders" class="w-5 h-5 text-indigo-400"></i>
+            <h2 class="text-lg font-bold text-gray-100">Wheel Choices Editor</h2>
+          </div>
+          <!-- Chance style switch details -->
+          <span class="text-xs text-gray-400 bg-gray-900 border border-gray-800 px-2 py-1 rounded-md flex items-center gap-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Live Updates
+          </span>
+        </div>
+
+        <p class="text-sm text-gray-400 mb-6">
+          Define your sectors, assign arbitrary chances/weights (larger weight = larger sector space), and pick colors.
+        </p>
+
+        <!-- Sectors Scrollable Container -->
+        <div id="choicesContainer" class="space-y-3 max-h-[380px] overflow-y-auto pr-2 no-scrollbar flex-grow">
+          <!-- Choice Row Items will be injected here dynamically -->
+        </div>
+
+        <!-- Summary & Stats Bar -->
+        <div class="mt-6 pt-4 border-t border-gray-800 grid grid-cols-2 gap-4 text-center">
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Total Items</span>
+            <div id="statTotalItems" class="text-xl font-extrabold text-indigo-400 mt-0.5">0</div>
+          </div>
+          <div class="bg-gray-900/60 p-2.5 rounded-lg border border-gray-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-gray-400">Sum of Weights</span>
+            <div id="statTotalWeights" class="text-xl font-extrabold text-purple-400 mt-0.5">0</div>
+          </div>
+        </div>
+
+        <!-- Add Option Button bar -->
+        <div class="mt-4 flex gap-2">
+          <button id="addChoiceBtn" class="flex-grow flex items-center justify-center gap-1.5 py-3 px-4 rounded-xl bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-indigo-500/50 text-sm font-semibold transition active:scale-95 text-gray-200">
+            <i data-lucide="plus" class="w-4 h-4 text-indigo-400"></i>
+            <span>Add Choice</span>
+          </button>
+          <button id="shuffleColorsBtn" class="py-3 px-3.5 rounded-xl bg-gray-900 hover:bg-gray-850 border border-gray-800 hover:border-purple-500/50 transition active:scale-95 text-gray-400 hover:text-purple-400" title="Randomize Colors">
+            <i data-lucide="palette" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Modal / Banner for displaying winning outcomes (Interactive Pop-up) -->
+  <div id="congratsModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden opacity-0 transition-opacity duration-300">
+    <div class="bg-gray-950 border border-gray-800 rounded-2xl p-8 max-w-md w-full text-center relative overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300">
+      
+      <!-- Sparkles / Confetti placeholder visual pattern -->
+      <div class="absolute -top-10 -left-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-2xl"></div>
+      <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-pink-500/10 rounded-full blur-2xl"></div>
+
+      <!-- Icon header -->
+      <div class="w-16 h-16 mx-auto mb-4 bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 rounded-full flex items-center justify-center shadow-lg">
+        <i data-lucide="party-popper" class="w-8 h-8"></i>
+      </div>
+
+      <p class="text-xs uppercase font-extrabold tracking-widest text-indigo-400 mb-1">The Wheel has Chosen!</p>
+      <h2 id="modalTitle" class="text-4xl font-extrabold tracking-tight text-white mb-3">Choice Name</h2>
+      
+      <div class="bg-gray-900/60 border border-gray-850 rounded-xl p-3 mb-6">
+        <p id="modalProbabilityText" class="text-sm text-gray-400">Winning Weight: 5 (20.0% probability)</p>
+      </div>
+
+      <button id="closeModalBtn" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 font-bold text-white rounded-xl shadow-lg transition active:scale-95">
+        Sweet! Let's Go
+      </button>
+    </div>
+  </div>
+
+  <!-- Audio Context and Beep implementation for ticking physical feel -->
+  <script>
+    // Audio synthesis setup (No external dependencies)
+    class SoundEffects {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+      }
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+
+      playTick() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        // Resume audio context if suspended (browser rules)
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+        // Quick frequency decay for sharp crisp tick
+        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.04);
+
+        gain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.05);
+      }
+
+      playWin() {
+        if (this.muted) return;
+        this.init();
+        if (!this.ctx) return;
+
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+
+        const now = this.ctx.currentTime;
+        
+        // Multi-tone chord for win fanfares
+        const playTone = (freq, delay, duration) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + delay);
+          gain.gain.setValueAtTime(0.0, now + delay);
+          gain.gain.linearRampToValueAtTime(0.15, now + delay + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + delay + duration);
+          
+          osc.start(now + delay);
+          osc.stop(now + delay + duration);
+        };
+
+        playTone(392.00, 0, 0.4);   // G4
+        playTone(523.25, 0.1, 0.4); // C5
+        playTone(659.25, 0.2, 0.4); // E5
+        playTone(783.99, 0.3, 0.6); // G5
+      }
+    }
+
+    const sfx = new SoundEffects();
+  </script>
+
+  <!-- Core App Logic -->
+  <script>
+    // System Palettes for gorgeous slice setups
+    const COOL_PALETTES = [
+      '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#ef4444', 
+      '#f97316', '#eab308', '#22c55e', '#10b981', '#06b6d4', 
+      '#3b82f6', '#14b8a6', '#a855f7'
+    ];
+
+    // Default configuration (requested default dataset)
+    const DEFAULT_WHEEL = {
+      title: "Which AI should I use?",
+      useWeights: true, // If true, sizes reflect weight. Otherwise equal size.
+      choices: [
+        { label: "ChatGPT", weight: 8, color: "#10b981" },
+        { label: "Grok", weight: 3, color: "#111827" },
+        { label: "Gemini", weight: 7, color: "#3b82f6" },
+        { label: "Claude", weight: 6, color: "#f97316" },
+        { label: "Websim", weight: 4, color: "#a855f7" }
+      ]
+    };
+
+    // Current State
+    let wheelState = JSON.parse(JSON.stringify(DEFAULT_WHEEL));
+
+    // Animation physics parameters
+    let currentAngle = 0; // Current rotational angle in radians
+    let isSpinning = false;
+    let spinVelocity = 0;
+    const friction = 0.985; // Natural decay rate
+    const minVelocity = 0.002; // When to fully snap-stop
+    let lastTickAngle = 0; // Keeps track of ticks during rotating pass
+
+    // DOM selectors
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const choicesContainer = document.getElementById('choicesContainer');
+    const spinBtn = document.getElementById('spinBtn');
+    const addChoiceBtn = document.getElementById('addChoiceBtn');
+    const shuffleColorsBtn = document.getElementById('shuffleColorsBtn');
+    const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const importBtn = document.getElementById('importBtn');
+    const jsonFileInput = document.getElementById('jsonFileInput');
+    const muteBtn = document.getElementById('muteBtn');
+    const muteIcon = document.getElementById('muteIcon');
+    const muteText = document.getElementById('muteText');
+    const fairModeBtn = document.getElementById('fairModeBtn');
+    const fairModeText = document.getElementById('fairModeText');
+    
+    // Result displays
+    const resultWidget = document.getElementById('resultWidget');
+    const resultText = document.getElementById('resultText');
+    const resultDetails = document.getElementById('resultDetails');
+    const congratsModal = document.getElementById('congratsModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalProbabilityText = document.getElementById('modalProbabilityText');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+
+    // Stats
+    const statTotalItems = document.getElementById('statTotalItems');
+    const statTotalWeights = document.getElementById('statTotalWeights');
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      // Setup High-DPI canvas
+      resizeCanvas();
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        drawWheel();
+      });
+
+      // Load initial choices
+      renderChoicesEditor();
+      drawWheel();
+
+      // Initialize icons
+      lucide.createIcons();
+    });
+
+    // Handle high DPI screens
+    function resizeCanvas() {
+      const containerWidth = canvas.parentElement.clientWidth;
+      if (containerWidth === 0) return; // Wait for layout to resolve sizes
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = containerWidth * dpr;
+      canvas.height = containerWidth * dpr;
+      canvas.style.width = containerWidth + 'px';
+      canvas.style.height = containerWidth + 'px';
+      ctx.scale(dpr, dpr);
+    }
+
+    // Toggle fair mode
+    fairModeBtn.addEventListener('click', () => {
+      wheelState.useWeights = !wheelState.useWeights;
+      fairModeText.textContent = wheelState.useWeights ? "Use Weights" : "Equal Sizes";
+      if (wheelState.useWeights) {
+        fairModeBtn.classList.remove('bg-indigo-950/40', 'border-indigo-900/60');
+        fairModeBtn.classList.add('bg-gray-900', 'border-gray-800');
+      } else {
+        fairModeBtn.classList.add('bg-indigo-950/40', 'border-indigo-900/60');
+        fairModeBtn.classList.remove('bg-gray-900', 'border-gray-800');
+      }
+      drawWheel();
+      renderChoicesEditor(); // Redraw UI percentages
+    });
+
+    // Toggle mute
+    muteBtn.addEventListener('click', () => {
+      sfx.muted = !sfx.muted;
+      if (sfx.muted) {
+        muteIcon.setAttribute('data-lucide', 'volume-x');
+        muteText.textContent = "Muted";
+        muteBtn.classList.add('text-rose-400');
+      } else {
+        muteIcon.setAttribute('data-lucide', 'volume-2');
+        muteText.textContent = "Sound On";
+        muteBtn.classList.remove('text-rose-400');
+      }
+      lucide.createIcons();
+    });
+
+    // Reset default wheel
+    resetDefaultBtn.addEventListener('click', () => {
+      wheelState = JSON.parse(JSON.stringify(DEFAULT_WHEEL));
+      fairModeText.textContent = wheelState.useWeights ? "Use Weights" : "Equal Sizes";
+      renderChoicesEditor();
+      drawWheel();
+      hideResult();
+    });
+
+    // Helper to calculate total weight
+    function getTotalWeight() {
+      return wheelState.choices.reduce((sum, item) => sum + (Number(item.weight) || 0), 0);
+    }
+
+    // Convert options to angular slices based on weights configuration
+    function getSlices() {
+      const total = getTotalWeight();
+      const count = wheelState.choices.length;
+      let currentStartAngle = 0;
+
+      return wheelState.choices.map((item, index) => {
+        const weightValue = Number(item.weight) || 1;
+        const sliceAngleSize = wheelState.useWeights 
+          ? (weightValue / total) * Math.PI * 2 
+          : (1 / count) * Math.PI * 2;
+        
+        const slice = {
+          label: item.label,
+          color: item.color,
+          weight: weightValue,
+          probability: wheelState.useWeights ? (weightValue / total) : (1 / count),
+          startAngle: currentStartAngle,
+          endAngle: currentStartAngle + sliceAngleSize
+        };
+        currentStartAngle += sliceAngleSize;
+        return slice;
+      });
+    }
+
+    // Render configuration UI items
+    function renderChoicesEditor() {
+      choicesContainer.innerHTML = '';
+      const totalWeight = getTotalWeight();
+      const count = wheelState.choices.length;
+
+      // Update statistics
+      statTotalItems.textContent = count;
+      statTotalWeights.textContent = totalWeight;
+
+      wheelState.choices.forEach((choice, index) => {
+        const weightValue = Number(choice.weight) || 1;
+        const probability = wheelState.useWeights 
+          ? ((weightValue / totalWeight) * 100).toFixed(1)
+          : ((1 / count) * 100).toFixed(1);
+
+        const row = document.createElement('div');
+        row.className = "flex items-center gap-2.5 bg-gray-900/70 border border-gray-800 hover:border-gray-700/80 p-3 rounded-xl transition duration-150 group";
+        
+        row.innerHTML = `
+          <!-- Custom Color Picker Pin -->
+          <div class="relative flex items-center justify-center">
+            <input type="color" value="${choice.color}" class="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 outline-none [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-lg [&::-webkit-color-swatch]:border [&::-webkit-color-swatch]:border-gray-800" data-index="${index}">
+          </div>
+
+          <!-- Label Input -->
+          <div class="flex-grow min-w-0">
+            <input type="text" value="${choice.label}" placeholder="Choice Name..." class="w-full bg-transparent border-b border-transparent hover:border-gray-700 focus:border-indigo-500 focus:outline-none text-sm font-semibold text-gray-100 placeholder-gray-600 py-1 transition truncate" data-field="label" data-index="${index}">
+          </div>
+
+          <!-- Weight Slider (Chances controller) -->
+          <div class="flex items-center gap-2 max-w-[120px] w-28 shrink-0">
+            <span class="text-[10px] font-bold text-gray-500 uppercase">Weight</span>
+            <input type="number" min="1" max="100" value="${weightValue}" class="w-12 text-center bg-gray-950 border border-gray-800 rounded-lg py-1 px-1.5 text-xs text-indigo-300 font-bold focus:border-indigo-500 focus:outline-none" data-field="weight" data-index="${index}">
+          </div>
+
+          <!-- Chance Percentage Badge -->
+          <div class="w-14 text-right select-none">
+            <span class="text-xs font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-md" title="Probability percentage">
+              ${probability}%
+            </span>
+          </div>
+
+          <!-- Delete Action -->
+          <button class="text-gray-600 hover:text-rose-400 p-1.5 hover:bg-gray-850 rounded-lg transition shrink-0" data-action="delete" data-index="${index}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        `;
+
+        // Register event handlers
+        // Color Change
+        const colorInput = row.querySelector('input[type="color"]');
+        colorInput.addEventListener('input', (e) => {
+          wheelState.choices[index].color = e.target.value;
+          drawWheel();
+        });
+
+        // Label Edit
+        const labelInput = row.querySelector('input[data-field="label"]');
+        labelInput.addEventListener('input', (e) => {
+          wheelState.choices[index].label = e.target.value;
+          drawWheel();
+        });
+
+        // Weight/Chances Edit
+        const weightInput = row.querySelector('input[data-field="weight"]');
+        weightInput.addEventListener('input', (e) => {
+          const val = Math.max(1, parseInt(e.target.value) || 1);
+          wheelState.choices[index].weight = val;
+          // Dynamically refresh percentages for user feedback
+          updateLivePercentages();
+          drawWheel();
+        });
+
+        // Delete choice
+        const deleteBtn = row.querySelector('[data-action="delete"]');
+        deleteBtn.addEventListener('click', () => {
+          if (wheelState.choices.length <= 2) {
+            alertUser("You must have at least 2 choices in the wheel!");
+            return;
+          }
+          wheelState.choices.splice(index, 1);
+          renderChoicesEditor();
+          drawWheel();
+        });
+
+        choicesContainer.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    // Simple fast update helper to recalculate percentages in list without destroying DOM focusing
+    function updateLivePercentages() {
+      const totalWeight = getTotalWeight();
+      const count = wheelState.choices.length;
+      
+      const badgeElements = choicesContainer.querySelectorAll('.w-14 span');
+      const weightInputs = choicesContainer.querySelectorAll('input[data-field="weight"]');
+
+      wheelState.choices.forEach((choice, index) => {
+        const liveWeightInputVal = Math.max(1, parseInt(weightInputs[index].value) || 1);
+        wheelState.choices[index].weight = liveWeightInputVal;
+      });
+
+      const newTotal = getTotalWeight();
+
+      wheelState.choices.forEach((choice, index) => {
+        const prob = wheelState.useWeights 
+          ? ((choice.weight / newTotal) * 100).toFixed(1)
+          : ((1 / count) * 100).toFixed(1);
+        if (badgeElements[index]) {
+          badgeElements[index].textContent = `${prob}%`;
+        }
+      });
+      statTotalWeights.textContent = newTotal;
+    }
+
+    // Randomize Colors of existing items
+    shuffleColorsBtn.addEventListener('click', () => {
+      wheelState.choices.forEach((choice, i) => {
+        // Simple random color generation
+        choice.color = COOL_PALETTES[Math.floor(Math.random() * COOL_PALETTES.length)];
+      });
+      renderChoicesEditor();
+      drawWheel();
+    });
+
+    // Add empty option
+    addChoiceBtn.addEventListener('click', () => {
+      const nextColor = COOL_PALETTES[wheelState.choices.length % COOL_PALETTES.length];
+      wheelState.choices.push({
+        label: `Choice ${wheelState.choices.length + 1}`,
+        weight: 5,
+        color: nextColor
+      });
+      renderChoicesEditor();
+      drawWheel();
+      // Scroll to bottom of container
+      setTimeout(() => {
+        choicesContainer.scrollTop = choicesContainer.scrollHeight;
+      }, 50);
+    });
+
+    // Rendering Canvas Wheel Function
+    function drawWheel() {
+      const size = canvas.width / (window.devicePixelRatio || 1);
+      
+      // Guard against zero/negative sizing during layout initialization
+      if (size < 10) return; 
+
+      const center = size / 2;
+      const radius = center * 0.92;
+
+      ctx.clearRect(0, 0, size, size);
+
+      const slices = getSlices();
+
+      // Draw Outer circular ring
+      ctx.beginPath();
+      ctx.arc(center, center, Math.max(0, radius), 0, Math.PI * 2);
+      ctx.fillStyle = '#1e1b4b'; // Deep Indigo background space
+      ctx.fill();
+
+      // Render each slice
+      slices.forEach((slice, idx) => {
+        const start = slice.startAngle + currentAngle;
+        const end = slice.endAngle + currentAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        // Ensure radius minus padding is never negative
+        ctx.arc(center, center, Math.max(0.1, radius - 4), start, end);
+        ctx.closePath();
+
+        ctx.fillStyle = slice.color;
+        ctx.fill();
+
+        // Stroke border lines for cleaner separation
+        ctx.strokeStyle = '#020617'; // Match deep slate space
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Text labels inside the pie slices
+        ctx.save();
+        ctx.translate(center, center);
+        
+        // Calculate middle point of sector
+        const middleAngle = start + (end - start) / 2;
+        ctx.rotate(middleAngle);
+
+        // Adjust text typography based on amount of slices
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        
+        // Setup font styles
+        ctx.fillStyle = getContrastColor(slice.color);
+        const fontSize = Math.max(11, Math.min(18, 200 / slices.length));
+        ctx.font = `bold ${fontSize}px 'Plus Jakarta Sans', sans-serif`;
+
+        // Clip label text if too long to prevent overflowing center
+        let textToPrint = slice.label;
+        if (textToPrint.length > 14) {
+          textToPrint = textToPrint.substring(0, 11) + '...';
+        }
+
+        // Draw label with margin offset from edge
+        ctx.fillText(textToPrint, Math.max(0, radius - 20), 0);
+        ctx.restore();
+      });
+
+      // Draw Gorgeous Wheel Center Cap (A shiny core)
+      ctx.beginPath();
+      ctx.arc(center, center, 32, 0, Math.PI * 2);
+      ctx.fillStyle = '#0f172a'; // dark metallic core
+      ctx.strokeStyle = '#312e81';
+      ctx.lineWidth = 4;
+      ctx.fill();
+      ctx.stroke();
+
+      // Shiny center inner circle
+      ctx.beginPath();
+      ctx.arc(center, center, 14, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 15;
+      ctx.fill();
+      ctx.shadowBlur = 0; // reset shadow state
+    }
+
+    // Helper utility to make text contrast light/dark on any background color automatically
+    function getContrastColor(hexcolor) {
+      // If hex starts with #
+      hexcolor = hexcolor.replace("#", "");
+      var r = parseInt(hexcolor.substr(0,2),16);
+      var g = parseInt(hexcolor.substr(2,2),16);
+      var b = parseInt(hexcolor.substr(4,2),16);
+      var yiq = ((r*299)+(g*587)+(b*114))/1000;
+      return (yiq >= 128) ? '#0f172a' : '#ffffff';
+    }
+
+    // Core Animation State & physics loop
+    function spinLoop() {
+      if (!isSpinning) return;
+
+      currentAngle += spinVelocity;
+      spinVelocity *= friction; // gradual speed loss
+
+      // Play "tick" sounds when a wheel boundary crosses the pointer marker
+      // Pointer is located at angle -Math.PI / 2 (directly at 12 o'clock / top center position)
+      const slices = getSlices();
+      const pointerTargetRad = -Math.PI / 2;
+
+      // Adjust relative sector positions to see which segment is exactly pointing at top
+      const normalizedAngle = (currentAngle % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+
+      // Find slice currently hitting top pointer
+      slices.forEach(slice => {
+        // Track intersection crossing
+        const relativeStart = (slice.startAngle + currentAngle) % (Math.PI * 2);
+        const relativeEnd = (slice.endAngle + currentAngle) % (Math.PI * 2);
+        
+        // Simulating physical tick sound when a partition crosses the pin
+        // Check if the tick pointer was crossed in this interval
+        const currentRelativeSector = Math.floor((normalizedAngle) / (Math.PI * 2 / slices.length));
+        const prevRelativeSector = Math.floor((normalizedAngle - spinVelocity) / (Math.PI * 2 / slices.length));
+        
+        if (currentRelativeSector !== prevRelativeSector && Math.abs(spinVelocity) > 0.01) {
+          sfx.playTick();
+        }
+      });
+
+      drawWheel();
+
+      // Stop Condition
+      if (spinVelocity < minVelocity) {
+        isSpinning = false;
+        spinVelocity = 0;
+        onSpinComplete();
+      } else {
+        requestAnimationFrame(spinLoop);
+      }
+    }
+
+    // Trigger spinning initiation
+    spinBtn.addEventListener('click', () => {
+      if (isSpinning) return; // Prevent double trigger
+
+      hideResult();
+
+      // Start tick system activation
+      sfx.init();
+
+      // Random starting velocity
+      // High start speed between 0.35 and 0.55 rad/frame
+      spinVelocity = 0.38 + Math.random() * 0.22;
+      isSpinning = true;
+
+      // Animate frame loop
+      spinLoop();
+    });
+
+    // Tap to spin directly from canvas
+    canvas.addEventListener('click', () => {
+      if (!isSpinning) {
+        spinBtn.click();
+      }
+    });
+
+    // Callback when wheel rotation comes to full stop
+    function onSpinComplete() {
+      const selectedSlice = getWinningSlice();
+      
+      // Play win celebratory sound
+      sfx.playWin();
+
+      // Present visual updates
+      displayResult(selectedSlice);
+    }
+
+    // Determine slice exactly highlighting 12 o'clock top pointer
+    function getWinningSlice() {
+      const slices = getSlices();
+      
+      // Calculate adjusted pointer offset (The indicator sits at 12 o'clock, which is -90 degrees or -Math.PI/2)
+      // We look back to see what section rotated underneath this fixed point
+      const absolutePointer = -Math.PI / 2;
+      
+      // Map global currentAngle into index boundaries
+      let targetRotation = (absolutePointer - currentAngle) % (Math.PI * 2);
+      if (targetRotation < 0) {
+        targetRotation += Math.PI * 2;
+      }
+
+      // Find the slice whose angles encompass targetRotation
+      const winningSlice = slices.find(slice => {
+        return targetRotation >= slice.startAngle && targetRotation < slice.endAngle;
+      }) || slices[0]; // fallback to first item
+
+      return winningSlice;
+    }
+
+    // Result Presentation logic
+    function displayResult(slice) {
+      // 1. Show Inline Result Widget with animation
+      resultText.textContent = slice.label;
+      resultDetails.textContent = `Won with ${(slice.probability * 100).toFixed(1)}% chance!`;
+      
+      resultWidget.classList.remove('hidden');
+      setTimeout(() => {
+        resultWidget.classList.remove('scale-95', 'opacity-0');
+      }, 50);
+
+      // 2. Open Hero Congrats Modal
+      modalTitle.textContent = slice.label;
+      modalProbabilityText.textContent = `Weight Value: ${slice.weight} (${(slice.probability * 100).toFixed(1)}% configured chance)`;
+      
+      congratsModal.classList.remove('hidden');
+      setTimeout(() => {
+        congratsModal.classList.remove('opacity-0');
+        congratsModal.firstElementChild.classList.remove('scale-95');
+      }, 100);
+    }
+
+    function hideResult() {
+      resultWidget.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => {
+        resultWidget.classList.add('hidden');
+      }, 300);
+    }
+
+    // Close Modal Button
+    closeModalBtn.addEventListener('click', () => {
+      congratsModal.classList.add('opacity-0');
+      congratsModal.firstElementChild.classList.add('scale-95');
+      setTimeout(() => {
+        congratsModal.classList.add('hidden');
+      }, 300);
+    });
+
+    // Dismiss modal by clicking background
+    congratsModal.addEventListener('click', (e) => {
+      if (e.target === congratsModal) {
+        closeModalBtn.click();
+      }
+    });
+
+    // Custom Toast Alert System (No native Alerts)
+    function alertUser(msg) {
+      const toast = document.createElement('div');
+      toast.className = "fixed bottom-5 right-5 z-50 bg-rose-950 border border-rose-900/60 text-rose-200 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 transform translate-y-5 opacity-0 flex items-center gap-2 text-sm";
+      toast.innerHTML = `
+        <svg class="w-5 h-5 text-rose-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+        </svg>
+        <span>${msg}</span>
+      `;
+      document.body.appendChild(toast);
+      
+      // Animate entry
+      setTimeout(() => {
+        toast.classList.remove('translate-y-5', 'opacity-0');
+      }, 50);
+
+      // Dismiss automatically
+      setTimeout(() => {
+        toast.classList.add('translate-y-5', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // Success Notification System
+    function notifySuccess(msg) {
+      const toast = document.createElement('div');
+      toast.className = "fixed bottom-5 right-5 z-50 bg-emerald-950 border border-emerald-900/60 text-emerald-200 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 transform translate-y-5 opacity-0 flex items-center gap-2 text-sm";
+      toast.innerHTML = `
+        <svg class="w-5 h-5 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>${msg}</span>
+      `;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-5', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('translate-y-5', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    }
+
+    // Export Current Setup to JSON File
+    exportBtn.addEventListener('click', () => {
+      // Clean weights to numbers for structural integrity
+      const exportData = {
+        title: wheelState.title,
+        useWeights: wheelState.useWeights,
+        choices: wheelState.choices.map(c => ({
+          label: c.label,
+          weight: Number(c.weight) || 1,
+          color: c.color
+        }))
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${wheelState.title.toLowerCase().replace(/[^a-z0-9]/g, "_")}_wheel.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      notifySuccess("Wheel configurations exported successfully!");
+    });
+
+    // Import JSON File Trigger Setup
+    importBtn.addEventListener('click', () => {
+      jsonFileInput.click();
+    });
+
+    jsonFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        try {
+          const parsed = JSON.parse(evt.target.result);
+          
+          // Verify format matches requirements
+          if (!parsed.choices || !Array.isArray(parsed.choices)) {
+            throw new Error("Invalid structure: 'choices' list missing.");
+          }
+
+          if (parsed.choices.length < 2) {
+            throw new Error("Invalid config: At least 2 wheel items required.");
+          }
+
+          // Adopt file content safely
+          wheelState.title = parsed.title || "Custom Customizer Wheel";
+          wheelState.useWeights = parsed.useWeights !== undefined ? parsed.useWeights : true;
+          
+          wheelState.choices = parsed.choices.map((c, i) => ({
+            label: String(c.label || `Choice ${i+1}`),
+            weight: Number(c.weight) || 5,
+            color: String(c.color || COOL_PALETTES[i % COOL_PALETTES.length])
+          }));
+
+          // Reset UI views
+          fairModeText.textContent = wheelState.useWeights ? "Use Weights" : "Equal Sizes";
+          if (wheelState.useWeights) {
+            fairModeBtn.classList.remove('bg-indigo-950/40', 'border-indigo-900/60');
+            fairModeBtn.classList.add('bg-gray-900', 'border-gray-800');
+          } else {
+            fairModeBtn.classList.add('bg-indigo-950/40', 'border-indigo-900/60');
+            fairModeBtn.classList.remove('bg-gray-900', 'border-gray-800');
+          }
+
+          renderChoicesEditor();
+          drawWheel();
+          hideResult();
+          notifySuccess(`Success! Loaded ${wheelState.choices.length} wheel items.`);
+
+        } catch (error) {
+          alertUser(`Failed to read config file: ${error.message}`);
+        }
+        
+        // Reset file input so same file can be loaded again if needed
+        jsonFileInput.value = '';
+      };
+      reader.readAsText(file);
+    });
+
+  </script>
+</body>
+</html>
