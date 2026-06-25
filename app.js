@@ -15,31 +15,42 @@ const projects = [
 
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
-const searchBar = document.getElementById('search-bar'); // NEW: Reference to search bar
+const searchBar = document.getElementById('search-bar');
+const randomProjectBtn = document.getElementById('random-project-btn'); // NEW: Random Button Ref
 
 // Track the current project identifier and exact file path
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
 
+// Helper: Unified function to load a project
+function loadProject(project) {
+    let projectParam = (typeof project === 'object') ? project.name : project;
+    let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
+    
+    runnerFrame.src = filePath;
+    currentProjectParam = projectParam;
+    currentFilePath = filePath;
+}
+
+// Display Total Project Count
+document.getElementById('project-counter').textContent = `Total Projects: ${projects.length}`;
+
+// Random Project Logic
+randomProjectBtn.addEventListener('click', () => {
+    const randomProject = projects[Math.floor(Math.random() * projects.length)];
+    loadProject(randomProject);
+});
+
 projects.forEach(project => {
     const button = document.createElement('button');
     button.className = 'file-btn';
     
-    // Determine the identifier string for the URL parameter
     let projectParam = (typeof project === 'object') ? project.name : project;
-    let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
     
-    // NEW: Save the project name as a data attribute so we can easily search it
     button.dataset.projectName = projectParam.toLowerCase();
-    
-    // NEW: Updated to "Launch" instead of "Run"
     button.textContent = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
     
-    button.onclick = () => { 
-        runnerFrame.src = filePath; 
-        currentProjectParam = projectParam;
-        currentFilePath = filePath;
-    };
+    button.onclick = () => { loadProject(project); };
     fileList.appendChild(button);
 });
 
@@ -65,7 +76,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const projectToLoad = urlParams.get('project');
 
 if (projectToLoad) {
-    // Find matching project by string name or object name properties
     const foundProject = projects.find(p => {
         if (typeof p === 'object') {
             return p.name.toLowerCase() == projectToLoad.toLowerCase();
@@ -74,17 +84,12 @@ if (projectToLoad) {
     });
 
     if (foundProject) {
-        let filePath = (typeof foundProject === 'object') ? foundProject.path : `html_${foundProject}.html`;
-        runnerFrame.src = filePath;
-        currentProjectParam = (typeof foundProject === 'object') ? foundProject.name : foundProject;
-        currentFilePath = filePath;
+        loadProject(foundProject);
     } else {
-        runnerFrame.src = 'html_welcome.html';
-        currentFilePath = 'html_welcome.html';
+        loadProject("welcome");
     }
 } else {
-    runnerFrame.src = 'html_welcome.html';
-    currentFilePath = 'html_welcome.html';
+    loadProject("welcome");
 }
 
 // ==========================================
@@ -99,13 +104,11 @@ const mainContent = document.querySelector('.main-content');
 
 // --- Open Full Project Page Logic ---
 openFullBtn.addEventListener('click', () => {
-    // Opens the specific project's file path in a new tab
     window.open(currentFilePath, '_blank');
 });
 
 // --- Share URL Generator Logic ---
 shareBtn.addEventListener('click', () => {
-    // Dynamically builds the URL based on the current domain and active project parameter
     const generatedUrl = `${window.location.origin}${window.location.pathname}?project=${encodeURIComponent(currentProjectParam)}`;
     
     navigator.clipboard.writeText(generatedUrl).then(() => {
@@ -133,19 +136,16 @@ function toggleOverlayButtons() {
     openFullBtn.classList.toggle('hidden');
 }
 
-// Bind toggle to the button click
 if (toggleBtn) {
     toggleBtn.addEventListener('click', toggleOverlayButtons);
 }
 
-// Bind toggle to the backtick (`) keypress on the main window
 document.addEventListener('keydown', (event) => {
     if (event.key === '`') {
         toggleOverlayButtons();
     }
 });
 
-// FIX: Bind the shortcut inside the iframe so it works when a project is focused!
 runnerFrame.addEventListener('load', () => {
     try {
         runnerFrame.contentWindow.document.addEventListener('keydown', (event) => {
@@ -154,7 +154,6 @@ runnerFrame.addEventListener('load', () => {
             }
         });
     } catch (error) {
-        // This catch block prevents the page from breaking if you ever load an external website in the iframe
         console.warn("Could not attach keyboard shortcut to iframe.");
     }
 });
@@ -167,7 +166,6 @@ const tabModal = document.getElementById('tab-modal');
 const tabModifierBtn = document.getElementById('tab-modifier-btn');
 const closeModalBtn = document.getElementById('close-modal-btn');
 
-// Open and Close Menu
 tabModifierBtn.addEventListener('click', () => {
     tabModal.classList.remove('hidden');
 });
@@ -176,7 +174,6 @@ closeModalBtn.addEventListener('click', () => {
     tabModal.classList.add('hidden');
 });
 
-// Helper function to update the Favicon dynamically
 function changeFavicon(src) {
     let link = document.querySelector("link[rel~='icon']");
     if (!link) {
@@ -187,7 +184,6 @@ function changeFavicon(src) {
     link.href = src;
 }
 
-// 1. Apply Title Change
 document.getElementById('apply-title-btn').addEventListener('click', () => {
     const newTitle = document.getElementById('tab-title-input').value.trim();
     if (newTitle) {
@@ -195,14 +191,12 @@ document.getElementById('apply-title-btn').addEventListener('click', () => {
     }
 });
 
-// 2. Apply Quick Icons (Default, Mungus, Classroom)
 document.querySelectorAll('.icon-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
         changeFavicon(e.target.dataset.icon);
     });
 });
 
-// 3. Apply Custom Icon via URL
 document.getElementById('apply-url-btn').addEventListener('click', () => {
     const newUrl = document.getElementById('icon-url-input').value.trim();
     if (newUrl) {
@@ -210,13 +204,12 @@ document.getElementById('apply-url-btn').addEventListener('click', () => {
     }
 });
 
-// 4. Apply Custom Icon via Local File Upload
 document.getElementById('icon-file-input').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
         const reader = new FileReader();
         reader.onload = (event) => {
-            changeFavicon(event.target.result); // Converts the file to a base64 string
+            changeFavicon(event.target.result);
         };
         reader.readAsDataURL(file);
     }
@@ -230,7 +223,6 @@ const friendsModal = document.getElementById('friends-modal');
 const friendsWebsiteBtn = document.getElementById('friends-website-btn');
 const closeFriendsModalBtn = document.getElementById('close-friends-modal-btn');
 
-// Open and Close Friend's Menu
 friendsWebsiteBtn.addEventListener('click', () => {
     friendsModal.classList.remove('hidden');
 });
@@ -249,14 +241,12 @@ let secretUnlocked = false;
 
 if (sidebarLogo) {
     sidebarLogo.addEventListener('click', () => {
-        // If they already unlocked it, do nothing
         if (secretUnlocked) return; 
         
         logoClickCount++;
         
-        // Trigger the easter egg on the 15th click
         if (logoClickCount === 15) {
-            secretUnlocked = true; // Lock it so it doesn't trigger again
+            secretUnlocked = true; 
             window.open('https://orgeyt.github.io/orgeyt.github.io-myprojects/secret_5Hd82K8Fb8.html', '_blank');
         }
     });
