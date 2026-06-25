@@ -1,0 +1,6699 @@
+import { Player } from './player.js';
+import { Platform, KillBlock, Checkpoint, WinBlock, Coin, CoinShooter, Door } from './platform.js';
+import { Camera } from './camera.js';
+import { TouchControls } from './touchControls.js';
+import { spawnPoint, mapPlatforms } from './map.js';
+import { ThreeMode } from './threeMode.js';
+
+export class Game {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext('2d');
+    this.setCanvasSize();
+    
+    // Create player at spawn point from external map
+    this.player = new Player(spawnPoint.x, spawnPoint.y);
+
+    // Secondary player for 2-player mode (AI follower). Create then position relative to player1.
+    this.player2 = new Player(this.player.x, this.player.y - (this.player.height || 60) - 20);
+    // Use the skin system for both players: default skins for p1 and p2
+    try {
+      if (typeof this.player.setSkin === 'function') this.player.setSkin('p1 default');
+      if (typeof this.player2.setSkin === 'function') this.player2.setSkin('p2 default');
+    } catch (e) {}
+    // ensure player2 always spawns above player1 by a fixed offset
+    this._player2VerticalOffset = (this.player2.height || 60) + 20;
+    // position player2 relative to player1 initial spawn
+    try { this.player2.respawn(this.player.x, this.player.y - this._player2VerticalOffset); } catch (e) {}
+    this.twoPlayer = false;
+    // track which map name is currently loaded (used for multiplayer presence)
+    this.currentMapName = 'Map 1';
+    // control whether the game auto-pauses on blur/visibilitychange (default: true)
+    this.autoPauseOnBlur = true;
+    // CPU-controlled second player toggle: when true and twoPlayer === true, player2 is controlled by the bot (not human)
+    this.cpuP2 = false;
+
+    // Split-screen P2 camera: when true and twoPlayer is on, render player2's POV on left and player1 on right
+    this.p2SeparateCamera = false;
+
+    // Independent death toggle: when true and twoPlayer is on, a death only respawns the player who died
+    this.independentDeath = false;
+
+    // active checkpoint (null or object {x,y,width,height,color})
+    this.activeCheckpoint = null;
+
+    // Build platform instances from serializable map data (map.js)
+    // Preserve kill blocks and checkpoints by constructing the appropriate class
+    // Default map comes from map.js (mapPlatforms)
+    // (placeholder removed) — no dynamic import required here
+    // Assign a stable index to every checkpoint so we can prevent "older" checkpoints
+    // from overriding a more-recent active checkpoint when touched later.
+    let _ckIdx = 0;
+    this.platforms = (typeof mapPlatforms !== 'undefined' ? mapPlatforms : []).map(p => {
+      if (!p) return null;
+      if (p.type === 'kill') {
+        return new KillBlock(p.x, p.y, p.width, p.height, p.color);
+      }
+      if (p.type === 'checkpoint') {
+        const cp = new Checkpoint(p.x, p.y, p.width, p.height, p.baseColor || p.color || '#43a047');
+        // tag with an index reflecting declaration order (lower = earlier)
+        cp._index = _ckIdx++;
+        return cp;
+      }
+      if (p.type === 'win') {
+        return new WinBlock(p.x, p.y, p.width, p.height, p.color || '#64dd17');
+      }
+      if (p.type === 'coin_shooter' || p.type === 'coin-shooter' || p.type === 'coinshooter' || p.type === 'shooter') {
+        // support a variety of common type names for compatibility
+        return new (typeof CoinShooter !== 'undefined' ? CoinShooter : function(x,y,w,h){ this.x=x;this.y=y;this.width=w;this.height=h; this.type='coin_shooter'; })(
+          p.x, p.y, p.width || 48, p.height || 32, p.color || '#ffd54f'
+        );
+      }
+      if (p.type === 'coin') {
+        // Coins are collected and removed when touched
+        return new Coin(p.x, p.y, p.width || 32, p.height || 32);
+      }
+      if (p.type === 'door') {
+        // Door includes an ID for pairing; create Door instance
+        return new Door(p.x, p.y, p.width, p.height, p.color || 'rgba(160,160,255,0.36)', p.id || null);
+      }
+      return new Platform(p.x, p.y, p.width, p.height, p.color);
+    }).filter(Boolean);
+
+    // Keep an immutable snapshot of the originally-placed coins so we can restore them on death
+    try {
+      this._initialCoins = (typeof mapPlatforms !== 'undefined' ? mapPlatforms : [])
+        .filter(p => p && p.type === 'coin')
+        .map(c => ({ x: c.x, y: c.y, width: c.width || 32, height: c.height || 32 }));
+    } catch (e) {
+      this._initialCoins = [];
+    }
+
+    // Initialize coin shooter runtime state for any coin_shooter platforms so they can shoot coins independently.
+    try {
+      for (const plat of this.platforms) {
+        if (plat && plat.type === 'coin_shooter') {
+          // ensure each shooter has a last-shot timestamp
+          plat._lastShot = Date.now() - (plat._shootInterval || 500);
+        }
+      }
+    } catch (e) {}
+
+    // Track whether the currently loaded map is the procedural maze (platforms generated by generateMaze are tagged)
+    this._currentMapIsMaze = this.platforms.some(p => !!p.isMaze);
+
+    this.camera = new Camera();
+    this.touchControls = new TouchControls();
+
+    // 3D mode helper (lazy init)
+    this.threeMode = new ThreeMode(this.canvas, this);
+    this.threeActive = false;
+
+    // Multiplayer runtime state: remote players map keyed by client id
+    this.remotePlayers = {}; // { clientId: { x,y,width,height,skin,particles,username,avatarUrl, lastSeen } }
+    this.multiplayer = { connected: false, room: null, socket: null };
+    // whether players collide with each other (toggleable from title screen)
+    this.playerPlayerCollisionEnabled = true;
+
+    // --- Multiplayer chat UI ---
+    // create a compact chat log and input overlay
+    try {
+      this._chatContainer = document.createElement('div');
+      Object.assign(this._chatContainer.style, {
+        position: 'fixed',
+        right: '12px',
+        bottom: '12px',
+        zIndex: 10010,
+        width: '320px',
+        maxHeight: '40vh',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '6px',
+        fontFamily: 'Arial, sans-serif',
+        color: '#fff',
+        pointerEvents: 'auto'
+      });
+
+      this._chatLog = document.createElement('div');
+      Object.assign(this._chatLog.style, {
+        background: 'rgba(8,8,10,0.7)',
+        padding: '8px',
+        borderRadius: '8px',
+        overflowY: 'auto',
+        maxHeight: 'calc(40vh - 44px)',
+        fontSize: '13px',
+        whiteSpace: 'normal',
+        wordWrap: 'break-word',
+        overflowWrap: 'break-word'
+      });
+
+      this._chatForm = document.createElement('form');
+      Object.assign(this._chatForm.style, {
+        display: 'flex',
+        gap: '6px',
+        alignItems: 'center'
+      });
+
+      this._chatInput = document.createElement('input');
+      this._chatInput.type = 'text';
+      this._chatInput.placeholder = 'Say something...';
+      Object.assign(this._chatInput.style, {
+        flex: '1',
+        padding: '8px',
+        borderRadius: '8px',
+        border: 'none',
+        background: '#222',
+        color: '#fff',
+        fontSize: '13px'
+      });
+
+      const sendBtn = document.createElement('button');
+      sendBtn.type = 'submit';
+      sendBtn.textContent = 'Send';
+      Object.assign(sendBtn.style, {
+        padding: '8px 10px',
+        borderRadius: '8px',
+        border: 'none',
+        background: '#3f51b5',
+        color: '#fff'
+      });
+
+      this._chatForm.appendChild(this._chatInput);
+      this._chatForm.appendChild(sendBtn);
+      this._chatContainer.appendChild(this._chatLog);
+      this._chatContainer.appendChild(this._chatForm);
+
+      // block gameplay input while typing into chat
+      this._chatInput.addEventListener('focus', () => { this._chatFocused = true; });
+      this._chatInput.addEventListener('blur', () => { this._chatFocused = false; });
+
+      // initialize flag
+      this._chatFocused = false;
+      // helper to append a chat message to the log and scroll
+      this._addChatMessage = (txt) => {
+        try {
+          const el = document.createElement('div');
+          el.textContent = txt;
+          el.style.padding = '4px 2px';
+          el.style.opacity = '0.98';
+          el.style.fontSize = '13px';
+          this._chatLog.appendChild(el);
+          this._chatLog.scrollTop = this._chatLog.scrollHeight;
+        } catch (e) {}
+      };
+
+      // wire form submit to send chat (if multiplayer connected)
+      this._chatForm.addEventListener('submit', (ev) => {
+        ev.preventDefault();
+        let raw = (this._chatInput.value || '').trim();
+        if (!raw) return;
+
+        // Special client-side commands
+        if (raw === '/clear') {
+          try {
+            if (this._chatLog) this._chatLog.innerHTML = '';
+            // clear local speech bubble
+            this._localSpeech = null;
+            this._localSpeechUntil = 0;
+          } catch (e) {}
+          this._chatInput.value = '';
+          return; // do not send to server
+        }
+
+        // Sanitize: detect attempts to send code-like text and replace with warning
+        try {
+          const codePattern = /[<>{}\[\]`]|<\/?script\b|["']\s*:|^\s*\{.*\}\s*$/i;
+          if (codePattern.test(raw)) {
+            raw = 'User attempted to execute code.';
+          }
+        } catch (e) {}
+
+        // send via socket if connected (no echo requested to avoid duplicate local display)
+        try {
+          if (this.multiplayer && this.multiplayer.connected && this.multiplayer.socket && typeof this.multiplayer.socket.send === 'function') {
+            this.multiplayer.socket.send({ type: 'chat', message: raw, echo: false, map: this.currentMapName || '' });
+          }
+        } catch (e) {}
+
+        // Show locally immediately and attach a speech bubble to our player (do NOT create a fake remote player)
+        try {
+          const myName = (this.multiplayer && this.multiplayer.socket && this.multiplayer.socket.peers && this.multiplayer.socket.clientId && this.multiplayer.socket.peers[this.multiplayer.socket.clientId]) ? this.multiplayer.socket.peers[this.multiplayer.socket.clientId].username : 'You';
+          const label = `${myName} ${this.currentMapName || ''}: ${raw}`;
+          this._addChatMessage(label);
+
+          const now = Date.now();
+          this._localSpeech = raw;
+          this._localSpeechUntil = now + 3500;
+        } catch (e) {}
+        this._chatInput.value = '';
+      });
+    } catch (e) {
+      console.warn('chat UI init failed', e);
+    }
+
+    // Parallax background layers (each layer has a speed factor <1 => moves slower than camera)
+    // Use a simple tiled image plus procedurally drawn layers for depth.
+    this._bgImage = new Image();
+    this._bgImage.src = 'Screenshot 2026-03-07 173627.png';
+
+    // coin sprite sheet for on-canvas coin drawing (uses coinspritesheet.png with rows=2, cols=3)
+    this._coinImage = new Image();
+    this._coinImage.crossOrigin = 'anonymous';
+    this._coinImage.src = '/coinspritesheet.png';
+    // Append the Image element to the DOM (hidden) so the browser loads it reliably.
+    try {
+      this._coinImage.style.display = 'none';
+      setTimeout(() => {
+        try { document.body.appendChild(this._coinImage); } catch (e) {}
+      }, 0);
+    } catch (e) {}
+    // ensure platform.Coin rendering uses the exact same Image instance so sprite drawing uses the loaded sheet
+    try { Coin._img = this._coinImage; } catch (e) { /* ignore if Coin not available */ }
+
+    this.bgLayers = [
+      { // far: faint tiled image (very slow)
+        speed: 0.12,
+        alpha: 0.55,
+        draw: (ctx, ox, oy, w, h) => {
+          if (!this._bgImage.complete) return;
+          const iw = this._bgImage.width, ih = this._bgImage.height;
+          // tile the image to fill the viewport
+          const startX = Math.floor((ox % iw) - iw);
+          const startY = Math.floor((oy % ih) - ih);
+          for (let x = startX; x < w; x += iw) {
+            for (let y = startY; y < h; y += ih) {
+              ctx.drawImage(this._bgImage, x, y, iw, ih);
+            }
+          }
+        }
+      },
+      { // mid: scattered large green squares (moderate speed)
+        speed: 0.36,
+        alpha: 0.9,
+        draw: (ctx, ox, oy, w, h) => {
+          ctx.fillStyle = 'rgba(34,139,34,0.16)';
+          // create a grid of squares offset by camera for parallax
+          const size = 120;
+          const gap = 180;
+          const startX = -((ox * 0.36) % gap) - gap;
+          const startY = -((oy * 0.36) % gap) - gap;
+          for (let x = startX; x < w + gap; x += gap) {
+            for (let y = startY; y < h + gap; y += gap) {
+              ctx.fillRect(x + ( (x/ gap) % 3) * 6, y + ( (y/ gap) % 2) * 12, size, size);
+            }
+          }
+        }
+      },
+      { // near: soft gradient and subtle shapes that follow camera closely
+        speed: 0.66,
+        alpha: 0.95,
+        draw: (ctx, ox, oy, w, h) => {
+          // radial vignette slightly offset with camera
+          const g = ctx.createLinearGradient(0, 0, 0, h);
+          g.addColorStop(0, 'rgba(20,24,28,0.94)');
+          g.addColorStop(1, 'rgba(48,48,52,0.96)');
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, w, h);
+
+          // subtle large circles to add depth
+          ctx.fillStyle = 'rgba(255,255,255,0.02)';
+          for (let i = 0; i < 6; i++) {
+            const cx = ((i * 311) % w) - (ox * 0.66 % 200);
+            const cy = ((i * 197) % h) - (oy * 0.66 % 120);
+            const r = 160 + ((i * 43) % 100);
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    ];
+
+    // Load sound effects (use uploaded assets)
+    this.sounds = {
+      jump: new Audio('/Jump (mp3cut.net).mp3'),
+      place: new Audio('/Place block.mp3'),
+      hurt: new Audio('/Hurt.mp3'),
+      checkpoint: new Audio('/Checkpoint (mp3cut.net).mp3'),
+      win: new Audio('/Win.mp3'),
+      changeColor: new Audio('/Change block color.mp3'),
+      coincollect: new Audio('/coincollect.mp3')
+    };
+    // set reasonable default volumes
+    this.sounds.jump.volume = 0.9;
+    this.sounds.place.volume = 0.85;
+    this.sounds.hurt.volume = 0.9;
+    this.sounds.checkpoint.volume = 0.8;
+    this.sounds.win.volume = 0.9;
+    this.sounds.changeColor.volume = 0.7;
+
+    // Background music (start only after first user interaction; ignore pause/unpause handlers)
+    try {
+      // default music source (kept so we can restore when returning to title)
+      this._defaultMusicSrc = '/VVVVVV_ Passion for Exploring (Indie Game Music HD).mp3';
+      this.music = new Audio(this._defaultMusicSrc);
+      // Always loop and keep a louder default volume
+      this.music.loop = true;
+      this.music.volume = 0.8;
+      this.music.preload = 'auto';
+      // Do not attempt autoplay here; wait for a user gesture to start.
+      this.music.autoplay = false;
+
+      // Provide a play wrapper that attempts playback (used after user interaction).
+      // Important: do NOT reset currentTime here so unpause resumes where music left off.
+      this._playMusic = () => {
+        try {
+          if (!this.music) return;
+          // resume playback without rewinding so unpause continues from the paused position
+          const p = this.music.play();
+          if (p && typeof p.then === 'function') p.catch(()=>{});
+        } catch (e) {}
+      };
+
+      // Provide a no-op pause wrapper so pause/unpause handlers do not stop or resume music.
+      this._pauseMusic = () => {
+        // intentionally empty: background music should ignore pause/unpause.
+      };
+
+      // Start music on first user interaction (pointerdown covers mouse/touch/pen).
+      // Use a one-time listener so we only request playback when user explicitly interacts.
+      const _startOnFirstInteraction = (ev) => {
+        try {
+          if (this.music) {
+            // best-effort play attempt
+            try {
+              const p = this.music.play();
+              if (p && typeof p.then === 'function') p.catch(()=>{});
+            } catch (e) {}
+          }
+        } catch (e) {}
+        // remove listener after first interaction
+        try { document.removeEventListener('pointerdown', _startOnFirstInteraction); } catch(e){}
+      };
+      document.addEventListener('pointerdown', _startOnFirstInteraction, { once: true });
+    } catch (e) {
+      this.music = null;
+      this._playMusic = () => {};
+      this._pauseMusic = () => {};
+    }
+
+    // Build a lower-pitch copy of the same effects for the chase ghost.
+    // We clone by creating new Audio() objects with the same src and lower playbackRate/volume.
+    this.chase = this.chase || {};
+    this.chase.sounds = {};
+    // Secondary chase for player2 (created on-demand when twoPlayer + chaseMode active)
+    this.chase2 = this.chase2 || {};
+    this.chase2.sounds = {};
+    try {
+      const _clone = (name, rate = 0.85, volMul = 0.85) => {
+        try {
+          const orig = this.sounds[name];
+          if (!orig) return null;
+          const a = new Audio(orig.src);
+          a.volume = (typeof orig.volume === 'number' ? orig.volume : 1) * volMul;
+          a.playbackRate = rate;
+          a.preload = 'auto';
+          return a;
+        } catch (e) {
+          return null;
+        }
+      };
+      // make the chaser's jump noticeably lower-pitched by reducing playbackRate
+      this.chase.sounds.jump = _clone('jump', 0.62, 0.78);
+      this.chase.sounds.place = _clone('place', 0.82, 0.8);
+      this.chase.sounds.hurt = _clone('hurt', 0.72, 0.9);
+      this.chase.sounds.checkpoint = _clone('checkpoint', 0.8, 0.8);
+      this.chase.sounds.win = _clone('win', 0.8, 0.85);
+      this.chase.sounds.changeColor = _clone('changeColor', 0.82, 0.75);
+
+      // clone lower-pitched variants for chase2 (player2's chaser) at slightly different rates for variety
+      this.chase2.sounds.jump = _clone('jump', 0.58, 0.72);
+      this.chase2.sounds.place = _clone('place', 0.78, 0.76);
+      this.chase2.sounds.hurt = _clone('hurt', 0.68, 0.84);
+      this.chase2.sounds.checkpoint = _clone('checkpoint', 0.76, 0.74);
+      this.chase2.sounds.win = _clone('win', 0.76, 0.78);
+      this.chase2.sounds.changeColor = _clone('changeColor', 0.78, 0.72);
+    } catch (e) {
+      // ignore chase sound creation failures
+    }
+
+
+
+    // helper to play a named sound and record the event into replay pending events when recording
+    this.playSound = (name) => {
+      try {
+        const s = this.sounds[name];
+        if (s) {
+          try { s.currentTime = 0; } catch (e) {}
+          try { s.play(); } catch (e) {}
+        }
+      } catch (e) {
+        // ignore
+      }
+      // record event for replay frames only when recording (not during playback) and replay enabled
+      try {
+        if (this.replay && this.replay.enabled && !this.replay.playing) {
+          this.replay._pendingEvents.push({ t: Date.now(), name });
+        }
+      } catch (e) {}
+    };
+
+    // simple effects queue for checkpoint unlocked feedback
+    this.effects = [];
+
+    // coin counters (per-player)
+    this.coinsCollected = 0;
+    this.coinsCollectedP2 = 0;
+
+    // persistent total coins and save/load support
+    this.totalCoins = 0;
+    // selected skins/particles defaults are read from players when available
+    this._saveKey = 'platformer_save_v1';
+    // load persistent save (skins, particles, total coins)
+    try { this.loadSave(); } catch(e) { console.warn('loadSave failed', e); }
+
+    // Track exact collected coin sizes for each player so we can drop them on death
+    // Each entry: { width, height }
+    this._collectedCoinSizesP1 = [];
+    this._collectedCoinSizesP2 = [];
+
+    // Dropped coins pool: physics-enabled temporary coins produced on death
+    // Each dropped coin: { x, y, vx, vy, width, height, bornAt, lifeMs, blinkFrom }
+    this.droppedCoins = [];
+
+    // game state for win/deaths/timing
+    this.gamePaused = false;
+    this.startTime = Date.now();
+    this.deaths = 0;
+
+    // Replay system: stores player frames while playing, and playback control
+    this.replay = {
+      enabled: true,   // whether recording replay frames is active
+      frames: [],      // {x,y,width,height, t}
+      playing: false,
+      index: 0,
+      startTime: 0,
+      frozen: false, // when true, replay run finished and the replay character is frozen
+      // buffer for sound events collected while recording (used when committing events to frames)
+      _pendingEvents: [],
+      // playback speed multiplier (1 = normal, 2 = 2x, etc.)
+      playbackRate: 1
+    };
+
+    // Low gravity mode flag and defaults for restoring original physics
+    this.lowGravity = false;
+    // store defaults based on player instance so setLowGravity can reset reliably
+    this._defaultGravity = this.player.gravity;
+    this._defaultJumpForce = this.player.jumpForce;
+
+    // Confusion mode: when true, apply jittery/inverted controls and camera wobble
+    this.confusion = false;
+    // store defaults to restore later
+    this._defaultFriction = this.player.friction;
+    this._defaultCameraSmooth = this.camera ? this.camera.smoothFactor : 0.12;
+    this._confusionTimer = 0;
+
+    // "What Mode": surprising disruptive effects to make you go "What"
+    this.whatMode = false;
+    this._whatNextTick = 0;
+    this._whatOverlayUntil = 0;
+    this._whatInvertUntil = 0;
+
+    // New modes: Giant, Mini, Bouncy, Melt (flags & helpers)
+    this.giantMode = false;
+    this.miniMode = false;
+    this.bouncyMode = false;
+    this.meltMode = false;
+    this._meltTimer = 0;
+
+    // Pixelated rendering mode flag and defaults (off by default)
+    this.pixelated = false;
+    // Default pixel scale lowered for stronger pixelation (smaller offscreen buffer)
+    this._pixelScale = 0.12; // fractional resolution (e.g., 0.12 -> ~8-9x pixel block)
+    this._pixelCanvas = null;
+    this._pixelCtx = null;
+
+    // Mirror mode: flips the rendered scene horizontally and inverts left/right input handling
+    this.mirrorMode = false;
+
+    // Chase mode: a delayed ghost that records player movement then plays back after a delay
+    this.chaseMode = false;
+    // Merge new chase state into any existing this.chase so previously-created chase.sounds are preserved.
+    this.chase = Object.assign(this.chase || {}, {
+      enabled: false,
+      // buffer of frames {x,y,width,height,t}
+      frames: [],
+      // delay in ms between player and ghost playback (0.8s)
+      delay: 800,
+      // ghost visual & state
+      ghost: { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height, active: false, _waiting: true },
+    });
+
+    // Pathfinding / bot mode: when true, a simple solver will attempt to reach the first win block
+    this.pathfindEnabled = false;
+
+    // Editor state
+    this.editor = {
+      enabled: false,
+      // spawnType: 1=platform, 2=square, 3=bigger square, 4=wall, 5=long thin, 6=tall thin, 7=small square
+      spawnType: 1,
+      colorIndex: 0,
+      spawnKill: false,
+      spawnCheckpoint: false,
+      colors: [
+        '#43a047', '#4a90e2', '#FFD600', '#e53935', '#9c27b0', '#ff9800',
+        '#00bfa5', '#7c4dff', '#f06292', '#8d6e63', '#90a4ae'
+      ],
+      mode: 'place' // 'place' or 'delete'
+    };
+
+    // find the first win block reference for the pathfinder
+    this.winBlock = this.platforms.find(p => p.type === 'win') || null;
+
+    // UI elements (created lazily)
+    this._makeEditorUI();
+
+    window.addEventListener('resize', () => this.setCanvasSize());
+    this.setupControls();
+    this._setupEditorInput();
+
+    // single RAF handle to prevent multiple concurrent gameLoop instances
+    this._loopRaf = null;
+
+    // track whether pause menu is visible
+    this.isPausedMenuVisible = false;
+
+    // Pause on blur/visibilitychange, resume on focus/visible (but don't auto-resume if user explicitly paused via menu)
+    this._hadAutoPause = false;
+
+    const doAutoPause = () => {
+      // only auto-pause if not already paused by game logic and auto-pause is enabled
+      if (this.autoPauseOnBlur && !this.gamePaused) {
+        this._hadAutoPause = true;
+        this.showPauseMenu(true);
+      }
+    };
+
+    const doAutoResume = () => {
+      // only auto-resume if auto-pause previously triggered and auto-pause is enabled
+      if (this.autoPauseOnBlur && this._hadAutoPause) {
+        this._hadAutoPause = false;
+        this.hidePauseMenu();
+      }
+    };
+
+    // Old blur/focus handlers (keep for broad browser support)
+    window.addEventListener('blur', () => {
+      doAutoPause();
+    });
+    window.addEventListener('focus', () => {
+      doAutoResume();
+    });
+
+    // Also handle page visibility changes (tab switches / mobile app background)
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        doAutoPause();
+      } else {
+        doAutoResume();
+      }
+    });
+  }
+
+  setCanvasSize() {
+    // Use device pixel ratio for sharp rendering on mobile and base layout on actual window size
+    const dpr = window.devicePixelRatio || 1;
+    // Use the full window inner size so the canvas always matches viewport after resizes/orientation changes
+    const viewWidth = Math.max(1, Math.floor(window.innerWidth));
+    const viewHeight = Math.max(1, Math.floor(window.innerHeight));
+
+    // store view size for other systems (camera, editor preview, touch bounds)
+    this.viewWidth = viewWidth;
+    this.viewHeight = viewHeight;
+
+    // Set CSS size (logical pixels)
+    this.canvas.style.width = `${viewWidth}px`;
+    this.canvas.style.height = `${viewHeight}px`;
+
+    // Set actual drawing buffer size using device pixel ratio
+    this.canvas.width = Math.round(viewWidth * dpr);
+    this.canvas.height = Math.round(viewHeight * dpr);
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  // Centralized camera follow helper:
+  // When twoPlayer mode is active and we're in 2D (threeActive is false), center camera between both players;
+  // otherwise center on the main player.
+  updateCameraFollow() {
+    try {
+      if (this.twoPlayer && this.player2 && !this.threeActive) {
+        // Compute precise midpoint between player centers so the camera centers exactly between them.
+        const p1 = this.player;
+        const p2 = this.player2;
+        const p1cx = (p1.x || 0) + (p1.width || 0) / 2;
+        const p1cy = (p1.y || 0) + (p1.height || 0) / 2;
+        const p2cx = (p2.x || 0) + (p2.width || 0) / 2;
+        const p2cy = (p2.y || 0) + (p2.height || 0) / 2;
+
+        const midX = (p1cx + p2cx) / 2;
+        const midY = (p1cy + p2cy) / 2;
+
+        // Build a small synthetic target centered at the midpoint so Camera.update centers precisely there.
+        // Use a tiny width/height to avoid expanding bounds; camera centers on the object's center internally.
+        const synthetic = {
+          x: midX - (Math.max(p1.width || 40, p2.width || 40) / 2),
+          y: midY - (Math.max(p1.height || 60, p2.height || 60) / 2),
+          width: Math.max(p1.width || 40, p2.width || 40),
+          height: Math.max(p1.height || 60, p2.height || 60)
+        };
+        this.camera.update(synthetic);
+      } else {
+        this.camera.update(this.player);
+      }
+    } catch (e) {
+      // fallback to single-player follow on error
+      try { this.camera.update(this.player); } catch (err) {}
+    }
+  }
+
+  // Centralized death handling: when any player dies, respawn both players to player1's checkpoint/spawn.
+  _handlePlayerDeath(playerWhoDied) {
+    try {
+      // increment appropriate death counter once per death event (supports P2)
+      if (playerWhoDied === this.player2) {
+        this.deathsP2 = (this.deathsP2 || 0) + 1;
+      } else {
+        this.deaths = (this.deaths || 0) + 1;
+      }
+
+      // If independentDeath is enabled and we're in two-player mode, only respawn the player who died.
+      if (this.independentDeath && this.twoPlayer && playerWhoDied) {
+        // Determine respawn coords using active checkpoint if available
+        let spawnX, spawnY;
+        const cp = this.activeCheckpoint;
+        if (cp && cp.unlocked) {
+          spawnX = Math.round(cp.x + (cp.width - (playerWhoDied.width || 40)) / 2);
+          spawnY = Math.round(cp.y - (playerWhoDied.height || 60) - 1);
+        } else {
+          const s = (typeof spawnPoint !== 'undefined') ? spawnPoint : this.getSpawnForMap();
+          spawnX = s.x;
+          spawnY = s.y;
+        }
+
+        try {
+          playerWhoDied.respawn(spawnX, spawnY);
+          playerWhoDied.velocityX = 0;
+          playerWhoDied.velocityY = 0;
+        } catch (e) {
+          console.warn('respawn single player failed', e);
+        }
+
+        try { this.playSound('hurt'); } catch (e) {}
+        return;
+      }
+
+      // Otherwise (default) we should first capture death position and drop coins, then respawn both players to player1's checkpoint/spawn.
+      // Capture the dying player's world position immediately so dropped coins spawn at the true death location (avoid 1-frame spawn-to-spawn bug).
+      const _deathPos = {
+        x: (playerWhoDied && typeof playerWhoDied.x === 'number') ? playerWhoDied.x : (this.player && this.player.x) || 0,
+        y: (playerWhoDied && typeof playerWhoDied.y === 'number') ? playerWhoDied.y : (this.player && this.player.y) || 0,
+        width: (playerWhoDied && playerWhoDied.width) ? playerWhoDied.width : (this.player && this.player.width) || 32,
+        height: (playerWhoDied && playerWhoDied.height) ? playerWhoDied.height : (this.player && this.player.height) || 32
+      };
+
+      // Drop the coins the dying player had as temporary physics coins and then reset their counters to 0
+      try {
+        // choose which collected-size list to use
+        const sizesList = (playerWhoDied === this.player2) ? this._collectedCoinSizesP2 : this._collectedCoinSizesP1;
+        const count = Array.isArray(sizesList) ? sizesList.length : 0;
+        const now = Date.now();
+
+        // Spawn coins with stronger scatter (like Sonic rings): random direction full circle, higher speed and upward arc bias.
+        for (let k = 0; k < count; k++) {
+          const sz = sizesList[k] || { width: 32, height: 32 };
+          const startX = Math.round((_deathPos.x || 0) + ((_deathPos.width || 32) / 2) - (sz.width || 32) / 2);
+          const startY = Math.round((_deathPos.y || 0) + ((_deathPos.height || 32) / 2) - (sz.height || 32) / 2);
+
+          // full-circle scatter but with reduced force so coins don't fly away too far
+          const angle = Math.random() * Math.PI * 2; // anywhere around the player
+          // lower base speed and variance so coins are gentler when ejected
+          const baseSpeed = 1.6; // reduced base speed
+          const speedVar = Math.random() * 1.2; // smaller variance
+          const speed = baseSpeed + speedVar; // ~1.6..2.8
+          // apply a mild upward bias so coins arc naturally but don't rocket upwards
+          const upwardBias = 0.75 + Math.random() * 0.5;
+          const vx = Math.cos(angle) * speed;
+          const vy = Math.sin(angle) * speed * -1 * upwardBias;
+
+          this.droppedCoins.push({
+            x: startX,
+            y: startY,
+            vx: vx,
+            vy: vy,
+            width: Math.max(8, Math.round(sz.width || 32)),
+            height: Math.max(8, Math.round(sz.height || 32)),
+            bornAt: now,
+            lifeMs: 5000,
+            blinkFrom: now + 3000, // last 2 seconds blink
+            bounced: false,
+            // ignore collection by the dying player until it is no longer overlapping them
+            _ignoreBy: playerWhoDied
+          });
+        }
+
+        // clear that player's collected sizes and reset their coin counter
+        if (playerWhoDied === this.player2) {
+          this._collectedCoinSizesP2 = [];
+          this.coinsCollectedP2 = 0;
+        } else {
+          this._collectedCoinSizesP1 = [];
+          this.coinsCollected = 0;
+        }
+      } catch (e) {
+        console.warn('Failed to spawn dropped coins on death', e);
+      }
+
+      // Now determine respawn coordinates using the active checkpoint (player1's checkpoint) if available
+      let spawnX, spawnY;
+      const cp = this.activeCheckpoint;
+      if (cp && cp.unlocked) {
+        spawnX = Math.round(cp.x + (cp.width - (this.player.width || 40)) / 2);
+        spawnY = Math.round(cp.y - (this.player.height || 60) - 1);
+      } else {
+        // fallback to map spawn
+        const s = (typeof spawnPoint !== 'undefined') ? spawnPoint : this.getSpawnForMap();
+        spawnX = s.x;
+        spawnY = s.y;
+      }
+
+      // Respawn player 1 at spawnX/spawnY
+      try { this.player.respawn(spawnX, spawnY); } catch (e) { console.warn('respawn p1 failed', e); }
+
+      // Respawn player 2 directly above player1 so both land on the same checkpoint area,
+      // but only if two-player mode is active (if P2 is off, don't respawn it).
+      try {
+        if (this.twoPlayer && this.player2) {
+          this.player2.respawn(spawnX, spawnY - (this.player2.height || 60) - 20);
+        }
+      } catch (e) { console.warn('respawn p2 failed', e); }
+
+      // Play hurt sound for feedback (non-blocking)
+      try { this.playSound('hurt'); } catch (e) {}
+
+      // Reset some velocities to avoid immediate re-fall
+      try { this.player.velocityX = 0; this.player.velocityY = 0; } catch(e){}
+      try { if (this.player2) { this.player2.velocityX = 0; this.player2.velocityY = 0; } } catch(e){}
+
+    } catch (e) {
+      console.warn('Death handler failed', e);
+    }
+  }
+
+  // Determine the appropriate spawn point for the currently loaded map.
+  // - If the map has a checkpoint, prefer that (centered on the checkpoint top).
+  // - If the current map is the procedural maze, use the exported spawnPoint (maze generator sets this).
+  // - Otherwise fall back to a sane default {x:100,y:300}.
+  getSpawnForMap() {
+    try {
+      // Prefer an unlocked (or first) checkpoint in the loaded platforms
+      const firstCp = this.platforms && this.platforms.find(p => p && p.type === 'checkpoint');
+      if (firstCp) {
+        return {
+          x: Math.round(firstCp.x + (firstCp.width - this.player.width) / 2),
+          y: Math.round(firstCp.y - this.player.height - 1)
+        };
+      }
+      // If current map is the procedural maze, use the global spawnPoint set by the generator
+      if (this._currentMapIsMaze && typeof spawnPoint !== 'undefined' && spawnPoint && typeof spawnPoint.x === 'number') {
+        return { x: spawnPoint.x, y: spawnPoint.y };
+      }
+      // Default spawn
+      return { x: 100, y: 300 };
+    } catch (e) {
+      return { x: 100, y: 300 };
+    }
+  }
+
+  setupControls() {
+    this.keys = {};
+    window.addEventListener('keydown', (e) => {
+      // If chat input has focus, block game key handling
+      if (this._chatFocused) return;
+      if (!this.keys[e.code]) this.keys[e.code] = true;
+      // Toggle editor with B
+      if (e.code === 'KeyB' && !e.repeat) {
+        this.toggleEditor();
+      }
+
+      // Quick teleport via door: if down arrow pressed while overlapping a door prompt, teleport to paired door
+      if (e.code === 'ArrowDown' && this._doorPrompt) {
+        try {
+          const source = this._doorPrompt;
+          const id = source.id;
+          if (id) {
+            // find the other door with same ID
+            const other = this.platforms.find(p => p && p.type === 'door' && p.id === id && p !== source);
+            if (other) {
+              // teleport player to the other door: place player centered on top of it (or just at its center)
+              try {
+                this.player.x = other.x + Math.max(0, (other.width - this.player.width) / 2);
+                this.player.y = other.y - this.player.height - 2;
+                // reset velocities for clean arrival
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+                // small effect & sound if available
+                try { this.playSound('place'); } catch(e){}
+              } catch (er) {}
+            }
+          }
+        } catch (err) {}
+      }
+
+      // Editor keyboard controls
+      if (this.editor.enabled) {
+        if (e.code === 'BracketLeft') this.editor.spawnSize = Math.max(8, this.editor.spawnSize - 4);
+        if (e.code === 'BracketRight') this.editor.spawnSize = Math.min(500, this.editor.spawnSize + 4);
+        if (e.code === 'KeyC') {
+          // cycle only through builtin (non-custom) colors so "Custom color..." and runtime-added custom entries are skipped
+          try {
+            const builtinCount = (this.editor && typeof this.editor._builtinColorCount === 'number') ? this.editor._builtinColorCount : (this.editor.colors ? this.editor.colors.length : 0);
+            if (!builtinCount || builtinCount <= 0) {
+              // fallback to safe full-cycle if builtin count not set
+              this.editor.colorIndex = (this.editor.colorIndex + 1) % (this.editor.colors ? this.editor.colors.length : 1);
+            } else {
+              // if current index is in custom range, wrap to 0; otherwise advance within builtin range
+              if ((this.editor.colorIndex || 0) >= builtinCount) {
+                this.editor.colorIndex = 0;
+              } else {
+                this.editor.colorIndex = (this.editor.colorIndex + 1) % builtinCount;
+              }
+            }
+            this.playSound('changeColor');
+            // keep UI select in sync if present
+            try { if (this._colorSelect) this._colorSelect.value = this.editor.colors[this.editor.colorIndex]; } catch (e) {}
+          } catch (err) {
+            // fallback to original behavior on error
+            try { this.editor.colorIndex = (this.editor.colorIndex + 1) % this.editor.colors.length; this.playSound('changeColor'); } catch (e) {}
+          }
+        }
+        if (e.code === 'KeyV' && !e.repeat) {
+          // Toggle between place/delete modes
+          this.editor.mode = this.editor.mode === 'place' ? 'delete' : 'place';
+          this._updateEditorModeUI();
+        }
+      }
+    });
+    // Respect chat focus on keyup as well
+    window.addEventListener('keyup', (e) => {
+      if (this._chatFocused) return;
+      this.keys[e.code] = false;
+    });
+    window.addEventListener('keyup', (e) => this.keys[e.code] = false);
+
+    // Wheel handling: zoom disabled — consume wheel when over the canvas to avoid accidental page zooming
+    window.addEventListener('wheel', (e) => {
+      // Only act when the cursor is over the game canvas
+      const rect = this.canvas.getBoundingClientRect();
+      const cx = e.clientX, cy = e.clientY;
+      if (cx < rect.left || cx > rect.right || cy < rect.top || cy > rect.bottom) return;
+      // Prevent default scrolling/zoom behavior but do not change camera scale
+      e.preventDefault();
+    }, { passive: false });
+
+    // Prevent default touch behaviors except when interacting with UI panels that need scrolling (skins, editor, skin list).
+    const _touchShouldAllow = (target) => {
+      try {
+        if (!target || !target.closest) return false;
+        // allow touches inside the skins modal, the skin list, or the in-game editor UI
+        if (target.closest('#skinModal')) return true;
+        if (target.closest('#skinList')) return true;
+        if (target.closest('.editor-container')) return true;
+        // allow touches on any element that explicitly opts in
+        if (target.closest('[data-allow-touch]')) return true;
+      } catch (e) {}
+      return false;
+    };
+
+    document.addEventListener('touchstart', (e) => {
+      const target = e.target;
+      if (_touchShouldAllow(target)) return;
+      e.preventDefault();
+    }, { passive: false });
+
+    document.addEventListener('touchmove', (e) => {
+      const target = e.target;
+      if (_touchShouldAllow(target)) return;
+      e.preventDefault();
+    }, { passive: false });
+  }
+
+  _makeEditorUI() {
+    // Create a small overlay for Save, Mode toggle and info
+    this.editor.container = document.createElement('div');
+    // mark editor container so touch handlers allow interaction/scrolling inside it
+    this.editor.container.className = 'editor-container';
+    Object.assign(this.editor.container.style, {
+      position: 'fixed',
+      top: '8px',
+      right: '8px',
+      zIndex: 9999,
+      display: 'none',
+      gap: '6px',
+      alignItems: 'center',
+      fontFamily: 'Arial, sans-serif',
+      color: '#fff',
+    });
+
+    const saveBtn = document.createElement('button');
+    saveBtn.textContent = 'Save';
+    Object.assign(saveBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      background: '#222',
+      color: '#fff',
+      minWidth: '64px'
+    });
+    saveBtn.addEventListener('click', () => this._exportMap());
+
+    // Close editor button (next to Save)
+    const closeEditorBtn = document.createElement('button');
+    closeEditorBtn.textContent = 'Close';
+    Object.assign(closeEditorBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      background: '#444',
+      color: '#fff',
+      marginLeft: '6px',
+      minWidth: '64px'
+    });
+    closeEditorBtn.addEventListener('click', () => {
+      // Hide editor UI and disable editor mode
+      if (this.editor.enabled) this.toggleEditor();
+    });
+
+    const modeBtn = document.createElement('button');
+    modeBtn.textContent = 'Mode: Place';
+    Object.assign(modeBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#222',
+      color: '#fff',
+      minWidth: '96px'
+    });
+    modeBtn.addEventListener('click', () => {
+      this.editor.mode = this.editor.mode === 'place' ? 'delete' : 'place';
+      this._updateEditorModeUI();
+    });
+    this._modeBtn = modeBtn;
+
+    // Type selector replaced with a list (select) for easier direct selection
+    const typeSelect = document.createElement('select');
+    const typeLabels = {
+      1: 'Platform',
+      2: 'Square',
+      3: 'Bigger',
+      4: 'Wall',
+      5: 'Long Thin',
+      6: 'Tall Thin',
+      7: 'Small Square (24)'
+    };
+    for (const key of Object.keys(typeLabels)) {
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = typeLabels[key];
+      typeSelect.appendChild(opt);
+    }
+    typeSelect.value = String(this.editor.spawnType);
+    Object.assign(typeSelect.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#222',
+      color: '#fff',
+      minWidth: '140px'
+    });
+    typeSelect.addEventListener('change', () => {
+      const v = parseInt(typeSelect.value, 10) || 1;
+      this.editor.spawnType = v;
+    });
+    this._typeBtn = typeSelect;
+
+    // Color selector as a list (select) for quick selection; keep 'C' keyboard cycling available as alternative
+    const colorSelect = document.createElement('select');
+    colorSelect.style.cssText = 'padding:8px 10px;border-radius:6px;border:none;margin-left:6px;background:#222;color:#fff;min-width:140px;font-size:14px';
+
+    // Helper to append an option visually showing the color string
+    const appendColorOption = (col, label) => {
+      const o = document.createElement('option');
+      o.value = col;
+      o.textContent = label || col;
+      try { o.style.background = col; } catch (e) {}
+      colorSelect.appendChild(o);
+    };
+
+    // populate from editor.colors so it always matches available palettes
+    (this.editor.colors || ['#43a047','#4a90e2','#FFD600','#e53935','#9c27b0','#ff9800']).forEach((col, idx) => {
+      appendColorOption(col, `${col} ${idx+1}`);
+    });
+
+    // record how many builtin (non-custom) colors exist so keyboard cycling can skip runtime custom colors
+    try { this.editor._builtinColorCount = (this.editor.colors || []).length; } catch (e) { this.editor._builtinColorCount = (this.editor.colors || []).length; }
+
+    // Add a "Custom color..." sentinel option at the end for on-demand custom color entry
+    const customKey = '__custom__';
+    const customOpt = document.createElement('option');
+    customOpt.value = customKey;
+    customOpt.textContent = 'Custom color...';
+    customOpt.style.background = '#222';
+    colorSelect.appendChild(customOpt);
+
+    colorSelect.value = this.editor.colors[this.editor.colorIndex] || this.editor.colors[0];
+
+    colorSelect.addEventListener('change', () => {
+      const val = colorSelect.value;
+      // If the user picked the custom sentinel, prompt them for a color then add it to the runtime list (not persisted)
+      if (val === customKey) {
+        // ask user for hex or rgb input
+        let input = (prompt('Enter a color (hex like #ff00aa or rgb(255,0,170))') || '').trim();
+        if (!input) {
+          // revert selection to previously chosen color
+          colorSelect.value = this.editor.colors[this.editor.colorIndex] || this.editor.colors[0];
+          return;
+        }
+        // Normalize common shorthand hex like #abc -> #aabbcc
+        const tryNormalizeHex = (s) => {
+          try {
+            if (!s.startsWith('#')) return s;
+            const h = s.slice(1);
+            if (h.length === 3) return '#' + h.split('').map(c => c+c).join('');
+            if (h.length === 6) return '#' + h.toLowerCase();
+            return s;
+          } catch (e) { return s; }
+        };
+        input = tryNormalizeHex(input);
+
+        // Basic validation: allow #RGB, #RRGGBB or rgb(r,g,b) with 0-255 ints
+        const isHex = /^#([0-9a-fA-F]{6})$/.test(tryNormalizeHex(input));
+        const isRgb = /^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/.test(input);
+        if (!isHex && !isRgb) {
+          alert('Invalid color format. Use #RRGGBB or rgb(r,g,b).');
+          colorSelect.value = this.editor.colors[this.editor.colorIndex] || this.editor.colors[0];
+          return;
+        }
+
+        // If rgb, normalize to rgb(...) string (we keep as provided string so canvas accepts it)
+        const colorToAdd = input;
+
+        // Add to editor.colors runtime list (this list is not saved to localStorage per requirement)
+        this.editor.colors = this.editor.colors || [];
+        this.editor.colors.push(colorToAdd);
+        const newIndex = this.editor.colors.length - 1;
+
+        // Insert a new option before the Custom sentinel so it remains at the end
+        // Find the sentinel index
+        const sentinelIdx = Array.from(colorSelect.options).findIndex(o => o.value === customKey);
+        const beforeNode = colorSelect.options[sentinelIdx] || null;
+        const newOption = document.createElement('option');
+        newOption.value = colorToAdd;
+        newOption.textContent = `${colorToAdd} (custom)`;
+        try { newOption.style.background = colorToAdd; } catch (e) {}
+        if (beforeNode) colorSelect.insertBefore(newOption, beforeNode);
+        else colorSelect.appendChild(newOption);
+
+        // select the new color and update editor state
+        colorSelect.value = colorToAdd;
+        this.editor.colorIndex = newIndex;
+
+        // NOTE: custom colors are intentionally NOT persisted to the game's save; they exist only for this session.
+        return;
+      }
+
+      // Otherwise a normal color selection: update index to match editor.colors list if present
+      const idx = (this.editor.colors || []).indexOf(val);
+      if (idx >= 0) {
+        this.editor.colorIndex = idx;
+      } else {
+        // if the selected value isn't in editor.colors (e.g., legacy/sync), try to use the value directly
+        // but do not push it into persistent save as per requirement
+        try {
+          this.editor.colors = this.editor.colors || [];
+          this.editor.colors.push(val);
+          this.editor.colorIndex = this.editor.colors.length - 1;
+        } catch (e) {
+          // fallback: keep previous index
+        }
+      }
+    });
+    this._colorSelect = colorSelect;
+
+    // Kill toggle (unchanged semantics)
+    const killBtn = document.createElement('button');
+    killBtn.textContent = 'Kill: Off';
+    Object.assign(killBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#b71c1c',
+      color: '#fff',
+      minWidth: '80px'
+    });
+    killBtn.addEventListener('click', () => {
+      this.editor.spawnKill = !this.editor.spawnKill;
+      // if turning on kill, ensure checkpoint toggle is off
+      if (this.editor.spawnKill) this.editor.spawnCheckpoint = false;
+      killBtn.textContent = this.editor.spawnKill ? 'Kill: On' : 'Kill: Off';
+      killBtn.style.background = this.editor.spawnKill ? '#ff5252' : '#b71c1c';
+      // update checkpoint button UI if present
+      if (this._cpBtn) this._cpBtn.textContent = this.editor.spawnCheckpoint ? 'Checkpoint: On' : 'Checkpoint: Off';
+    });
+    this._killBtn = killBtn;
+
+    // Checkpoint toggle (unchanged)
+    const cpBtn = document.createElement('button');
+    cpBtn.textContent = 'Checkpoint: Off';
+    Object.assign(cpBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#2e7d32',
+      color: '#fff',
+      minWidth: '110px'
+    });
+    cpBtn.addEventListener('click', () => {
+      this.editor.spawnCheckpoint = !this.editor.spawnCheckpoint;
+      // if turning on checkpoint, ensure kill toggle is off
+      if (this.editor.spawnCheckpoint) this.editor.spawnKill = false;
+      cpBtn.textContent = this.editor.spawnCheckpoint ? 'Checkpoint: On' : 'Checkpoint: Off';
+      cpBtn.style.background = this.editor.spawnCheckpoint ? '#4caf50' : '#2e7d32';
+      // update kill button UI if present
+      if (this._killBtn) this._killBtn.textContent = this.editor.spawnKill ? 'Kill: On' : 'Kill: Off';
+    });
+    this._cpBtn = cpBtn;
+
+    // Win toggle
+    const winBtn = document.createElement('button');
+    winBtn.textContent = 'Win: Off';
+    Object.assign(winBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#1565c0',
+      color: '#fff',
+      minWidth: '80px'
+    });
+    winBtn.addEventListener('click', () => {
+      this.editor.spawnWin = !this.editor.spawnWin;
+      // ensure mutually exclusive with kill/checkpoint/coin
+      if (this.editor.spawnWin) {
+        this.editor.spawnKill = false;
+        this.editor.spawnCheckpoint = false;
+        this.editor.spawnCoin = false;
+      }
+      winBtn.textContent = this.editor.spawnWin ? 'Win: On' : 'Win: Off';
+      winBtn.style.background = this.editor.spawnWin ? '#2196f3' : '#1565c0';
+      // update other UI states
+      if (this._killBtn) this._killBtn.textContent = this.editor.spawnKill ? 'Kill: On' : 'Kill: Off';
+      if (this._cpBtn) this._cpBtn.textContent = this.editor.spawnCheckpoint ? 'Checkpoint: On' : 'Checkpoint: Off';
+      if (this._coinBtn) this._coinBtn.textContent = this.editor.spawnCoin ? 'Coin: On' : 'Coin: Off';
+    });
+    this._winBtn = winBtn;
+
+    // Coin toggle for editor placement
+    const coinBtn = document.createElement('button');
+    coinBtn.textContent = 'Coin: Off';
+    Object.assign(coinBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#ffb300',
+      color: '#111',
+      minWidth: '90px'
+    });
+    coinBtn.addEventListener('click', () => {
+      this.editor.spawnCoin = !this.editor.spawnCoin;
+      if (this.editor.spawnCoin) {
+        // mutually exclusive toggles
+        this.editor.spawnKill = false;
+        this.editor.spawnCheckpoint = false;
+        this.editor.spawnWin = false;
+        this.editor.spawnShooter = false;
+      }
+      coinBtn.textContent = this.editor.spawnCoin ? 'Coin: On' : 'Coin: Off';
+      coinBtn.style.background = this.editor.spawnCoin ? '#ffd54f' : '#ffb300';
+      // update other UI states
+      if (this._killBtn) this._killBtn.textContent = this.editor.spawnKill ? 'Kill: On' : 'Kill: Off';
+      if (this._cpBtn) this._cpBtn.textContent = this.editor.spawnCheckpoint ? 'Checkpoint: On' : 'Checkpoint: Off';
+      if (this._winBtn) this._winBtn.textContent = this.editor.spawnWin ? 'Win: On' : 'Win: Off';
+      if (this._shooterBtn) this._shooterBtn.textContent = this.editor.spawnShooter ? 'Shooter: On' : 'Shooter: Off';
+    });
+    this._coinBtn = coinBtn;
+
+    // Coin Shooter toggle for editor placement
+    const shooterBtn = document.createElement('button');
+    shooterBtn.textContent = 'Shooter: Off';
+    Object.assign(shooterBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#ffcc80',
+      color: '#111',
+      minWidth: '90px'
+    });
+    shooterBtn.addEventListener('click', () => {
+      this.editor.spawnShooter = !this.editor.spawnShooter;
+      if (this.editor.spawnShooter) {
+        // mutually exclusive with other special spawns
+        this.editor.spawnCoin = false;
+        this.editor.spawnKill = false;
+        this.editor.spawnCheckpoint = false;
+        this.editor.spawnWin = false;
+      }
+      shooterBtn.textContent = this.editor.spawnShooter ? 'Shooter: On' : 'Shooter: Off';
+      shooterBtn.style.background = this.editor.spawnShooter ? '#ffb74d' : '#ffcc80';
+      // update other UI states
+      if (this._coinBtn) this._coinBtn.textContent = this.editor.spawnCoin ? 'Coin: On' : 'Coin: Off';
+    });
+    this._shooterBtn = shooterBtn;
+
+    // Door toggle for editor placement
+    const doorBtn = document.createElement('button');
+    doorBtn.textContent = 'Door: Off';
+    Object.assign(doorBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#90caf9',
+      color: '#111',
+      minWidth: '90px'
+    });
+    doorBtn.addEventListener('click', () => {
+      this.editor.spawnDoor = !this.editor.spawnDoor;
+      if (this.editor.spawnDoor) {
+        // mutually exclusive
+        this.editor.spawnCoin = false;
+        this.editor.spawnKill = false;
+        this.editor.spawnCheckpoint = false;
+        this.editor.spawnWin = false;
+        this.editor.spawnShooter = false;
+      }
+      doorBtn.textContent = this.editor.spawnDoor ? 'Door: On' : 'Door: Off';
+      doorBtn.style.background = this.editor.spawnDoor ? '#64b5f6' : '#90caf9';
+    });
+    this._doorBtn = doorBtn;
+
+    // Door ID setter: prompts the user for the next placed door's ID (runtime only) — editor will add it to placed Door.
+    const doorIdBtn = document.createElement('button');
+    doorIdBtn.textContent = 'Set Door ID';
+    Object.assign(doorIdBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#1976d2',
+      color: '#fff',
+      minWidth: '100px'
+    });
+    doorIdBtn.addEventListener('click', () => {
+      const id = prompt('Enter door ID (text). Only two doors of same ID allowed.');
+      if (!id) return;
+      this.editor.nextDoorId = id.trim();
+      doorIdBtn.textContent = `Door ID: ${this.editor.nextDoorId}`;
+      // do not persist this id across sessions as per requirement (but doors placed will save in map)
+    });
+    this._doorIdBtn = doorIdBtn;
+
+    // New Clear Others button - removes all platforms except the one player is standing on
+    const clearBtn = document.createElement('button');
+    clearBtn.textContent = 'Clear Others';
+    Object.assign(clearBtn.style, {
+      padding: '8px 12px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      border: 'none',
+      marginLeft: '6px',
+      background: '#b71c1c',
+      color: '#fff',
+      minWidth: '100px'
+    });
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Remove all platforms except the one you are standing on?')) return;
+
+      // Find the platform the player is standing on (feet at or very near platform top and overlapping horizontally)
+      const playerBottom = this.player.y + this.player.height;
+      const standing = this.platforms.find(p => {
+        const verticalMatch = playerBottom >= p.y - 2 && playerBottom <= p.y + 2;
+        const horizOverlap = (this.player.x < p.x + p.width) && (this.player.x + this.player.width > p.x);
+        return verticalMatch && horizOverlap;
+      });
+
+      if (!standing) {
+        alert('No platform detected under the player. Nothing was cleared.');
+        return;
+      }
+
+      // Keep only the standing platform
+      this.platforms = [standing];
+      // Update export UI if visible
+      this._exportMap();
+    });
+
+    const info = document.createElement('div');
+    info.textContent = 'Click to place • V toggle mode • [/] size • C color';
+    Object.assign(info.style, { fontSize: '12px', opacity: '0.9', marginTop: '6px', textAlign: 'right' });
+
+    const topRow = document.createElement('div');
+    Object.assign(topRow.style, { display: 'flex', gap: '6px', alignItems: 'center' });
+    topRow.appendChild(saveBtn);
+    topRow.appendChild(closeEditorBtn);
+    topRow.appendChild(modeBtn);
+    topRow.appendChild(this._typeBtn);
+    // color select list for quick palette selection
+    topRow.appendChild(colorSelect);
+    // wire colorSelect initial value into editor state (keeps in sync if changed programmatically)
+    colorSelect.value = this.editor.colors[this.editor.colorIndex] || this.editor.colors[0];
+    topRow.appendChild(this._killBtn);
+    topRow.appendChild(this._cpBtn);
+    topRow.appendChild(this._winBtn);
+    // coin button appears next to win
+    if (this._coinBtn) topRow.appendChild(this._coinBtn);
+    // Ensure the shooter toggle is also shown in the editor UI
+    if (this._shooterBtn) topRow.appendChild(this._shooterBtn);
+    // Door controls
+    if (this._doorBtn) topRow.appendChild(this._doorBtn);
+    if (this._doorIdBtn) topRow.appendChild(this._doorIdBtn);
+    topRow.appendChild(clearBtn);
+
+    this.editor.container.appendChild(topRow);
+    this.editor.container.appendChild(info);
+    document.body.appendChild(this.editor.container);
+
+    // Create a hidden textarea for export output
+    this._exportArea = document.createElement('textarea');
+    Object.assign(this._exportArea.style, {
+      position: 'fixed',
+      left: '8px',
+      right: '8px',
+      bottom: '8px',
+      height: '120px',
+      zIndex: 10000,
+      display: 'none',
+      fontSize: '12px'
+    });
+    document.body.appendChild(this._exportArea);
+
+    // Copy to clipboard button for convenience
+    this._copyBtn = document.createElement('button');
+    this._copyBtn.textContent = 'Copy';
+    Object.assign(this._copyBtn.style, {
+      position: 'fixed',
+      right: '8px',
+      bottom: '136px',
+      zIndex: 10000,
+      display: 'none'
+    });
+    this._copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(this._exportArea.value);
+        this._copyBtn.textContent = 'Copied';
+        setTimeout(()=> this._copyBtn.textContent = 'Copy', 1200);
+      } catch(e) {
+        console.warn('Clipboard failed', e);
+      }
+    });
+    document.body.appendChild(this._copyBtn);
+
+    // Close export textarea button
+    this._closeBtn = document.createElement('button');
+    this._closeBtn.textContent = 'Close';
+    Object.assign(this._closeBtn.style, {
+      position: 'fixed',
+      right: '88px',
+      bottom: '136px',
+      zIndex: 10000,
+      display: 'none',
+      padding: '6px 10px',
+      fontSize: '14px',
+      borderRadius: '6px',
+      background: '#444',
+      color: '#fff',
+      border: 'none'
+    });
+    this._closeBtn.addEventListener('click', () => {
+      this._exportArea.style.display = 'none';
+      this._copyBtn.style.display = 'none';
+      this._closeBtn.style.display = 'none';
+    });
+    document.body.appendChild(this._closeBtn);
+
+    // create win overlay (hidden by default)
+    this._winOverlay = document.createElement('div');
+    Object.assign(this._winOverlay.style, {
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      background: '#111',
+      color: '#fff',
+      padding: '20px',
+      borderRadius: '12px',
+      textAlign: 'center',
+      zIndex: 10001,
+      display: 'none',
+      minWidth: '280px',
+      fontFamily: 'Arial, sans-serif'
+    });
+    this._winOverlay.innerHTML = `
+      <div style="font-size:20px;margin-bottom:8px">Map cleared!</div>
+      <div id="win-stats" style="font-size:14px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="win-restart" style="padding:8px 12px;border-radius:6px;border:none;background:#2196f3;color:#fff">Restart</button>
+        <button id="win-replay" style="padding:8px 12px;border-radius:6px;border:none;background:#4caf50;color:#fff">Replay</button>
+        <button id="win-reverse" style="padding:8px 12px;border-radius:6px;border:none;background:#9c27b0;color:#fff">Replay (Reverse)</button>
+        <button id="win-speed" style="padding:8px 12px;border-radius:6px;border:none;background:#607d8b;color:#fff">Speed: 1x</button>
+        <button id="win-download" style="padding:8px 12px;border-radius:6px;border:none;background:#795548;color:#fff">Download Replay</button>
+        <button id="win-copy" style="padding:8px 12px;border-radius:6px;border:none;background:#607d8b;color:#fff">Upload Replay</button>
+        <button id="win-send" style="padding:8px 12px;border-radius:6px;border:none;background:#00897b;color:#fff">Send replay to comments</button>
+        <button id="win-title" style="padding:8px 12px;border-radius:6px;border:none;background:#424242;color:#fff">Title Screen</button>
+      </div>
+    `;
+    document.body.appendChild(this._winOverlay);
+    this._winRestartBtn = this._winOverlay.querySelector('#win-restart');
+    this._winReplayBtn = this._winOverlay.querySelector('#win-replay');
+    this._winReverseBtn = this._winOverlay.querySelector('#win-reverse');
+    this._winSpeedBtn = this._winOverlay.querySelector('#win-speed');
+    this._winDownloadBtn = this._winOverlay.querySelector('#win-download');
+    this._winCopyBtn = this._winOverlay.querySelector('#win-copy');
+    this._winSendBtn = this._winOverlay.querySelector('#win-send');
+    this._winTitleBtn = this._winOverlay.querySelector('#win-title');
+    this._winStats = this._winOverlay.querySelector('#win-stats');
+
+    // Title button: return to the title/start menu and stop background music
+    try {
+      if (this._winTitleBtn) {
+        this._winTitleBtn.addEventListener('click', () => {
+          try {
+            // hide win overlay
+            if (this._winOverlay) this._winOverlay.style.display = 'none';
+            // stop/rewind replay state and frozen flags
+            try {
+              this.replay.playing = false;
+              this.replay.frozen = false;
+              this.replay.index = 0;
+            } catch(e){}
+
+            // pause music and reset time so it restarts fresh next run
+            try { if (this._pauseMusic) this._pauseMusic(); } catch(e){}
+            try { if (this.music) { this.music.currentTime = 0; } } catch(e){}
+
+            // restore default music source when returning to title
+            try {
+              if (this.music) {
+                this.music.pause();
+                this.music.src = (this._defaultMusicSrc || '/VVVVVV_ Passion for Exploring (Indie Game Music HD).mp3');
+                try { this.music.load(); } catch(e){}
+              }
+            } catch(e) {}
+
+            // show the title/start menu
+            try {
+              const startMenuEl = document.getElementById('startMenu');
+              if (startMenuEl) startMenuEl.style.display = 'block';
+            } catch (e) {}
+
+            // ensure game is logically paused
+            this.gamePaused = true;
+            this.isPausedMenuVisible = false;
+          } catch (err) {
+            console.warn('win-title handler failed', err);
+          }
+        });
+      }
+    } catch (e) {}
+
+    // Lost-in-sky overlay: shown when player flies extremely high
+    this._lostOverlay = document.createElement('div');
+    Object.assign(this._lostOverlay.style, {
+      position: 'fixed',
+      left: '50%',
+      top: '20%',
+      transform: 'translate(-50%,-50%)',
+      background: '#fff',
+      color: '#000',
+      padding: '14px 18px',
+      borderRadius: '8px',
+      textAlign: 'center',
+      zIndex: 10004,
+      display: 'none',
+      fontFamily: 'Arial, sans-serif',
+      fontSize: '18px',
+      boxShadow: '0 6px 20px rgba(0,0,0,0.35)'
+    });
+    this._lostOverlay.textContent = 'And he was never seen again...';
+    document.body.appendChild(this._lostOverlay);
+    // internal state for lost-in-sky handling
+    this._lostInSky = { shown: false, since: 0, timeoutId: null };
+
+    // cycle playback speeds when clicking the speed button
+    if (this._winSpeedBtn) {
+      this._winSpeedBtn.addEventListener('click', () => {
+        const options = [1, 2, 4, 8, 12, 16];
+        const cur = this.replay.playbackRate || 1;
+        let idx = options.indexOf(cur);
+        // if current rate isn't in list, start from 0 so next is first option
+        if (idx === -1) idx = 0;
+        idx = (idx + 1) % options.length;
+        this.replay.playbackRate = options[idx];
+        this._winSpeedBtn.textContent = `Speed: ${this.replay.playbackRate}x`;
+      });
+    }
+
+    // Pause overlay
+    this._pauseOverlay = document.createElement('div');
+    Object.assign(this._pauseOverlay.style, {
+      position: 'fixed',
+      left: '50%',
+      top: '50%',
+      transform: 'translate(-50%,-50%)',
+      background: '#111',
+      color: '#fff',
+      padding: '18px',
+      borderRadius: '12px',
+      textAlign: 'center',
+      zIndex: 10003,
+      display: 'none',
+      minWidth: '260px',
+      fontFamily: 'Arial, sans-serif'
+    });
+    this._pauseOverlay.innerHTML = `
+      <div style="font-size:20px;margin-bottom:8px">Paused</div>
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button id="pause-resume" style="padding:8px 12px;border-radius:6px;border:none;background:#4caf50;color:#fff">Resume</button>
+        <button id="pause-restart" style="padding:8px 12px;border-radius:6px;border:none;background:#2196f3;color:#fff">Restart</button>
+        <button id="pause-editor" style="padding:8px 12px;border-radius:6px;border:none;background:#ff9800;color:#fff">Enable Map Editor</button>
+        <button id="pause-restart-all" style="padding:8px 12px;border-radius:6px;border:none;background:#b71c1c;color:#fff">Restart Game</button>
+        <button id="pause-title" style="padding:8px 12px;border-radius:6px;border:none;background:#424242;color:#fff">Title Screen</button>
+      </div>
+    `;
+    document.body.appendChild(this._pauseOverlay);
+    this._pauseResumeBtn = this._pauseOverlay.querySelector('#pause-resume');
+    this._pauseRestartBtn = this._pauseOverlay.querySelector('#pause-restart');
+    this._pauseEditorBtn = this._pauseOverlay.querySelector('#pause-editor');
+    this._pauseRestartAllBtn = this._pauseOverlay.querySelector('#pause-restart-all');
+
+    // Pause overlay button events
+    this._pauseResumeBtn.addEventListener('click', () => {
+      // Resume from pause menu
+      this.hidePauseMenu();
+    });
+
+    // Preserve original pause/show behavior but DO NOT control music here so background music is unaffected.
+    // We replace wrappers with simple pass-throughs to avoid any accidental music pause/play calls.
+    const origShowPause = this.showPauseMenu.bind(this);
+    this.showPauseMenu = (isAuto = false) => {
+      origShowPause(isAuto);
+    };
+
+    const origHidePause = this.hidePauseMenu.bind(this);
+    this.hidePauseMenu = () => {
+      origHidePause();
+    };
+
+    this._pauseRestartBtn.addEventListener('click', () => {
+      // Restart current map: reset player, timers, deaths, and clear any transient replay/playback state
+      try {
+        this._hideWinMenu();
+
+        // Clear replay recording/playback state
+        this.replay.frames = [];
+        this.replay.playing = false;
+        this.replay.index = 0;
+        this.replay.startTime = 0;
+        this.replay.frozen = false;
+
+        // Reset checkpoints: lock them and clear active checkpoint
+        try {
+          for (const p of this.platforms) {
+            if (p && p.type === 'checkpoint') {
+              p.unlocked = false;
+              p._playerOver = false;
+              p._lastMsgTime = 0;
+            }
+          }
+          this.activeCheckpoint = null;
+        } catch (e) { /* ignore checkpoint reset errors */ }
+
+        // Restore coins to original map placement
+        try { this.restoreInitialCoins(); } catch(e) {}
+
+        // Ensure per-run coin state is cleared on restart so coins don't persist across runs/maps.
+        try {
+          this.coinsCollected = 0;
+          this.coinsCollectedP2 = 0;
+          this._collectedCoinSizesP1 = [];
+          this._collectedCoinSizesP2 = [];
+          this.droppedCoins = [];
+        } catch (e) {
+          console.warn('Failed to clear coin state during restart', e);
+        }
+
+        // Respawn player at the map spawn and reset velocities (also respawn P2 above P1)
+        const _s = this.getSpawnForMap();
+        this.player.respawn(_s.x, _s.y);
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        try {
+          if (this.player2) {
+            const offset = this._player2VerticalOffset || ((this.player2.height || 60) + 20);
+            this.player2.respawn(_s.x, _s.y - offset);
+            this.player2.velocityX = 0;
+            this.player2.velocityY = 0;
+          }
+        } catch(e) {}
+
+        // Reset camera to player's position
+        this.camera.x = 0;
+        this.camera.y = 0;
+        this.camera.update(this.player);
+
+        // Reset counters and timers
+        this.deaths = 0;
+        this.startTime = Date.now();
+
+        // Ensure editor stays in its current state (do not toggle it here)
+        // Close pause menu and resume gameplay
+        if (this._pauseOverlay) this._pauseOverlay.style.display = 'none';
+        this.isPausedMenuVisible = false;
+        this.gamePaused = false;
+        // Resume background music after restart (best-effort; may require user gesture in some browsers)
+        try { if (this._playMusic) this._playMusic(); } catch (e) {}
+      } catch (err) {
+        console.error('Error during pause-restart:', err);
+      }
+    });
+
+    this._pauseEditorBtn.addEventListener('click', () => {
+      // Enable the in-game map editor from the pause menu and close pause overlay.
+      try {
+        // Ensure editor UI is visible and editor mode enabled
+        if (!this.editor.enabled) {
+          this.editor.enabled = true;
+          this.editor.container.style.display = 'flex';
+          // reset pointer so placement preview appears sensibly
+          this.editor.pointer = null;
+          // clear any gameplay paused state that would block editing interactions
+          this.gamePaused = true;
+        }
+        // Hide pause overlay and mark menu hidden
+        if (this._pauseOverlay) this._pauseOverlay.style.display = 'none';
+        this.isPausedMenuVisible = false;
+      } catch (err) {
+        console.error('Error enabling editor from pause menu:', err);
+      }
+    });
+
+    this._pauseRestartAllBtn.addEventListener('click', () => {
+      // Restart entire game (hard reload). Show a confirmation to avoid accidental loss.
+      if (confirm('Restart the entire game? This will reload the page and lose unsaved edits.')) {
+        // Attempt a soft reset first for fast UX: clear state then reload as a fallback
+        try {
+          // best-effort state clear
+          this.replay.frames = [];
+          this.replay.playing = false;
+          this.replay.index = 0;
+          this.replay.startTime = 0;
+          this.replay.frozen = false;
+          // give the browser a moment before reloading to allow any UI updates
+          setTimeout(() => location.reload(), 80);
+        } catch (err) {
+          console.error('Error attempting soft restart; reloading page.', err);
+          location.reload();
+        }
+      }
+    });
+
+    // Title Screen button in pause menu: return to title and stop music
+    try {
+      this._pauseTitleBtn = this._pauseOverlay.querySelector('#pause-title');
+      if (this._pauseTitleBtn) {
+        // ensure the pause->title behavior is robust and always stops music and shows start menu
+        this._pauseTitleBtn.addEventListener('click', () => {
+          try {
+            // hide pause overlay
+            if (this._pauseOverlay) this._pauseOverlay.style.display = 'none';
+            this.isPausedMenuVisible = false;
+            // stop/rewind music
+            try { if (this._pauseMusic) this._pauseMusic(); } catch(e){}
+            try { if (this.music) { this.music.currentTime = 0; } } catch(e){}
+            // show the title/start menu
+            try {
+              const startMenuEl = document.getElementById('startMenu');
+              if (startMenuEl) startMenuEl.style.display = 'block';
+            } catch (e) {}
+            // set paused state so gameplay doesn't resume in background
+            this.gamePaused = true;
+          } catch (err) {
+            console.warn('pause-title handler failed', err);
+          }
+        }, { capture: false });
+      }
+    } catch (e) {}
+
+    // Ensure the replay button reflects whether replay recording is enabled
+    this._winReplayBtn.disabled = !this.replay.enabled;
+    this._winCopyBtn.disabled = !this.replay.enabled;
+
+    this._winRestartBtn.addEventListener('click', () => {
+      // restart map: hide overlay, reset time and deaths, respawn player to spawn, and unfreeze any replay-ghost
+      this._hideWinMenu();
+
+      // Clear any previous replay recording so a fresh run will be recorded
+      this.replay.frames = [];
+      this.replay.playing = false;
+      this.replay.index = 0;
+      this.replay.startTime = 0;
+      this.replay.frozen = false;
+
+      // Reset checkpoints: lock them and clear active checkpoint
+      try {
+        for (const p of this.platforms) {
+          if (p && p.type === 'checkpoint') {
+            p.unlocked = false;
+            p._playerOver = false;
+            p._lastMsgTime = 0;
+          }
+        }
+        this.activeCheckpoint = null;
+      } catch (e) { /* ignore checkpoint reset errors */ }
+
+      // Restore coins to original map placement
+      try { this.restoreInitialCoins(); } catch(e) {}
+
+      // Clear collected coin state so a new attempt/map doesn't retain previously-collected coins.
+      try {
+        this.coinsCollected = 0;
+        this.coinsCollectedP2 = 0;
+        this._collectedCoinSizesP1 = [];
+        this._collectedCoinSizesP2 = [];
+        this.droppedCoins = [];
+      } catch (e) {
+        console.warn('Failed to clear coin state on win-restart', e);
+      }
+
+      // Respawn player to spawn point and give control back (also respawn P2 above P1)
+      const _s = this.getSpawnForMap();
+      this.player.respawn(_s.x, _s.y);
+      try {
+        if (this.player2) {
+          const offset = this._player2VerticalOffset || ((this.player2.height || 60) + 20);
+          this.player2.respawn(_s.x, _s.y - offset);
+          this.player2.velocityX = 0;
+          this.player2.velocityY = 0;
+        }
+      } catch(e) {}
+      this.camera.update(this.player);
+      this.deaths = 0;
+      this.startTime = Date.now();
+      this.gamePaused = false;
+      // Resume background music after restarting the run
+      try { if (this._playMusic) this._playMusic(); } catch (e) {}
+    });
+
+    // Start replay playback: plays recorded frames showing the run that just cleared the map
+    this._winReplayBtn.addEventListener('click', () => {
+      // If replay recording is disabled, disallow playback from this button
+      if (!this.replay.enabled) {
+        alert('Replay is disabled.');
+        return;
+      }
+      // If no frames recorded, do nothing
+      if (!this.replay.frames || this.replay.frames.length === 0) {
+        alert('No replay available for this run.');
+        return;
+      }
+      const frames = this.replay.frames;
+
+      // Heuristic: skip initial idle frames until player actually moves from the starting pose
+      let startIndex = 0;
+      const startFrame = frames[0];
+      const MOVE_THRESHOLD = 2; // pixels
+      for (let i = 1; i < frames.length; i++) {
+        const f = frames[i];
+        const dx = Math.abs(f.x - startFrame.x);
+        const dy = Math.abs(f.y - startFrame.y);
+        if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+          startIndex = i;
+          break;
+        }
+      }
+
+      // Prepare replay state starting at the computed index
+      this.replay.playing = true;
+      this.replay.reverse = false;
+      this.replay.index = startIndex;
+      // Align startTime so playback timing matches original timestamps relative to the chosen startIndex
+      this.replay.startTime = Date.now() - (frames[startIndex].t - frames[0].t);
+
+      // Reset player to the chosen start frame so visuals align
+      const f0 = frames[startIndex];
+      if (f0) {
+        this.player.x = f0.x;
+        this.player.y = f0.y;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        // Ensure camera immediately centers on the replay frame
+        this.camera.update(this.player);
+      }
+
+      // Hide overlay and pause game physics while replaying
+      this._hideWinMenu();
+      this.gamePaused = true;
+      // Clear any previous frozen state
+      this.replay.frozen = false;
+    });
+
+    // Replay in 3D button: enable threeMode then start forward replay so the 3D scene follows frames
+    this._winReplay3DBtn = this._winOverlay.querySelector('#win-replay-3d');
+    if (this._winReplay3DBtn) {
+      this._winReplay3DBtn.addEventListener('click', async () => {
+        if (!this.replay.enabled) {
+          alert('Replay is disabled.');
+          return;
+        }
+        if (!this.replay.frames || this.replay.frames.length === 0) {
+          alert('No replay available for this run.');
+          return;
+        }
+
+        // Ensure 3D mode is enabled first. toggle3D will pause 2D loop and initialize threeMode.
+        try {
+          if (!this.threeActive) {
+            await this.toggle3D();
+          }
+          // For 3D replay, keep the user's normal 3D camera in place (do not auto-follow the player)
+          if (this.threeMode && typeof this.threeMode.setFollowCamera === 'function') {
+            this.threeMode.setFollowCamera(false);
+          }
+        } catch (err) {
+          console.error('Failed to enter 3D mode for replay', err);
+          alert('Could not enter 3D mode.');
+          return;
+        }
+
+        // Start forward replay same as the 2D replay button but keep game in paused/3D mode so threeMode.updatePlayerMesh runs
+        const frames = this.replay.frames;
+        let startIndex = 0;
+        const startFrame = frames[0];
+        const MOVE_THRESHOLD = 2;
+        for (let i = 1; i < frames.length; i++) {
+          const f = frames[i];
+          const dx = Math.abs(f.x - startFrame.x);
+          const dy = Math.abs(f.y - startFrame.y);
+          if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+            startIndex = i;
+            break;
+          }
+        }
+
+        this.replay.playing = true;
+        this.replay.reverse = false;
+        this.replay.index = startIndex;
+        this.replay.startTime = Date.now() - (frames[startIndex].t - frames[0].t);
+
+        // Set player to start frame so 2D state and threeMode mapping align
+        const f0 = frames[startIndex];
+        if (f0) {
+          this.player.x = f0.x;
+          this.player.y = f0.y;
+          this.player.velocityX = 0;
+          this.player.velocityY = 0;
+          this.camera.update(this.player);
+        }
+
+        // Hide overlay and keep game paused; threeMode loop will animate and gameLoop will push frames into threeMode.updatePlayerMesh
+        this._hideWinMenu();
+        this.gamePaused = true;
+        this.replay.frozen = false;
+      });
+    }
+
+    // Reverse replay: play recorded frames backwards, ignoring any win-block logic (replay only visuals/events)
+    this._winReverseBtn.addEventListener('click', () => {
+      if (!this.replay.enabled) {
+        alert('Replay is disabled.');
+        return;
+      }
+      if (!this.replay.frames || this.replay.frames.length === 0) {
+        alert('No replay available for this run.');
+        return;
+      }
+      const frames = this.replay.frames;
+
+      // Start from last meaningful frame (skip trailing idle if desired)
+      let endIndex = frames.length - 1;
+      const MOVE_THRESHOLD = 2;
+      // Optionally skip trailing idle frames (where player doesn't move) from the end
+      for (let i = frames.length - 2; i >= 0; i--) {
+        const f = frames[i];
+        const nx = Math.abs(frames[frames.length - 1].x - f.x);
+        const ny = Math.abs(frames[frames.length - 1].y - f.y);
+        if (nx > MOVE_THRESHOLD || ny > MOVE_THRESHOLD) { endIndex = i + 1; break; }
+      }
+
+      this.replay.playing = true;
+      this.replay.reverse = true;
+      this.replay.index = endIndex;
+      // For reverse playback we set a start time and will step backward based on elapsed
+      this.replay.startTime = Date.now();
+      // Set player to last frame
+      const f0 = frames[this.replay.index];
+      if (f0) {
+        this.player.x = f0.x;
+        this.player.y = f0.y;
+        this.player.velocityX = 0;
+        this.player.velocityY = 0;
+        this.camera.update(this.player);
+      }
+
+      this._hideWinMenu();
+      this.gamePaused = true;
+      this.replay.frozen = false;
+    });
+
+    // Upload .replay file and start playback
+    this._winCopyBtn.addEventListener('click', () => {
+      if (!this.replay.enabled) {
+        alert('Replay is disabled.');
+        return;
+      }
+
+      // Create a temporary file input to accept .replay files
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.replay,application/octet-stream';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+
+      input.addEventListener('change', async (ev) => {
+        const file = input.files && input.files[0];
+        document.body.removeChild(input);
+        if (!file) return;
+
+        try {
+          const buf = await file.arrayBuffer();
+          const dv = new DataView(buf);
+          let offset = 0;
+
+          // Validate header 'RPL1'
+          if (dv.byteLength < 4) throw new Error('File too short');
+          const a = String.fromCharCode(dv.getUint8(offset++));
+          const b = String.fromCharCode(dv.getUint8(offset++));
+          const c = String.fromCharCode(dv.getUint8(offset++));
+          const d = String.fromCharCode(dv.getUint8(offset++));
+          const magic = a + b + c + d;
+          if (magic !== 'RPL1') throw new Error('Unsupported replay format');
+
+          if (dv.byteLength < offset + 4 + 8) throw new Error('File truncated');
+          const frameCount = dv.getUint32(offset, true); offset += 4;
+          const t0 = dv.getFloat64(offset, true); offset += 8;
+
+          const expectedBytes = offset + frameCount * (4 + 4 + 4);
+          if (dv.byteLength < expectedBytes) {
+            // allow truncated but warn
+            console.warn('Replay file shorter than expected; attempting to read available frames.');
+          }
+
+          const frames = [];
+          for (let i = 0; i < frameCount; i++) {
+            if (offset + 12 > dv.byteLength) break;
+            const rel = dv.getFloat32(offset, true); offset += 4;
+            const x = dv.getFloat32(offset, true); offset += 4;
+            const y = dv.getFloat32(offset, true); offset += 4;
+            frames.push({ t: t0 + rel, x, y, width: this.player.width, height: this.player.height });
+          }
+
+          if (!frames.length) {
+            alert('No frames found in replay file.');
+            return;
+          }
+
+          // Heuristic: skip initial idle frames like the built-in replay button does
+          let startIndex = 0;
+          const startFrame = frames[0];
+          const MOVE_THRESHOLD = 2;
+          for (let i = 1; i < frames.length; i++) {
+            const f = frames[i];
+            const dx = Math.abs(f.x - startFrame.x);
+            const dy = Math.abs(f.y - startFrame.y);
+            if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+              startIndex = i;
+              break;
+            }
+          }
+
+          // Load frames and start playback synced to original timestamps
+          this.replay.frames = frames;
+          this.replay.playing = true;
+          this.replay.index = startIndex;
+          this.replay.startTime = Date.now() - (frames[startIndex].t - frames[0].t);
+
+          // Set player to start frame and center camera
+          const f0 = frames[startIndex];
+          if (f0) {
+            this.player.x = f0.x;
+            this.player.y = f0.y;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            this.camera.update(this.player);
+          }
+
+          // Hide overlay and pause game physics while replaying
+          this._hideWinMenu();
+          this.gamePaused = true;
+          this.replay.frozen = false;
+        } catch (err) {
+          console.error('Failed to load replay file', err);
+          alert('Failed to load replay file: ' + (err && err.message ? err.message : 'Unknown error'));
+        }
+      });
+
+      // Trigger file picker
+      input.click();
+    });
+
+    // Download replay in compact binary .replay format
+    // Format: header 'RPL1' (4 bytes) then frameCount (Uint32), then firstTimestamp (Float64),
+    // then for each frame store relativeTimeMs (Float32), x (Float32), y (Float32).
+    // This is much smaller than full JSON text.
+    this._winDownloadBtn.addEventListener('click', () => {
+      const frames = this.replay.frames || [];
+      if (!frames || frames.length === 0) {
+        alert('No replay recorded to download.');
+        return;
+      }
+
+      try {
+        const frameCount = frames.length;
+        // Allocate buffer: 4 (magic) + 4 (count) + 8 (first ts) + frameCount * (4+4+4)
+        const headerBytes = 4 + 4 + 8;
+        const perFrame = 4 + 4 + 4;
+        const buf = new ArrayBuffer(headerBytes + frameCount * perFrame);
+        const dv = new DataView(buf);
+        let offset = 0;
+        // magic 'RPL1'
+        dv.setUint8(offset++, 'R'.charCodeAt(0));
+        dv.setUint8(offset++, 'P'.charCodeAt(0));
+        dv.setUint8(offset++, 'L'.charCodeAt(0));
+        dv.setUint8(offset++, '1'.charCodeAt(0));
+        // frame count
+        dv.setUint32(offset, frameCount, true); offset += 4;
+        // first timestamp as Float64 (ms)
+        const t0 = frames[0].t;
+        dv.setFloat64(offset, t0, true); offset += 8;
+
+        // write frames: store (t - t0) as Float32, x Float32, y Float32
+        for (let i = 0; i < frameCount; i++) {
+          const f = frames[i];
+          const rel = (f.t - t0);
+          dv.setFloat32(offset, rel, true); offset += 4;
+          dv.setFloat32(offset, f.x, true); offset += 4;
+          dv.setFloat32(offset, f.y, true); offset += 4;
+        }
+
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `replay_${Date.now()}.replay`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error('Download failed', e);
+        alert('Failed to prepare replay download.');
+      }
+    });
+
+    // Send replay Blob URL to comments
+    this._winSendBtn.addEventListener('click', async () => {
+      if (!this.replay.enabled) {
+        alert('Replay is disabled.');
+        return;
+      }
+      const frames = this.replay.frames || [];
+      if (!frames || frames.length === 0) {
+        alert('No replay recorded to send.');
+        return;
+      }
+      try {
+        // Build the same compact binary as used for download
+        const frameCount = frames.length;
+        const headerBytes = 4 + 4 + 8;
+        const perFrame = 4 + 4 + 4;
+        const buf = new ArrayBuffer(headerBytes + frameCount * perFrame);
+        const dv = new DataView(buf);
+        let offset = 0;
+        dv.setUint8(offset++, 'R'.charCodeAt(0));
+        dv.setUint8(offset++, 'P'.charCodeAt(0));
+        dv.setUint8(offset++, 'L'.charCodeAt(0));
+        dv.setUint8(offset++, '1'.charCodeAt(0));
+        dv.setUint32(offset, frameCount, true); offset += 4;
+        const t0 = frames[0].t;
+        dv.setFloat64(offset, t0, true); offset += 8;
+        for (let i = 0; i < frameCount; i++) {
+          const f = frames[i];
+          const rel = (f.t - t0);
+          dv.setFloat32(offset, rel, true); offset += 4;
+          dv.setFloat32(offset, f.x, true); offset += 4;
+          dv.setFloat32(offset, f.y, true); offset += 4;
+        }
+
+        const blob = new Blob([buf], { type: 'application/octet-stream' });
+        // Create an object URL that will allow clicking the link to download .replay
+        const blobUrl = URL.createObjectURL(blob);
+
+        // Optionally create an anchor to trigger a download immediately so comment link also points to a downloadable resource
+        // (We don't automatically click it to avoid unexpected downloads; the link in comments will work in the session.)
+        // Post the comment using Websim's API if available
+        if (window.websim && typeof window.websim.postComment === 'function') {
+          const content = `This is my replay! Download, and change file extention to ".replay"
+
+${blobUrl}`;
+          try {
+            const res = await window.websim.postComment({ content });
+            if (res && res.error) {
+              alert('Failed to post comment: ' + res.error);
+              URL.revokeObjectURL(blobUrl);
+              return;
+            }
+            alert('Replay link posted to comments.');
+          } catch (err) {
+            console.error('postComment failed', err);
+            alert('Failed to post comment.');
+          }
+        } else {
+          // Fallback: copy the link to clipboard so user can paste it manually
+          try {
+            await navigator.clipboard.writeText(`This is my replay! Download, and change file extention to ".replay"
+
+${blobUrl}`);
+            alert('Replay URL copied to clipboard. Paste it into a comment.');
+          } catch (e) {
+            alert('Could not post or copy the replay URL. Blob URL: ' + blobUrl);
+          }
+        }
+
+        // Note: revoke the URL after a delay so it remains usable for a short time in the comment link
+        setTimeout(() => { try { URL.revokeObjectURL(blobUrl); } catch(e){} }, 60_000);
+      } catch (e) {
+        console.error('Send failed', e);
+        alert('Failed to prepare replay to send.');
+      }
+    });
+
+    // helper to set initial mode UI
+    this._updateEditorModeUI();
+  }
+
+  toggleEditor() {
+    this.editor.enabled = !this.editor.enabled;
+    this.editor.container.style.display = this.editor.enabled ? 'flex' : 'none';
+    // hide export UI when toggling editor off
+    if (!this.editor.enabled) {
+      this._exportArea.style.display = 'none';
+      this._copyBtn.style.display = 'none';
+      if (this._closeBtn) this._closeBtn.style.display = 'none';
+    }
+  }
+
+  _setupEditorInput() {
+    // Track last pointer in world coords for live preview
+    this.editor.pointer = null;
+
+    const updatePointerFromClient = (clientX, clientY) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      const worldX = sx - this.camera.x;
+      const worldY = sy - this.camera.y;
+      this.editor.pointer = { x: worldX, y: worldY };
+    };
+
+    // Click/touch placement or deletion on canvas
+    const placeHandler = (clientX, clientY) => {
+      if (!this.editor.enabled) return;
+      updatePointerFromClient(clientX, clientY);
+
+      const worldX = this.editor.pointer.x;
+      const worldY = this.editor.pointer.y;
+
+      if (this.editor.mode === 'place') {
+        const color = this.editor.colors[this.editor.colorIndex];
+        let w = 60, h = 60;
+        switch (this.editor.spawnType) {
+          case 1: // platform (wide)
+            w = 120; h = 20; break;
+          case 2: // square
+            w = 60; h = 60; break;
+          case 3: // bigger square
+            w = 120; h = 120; break;
+          case 4: // wall (tall)
+            w = 20; h = 200; break;
+          case 5: // long thin platform
+            w = 240; h = 16; break;
+          case 6: // tall thin column
+            w = 40; h = 260; break;
+          case 7: // small square (new)
+            w = 24; h = 24; break;
+          default:
+            w = 60; h = 60;
+        }
+
+        const left = worldX - w / 2;
+        const top = worldY - h / 2;
+
+        if (this.editor.spawnKill) {
+          // Create a kill block
+          const kb = new KillBlock(left, top, w, h, color || '#ff1744');
+          this.platforms.push(kb);
+          this.playSound('place');
+        } else if (this.editor.spawnCheckpoint) {
+          // Create a checkpoint block
+          const cp = new Checkpoint(left, top, w, h, color || '#FFD600');
+          this.platforms.push(cp);
+        } else if (this.editor.spawnWin) {
+          // Create a win block
+          const wb = new WinBlock(left, top, w, h, color || '#64dd17');
+          this.platforms.push(wb);
+          this.playSound('place');
+        } else if (this.editor.spawnCoin) {
+          // Create a coin collectible
+          try {
+            const cw = Math.max(16, Math.round(w));
+            const ch = Math.max(16, Math.round(h));
+            const coin = new Coin(left, top, cw, ch);
+            this.platforms.push(coin);
+            this.playSound('place');
+          } catch (e) {
+            // fallback to platform if Coin class not available
+            const p = new Platform(left, top, w, h, color);
+            this.platforms.push(p);
+            this.playSound('place');
+          }
+        } else if (this.editor.spawnShooter) {
+          try {
+            // place a coin shooter instance
+            const sw = Math.max(36, Math.round(w));
+            const sh = Math.max(20, Math.round(h * 0.6));
+            const shooter = new (typeof CoinShooter !== 'undefined' ? CoinShooter : function(x,y,wid,hei){ this.x=x;this.y=y;this.width=wid;this.height=hei; this.type='coin_shooter'; })(left, top, sw, sh, color || '#ffd54f');
+            this.platforms.push(shooter);
+            this.playSound('place');
+          } catch (e) {
+            // fallback to a visual platform if shooter class missing
+            const p = new Platform(left, top, w, h, color);
+            this.platforms.push(p);
+            this.playSound('place');
+          }
+        } else if (this.editor.spawnDoor) {
+          // place a Door with ID if provided; enforce at most two doors with the same ID
+          try {
+            const doorId = (this.editor.nextDoorId && String(this.editor.nextDoorId).trim()) ? String(this.editor.nextDoorId).trim() : null;
+            if (doorId) {
+              // count existing doors with same id
+              const countSame = this.platforms.filter(p => p && p.type === 'door' && p.id === doorId).length;
+              if (countSame >= 2) {
+                alert('There are already two doors with that ID. Remove one first to place another.');
+              } else {
+                const d = new Door(left, top, w, h, 'rgba(160,160,255,0.36)', doorId);
+                // in-editor show ID text on door visuals
+                d._showIdForEditor = true;
+                this.platforms.push(d);
+                this.playSound('place');
+              }
+            } else {
+              // no ID yet: place a door without ID and prompt user immediately
+              const id = prompt('Enter door ID for this door (two doors max per ID):') || '';
+              const norm = id.trim();
+              if (!norm) {
+                alert('Door requires an ID. Placement canceled.');
+              } else {
+                const countSame = this.platforms.filter(p => p && p.type === 'door' && p.id === norm).length;
+                if (countSame >= 2) {
+                  alert('There are already two doors with that ID. Remove one first to place another.');
+                } else {
+                  const d = new Door(left, top, w, h, 'rgba(160,160,255,0.36)', norm);
+                  d._showIdForEditor = true;
+                  this.platforms.push(d);
+                  // remember nextDoorId for convenience
+                  this.editor.nextDoorId = norm;
+                  if (this._doorIdBtn) this._doorIdBtn.textContent = `Door ID: ${norm}`;
+                  this.playSound('place');
+                }
+              }
+            }
+          } catch (e) {
+            console.warn('placing door failed', e);
+            const p = new Platform(left, top, w, h, color);
+            this.platforms.push(p);
+            this.playSound('place');
+          }
+        } else {
+          const p = new Platform(left, top, w, h, color);
+          this.platforms.push(p);
+          this.playSound('place');
+        }
+      } else {
+        // Delete mode: find topmost platform under point and remove it
+        for (let i = this.platforms.length - 1; i >= 0; i--) {
+          const p = this.platforms[i];
+          if (worldX >= p.x && worldX <= p.x + p.width &&
+              worldY >= p.y && worldY <= p.y + p.height) {
+            this.platforms.splice(i, 1);
+            break;
+          }
+        }
+      }
+    };
+
+
+
+    this.canvas.addEventListener('click', (e) => {
+      placeHandler(e.clientX, e.clientY);
+    });
+
+    // Mouse move updates pointer for live preview
+    this.canvas.addEventListener('mousemove', (e) => {
+      if (!this.editor.enabled) return;
+      updatePointerFromClient(e.clientX, e.clientY);
+    });
+
+    // Touch support: update pointer on touchmove and place on touchstart
+    this.canvas.addEventListener('touchstart', (e) => {
+      const t = e.touches[0];
+      if (t) {
+        updatePointerFromClient(t.clientX, t.clientY);
+        placeHandler(t.clientX, t.clientY);
+      }
+    }, { passive: false });
+
+    this.canvas.addEventListener('touchmove', (e) => {
+      const t = e.touches[0];
+      if (t) updatePointerFromClient(t.clientX, t.clientY);
+    }, { passive: false });
+
+    // When editor toggles off, clear pointer
+    const hidePointer = () => { this.editor.pointer = null; };
+    document.addEventListener('keydown', (e) => { if (e.code === 'KeyB' && !this.editor.enabled) hidePointer(); });
+  }
+
+  // Update the editor mode UI text to reflect current mode
+  _updateEditorModeUI() {
+    if (!this._modeBtn) return;
+    const mode = this.editor.mode === 'place' ? 'Place' : 'Delete';
+    this._modeBtn.textContent = `Mode: ${mode}`;
+  }
+
+  _exportMap() {
+    // Produce a JS array string that can be pasted into the platforms array
+    const lines = [];
+    lines.push('[');
+    for (const p of this.platforms) {
+      // Determine constructor by type. Use baseColor for checkpoints when available.
+      const colorKey = (p.type === 'checkpoint') ? (p.baseColor || p.color) : p.color;
+      const colorArg = (colorKey && colorKey !== '#43a047') ? `, '${colorKey}'` : '';
+
+      if (p.type === 'kill') {
+        lines.push(`  new KillBlock(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}${colorArg}),`);
+      } else if (p.type === 'checkpoint') {
+        // Export checkpoint using Checkpoint constructor and preserve its base color if set
+        lines.push(`  new Checkpoint(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}${colorArg}),`);
+      } else if (p.type === 'win') {
+        // Export win block
+        lines.push(`  new WinBlock(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}${colorArg}),`);
+      } else if (p.type === 'coin') {
+        // Export coin with size preserved
+        lines.push(`  new Coin(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}),`);
+      } else if (p.type === 'coin_shooter') {
+        // Export shooter so map save/load preserves it
+        const colArg = (p.color && p.color !== '#ffd54f') ? `, '${p.color}'` : '';
+        lines.push(`  new CoinShooter(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}${colArg}),`);
+      } else if (p.type === 'door') {
+        const idArg = (p.id !== undefined && p.id !== null) ? `, '${String(p.id).replace(/'/g,"\\'")}'` : `, null`;
+        const colorArgDoor = (p.color && p.color !== 'rgba(160,160,255,0.36)') ? `, '${p.color}'` : '';
+        // new Door(x,y,w,h,color,id) — color arg optional, id included to preserve pairing
+        if (p.color && p.color !== 'rgba(160,160,255,0.36)') {
+          lines.push(`  new Door(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}, '${p.color}', '${String(p.id).replace(/'/g,"\\'")}'),`);
+        } else {
+          lines.push(`  new Door(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}, 'rgba(160,160,255,0.36)', ${p.id ? `'${String(p.id).replace(/'/g,"\\'")}'` : 'null'}),`);
+        }
+      } else {
+        lines.push(`  new Platform(${Math.round(p.x)}, ${Math.round(p.y)}, ${Math.round(p.width)}, ${Math.round(p.height)}${colorArg}),`);
+      }
+    }
+    lines.push(']');
+    const out = lines.join('\n');
+    this._exportArea.value = out;
+    this._exportArea.style.display = 'block';
+    this._copyBtn.style.display = 'block';
+    this._copyBtn.textContent = 'Copy';
+    // Also attempt to copy automatically
+    try { navigator.clipboard.writeText(out); this._copyBtn.textContent = 'Copied'; setTimeout(()=> this._copyBtn.textContent = 'Copy', 1200); } catch(e) {}
+  }
+
+  // Restore initial coins snapshot into this.platforms and reset coin counters.
+  restoreInitialCoins() {
+    try {
+      // remove existing coins
+      this.platforms = this.platforms.filter(p => p && p.type !== 'coin');
+      // re-add initial coins snapshot
+      if (Array.isArray(this._initialCoins) && this._initialCoins.length) {
+        for (const c of this._initialCoins) {
+          try {
+            this.platforms.push(new Coin(c.x, c.y, c.width || 32, c.height || 32));
+          } catch (e) {
+            // ignore individual coin creation errors
+          }
+        }
+      }
+      // reset counters
+      this.coinsCollected = 0;
+      this.coinsCollectedP2 = 0;
+    } catch (e) {
+      console.warn('restoreInitialCoins failed', e);
+    }
+  }
+
+  update() {
+    // If replay finished and frozen, do not run any game updates or record frames
+    if (this.replay.frozen) return;
+
+    // Smoothly interpolate remote players toward their latest reported targets to reduce choppy jumps.
+    // We lerp a fraction each update for smoothing; adjust factor for snappier or smoother movement.
+    try {
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const now = Date.now();
+      const SMOOTH_T = 0.18; // interpolation factor per update (0.1..0.28 recommended)
+      for (const cid in this.remotePlayers) {
+        const rp = this.remotePlayers[cid];
+        if (!rp) continue;
+        // if target absent, skip
+        if (typeof rp.targetX === 'number') {
+          rp.x = lerp(typeof rp.x === 'number' ? rp.x : rp.targetX, rp.targetX, SMOOTH_T);
+        }
+        if (typeof rp.targetY === 'number') {
+          rp.y = lerp(typeof rp.y === 'number' ? rp.y : rp.targetY, rp.targetY, SMOOTH_T);
+        }
+        // optional: smooth width/height too
+        if (typeof rp.width === 'number' && typeof rp.targetWidth === 'number') {
+          rp.width = lerp(rp.width, rp.targetWidth, SMOOTH_T);
+        }
+        if (typeof rp.height === 'number' && typeof rp.targetHeight === 'number') {
+          rp.height = lerp(rp.height, rp.targetHeight, SMOOTH_T);
+        }
+      }
+    } catch (e) {
+      // swallow interpolation errors to avoid breaking update loop
+      console.warn('remotePlayers interpolation failed', e);
+    }
+
+    // Record frames for replay when playing (including when editor fly is on), not paused, not currently replaying
+    // Also only record if replay recording is enabled
+    if (this.replay.enabled && !this.gamePaused && !this.replay.playing) {
+      // attach any pending sound events to this frame then clear them
+      const pending = (this.replay._pendingEvents && this.replay._pendingEvents.length) ? this.replay._pendingEvents.slice() : [];
+      const nowt = Date.now();
+      const eventNames = pending.map(ev => ev.name);
+
+      // record into main replay frames with attached events
+      this.replay.frames.push({
+        x: this.player.x,
+        y: this.player.y,
+        width: this.player.width,
+        height: this.player.height,
+        t: nowt,
+        events: eventNames
+      });
+
+      // clear pending global events (they've been attached to the frame)
+      if (this.replay._pendingEvents && this.replay._pendingEvents.length) this.replay._pendingEvents.length = 0;
+
+      // Limit buffer to reasonable size
+      if (this.replay.frames.length > 20000) this.replay.frames.shift();
+
+      // Also record chase buffer if chaseMode enabled (always record while playing normally)
+      // include the same event names so the chase can play lower-pitched copies during playback
+      try {
+        if (this.chaseMode) {
+          this.chase.frames.push({
+            x: this.player.x,
+            y: this.player.y,
+            width: this.player.width,
+            height: this.player.height,
+            t: nowt,
+            events: eventNames // record sound events for the chase ghost
+          });
+          // cap chase buffer length similarly
+          if (this.chase.frames.length > 20000) this.chase.frames.shift();
+
+          // If a second player exists and twoPlayer with chase enabled, record player2's frames into chase2 as well
+          try {
+            if (this.twoPlayer && this.player2) {
+              if (!this.chase2) this.chase2 = { frames: [] };
+              if (!this.chase2.frames) this.chase2.frames = [];
+              this.chase2.frames.push({
+                x: this.player2.x,
+                y: this.player2.y,
+                width: this.player2.width,
+                height: this.player2.height,
+                t: nowt,
+                events: eventNames
+              });
+              if (this.chase2.frames.length > 20000) this.chase2.frames.shift();
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+    }
+
+    // When editor is enabled, allow flying the camera with WASD / arrow keys.
+    // This prevents the player from moving while you navigate the map.
+    if (this.editor.enabled) {
+      const speed = 12; // camera fly speed in pixels per frame
+
+      // compute delta movement for this frame
+      let dx = 0, dy = 0;
+
+      // Keyboard controls affect camera and player
+      // When 3D mode active, flip horizontal controls so left/right are reversed
+      const keyRight = (this.keys['ArrowRight'] || this.keys['KeyD']);
+      const keyLeft = (this.keys['ArrowLeft'] || this.keys['KeyA']);
+      const useRight = keyRight;
+      const useLeft = keyLeft;
+
+      if (useRight) dx -= speed;
+      if (useLeft) dx += speed;
+      if (this.keys['ArrowUp'] || this.keys['KeyW']) dy += speed;
+      if (this.keys['ArrowDown'] || this.keys['KeyS']) dy -= speed;
+
+      // Touch virtual buttons also affect camera and player
+      let touchInput = this.touchControls.getInput();
+      // Flip left/right for 3D mode
+      if (this.threeActive) {
+        const tLeft = touchInput.left;
+        touchInput = { left: touchInput.right, right: tLeft, jump: touchInput.jump };
+      }
+      if (touchInput.left) dx += speed;
+      if (touchInput.right) dx -= speed;
+      if (touchInput.jump) dy += speed;
+
+      // Apply movement to camera
+      this.camera.x += dx;
+      this.camera.y += dy;
+
+      // Also move the player so the character flies with the camera.
+      // Player movement is flipped relative to the camera while editing, so apply the inverse delta
+      this.player.x -= dx;
+      this.player.y -= dy;
+
+      // Neutralize velocities so gravity/physics don't immediately counter the flying motion while editing
+      this.player.velocityX = 0;
+      this.player.velocityY = 0;
+      this.player.isJumping = false;
+
+      // Don't update regular game physics while editing
+      return;
+    }
+
+    // Handle keyboard controls for normal play (only when pathfinder is not controlling)
+    if (!this.pathfindEnabled) {
+      // Compute left/right intent, flipping if 3D mode is active
+      const wantLeft = (this.keys['ArrowLeft'] || this.keys['KeyA']);
+      const wantRight = (this.keys['ArrowRight'] || this.keys['KeyD']);
+      let leftIntent = wantLeft;
+      let rightIntent = wantRight;
+
+      // If mirror mode active, invert horizontal intents
+      if (this.mirrorMode) {
+        const tmp = leftIntent;
+        leftIntent = rightIntent;
+        rightIntent = tmp;
+      }
+
+      if (leftIntent) this.player.moveLeft();
+      if (rightIntent) this.player.moveRight();
+      if (this.keys['Space'] || this.keys['ArrowUp'] || this.keys['KeyW']) {
+        if (this.player.jump()) {
+          try { this.playSound('jump'); } catch(e) {}
+        }
+      }
+    }
+
+    // Allow the user to help the pathfind bot by triggering jumps or manual left/right input.
+    // This enables pressing Space/Up/W to force a jump and Left/Right (A/D) to nudge horizontal movement while the bot is active.
+    if (this.pathfindEnabled) {
+      if (this.keys['Space'] || this.keys['ArrowUp'] || this.keys['KeyW']) {
+        this.player.jump();
+      }
+      // Allow manual horizontal assistance via keyboard when bot is active (flip in 3D)
+      const wantLeftPF = (this.keys['ArrowLeft'] || this.keys['KeyA']);
+      const wantRightPF = (this.keys['ArrowRight'] || this.keys['KeyD']);
+      const leftIntentPF = wantLeftPF;
+      const rightIntentPF = wantRightPF;
+      if (leftIntentPF) this.player.moveLeft();
+      if (rightIntentPF) this.player.moveRight();
+
+      // Also accept touch jump input when bot is running so mobile users can help
+      let touchPF = this.touchControls.getInput();
+      if (this.threeActive) {
+        const tLeft = touchPF.left;
+        touchPF = { left: touchPF.right, right: tLeft, jump: touchPF.jump };
+      }
+      if (touchPF.jump) { this.playSound('jump'); this.player.jump(); }
+      // Touch left/right handled later along with normal touch controls, so no duplicate movement needed here.
+    }
+
+    // Improved pathfind bot using a platform graph + BFS path finder.
+    // Build a lightweight graph of platform "stand points" and find a sequence of platforms the player can reach
+    // by running and jumping, then follow that path deterministically.
+    if (this.pathfindEnabled && !this.editor.enabled && !this.gamePaused && this.winBlock) {
+      const maxJumpForce = this.player.jumpForce;
+      const gravity = this.player.gravity;
+      const playerW = this.player.width;
+      const playerH = this.player.height;
+
+      // Better estimates for reach and height with a small safety margin
+      const maxJumpHeight = (maxJumpForce * maxJumpForce) / (2 * gravity);
+      const airtime = 2 * maxJumpForce / gravity;
+      const maxRunSpeed = this.player.speed;
+      const maxJumpHorizontal = maxRunSpeed * airtime * 1.3; // increase margin
+
+      // Build nodes representing useful stand positions (allow both edges and centers)
+      const nodes = [];
+      for (let i = 0; i < this.platforms.length; i++) {
+        const p = this.platforms[i];
+        nodes.push({
+          id: i,
+          platform: p,
+          left: p.x - playerW / 2,
+          right: p.x + p.width - playerW / 2,
+          center: p.x + p.width / 2 - playerW / 2,
+          y: p.y - playerH
+        });
+      }
+
+      // Find win node index robustly
+      let winNodeIdx = nodes.findIndex(n => n.platform.type === 'win');
+      if (winNodeIdx === -1) {
+        const winCenterX = this.winBlock.x + this.winBlock.width / 2;
+        winNodeIdx = nodes.findIndex(n => winCenterX >= n.platform.x && winCenterX <= n.platform.x + n.platform.width);
+      }
+
+      // Starting node: prefer actual standing platform, otherwise choose a nearby platform favoring vertical proximity
+      let startNodeIdx = nodes.findIndex(n => {
+        const feet = this.player.y + playerH;
+        return feet >= n.platform.y - 6 && feet <= n.platform.y + 12 &&
+               (this.player.x + playerW > n.platform.x) && (this.player.x < n.platform.x + n.platform.width);
+      });
+      if (startNodeIdx === -1) {
+        // Prefer nodes that are close horizontally but also not far above the player (so we don't pick a distant high ledge)
+        let bestScore = 1e12;
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i];
+          const dx = Math.abs((this.player.x + playerW/2) - (n.platform.x + n.platform.width/2));
+          const dy = n.platform.y - (this.player.y + playerH); // positive if platform is below
+          // Score gives moderate preference to platforms at similar height and close horizontal distance
+          const score = dx * 1.2 + Math.max(0, Math.abs(dy)) * 0.9;
+          if (score < bestScore) { bestScore = score; startNodeIdx = i; }
+        }
+      }
+
+      // Build adjacency with edge-aware distances and more forgiving transitions for ledges, tight passages, and climbable walls
+      const adj = new Map();
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        const edges = [];
+        for (let j = 0; j < nodes.length; j++) {
+          if (i === j) continue;
+          const b = nodes[j];
+
+          // horizontal distance considering closest edges (not only centers)
+          const leftA = a.left, rightA = a.right;
+          const leftB = b.left, rightB = b.right;
+          let horizDist = 0;
+          if (rightA < leftB) horizDist = leftB - rightA;
+          else if (rightB < leftA) horizDist = leftA - rightB;
+          else horizDist = 0; // overlapping
+
+          const vert = a.platform.y - b.platform.y; // positive if b is higher (b above a)
+
+          // Walkable: small gap or overlap and roughly same height -> allow
+          if (horizDist <= 260 && Math.abs(vert) <= 18) {
+            edges.push(j);
+            continue;
+          }
+
+          // Upward jump: allow slightly larger horizontal margin and vertical margin (margin helps with ledges)
+          if (vert > - (maxJumpHeight + 48) && horizDist <= (maxJumpHorizontal + 120)) {
+            edges.push(j);
+            continue;
+          }
+
+          // Falling / stepping down: allow more horizontal distance for drops (so bot will fall into reachable areas)
+          if (vert < 0 && Math.abs(vert) < 3500 && horizDist <= 900) {
+            edges.push(j);
+            continue;
+          }
+
+          // Special: if platforms overlap horizontally but one has a tall vertical wall (narrow clearance),
+          // allow transition if vertical difference is small because the player can step around the tight spot.
+          if (horizDist === 0 && Math.abs(vert) <= 80) {
+            edges.push(j);
+            continue;
+          }
+
+          // Climbable wall heuristic:
+          // If platforms are very close horizontally (tight gap / touching) and the destination platform is higher,
+          // allow the transition if the vertical distance is within an extended climbable range.
+          // This models the player climbing up a near-vertical wall by jumping repeatedly.
+          const tallThreshold = Math.max(80, this.player.height * 1.2); // consider tall segments as climbable walls
+          const climbableHoriz = 12; // near-touching horizontally
+          const extendedClimbHeight = maxJumpHeight * 1.8 + 48; // allow larger vertical climbs when hugging a wall
+
+          if (horizDist <= climbableHoriz && vert > 0 && vert <= extendedClimbHeight && b.platform.height >= tallThreshold) {
+            // allow as an edge to let the bot attempt climbing by repeated jumps and small horizontal nudges
+            edges.push(j);
+            continue;
+          }
+
+          // Another climb-friendly case: overlapping horizontally but destination is higher and has significant vertical face;
+          // allow transitions where the bot can "edge climb" with a smaller horizontal threshold.
+          if (horizDist === 0 && vert > 8 && vert <= (maxJumpHeight * 1.6 + 32) && b.platform.height >= tallThreshold) {
+            edges.push(j);
+            continue;
+          }
+        }
+        adj.set(i, edges);
+      }
+
+      // BFS pathfinder
+      const bfs = (startIdx, goalIdx) => {
+        if (startIdx === -1 || goalIdx === -1) return null;
+        const q = [startIdx];
+        const visited = new Array(nodes.length).fill(false);
+        const parent = new Array(nodes.length).fill(-1);
+        visited[startIdx] = true;
+        while (q.length) {
+          const cur = q.shift();
+          if (cur === goalIdx) {
+            const path = [];
+            let p = cur;
+            while (p !== -1) { path.unshift(p); p = parent[p]; }
+            return path;
+          }
+          const neighbors = adj.get(cur) || [];
+          for (const nb of neighbors) {
+            if (!visited[nb]) {
+              visited[nb] = true;
+              parent[nb] = cur;
+              q.push(nb);
+            }
+          }
+        }
+        return null;
+      };
+
+      // Recompute path when start or win changed or if stuck for a while
+      const now = Date.now();
+      if (!this._pfCache || this._pfCache.winId !== winNodeIdx || this._pfCache.startId !== startNodeIdx ||
+          (this._pfCache.lastProgressTime && (now - this._pfCache.lastProgressTime) > 1200)) {
+        const path = bfs(startNodeIdx, winNodeIdx);
+        // add move history and spam/jitter tracking so we can detect repeated movements
+        this._pfCache = {
+          winId: winNodeIdx,
+          startId: startNodeIdx,
+          path: path,
+          cursor: 0,
+          lastComputed: now,
+          lastProgressTime: now,
+          // history of recent horizontal move directions: 1 = right, -1 = left, 0 = neutral
+          moveHistory: [],
+          // count used by stuck logic
+          stuckCount: 0,
+          // jump-spam frames counter
+          _jumpSpamFrames: 0
+        };
+      }
+
+      const cache = this._pfCache;
+      const path = cache && cache.path ? cache.path : null;
+
+      if (!path || path.length === 0) {
+        // fallback greedy: head to win center, attempt jump if needed
+        const targetX = this.winBlock.x + this.winBlock.width / 2 - playerW / 2;
+        const dx = targetX - this.player.x;
+        if (dx > 4) this.player.moveRight();
+        else if (dx < -4) this.player.moveLeft();
+        if ((this.winBlock.y + this.winBlock.height) < (this.player.y + playerH - 6) && !this.player.isJumping) this.player.jump();
+      } else {
+        // Follow path: aim for node center, but allow landing on edges and fall-through when appropriate
+        if (cache.cursor >= path.length) cache.cursor = path.length - 1;
+        const targetNodeIdx = path[Math.min(cache.cursor, path.length - 1)];
+        const targetNode = nodes[targetNodeIdx];
+        const targetX = targetNode.center;
+        const dxToTarget = targetX - this.player.x;
+
+        // Advance cursor if horizontally near or if player has dropped below target (fell onto next)
+        const feetY = this.player.y + playerH;
+        const onTargetVert = Math.abs(feetY - targetNode.platform.y) < 40;
+        if (Math.abs(dxToTarget) < 18 && onTargetVert) {
+          if (cache.cursor < path.length - 1) {
+            cache.cursor++;
+            cache.lastProgressTime = now;
+          }
+        }
+
+        // If the player is below the target platform (fell), advance cursor forward to reflect progress
+        if (feetY > targetNode.platform.y + 30 && cache.cursor < path.length - 1) {
+          cache.cursor++;
+          cache.lastProgressTime = now;
+        }
+
+        // Move toward target
+        if (dxToTarget > 6) this.player.moveRight();
+        else if (dxToTarget < -6) this.player.moveLeft();
+
+        // Decide when to jump: if next platform is higher or a gap exists (use safer thresholds)
+        const nextPlatform = targetNode.platform;
+        // If the platform top is above player's feet by a margin, treat as needing a jump
+        const needsJump = (this.player.y + playerH) - nextPlatform.y > 10 && (nextPlatform.y + nextPlatform.height) < (this.player.y + playerH - 6);
+        // compute approximate horizontal gap to next platform edges (use player's future run allowance)
+        let horizGap = 0;
+        const platLeft = nextPlatform.x, platRight = nextPlatform.x + nextPlatform.width;
+        if (this.player.x + playerW < platLeft) horizGap = platLeft - (this.player.x + playerW);
+        else if (this.player.x > platRight) horizGap = this.player.x - platRight;
+        else horizGap = 0;
+
+        // If the gap is modest or the next platform is noticeably higher, try jumping.
+        // Also allow jumping when overlapping horizontally but slightly above (to clear tiny ledges).
+        if (!this.player.isJumping) {
+          if (needsJump && horizGap <= (maxJumpHorizontal + 140)) {
+            this.player.jump();
+          } else if (horizGap > 42 && horizGap <= (maxJumpHorizontal + 60)) {
+            this.player.jump();
+          } else if (horizGap === 0 && (nextPlatform.y + 8) < (this.player.y + playerH)) {
+            // overlapping but platform sits a bit higher -> small jump to climb
+            this.player.jump();
+          }
+        }
+
+        // If stuck (no progress for a while), nudge by boosting horizontal input briefly.
+        // Also enter a short "jump-spam" mode that repeatedly triggers jumps until progress is made.
+        if (now - (cache.lastProgressTime || now) > 1000) {
+          // initialize stuck counter if missing
+          cache.stuckCount = (cache.stuckCount || 0) + 1;
+
+          // Record current intended horizontal direction into moveHistory
+          const horizSign = (dxToTarget > 6) ? 1 : (dxToTarget < -6 ? -1 : 0);
+          cache.moveHistory = cache.moveHistory || [];
+          cache.moveHistory.push(horizSign);
+          // keep only recent N entries
+          if (cache.moveHistory.length > 8) cache.moveHistory.shift();
+
+          // Detect repeated same-direction behavior (e.g., always moving left or always moving right)
+          const repeatedMoves = cache.moveHistory.length >= 6 && cache.moveHistory.every(v => v === cache.moveHistory[0] && v !== 0);
+
+          // Toggle small corrective moves to try to unstick (prefer the previous random behavior unless repeat detected)
+          if (repeatedMoves) {
+            // If stuck repeating same move, nudge opposite direction briefly before spam to try a different trajectory
+            if (cache.moveHistory[0] === 1) this.player.moveLeft(); else this.player.moveRight();
+          } else {
+            if (Math.random() > 0.5) this.player.moveRight(); else this.player.moveLeft();
+          }
+
+          // If stuck repeatedly, enter jump-spam mode for a few frames
+          if (cache.stuckCount >= 2 || repeatedMoves) {
+            cache._jumpSpamFrames = Math.max(cache._jumpSpamFrames || 0, 10); // spam for up to 10 frames when repeating
+            cache.stuckCount = 0; // reset counter after triggering spam
+          } else {
+            // occasional single jump attempt if not yet spam-triggered
+            if (!this.player.isJumping && Math.random() > 0.6) this.player.jump();
+          }
+
+          cache.lastProgressTime = now;
+        }
+
+        // If currently in jump-spam mode, force jump each frame until frames exhausted or we made progress
+        if (cache._jumpSpamFrames && cache._jumpSpamFrames > 0) {
+          // Attempt jump even if already in jumping state; jump() is guarded so it won't double-apply,
+          // but repeated frames will let the bot try to grab higher edges by timing
+          if (!this.player.isJumping) { this.playSound('jump'); this.player.jump(); }
+          // also add a tiny horizontal nudge to help climb walls
+          if (Math.random() > 0.5) this.player.moveRight(); else this.player.moveLeft();
+          cache._jumpSpamFrames--;
+          // refresh lastProgressTime so we re-evaluate after spam window
+          cache.lastProgressTime = now;
+        }
+      }
+    }
+
+    // Handle touch controls
+    let touchInputFinal = this.touchControls.getInput();
+    // If mirror mode is active, swap left/right from touch controls so physical left still moves mirrored-right in world coords
+    if (this.mirrorMode) {
+      const tLeft = touchInputFinal.left;
+      touchInputFinal.left = touchInputFinal.right;
+      touchInputFinal.right = tLeft;
+    }
+    if (touchInputFinal.left) this.player.moveLeft();
+    if (touchInputFinal.right) this.player.moveRight();
+    if (touchInputFinal.jump) {
+      if (this.player.jump()) {
+        this.playSound('jump');
+      }
+    }
+
+    // Update player first
+    this.player.update();
+    // small deadzone to emulate slide-stop consistency: when horizontal velocity is tiny, snap to zero (same as player2)
+    try {
+      if (Math.abs(this.player.velocityX) < 0.6) this.player.velocityX = 0;
+    } catch (e) {}
+
+    // Update secondary player (either user-controlled or simple follower) if enabled
+    if (this.twoPlayer && this.player2) {
+      try {
+        const p2 = this.player2;
+
+        // Ensure player2 uses the same physics parameters as player1 so both behave identically.
+        try {
+          p2.speed = this.player.speed;
+          p2.jumpForce = this.player.jumpForce;
+          p2.gravity = this.player.gravity;
+          p2.friction = this.player.friction;
+          // Keep size in sync for physics/appearance where relevant
+          p2.width = this.player.width;
+          p2.height = this.player.height;
+        } catch (e) {
+          // non-fatal if any of these aren't writable
+        }
+
+        // If player2Control flag is true, allow user control using I/J/L (I = jump, J = left, L = right).
+        // Fallback to simple follower behavior when not user-controlled.
+        if (this.twoPlayerControlled) {
+          // Read key inputs for player2 (do not interfere with main player's keys)
+          const p2Left = !!this.keys['KeyJ'];
+          const p2Right = !!this.keys['KeyL'];
+          const p2Jump = !!this.keys['KeyI'];
+          const p2UpHold = p2Jump; // use same key for upward hold (I) as "up"
+
+          if (p2Left) p2.moveLeft();
+          else if (p2Right) p2.moveRight();
+          else {
+            // no horizontal key -> apply friction so player2 slides to a stop like player1
+            try { p2.velocityX *= (typeof p2.friction === 'number' ? p2.friction : 0.9); } catch(e) { p2.velocityX = 0; }
+          }
+
+          if (p2Jump) {
+            if (p2.jump()) {
+              // play jump sound for second player (use same sound source)
+              try { this.playSound('jump'); } catch(e) {}
+            }
+          }
+
+          // WALL GLIDE: when touching a near-vertical face and holding up, glide upwards and spam jump sound
+          // Detect wall contact: check platforms that are adjacent horizontally (within a small threshold)
+          let touchingWall = false;
+          for (let i = 0; i < this.platforms.length; i++) {
+            const platform = this.platforms[i];
+            if (!platform) continue;
+            // vertical overlap requirement so it's actually a wall beside the player
+            const vertOverlap = Math.min(p2.y + p2.height, platform.y + platform.height) - Math.max(p2.y, platform.y);
+            if (vertOverlap <= 6) continue; // little or no vertical overlap -> not a wall to cling to
+
+            const rightDist = Math.abs((p2.x + p2.width) - platform.x);
+            const leftDist = Math.abs(p2.x - (platform.x + platform.width));
+            const horizThreshold = 8; // pixels tolerance for touching a wall
+
+            if ((rightDist <= horizThreshold && (p2.x + p2.width) <= platform.x + horizThreshold) ||
+                (leftDist <= horizThreshold && p2.x >= (platform.x + platform.width) - horizThreshold)) {
+              touchingWall = true;
+              break;
+            }
+          }
+
+          // Initialize timer storage on player2 for throttling sound spam
+          if (typeof p2._wallJumpSpamTimer === 'undefined') p2._wallJumpSpamTimer = 0;
+
+          if (touchingWall && p2UpHold) {
+            // Repeatedly apply a climb impulse derived from player2.jumpForce so the character actually glides up.
+            // Respect gravity sign: for normal gravity (positive) we push upward by setting a negative velocity,
+            // for inverted gravity we push downward by setting a positive velocity.
+            try {
+              const forceFactor = 0.9; // keep the applied impulse slightly less than a full jump so it glides
+              if (typeof p2.gravity === 'number' && p2.gravity > 0) {
+                // set upward velocity each frame to allow steady climb (overwrite only when it's weaker than desired)
+                const desired = -Math.abs(p2.jumpForce) * forceFactor;
+                // Only increase upward momentum if it's less strong than desired (so we don't cancel a stronger upward motion)
+                if (p2.velocityY > desired) p2.velocityY = desired;
+              } else {
+                // inverted gravity: push downward to climb toward top
+                const desiredInv = Math.abs(p2.jumpForce) * forceFactor;
+                if (p2.velocityY < desiredInv) p2.velocityY = desiredInv;
+              }
+              // mark as jumping so other logic doesn't allow conflicting immediate jump actions
+              p2.isJumping = true;
+            } catch (e) {
+              // fallback gentle glide if anything goes wrong
+              if (typeof p2.gravity === 'number' && p2.gravity > 0) p2.velocityY = Math.max(p2.velocityY, -2.4);
+              else p2.velocityY = Math.min(p2.velocityY, 2.4);
+            }
+
+            // Slide-stop behavior: when clinging to a wall and not receiving horizontal input, halt horizontal velocity
+            const p2LeftKey = !!this.keys['KeyJ'];
+            const p2RightKey = !!this.keys['KeyL'];
+            if (!p2LeftKey && !p2RightKey) {
+              p2.velocityX = 0;
+            }
+
+            // Aggressively spam the jump sound (very fast) while wall-climbing; throttle minimally (~1ms)
+            const now = Date.now();
+            if (!p2._lastWallJumpSound || (now - p2._lastWallJumpSound) > 1) {
+              p2._lastWallJumpSound = now;
+              try { this.playSound('jump'); } catch (e) {}
+            }
+          }
+
+          // NEW: Ceiling-bash behavior -- if holding jump and a ceiling is immediately above player2, continuously apply jump force and spam jump sound
+          try {
+            // initialize ceiling spam timer on player2 if missing
+            if (typeof p2._ceilingSpamTimer === 'undefined') p2._ceilingSpamTimer = 0;
+            if (p2UpHold) {
+              // detect platforms directly above within a small gap (ceiling detection)
+              let ceilingAbove = null;
+              const CEILING_GAP = 6; // pixels tolerance above head
+              for (let i = 0; i < this.platforms.length; i++) {
+                const platform = this.platforms[i];
+                if (!platform) continue;
+                // horizontally overlapping with player2
+                const horizOverlap = (p2.x < platform.x + platform.width) && (p2.x + p2.width > platform.x);
+                if (!horizOverlap) continue;
+                // platform bottom relative to player2 top
+                const platformBottom = platform.y + platform.height;
+                const deltaY = platformBottom - p2.y;
+                // If platform bottom is within a small positive gap above player's y (i.e., platform sits above player's head)
+                if (deltaY >= -16 && deltaY <= CEILING_GAP + 2 && platformBottom <= p2.y + platform.height + 1000) {
+                  // platform is above (platform.y < p2.y) and close enough to be considered a ceiling if platform.y < p2.y
+                  if (platform.y < p2.y) {
+                    ceilingAbove = platform;
+                    break;
+                  }
+                }
+                // also consider platforms whose top is just above player's top but not overlapping bottom due to tall blocks
+                const platformTop = platform.y;
+                const gapTop = platformTop - (p2.y - p2.height);
+                if (platformTop <= p2.y && (p2.y - (platformTop + platform.height)) <= CEILING_GAP) {
+                  // treat tall blocks above as ceilings
+                  ceilingAbove = platform;
+                  break;
+                }
+              }
+
+              if (ceilingAbove) {
+                // apply jump force continuously while holder holds jump to "bash" the ceiling
+                const now2 = Date.now();
+                // throttle the jump sound slightly so it doesn't overflow but still sounds like a rapid spam (min 60ms)
+                const SOUND_THROTTLE_MS = 60;
+                if (!p2._lastCeilingJumpSound || (now2 - p2._lastCeilingJumpSound) > SOUND_THROTTLE_MS) {
+                  p2._lastCeilingJumpSound = now2;
+                  try { this.playSound('jump'); } catch (e) {}
+                }
+                // continuously apply the jump impulse (respect inverted gravity)
+                try {
+                  if (typeof p2.gravity === 'number' && p2.gravity > 0) {
+                    // push upward (negative velocity)
+                    p2.velocityY = -Math.abs(p2.jumpForce) * 0.9;
+                  } else {
+                    // inverted gravity: push downward
+                    p2.velocityY = Math.abs(p2.jumpForce) * 0.9;
+                  }
+                  p2.isJumping = true;
+                } catch (e) {
+                  // fallback: small velocity nudge
+                  if (typeof p2.gravity === 'number' && p2.gravity > 0) p2.velocityY = -8;
+                  else p2.velocityY = 8;
+                }
+              }
+            }
+          } catch (e) {
+            // swallow ceiling-behavior errors
+          }
+        } else {
+          // simple horizontal following that mirrors player1's immediate controls so physics and edge-wall jump behavior match
+          const follow = this.player;
+          const dx = (follow.x - p2.x);
+
+          // Use immediate moveLeft/moveRight like player1 so player2 can exhibit the same wall-hold/jump behavior
+          if (dx > 6) {
+            p2.moveRight();
+          } else if (dx < -6) {
+            p2.moveLeft();
+          } else {
+            // no horizontal intent -> apply friction so player2 slides to a stop similar to player1
+            try { p2.velocityX *= (typeof p2.friction === 'number' ? p2.friction : 0.9); } catch(e) { p2.velocityX = 0; }
+          }
+
+          // Jump when the follower is below the follow target (attempt same jump timing as player1)
+          if (!p2.isJumping && (follow.y + follow.height) < (p2.y + p2.height - 8)) {
+            p2.jump();
+          }
+        }
+
+        // update physics for player2 and perform collisions
+        p2.update();
+
+        // small deadzone to emulate player1's slide-stop: when horizontal velocity is tiny, snap to zero
+        // this prevents long slow sliding and makes stopping feel consistent between players
+        try {
+          if (Math.abs(p2.velocityX) < 0.6) p2.velocityX = 0;
+        } catch (e) {}
+
+        // basic collision handling for player2 with platforms (so it stands on floors)
+        for (let i = 0; i < this.platforms.length; i++) {
+          const platform = this.platforms[i];
+          if (p2.checkCollision(platform)) {
+
+            // Coin collection for player2: remove coin, increment P2 counter, record collected size, play sound and small effect
+            if (platform.type === 'coin') {
+              try {
+                this.coinsCollectedP2 = (this.coinsCollectedP2 || 0) + 1;
+                // remember exact coin size when picked up
+                try {
+                  this._collectedCoinSizesP2.push({ width: platform.width || 32, height: platform.height || 32 });
+                } catch (e) {}
+                this.effects.push({
+                  x: p2.x + p2.width / 2,
+                  y: p2.y - 6,
+                  text: '',
+                  time: Date.now(),
+                  duration: 900
+                });
+                try { this.playSound('coincollect'); } catch(e){}
+              } catch (e) {}
+              try { this.platforms.splice(i, 1); i--; } catch(e){}
+              continue;
+            }
+
+            // If it's a kill block, treat it as a death event (respect centralized handler)
+            if (platform.type === 'kill') {
+              this._handlePlayerDeath(p2);
+            }
+            // If it's a win block, treat similarly to player1: play win, pause and show overlay
+            else if (platform.type === 'win') {
+              try { this.playSound('win'); } catch(e){}
+              // trigger global win state (same as when player1 hits a win block)
+              if (!this.gamePaused) {
+                this.gamePaused = true;
+                const elapsed = Date.now() - this.startTime;
+                const sec = Math.floor(elapsed / 1000);
+                this._showWinMenu(sec, this.deaths);
+              }
+              // resolve collision for both players so player1 is treated as having won as well
+              try { p2.handleCollision(platform); } catch(e){}
+              try { if (this.player) this.player.handleCollision(platform); } catch(e){}
+            }
+            // If it's a checkpoint, unlock it for the game (affects both players) and set active checkpoint
+            else if (platform.type === 'checkpoint') {
+              // Prevent older checkpoints (with lower _index) from overriding a newer active checkpoint.
+              const platIndex = (typeof platform._index === 'number') ? platform._index : 0;
+              const activeIndex = (this.activeCheckpoint && typeof this.activeCheckpoint._index === 'number') ? this.activeCheckpoint._index : -1;
+              // if this checkpoint is older-or-equal to the current active checkpoint, ignore activation behavior
+              if (platIndex <= activeIndex) {
+                // still resolve collision so the player stands on it, but do not re-trigger unlock effects/sounds or change activeCheckpoint
+                p2.handleCollision(platform);
+              } else {
+                platform.unlocked = true;
+                this.activeCheckpoint = platform;
+                const now = Date.now();
+                const DEBOUNCE_MS = 1200;
+                if (!platform._playerOver) {
+                  if (!platform._lastMsgTime || (now - platform._lastMsgTime) > DEBOUNCE_MS) {
+                    platform._playerOver = true;
+                    platform._lastMsgTime = now;
+                    this.effects.push({
+                      x: p2.x + p2.width / 2,
+                      y: p2.y - 10,
+                      text: 'Checkpoint!',
+                      time: now,
+                      duration: 1200
+                    });
+                    try { this.playSound('checkpoint'); } catch(e){}
+                  } else {
+                    platform._playerOver = true;
+                  }
+                }
+                p2.handleCollision(platform);
+              }
+            } else {
+              // Normal platform collision resolution
+              p2.handleCollision(platform);
+            }
+          }
+        }
+
+        // keep camera unaffected by player2; we don't change camera here
+      } catch (e) {
+        // swallow follower errors
+        console.warn('player2 update failed', e);
+      }
+    }
+
+    // If easy mode is active and we have a fall clamp, gently cap large downward velocities to reduce harsh falls
+    if (this.easyMode && typeof this._easyFallClamp === 'number' && this.player.velocityY > this._easyFallClamp) {
+      this.player.velocityY = this._easyFallClamp;
+    }
+
+    // MELT MODE: gradually reduce player size over time while enabled
+    if (this.meltMode) {
+      const now = Date.now();
+      const elapsed = Math.max(0, now - (this._meltTimer || now));
+      // shrink by up to 6 pixels height per second (smooth)
+      const shrinkPerMs = 0.006; // px per ms -> ~6px per 1000ms
+      const shrink = elapsed * shrinkPerMs;
+      if (shrink > 0) {
+        this._meltTimer = now;
+        // gradually reduce height and width with a floor
+        const minH = 12;
+        const minW = 8;
+        this.player.height = Math.max(minH, this.player.height - shrink);
+        this.player.width = Math.max(minW, this.player.width - shrink * (this.player.width / Math.max(1, this.player.height)));
+        // If player becomes too small, count as a 'melt death' and respawn to checkpoint or spawn
+        if (this.player.height <= minH + 0.5 || this.player.width <= minW + 0.5) {
+          this.deaths++;
+          const cp = this.activeCheckpoint;
+          if (cp && cp.unlocked) {
+            this.player.respawn(cp.x + (cp.width - this.player.width) / 2, cp.y - this.player.height - 1);
+          } else {
+            const _s = this.getSpawnForMap();
+            this.player.respawn(_s.x, _s.y);
+          }
+          // restore original size after respawn so melt continues fresh
+          if (this._defaultPlayerSize) {
+            this.player.width = this._defaultPlayerSize.w;
+            this.player.height = this._defaultPlayerSize.h;
+          }
+          this._meltTimer = now;
+        }
+      }
+    }
+
+      // If confusion mode active, apply strong disruptive effects: input inversion/jitter, random freezes/teleports,
+    // heavier camera wobble, screen shake and brief color tint flashes to make play feel disorienting.
+    if (this.confusion) {
+      const now = Date.now();
+
+      // Increase frequency: attempt an effect every 80-140ms (randomized)
+      if (!this._nextConfusionTick) this._nextConfusionTick = now + 80;
+      if (now >= this._nextConfusionTick) {
+        // schedule next tick
+        this._nextConfusionTick = now + 80 + Math.floor(Math.random() * 60);
+
+        // Randomly invert controls for a short window
+        if (Math.random() < 0.28) {
+          this._confusionInvertUntil = now + (200 + Math.floor(Math.random() * 600)); // ms
+        }
+
+        // Random small teleport / slip effect (very short) to displace player slightly
+        if (Math.random() < 0.08) {
+          const slipX = (Math.random() - 0.5) * 40; // +/-20px
+          const slipY = (Math.random() - 0.5) * 24; // +/-12px
+          this.player.x += slipX;
+          this.player.y += slipY;
+          // zero small velocities to avoid immediate recovery
+          this.player.velocityX *= 0.2;
+          this.player.velocityY *= 0.2;
+        }
+
+        // Occasional brief freeze of input (stun)
+        if (Math.random() < 0.06) {
+          this._confusionInputFreezeUntil = now + (120 + Math.floor(Math.random() * 380));
+        }
+
+        // Trigger small jump or drop impulses sometimes
+        if (Math.random() < 0.12) {
+          // Prefer an actual forceful velocity change so it can affect midair state too.
+          const impulse = (Math.random() > 0.5 ? -8 - Math.random() * 8 : 6 + Math.random() * 10);
+          this.player.velocityY += impulse;
+        }
+
+        // Occasionally force a full jump impulse (even midair) to be disruptive.
+        // We set velocity directly so jump can happen midair; add slight horizontal kick for chaos.
+        if (Math.random() < 0.04) {
+          try {
+            const multiplier = 0.7 + Math.random() * 0.7; // 0.7..1.4x
+            this.player.velocityY = -Math.abs(this.player.jumpForce * multiplier);
+            // small horizontal nudge
+            this.player.velocityX += (Math.random() - 0.5) * (this.player.speed * 1.4);
+            // mark as jumping to avoid internal double-jump logic conflicts
+            this.player.isJumping = true;
+            // play jump sound for feedback (non-blocking) via playSound so events get recorded for chase
+            try { this.playSound('jump'); } catch(e){}
+          } catch (e) {}
+        }
+      }
+
+      // If invert window active, flip horizontal intents by flag used below during control handling
+      const invertActive = !!this._confusionInvertUntil && Date.now() < this._confusionInvertUntil;
+
+      // If input freeze active, temporarily ignore player's keyboard/touch intents by setting a flag
+      const freezeActive = !!this._confusionInputFreezeUntil && Date.now() < this._confusionInputFreezeUntil;
+
+      // Camera wobble & screen shake: stronger, time-varying offsets
+      if (this.camera) {
+        if (!this._confusionWobbleSeed) this._confusionWobbleSeed = Math.random() * 9999;
+        const t = (Date.now() * 0.01) + this._confusionWobbleSeed;
+        const wobbleStrength = 10 + (Math.sin(Date.now() * 0.003) * 6); // 4..16px fluctuating
+        // use both sin & cos with different frequencies for chaotic movement
+        this.camera.x += Math.sin(t * 1.1) * wobbleStrength * 0.0025 + (Math.random() - 0.5) * 0.6;
+        this.camera.y += Math.cos(t * 1.37) * wobbleStrength * 0.0025 + (Math.random() - 0.5) * 0.6;
+
+        // small occasional strong shake burst
+        if (Math.random() < 0.01) {
+          this.camera.x += (Math.random() - 0.5) * 28;
+          this.camera.y += (Math.random() - 0.5) * 18;
+        }
+      }
+
+      // Brief visual tint flash: store timestamp and color for render stage to draw overlay
+      if (!this._confusionTintUntil) this._confusionTintUntil = 0;
+      if (Math.random() < 0.015) {
+        this._confusionTintUntil = Date.now() + (90 + Math.floor(Math.random() * 180));
+        // random small tint color
+        const tcol = ['rgba(255,40,40,0.08)', 'rgba(180,40,255,0.06)', 'rgba(40,255,200,0.06)', 'rgba(255,220,40,0.06)'][Math.floor(Math.random() * 4)];
+        this._confusionTintColor = tcol;
+      }
+
+      // Store flags to be used later by input handling: we'll consult these flags when reading controls.
+      this._confusionInvertActive = invertActive;
+      this._confusionFreezeActive = freezeActive;
+    }
+
+    // What Mode: occasional sudden "WHAT?" surprises - overlay, brief invert flash, random jolts/jumps and a sound.
+    if (this.whatMode) {
+      const now = Date.now();
+      if (!this._whatNextTick) this._whatNextTick = now + 1000 + Math.floor(Math.random() * 2500);
+      if (now >= this._whatNextTick) {
+        // Schedule next surprise a bit later (randomized)
+        this._whatNextTick = now + 2000 + Math.floor(Math.random() * 5000);
+
+        // Show big overlay for 1200-2200ms
+        this._whatOverlayUntil = now + 1200 + Math.floor(Math.random() * 1000);
+        // Briefly invert colors for a short flash
+        this._whatInvertUntil = now + 220 + Math.floor(Math.random() * 380);
+
+        // Apply a sudden jolt to player velocities (can push midair)
+        try {
+          const vx = (Math.random() - 0.5) * (this.player.speed * 3);
+          const vy = (Math.random() > 0.5 ? -1 : 1) * (8 + Math.random() * 10);
+          this.player.velocityX += vx;
+          this.player.velocityY += vy;
+          // mark jumping state to avoid conflicts
+          this.player.isJumping = true;
+        } catch (e) {}
+
+        // Additionally: sometimes "shoot" the player somewhere unexpected by teleporting them to stand on a random non-kill block.
+        try {
+          if (Math.random() < 0.55) {
+            // choose a random platform to stand on (avoid kill blocks)
+            const candidates = this.platforms.filter(p => p && p.type !== 'kill');
+            if (candidates.length > 0) {
+              const p = candidates[Math.floor(Math.random() * candidates.length)];
+              // Position player centered horizontally on the platform and standing on top of it
+              try {
+                this.player.x = p.x + Math.max(0, (p.width - this.player.width) / 2);
+                this.player.y = p.y - this.player.height - 1;
+                // reset small velocities to stabilize after teleport
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+              } catch (e) {
+                // fallback to a safe random offset if something goes wrong with chosen platform
+                const dx = (Math.random() - 0.5) * 1200;
+                const dy = (Math.random() - 0.5) * 800;
+                this.player.x += dx;
+                this.player.y += dy;
+                this.player.velocityX = 0;
+                this.player.velocityY = 0;
+              }
+            } else {
+              // fallback: behavior similar to previous random offset teleport if no candidate platforms
+              const dx = (Math.random() - 0.5) * 1200;
+              const dy = (Math.random() - 0.5) * 800;
+              this.player.x += dx;
+              this.player.y += dy;
+              this.player.velocityX = 0;
+              this.player.velocityY = 0;
+            }
+
+            // clamp position to reasonable play area so teleport doesn't place player into absurd extremes
+            if (this.player.x < -20000) this.player.x = -20000;
+            if (this.player.x > 20000) this.player.x = 20000;
+            if (this.player.y < -20000) this.player.y = -20000;
+            if (this.player.y > 20000) this.player.y = 20000;
+          }
+        } catch (e) {}
+
+        // Play a short sound to emphasize the surprise (use existing changeColor sound as cue)
+        try { if (this.sounds && this.sounds.changeColor) { this.sounds.changeColor.currentTime = 0; this.sounds.changeColor.play(); } } catch(e){}
+      }
+    }
+
+    // Chase ghost playback + collision: update ghost from recorded chase frames (delayed) and kill player on touch
+    try {
+      if (this.chaseMode && this.chase && Array.isArray(this.chase.frames)) {
+        const nowt = Date.now();
+        const targetT = nowt - (this.chase.delay || 1500);
+        // Find the newest frame with t <= targetT (binary search would be nicer, but linear is fine here)
+        let chosen = null;
+        for (let i = this.chase.frames.length - 1; i >= 0; i--) {
+          const f = this.chase.frames[i];
+          if (!f) continue;
+          if (f.t <= targetT) { chosen = f; break; }
+        }
+
+        if (chosen) {
+          // activate ghost and set its pose to the chosen frame
+          this.chase.ghost.active = true;
+          this.chase.ghost._waiting = false;
+          this.chase.ghost.x = chosen.x;
+          this.chase.ghost.y = chosen.y;
+          this.chase.ghost.width = chosen.width || this.player.width;
+          this.chase.ghost.height = chosen.height || this.player.height;
+
+          // Play any recorded sound events on the chaser at a lower pitch (use chase.sounds clones when available)
+          try {
+            const evs = Array.isArray(chosen.events) ? chosen.events : [];
+            for (const evName of evs) {
+              // Only play the specific sounds requested (jump, hurt, win) and ignore others
+              if (!['jump', 'hurt', 'win'].includes(evName)) continue;
+              // Prefer the lower-pitch chase sound; fall back to normal sound if not available
+              const chaseSound = (this.chase && this.chase.sounds) ? this.chase.sounds[evName] : null;
+              const normalSound = this.sounds && this.sounds[evName] ? this.sounds[evName] : null;
+              try {
+                if (chaseSound) {
+                  try { chaseSound.currentTime = 0; } catch(e) {}
+                  try { chaseSound.play(); } catch(e) {}
+                } else if (normalSound) {
+                  try { normalSound.currentTime = 0; } catch(e) {}
+                  try { normalSound.play(); } catch(e) {}
+                }
+              } catch (e) { /* ignore per-sound errors */ }
+            }
+          } catch (e) {
+            // swallow sound playback errors so chase logic doesn't break
+          }
+
+        } else {
+          // if no frame old enough yet, keep ghost waiting near spawn (or last known)
+          // ghost remains inactive until enough frames are recorded
+          this.chase.ghost.active = false;
+        }
+      }
+    } catch (e) {
+      // swallow chase playback errors to avoid breaking the main update loop
+      console.warn('chase playback failed', e);
+    }
+
+    // If the chase ghost is active and overlaps the player, treat it as a kill (instant death & respawn)
+    try {
+      const g = (this.chase && this.chase.ghost) ? this.chase.ghost : null;
+      if (g && g.active) {
+        const overlap = (
+          this.player.x < g.x + g.width &&
+          this.player.x + this.player.width > g.x &&
+          this.player.y < g.y + g.height &&
+          this.player.y + this.player.height > g.y
+        );
+        if (overlap) {
+          // Use centralized death handler so both players respawn to player1's checkpoint/spawn
+          try { this._handlePlayerDeath(this.player); } catch(e) { console.warn('death via chase failed', e); }
+
+          // perform death/respawn like kill blocks
+          this.deaths++;
+          const cp = this.activeCheckpoint;
+          if (cp && cp.unlocked) {
+            this.player.respawn(cp.x + (cp.width - this.player.width) / 2, cp.y - this.player.height - 1);
+          } else {
+            const _s = this.getSpawnForMap();
+            this.player.respawn(_s.x, _s.y);
+          }
+
+          // Reset the chaser: pause it, clear its recorded buffer so it restarts fresh,
+          // and place it back at spawn so it won't immediately re-kill the respawned player.
+          try {
+            if (this.chase) {
+              this.chase.frames = [];
+              // place ghost back at spawn and mark as waiting
+              const spawn = this.getSpawnForMap() || { x: this.player.x, y: this.player.y };
+              if (this.chase.ghost) {
+                this.chase.ghost.x = spawn.x;
+                this.chase.ghost.y = spawn.y;
+                this.chase.ghost.active = false;
+                this.chase.ghost._waiting = true;
+                this.chase.frames.push({ x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height, t: Date.now() });
+              }
+            }
+            // If in 3D mode, also remove/reset the chase mesh so it doesn't immediately reappear
+            try {
+              if (this.threeActive && this.threeMode && this.threeMode._chaseMesh) {
+                // Instead of removing/disposing the chase mesh (which makes it vanish permanently in 3D),
+                // hide it and reposition it at spawn so it can be reactivated later when chase frames exist.
+                try {
+                  const cm = this.threeMode._chaseMesh;
+                  cm.visible = false;
+                  const spawn = this.getSpawnForMap() || { x: this.player.x, y: this.player.y };
+                  // Mirror & map spawn coords to 3D positions using same mapping as ThreeMode
+                  const cw = (cm.geometry && cm.geometry.parameters && cm.geometry.parameters.width) ? cm.geometry.parameters.width : this.player.width;
+                  const ch = (cm.geometry && cm.geometry.parameters && cm.geometry.parameters.depth) ? cm.geometry.parameters.depth : this.player.height;
+                  cm.position.x = -((spawn.x - (this.viewWidth/2 || window.innerWidth/2)) + cw / 2);
+                  cm.position.z = - (spawn.y - (this.viewHeight/2 || window.innerHeight/2)) - ch / 2;
+                  cm.position.y = (ch) * 0.3;
+                } catch (e) {
+                  // fallback: if anything goes wrong, avoid disposing to keep 3D chase recoverable
+                  console.warn('safe reset of chase mesh failed', e);
+                }
+              }
+            } catch (e) {}
+          } catch (e) {
+            // ignore chase reset errors
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('chase collision check failed', e);
+    }
+
+    // Update dropped coins physics, lifetime, bouncing and allow players to collect them
+    try {
+      const now = Date.now();
+
+      // CoinShooter behavior: each coin_shooter shoots a physics dropped coin toward the nearest player every 0.5s
+      try {
+        for (let si = 0; si < this.platforms.length; si++) {
+          const shooter = this.platforms[si];
+          if (!shooter || shooter.type !== 'coin_shooter') continue;
+          const interval = shooter._shootInterval || 500;
+          const last = shooter._lastShot || 0;
+          if (now - last < interval) continue;
+          shooter._lastShot = now;
+
+          // choose target player (player1 preferred; if 2P active choose nearest)
+          let target = this.player;
+          if (this.twoPlayer && this.player2) {
+            const d1 = Math.hypot((this.player.x - shooter.x), (this.player.y - shooter.y));
+            const d2 = Math.hypot((this.player2.x - shooter.x), (this.player2.y - shooter.y));
+            target = (d2 < d1) ? this.player2 : this.player;
+          }
+
+          // spawn a dropped coin at the muzzle of shooter, aimed at target
+          try {
+            const sz = { width: 20, height: 20 };
+            const startX = Math.round(shooter.x + shooter.width - (sz.width/2));
+            const startY = Math.round(shooter.y + (shooter.height/2) - (sz.height/2));
+            // compute vector to target center
+            const tx = (target.x + (target.width || 40)/2);
+            const ty = (target.y + (target.height || 60)/2);
+            const dx = tx - startX;
+            const dy = ty - startY;
+            const dist = Math.max(8, Math.hypot(dx, dy));
+            // speed scalar tuned so coins travel noticeably; moderate variance
+            const speed = 4.0 + Math.random() * 1.6;
+            const vx = (dx / dist) * speed + (Math.random() - 0.5) * 0.6;
+            const vy = (dy / dist) * speed + (Math.random() - 0.5) * 0.6;
+            this.droppedCoins.push({
+              x: startX,
+              y: startY,
+              vx: vx,
+              vy: vy,
+              width: Math.max(8, Math.round(sz.width || 20)),
+              height: Math.max(8, Math.round(sz.height || 20)),
+              bornAt: now,
+              lifeMs: 6000,
+              blinkFrom: now + 3500,
+              bounced: false,
+              _ignoreBy: null,
+              // tag the shooter so this spawned coin can skip collisions with its origin shooter
+              _ignorePlatform: shooter
+            });
+          } catch (e) {
+            // ignore single shooter spawn error
+          }
+        }
+      } catch (e) {
+        // swallow shooter loop errors so coin physics still run
+      }
+
+      // Use a lower gravity multiplier for dropped coins so they fall slower than players
+      const dropGravityBase = (typeof this.player.gravity === 'number') ? Math.abs(this.player.gravity) : 0.8;
+      const dropGravity = Math.max(0.02, dropGravityBase * 0.6); // ~60% of player gravity
+
+      // Integrate per-coin physics first (apply gravity + integrate)
+      for (let i = this.droppedCoins.length - 1; i >= 0; i--) {
+        const dc = this.droppedCoins[i];
+
+        // Apply gravity (respect invertedGravity) but lighter than players
+        dc.vy += (this.invertedGravity ? -dropGravity : dropGravity);
+
+        // Integrate
+        dc.x += dc.vx;
+        dc.y += dc.vy;
+
+        // Simple ground bounce: test against platforms (approx ground detection)
+        for (let j = 0; j < this.platforms.length; j++) {
+          const plat = this.platforms[j];
+          if (!plat) continue;
+          // allow coins to ignore collision with the shooter that spawned them
+          if (dc._ignorePlatform && plat === dc._ignorePlatform) continue;
+          // basic AABB collision: dropped coin bottom vs platform top
+          const coinBottom = dc.y + dc.height;
+          const platTop = plat.y;
+          const overlapX = (dc.x + dc.width) > plat.x && dc.x < (plat.x + plat.width);
+          // if coin lands on top of platform (approaching from above) and within small threshold
+          if (overlapX && coinBottom >= platTop - 6 && coinBottom <= platTop + 12 && dc.vy > 0) {
+            // place on top
+            dc.y = platTop - dc.height - 0.5;
+            // bounce with stronger energy so coins jump noticeably higher but remain bounded
+            const bouncedVy = Math.abs(dc.vy) * 0.9; // retain much more vertical energy for bigger bounce
+            const maxBounceSpeed = 10; // higher cap so bigger bounces are allowed
+            const minBounceSpeed = 3.0; // ensure a more visible minimum rebound
+            // pick rebound as clamped bouncedVy but never below minBounceSpeed
+            dc.vy = -Math.max(minBounceSpeed, Math.min(bouncedVy, maxBounceSpeed));
+            // keep horizontal velocity so dropped coins scatter naturally
+          }
+        }
+
+        // World-floor bounce fallback: if no platform caught the coin and it hits a reasonable world floor,
+        // make it bounce with similar damping so dropped coins always respond to ground.
+        try {
+          const WORLD_FLOOR_Y = 1200; // matches out-of-bounds / fall threshold used elsewhere
+          const coinBottom = dc.y + dc.height;
+          if (coinBottom >= WORLD_FLOOR_Y && dc.vy > 0) {
+            dc.y = WORLD_FLOOR_Y - dc.height - 0.5;
+            // floor bounce: give a stronger rebound similar to platform bounce so coins pop higher on floor hits
+            const minBounceSpeed = 3.0;
+            const bouncedVyFloor = Math.abs(dc.vy) * 0.88;
+            dc.vy = -Math.max(minBounceSpeed, Math.min(bouncedVyFloor, 10));
+            // no horizontal damping here either
+          }
+        } catch (e) {
+          // swallow any error to avoid breaking update loop
+        }
+      }
+
+      // NOTE: pairwise dropped-coin collisions removed to allow independent coin physics and simpler behavior.
+
+      // After physics and coin-coin collisions, perform lifetime checks and player collection
+      for (let i = this.droppedCoins.length - 1; i >= 0; i--) {
+        const dc = this.droppedCoins[i];
+        // Lifetime expired?
+        if (now - dc.bornAt >= dc.lifeMs) {
+          this.droppedCoins.splice(i, 1);
+          continue;
+        }
+
+        // blinking last 2 seconds handled in render; collection handled here
+        // Allow collection by player1, but respect an ignore flag so the player who died doesn't immediately re-collect coins spawned at their body.
+        const px = this.player.x, py = this.player.y, pw = this.player.width, ph = this.player.height;
+        const overlapP1 = px < dc.x + dc.width && px + pw > dc.x && py < dc.y + dc.height && py + ph > dc.y;
+
+        // If this coin is currently set to be ignored by player1, only clear the ignore flag once they are no longer overlapping.
+        if (dc._ignoreBy === this.player) {
+          if (overlapP1) {
+            // still touching the dead player's body; skip collection for now
+            continue;
+          } else {
+            // no longer touching -> allow collection in subsequent frames
+            delete dc._ignoreBy;
+          }
+        }
+
+        if (overlapP1 && dc._ignoreBy !== this.player) {
+          // collect by player1
+          this.coinsCollected = (this.coinsCollected || 0) + 1;
+          this._collectedCoinSizesP1.push({ width: dc.width, height: dc.height });
+          try { this.playSound('coincollect'); } catch(e){}
+          this.droppedCoins.splice(i, 1);
+          continue;
+        }
+
+        // Allow collection by player2 if active (respect ignore flag for player2 as well)
+        if (this.player2) {
+          const p2x = this.player2.x, p2y = this.player2.y, p2w = this.player2.width, p2h = this.player2.height;
+          const overlapP2 = p2x < dc.x + dc.width && p2x + p2w > dc.x && p2y < dc.y + dc.height && p2y + p2h > dc.y;
+
+          if (dc._ignoreBy === this.player2) {
+            if (overlapP2) {
+              // still touching player2's death body; skip
+              continue;
+            } else {
+              delete dc._ignoreBy;
+            }
+          }
+
+          if (overlapP2 && dc._ignoreBy !== this.player2) {
+            this.coinsCollectedP2 = (this.coinsCollectedP2 || 0) + 1;
+            this._collectedCoinSizesP2.push({ width: dc.width, height: dc.height });
+            try { this.playSound('coincollect'); } catch(e){}
+            this.droppedCoins.splice(i, 1);
+            continue;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('droppedCoins update failed', e);
+    }
+
+    // Handle collisions after movement
+    let hasCollision = false;
+    for (let i = 0; i < this.platforms.length; i++) {
+      const platform = this.platforms[i];
+      if (this.player.checkCollision(platform)) {
+
+        // If it's a coin, collect it (remove from platforms), increment counter, record its size, play sound and show small effect
+        if (platform.type === 'coin') {
+          try {
+            this.coinsCollected = (this.coinsCollected || 0) + 1;
+            // remember the exact size the coin had when collected so it can be dropped later
+            try {
+              this._collectedCoinSizesP1.push({ width: platform.width || 32, height: platform.height || 32 });
+            } catch (e) { /* ignore */ }
+
+            this.effects.push({
+              x: this.player.x + this.player.width / 2,
+              y: this.player.y - 6,
+              text: '',
+              time: Date.now(),
+              duration: 900
+            });
+            try { this.playSound('coincollect'); } catch(e) {}
+          } catch (e) {}
+          try { this.platforms.splice(i, 1); i--; } catch(e) {}
+          continue;
+        }
+
+        // Door: phase-through but set a prompt that allows player to press Down to teleport to its paired door
+        if (platform.type === 'door') {
+          try {
+            // store the currently-touched door so render and key handlers can use it
+            this._doorPrompt = platform;
+          } catch (e) {}
+          // DO NOT resolve collision (phase through)
+          continue;
+        }
+
+        // If it's a kill block, immediately respawn player to last checkpoint or spawn
+        if (platform.type === 'kill') {
+          // Use centralized death handler so both players respawn to player1's checkpoint/spawn
+          this._handlePlayerDeath(this.player);
+          // stop processing further collisions this frame
+          hasCollision = false;
+          break;
+        }
+
+        // If it's a win block, pause and show results
+        if (platform.type === 'win') {
+          this.playSound('win');
+          // stop the game and display win overlay
+          if (!this.gamePaused) {
+            this.gamePaused = true;
+            const elapsed = Date.now() - this.startTime;
+            const sec = Math.floor(elapsed / 1000);
+            this._showWinMenu(sec, this.deaths);
+          }
+          // prevent falling through the win block; handle collision like a platform so player lands
+          this.player.handleCollision(platform);
+          hasCollision = true;
+          continue;
+        }
+
+        // If it's a checkpoint, mark it unlocked and set active checkpoint
+        if (platform.type === 'checkpoint') {
+          // Don't allow an older checkpoint (lower _index) to override a more recent active checkpoint.
+          const platIndex = (typeof platform._index === 'number') ? platform._index : 0;
+          const activeIndex = (this.activeCheckpoint && typeof this.activeCheckpoint._index === 'number') ? this.activeCheckpoint._index : -1;
+
+          if (platIndex <= activeIndex) {
+            // Older or equal checkpoint — just resolve collision so player can stand, but don't re-activate or play sound.
+            this.player.handleCollision(platform);
+            hasCollision = true;
+            continue;
+          }
+
+          // Newer checkpoint — activate it.
+          platform.unlocked = true;
+          this.activeCheckpoint = platform;
+
+          // Ensure we only show the unlock effect once per standing visit and debounce repeat spawns
+          // _playerOver prevents repeated messages while continuously overlapping;
+          // _lastMsgTime prevents rapid re-triggering (e.g., immediately after respawn).
+          const now = Date.now();
+          const DEBOUNCE_MS = 1200;
+
+          if (!platform._playerOver) {
+            // Only show the effect if enough time passed since last message for this checkpoint
+            if (!platform._lastMsgTime || (now - platform._lastMsgTime) > DEBOUNCE_MS) {
+              platform._playerOver = true;
+              platform._lastMsgTime = now;
+              this.effects.push({
+                x: this.player.x + this.player.width / 2,
+                y: this.player.y - 10,
+                text: 'Checkpoint!',
+                time: now,
+                duration: 1200
+              });
+              this.playSound('checkpoint');
+            } else {
+              // mark as over to avoid further attempts during this overlap
+              platform._playerOver = true;
+            }
+          }
+
+          // handle its collision so the player doesn't fall through
+          this.player.handleCollision(platform);
+          hasCollision = true;
+          continue;
+        }
+
+        // Normal platform collision resolution
+        this.player.handleCollision(platform);
+        hasCollision = true;
+      }
+    }
+
+    // Reset per-checkpoint "player over" flag when no players are colliding with it,
+    // so the message can play again next time someone steps on it.
+    for (let i = 0; i < this.platforms.length; i++) {
+      const p = this.platforms[i];
+      if (p.type === 'checkpoint' && p._playerOver) {
+        // Consider both players: only clear the flag when neither player is on the checkpoint.
+        const p1Over = (this.player && typeof this.player.checkCollision === 'function') ? this.player.checkCollision(p) : false;
+        const p2Over = (this.player2 && typeof this.player2.checkCollision === 'function') ? this.player2.checkCollision(p) : false;
+        if (!p1Over && !p2Over) {
+          p._playerOver = false;
+        }
+      }
+    }
+
+    // Clear door prompt if player is no longer touching any door (keep it only while touching)
+    try {
+      let touchingAnyDoor = false;
+      for (let i = 0; i < this.platforms.length; i++) {
+        const pp = this.platforms[i];
+        if (!pp || pp.type !== 'door') continue;
+        if (this.player.checkCollision(pp)) { touchingAnyDoor = true; break; }
+      }
+      if (!touchingAnyDoor) this._doorPrompt = null;
+    } catch (e) {}
+
+    // Set jumping state based on collisions
+    if (hasCollision) {
+      this.player.isJumping = false;
+    }
+
+    // Player-vs-player collision: allow landing on each other's head (treat as platform) or otherwise prevent overlap and push apart.
+    try {
+      // COLLIDE with remote multiplayer players as well (treat them like other player entities)
+      for (const cid in this.remotePlayers) {
+        try {
+          const rp = this.remotePlayers[cid];
+          if (!rp) continue;
+          // skip ephemeral local placeholder if marked inactive here (only used for chat bubbles)
+          if (rp._noCollide) continue;
+          const rx = rp.x || 0, ry = rp.y || 0, rw = rp.width || 40, rh = rp.height || 60;
+          // AABB overlap?
+          if (this.player.x < rx + rw && this.player.x + this.player.width > rx && this.player.y < ry + rh && this.player.y + this.player.height > ry) {
+            // compute penetration on each axis
+            const penX = Math.min(this.player.x + this.player.width - rx, rx + rw - this.player.x);
+            const penY = Math.min(this.player.y + this.player.height - ry, ry + rh - this.player.y);
+
+            // standing-on-head heuristic: if local player's feet are above remote's top slightly, land on them
+            const HEAD_LAND_TOLERANCE = 10;
+            const aFeet = this.player.y + this.player.height;
+            if (aFeet <= ry + HEAD_LAND_TOLERANCE) {
+              this.player.y = ry - this.player.height;
+              this.player.velocityY = 0;
+              this.player.isJumping = false;
+              // slight nudge to avoid perfect overlap
+              if (Math.abs(penX) > 0) {
+                const nudge = Math.sign((this.player.x + this.player.width/2) - (rx + rw/2)) * Math.min(2, penX * 0.25);
+                this.player.x += nudge;
+              }
+            } else {
+              // separate on axis of least penetration to avoid tunneling
+              if (penX < penY) {
+                if (this.player.x < rx) {
+                  this.player.x -= penX / 2;
+                  // move remote placeholder slightly for visual separation (non-authoritative)
+                  rp.x += penX / 2;
+                } else {
+                  this.player.x += penX / 2;
+                  rp.x -= penX / 2;
+                }
+                try { this.player.velocityX *= (typeof this.player.friction === 'number' ? this.player.friction : 0.9); } catch(e) { this.player.velocityX = 0; }
+              } else {
+                if (this.player.y < ry) {
+                  this.player.y -= penY / 2;
+                  rp.y += penY / 2;
+                } else {
+                  this.player.y += penY / 2;
+                  rp.y -= penY / 2;
+                }
+                this.player.velocityY = 0;
+              }
+            }
+            // clamp tiny velocities
+            try { if (Math.abs(this.player.velocityX) < 0.6) this.player.velocityX = 0; } catch(e){}
+          }
+        } catch (e) {}
+      }
+
+      // Existing local player vs local player2 logic retained below
+      if (this.player2) {
+        const a = this.player;
+        const b = this.player2;
+        const collides = a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y;
+        if (collides) {
+          // compute penetration on each axis
+          const penX = Math.min(a.x + a.width - b.x, b.x + b.width - a.x);
+          const penY = Math.min(a.y + a.height - b.y, b.y + b.height - a.y);
+
+          // If vertical penetration is smaller or equal, resolve vertically; otherwise horizontally.
+          // But first check for "standing on head" cases: if A is sufficiently above B, let A land on B (like a platform).
+          const HEAD_LAND_TOLERANCE = 10; // pixels tolerance to consider "on top"
+          const aFeet = a.y + a.height;
+          const bFeet = b.y + b.height;
+
+          // A on top of B?
+          if (aFeet <= b.y + HEAD_LAND_TOLERANCE) {
+            // snap A to B's top
+            a.y = b.y - a.height;
+            a.velocityY = 0;
+            a.isJumping = false;
+            // give a tiny horizontal nudge so they don't perfectly overlap edges
+            if (Math.abs(penX) > 0) {
+              const nudge = Math.sign((a.x + a.width/2) - (b.x + b.width/2)) * Math.min(2, penX * 0.25);
+              a.x += nudge;
+            }
+          }
+          // B on top of A?
+          else if (bFeet <= a.y + HEAD_LAND_TOLERANCE) {
+            b.y = a.y - b.height;
+            b.velocityY = 0;
+            b.isJumping = false;
+            if (Math.abs(penX) > 0) {
+              const nudge = Math.sign((b.x + b.width/2) - (a.x + a.width/2)) * Math.min(2, penX * 0.25);
+              b.x += nudge;
+            }
+          } else {
+            // Fallback: resolve on the axis of least penetration to separate
+            if (penX < penY) {
+              // separate horizontally
+              if (a.x < b.x) {
+                const shift = penX / 2;
+                a.x -= shift;
+                b.x += shift;
+              } else {
+                const shift = penX / 2;
+                a.x += shift;
+                b.x -= shift;
+              }
+              // apply small friction/stop so they don't keep sliding through each other
+              try { a.velocityX *= (typeof a.friction === 'number' ? a.friction : 0.9); } catch(e) { a.velocityX = 0; }
+              try { b.velocityX *= (typeof b.friction === 'number' ? b.friction : 0.9); } catch(e) { b.velocityX = 0; }
+            } else {
+              // separate vertically
+              if (a.y < b.y) {
+                const shift = penY / 2;
+                a.y -= shift;
+                b.y += shift;
+              } else {
+                const shift = penY / 2;
+                a.y += shift;
+                b.y -= shift;
+              }
+              // vertical velocity reset to avoid tunneling
+              a.velocityY = 0;
+              b.velocityY = 0;
+            }
+          }
+
+          // Ensure slide-stop consistency: when either player has very small horizontal velocity, snap to zero
+          try { if (Math.abs(a.velocityX) < 0.6) a.velocityX = 0; } catch(e){}
+          try { if (Math.abs(b.velocityX) < 0.6) b.velocityX = 0; } catch(e){}
+        }
+      }
+    } catch (e) {
+      // swallow any errors so collision resolution doesn't break game loop
+      console.warn('player-player collision resolution failed', e);
+    }
+
+    // VERY VERY HIGH / falling / out-of-bounds checks
+    // If the player flies extremely high above the world while inverted gravity is active, show a special message and restart after 5s.
+    // Threshold chosen to be *much* higher than typical level layouts so this triggers only for truly extreme ascents.
+    const VERY_HIGH_Y = -12000;
+    if (this.invertedGravity && typeof this.player.y === 'number' && this.player.y < VERY_HIGH_Y) {
+      if (!this._lostInSky.shown) {
+        this._lostInSky.shown = true;
+        this._lostInSky.since = Date.now();
+        // Show overlay
+        if (this._lostOverlay) this._lostOverlay.style.display = 'block';
+        // freeze gameplay visuals/physics by pausing game and stopping replay recording
+        this.gamePaused = true;
+        // schedule restart after 5 seconds
+        try {
+          this._lostInSky.timeoutId = setTimeout(() => {
+            // soft restart: reload the page to reset state
+            location.reload();
+          }, 5000);
+        } catch (e) {
+          // fallback: immediate reload if scheduling fails
+          try { location.reload(); } catch(e) {}
+        }
+      }
+    } else {
+      // If player returns below threshold and overlay was shown (or inverted gravity disabled), hide overlay and cancel restart
+      if (this._lostInSky.shown && this._lostInSky.timeoutId) {
+        try { clearTimeout(this._lostInSky.timeoutId); } catch(e){}
+      }
+      this._lostInSky.shown = false;
+      this._lostInSky.since = 0;
+      this._lostInSky.timeoutId = null;
+      if (this._lostOverlay) this._lostOverlay.style.display = 'none';
+    }
+
+    // falling / out-of-bounds check (use checkpoint if available) - normal downward death case
+    // If either player falls out-of-bounds, treat it as a full death and respawn both to the active checkpoint/spawn.
+    if (this.player.y > 1200 || (this.player2 && this.player2.y > 1200)) {
+      // If the map explicitly disables the void, do nothing (players simply phase through).
+      if (this._disableVoid) {
+        // Intentionally no-op: map author requested the void be disabled (players won't be teleported or killed).
+      }
+      // If current map is the procedural maze, do not treat falling into the void as an instant death;
+      // instead clamp the player's vertical position and neutralize velocity so the run can continue visually.
+      else if (this._currentMapIsMaze) {
+        // keep players near the bottom but prevent repeated falls from spiraling off-screen
+        if (this.player.y > 1200) { this.player.y = 1190; this.player.velocityY = 0; }
+        if (this.player2 && this.player2.y > 1200) { this.player2.y = 1190; this.player2.velocityY = 0; }
+      } else {
+        // If player2 specifically fell, call centralized handler passing player2 so both respawn.
+        if (this.player2 && this.player2.y > 1200) {
+          this._handlePlayerDeath(this.player2);
+        } else {
+          // regular player1 fall
+          this._handlePlayerDeath(this.player);
+        }
+      }
+    }
+
+    // Update camera position to follow player(s) (skip if paused)
+    if (!this.gamePaused) {
+      this.updateCameraFollow();
+    }
+  }
+
+  render() {
+    // If pixelated mode is off, render directly to the main canvas as before.
+    // If pixelated mode is on, render the whole scene to a small offscreen canvas and scale it up with nearest-neighbor.
+    const vw = this.viewWidth || window.innerWidth;
+    const vh = this.viewHeight || window.innerHeight;
+
+    // If split-screen P2 camera is enabled and we have a second player and not in 3D, render two halves.
+    if (this.p2SeparateCamera && this.twoPlayer && !this.threeActive) {
+      try {
+        // left half: player2, right half: player1
+        const halfW = Math.floor(vw / 2);
+        // Save original camera state
+        const camBackup = { x: this.camera.x, y: this.camera.y, smooth: this.camera.smoothFactor };
+
+        // helper to draw HUD for a given canvas origin and whether it's the P2 view
+        const drawSplitHUD = (ctxMain, originX, showP2) => {
+          try {
+            const bx = originX + 12;
+            const by = 12;
+            const pad = 12;
+            const gap = 6;
+            const boxW = 220;
+            const elapsedSec = Math.floor((Date.now() - (this.startTime || Date.now())) / 1000);
+            const timerText = `Time: ${elapsedSec}s`;
+            const deathsText = showP2 ? `DeathsP2: ${this.deathsP2 || 0}` : `Deaths: ${this.deaths || 0}`;
+            const coinsText = showP2 ? `CoinsP2: ${this.coinsCollectedP2 || 0}` : `Coins: ${this.coinsCollected || 0}`;
+            const lines = [timerText, deathsText, coinsText];
+            const totalH = pad * 2 + lines.length * 20 + (lines.length - 1) * gap;
+
+            ctxMain.save();
+            ctxMain.globalAlpha = 0.92;
+            ctxMain.fillStyle = 'rgba(6,6,8,0.76)';
+            // rounded rect background
+            const rr = 10;
+            ctxMain.beginPath();
+            ctxMain.moveTo(bx + rr, by);
+            ctxMain.lineTo(bx + boxW - rr, by);
+            ctxMain.quadraticCurveTo(bx + boxW, by, bx + boxW, by + rr);
+            ctxMain.lineTo(bx + boxW, by + totalH - rr);
+            ctxMain.quadraticCurveTo(bx + boxW, by + totalH, bx + boxW - rr, by + totalH);
+            ctxMain.lineTo(bx + rr, by + totalH);
+            ctxMain.quadraticCurveTo(bx, by + totalH, bx, by + totalH - rr);
+            ctxMain.lineTo(bx, by + rr);
+            ctxMain.quadraticCurveTo(bx, by, bx + rr, by);
+            ctxMain.closePath();
+            ctxMain.fill();
+
+            // header accent
+            ctxMain.fillStyle = 'rgba(255,255,255,0.03)';
+            ctxMain.fillRect(bx, by, boxW, Math.min(28, totalH * 0.18));
+
+            // draw lines
+            ctxMain.fillStyle = '#fff';
+            ctxMain.font = '16px Arial';
+            ctxMain.textAlign = 'left';
+            ctxMain.textBaseline = 'top';
+            let y = by + pad;
+            for (let i = 0; i < lines.length; i++) {
+              if (i === 0) {
+                ctxMain.font = '18px Arial';
+                ctxMain.fillStyle = '#ffffff';
+              } else {
+                ctxMain.font = '15px Arial';
+                ctxMain.fillStyle = 'rgba(255,255,255,0.95)';
+              }
+              ctxMain.fillText(lines[i], bx + pad, y);
+              y += 20 + gap;
+            }
+            ctxMain.restore();
+          } catch (err) {
+            // ignore HUD draw errors
+          }
+        };
+
+        // Prepare main canvas context for split rendering
+        this.ctx.save();
+        // Ensure we draw in logical CSS pixels by resetting transform to identity (render later respects DPR)
+        const dpr = window.devicePixelRatio || 1;
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        // --- LEFT: Player2 view ---
+        // Clip to left half
+        this.ctx.beginPath();
+        this.ctx.rect(0, 0, halfW, vh);
+        this.ctx.clip();
+
+        // Update camera to center on player2 for left half.
+        try {
+          const p = this.player2;
+          const synthetic = { x: p.x, y: p.y, width: p.width, height: p.height };
+          // Set camera instantly for split halves (no smoothing) to avoid interpolation across halves
+          this.camera.smoothFactor = 1;
+
+          // Force camera to compute using the left-half view size so centering targets the true half center
+          this.camera._forcedViewWidth = halfW;
+          this.camera._forcedViewHeight = vh;
+          this.camera.update(synthetic);
+          // Clear forced values immediately after update so other code uses full view by default
+          this.camera._forcedViewWidth = undefined;
+          this.camera._forcedViewHeight = undefined;
+        } catch (e) {}
+
+        // Draw background layers and scene clipped to left half using same rendering steps as main render but restricted to half width
+        // Clear left half
+        this.ctx.clearRect(0, 0, halfW, vh);
+
+        // draw background layers for left half
+        for (const layer of this.bgLayers) {
+          this.ctx.save();
+          this.ctx.globalAlpha = layer.alpha;
+          const ox = (-this.camera.x || 0) * (1 - layer.speed);
+          const oy = (-this.camera.y || 0) * (1 - layer.speed);
+          try {
+            layer.draw(this.ctx, ox, oy, halfW, vh);
+          } catch (e) {}
+          this.ctx.restore();
+        }
+
+        // apply camera transform then draw world for player2
+        this.ctx.save();
+        this.camera.apply(this.ctx, halfW, vh);
+
+        // draw platforms (respect Spin mode)
+        if (this.spinMode) {
+          const angleL = (Date.now() * 0.002) % (Math.PI * 2);
+          for (const platform of this.platforms) {
+            try {
+              this.ctx.save();
+              const cx = platform.x + platform.width / 2;
+              const cy = platform.y + platform.height / 2;
+              this.ctx.translate(cx, cy);
+              this.ctx.rotate(angleL);
+              this.ctx.translate(-cx, -cy);
+              platform.draw(this.ctx);
+              this.ctx.restore();
+            } catch (e) {
+              try { platform.draw(this.ctx); } catch(err) {}
+            }
+          }
+        } else {
+          this.platforms.forEach(platform => platform.draw(this.ctx));
+        }
+
+        // draw both players so each split view can see the other player
+        // draw player2 as the primary (full alpha)
+        if (this.player2) {
+          this.player2.draw(this.ctx);
+        }
+        // draw player1 into the same view with slightly reduced alpha so it's visible but distinct
+        if (this.player) {
+          this.ctx.save();
+          this.ctx.globalAlpha = 0.92;
+          this.player.draw(this.ctx);
+          this.ctx.restore();
+        }
+
+        // small chase ghost for p2 (if chase2 exists)
+        try {
+          if (this.chaseMode && this.chase2 && this.chase2.ghost) {
+            const g2 = this.chase2.ghost;
+            if (g2 && g2.active) {
+              this.ctx.save();
+              this.ctx.fillStyle = 'rgba(40,120,220,0.9)';
+              this.ctx.fillRect(g2.x, g2.y, g2.width, g2.height);
+              this.ctx.restore();
+            }
+          }
+        } catch (e) {}
+
+        // Draw dropped/shot coins while camera transform is active so they follow the same parallax/viewport
+        try {
+          const nowDraw = Date.now();
+          for (let dcIndex = 0; dcIndex < this.droppedCoins.length; dcIndex++) {
+            const dc = this.droppedCoins[dcIndex];
+            const age = nowDraw - dc.bornAt;
+            const remaining = Math.max(0, dc.lifeMs - age);
+            // blinking last 2 seconds
+            let visible = true;
+            if (remaining <= 2000) {
+              visible = Math.floor((nowDraw % 250) / 125) % 2 === 0;
+            }
+            if (!visible) continue;
+            try {
+              // draw animated coin frame into current context (this.ctx is used here)
+              this._drawCoinFrame(this.ctx, dc);
+            } catch (err) {
+              try {
+                this.ctx.save();
+                this.ctx.fillStyle = '#ffd54f';
+                this.ctx.beginPath();
+                this.ctx.ellipse(dc.x + dc.width/2, dc.y + dc.height/2, dc.width/2, dc.height/2, 0, 0, Math.PI*2);
+                this.ctx.fill();
+                this.ctx.restore();
+              } catch (e) {}
+            }
+          }
+        } catch (e) {
+          console.warn('left-half droppedCoins render failed', e);
+        }
+
+        this.ctx.restore(); // camera apply
+
+        // draw HUD for left half (player2-focused)
+        drawSplitHUD(this.ctx, 0, true);
+
+        // restore clip to allow second half drawing
+        this.ctx.restore();
+
+        // --- RIGHT: Player1 view ---
+        // Clip to right half (we'll reuse right half area)
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.rect(halfW, 0, vw - halfW, vh);
+        this.ctx.clip();
+
+        // Update camera for player1 and draw world
+        try {
+          const p = this.player;
+          const synthetic = { x: p.x, y: p.y, width: p.width, height: p.height };
+          this.camera.smoothFactor = 1;
+
+          // Force camera to compute using the right-half view size so centering is correct for that half
+          this.camera._forcedViewWidth = (vw - halfW);
+          this.camera._forcedViewHeight = vh;
+          this.camera.update(synthetic);
+          this.camera._forcedViewWidth = undefined;
+          this.camera._forcedViewHeight = undefined;
+        } catch (e) {}
+
+        // Clear right half
+        this.ctx.clearRect(halfW, 0, vw - halfW, vh);
+
+        // draw background layers for right half (pass offset so parallax aligns)
+        for (const layer of this.bgLayers) {
+          this.ctx.save();
+          this.ctx.globalAlpha = layer.alpha;
+          const ox = (-this.camera.x || 0) * (1 - layer.speed);
+          const oy = (-this.camera.y || 0) * (1 - layer.speed);
+          try {
+            // draw with an x-offset so right half is rendered at the correct canvas x origin
+            // we temporarily translate the context before calling layer.draw to maintain layer coordinate assumptions
+            this.ctx.translate(halfW, 0);
+            layer.draw(this.ctx, ox, oy, vw - halfW, vh);
+            this.ctx.translate(-halfW, 0);
+          } catch (e) {}
+          this.ctx.restore();
+        }
+
+        // apply camera transform with adjusted viewWidth for right half
+        this.ctx.save();
+        // translate context so camera.apply uses right-half origin as center
+        // camera.apply expects viewWidth/viewHeight; pass right-half width and then translate so it draws at halfW offset
+        this.ctx.translate(halfW, 0);
+        this.camera.apply(this.ctx, vw - halfW, vh);
+
+        // draw platforms & player1 (respect Spin mode)
+        if (this.spinMode) {
+          const angleR = (Date.now() * 0.002) % (Math.PI * 2);
+          for (const platform of this.platforms) {
+            try {
+              // store rotation for collision code to read
+              platform._spinAngle = angleR;
+              this.ctx.save();
+              // translate for right-half drawing (we've already translated ctx by halfW earlier)
+              const cx = platform.x + platform.width / 2;
+              const cy = platform.y + platform.height / 2;
+              this.ctx.translate(cx, cy);
+              this.ctx.rotate(angleR);
+              this.ctx.translate(-cx, -cy);
+              platform.draw(this.ctx);
+              this.ctx.restore();
+            } catch (e) {
+              try { delete platform._spinAngle; platform.draw(this.ctx); } catch(err) {}
+            }
+          }
+        } else {
+          for (const platform of this.platforms) {
+            if (platform && typeof platform._spinAngle !== 'undefined') delete platform._spinAngle;
+            platform.draw(this.ctx);
+          }
+        }
+
+        // draw player1 as the primary in this half
+        if (this.player) {
+          this.player.draw(this.ctx);
+        }
+
+        // also draw player2 so player1's camera can see P2 (slightly translucent to differentiate)
+        if (this.player2) {
+          this.ctx.save();
+          this.ctx.globalAlpha = 0.95;
+          this.player2.draw(this.ctx);
+          this.ctx.restore();
+        }
+
+        // draw chase ghost if active
+        try {
+          if (this.chaseMode && this.chase && this.chase.ghost) {
+            const g = this.chase.ghost;
+            if (g && g.active) {
+              this.ctx.save();
+              this.ctx.fillStyle = 'rgba(200,40,40,0.9)';
+              this.ctx.fillRect(g.x, g.y, g.width, g.height);
+              this.ctx.restore();
+            }
+          }
+        } catch (e) {}
+
+        // Draw dropped/shot coins for right-half view while camera transform is active so they appear in P1's camera as well.
+        try {
+          const nowDrawR = Date.now();
+          for (let dcIndexR = 0; dcIndexR < this.droppedCoins.length; dcIndexR++) {
+            const dc = this.droppedCoins[dcIndexR];
+            const age = nowDrawR - dc.bornAt;
+            const remaining = Math.max(0, dc.lifeMs - age);
+            let visible = true;
+            if (remaining <= 2000) {
+              visible = Math.floor((nowDrawR % 250) / 125) % 2 === 0;
+            }
+            if (!visible) continue;
+            try {
+              // use shared helper to draw animated frame
+              this._drawCoinFrame(this.ctx, dc);
+            } catch (errR) {
+              try {
+                this.ctx.save();
+                this.ctx.fillStyle = '#ffd54f';
+                this.ctx.beginPath();
+                this.ctx.ellipse(dc.x + dc.width/2, dc.y + dc.height/2, dc.width/2, dc.height/2, 0, 0, Math.PI*2);
+                this.ctx.fill();
+                this.ctx.restore();
+              } catch (e) {}
+            }
+          }
+        } catch (err) {
+          console.warn('right-half droppedCoins render failed', err);
+        }
+
+        this.ctx.restore(); // camera apply region
+        this.ctx.restore(); // clip for right half
+
+        // draw HUD for right half (player1-focused) - origin offset by halfW so HUD sits in top-left of right half
+        drawSplitHUD(this.ctx, halfW, false);
+
+        // Restore camera state
+        this.camera.x = camBackup.x;
+        this.camera.y = camBackup.y;
+        this.camera.smoothFactor = camBackup.smooth;
+
+        // Restore drawing transform to the devicePixelRatio (don't resize canvas here — resizing mid-render can
+        // clear the canvas and produce a black frame). This preserves the expected DPR transform without touching sizes.
+        try {
+          const dpr = window.devicePixelRatio || 1;
+          this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        } catch (e) {
+          // fallback no-op if ctx unavailable
+        }
+      } catch (e) {
+        // fallback to normal render if split rendering throws
+        console.warn('Split render failed, falling back to single view', e);
+      }
+      return;
+    }
+
+    // Determine target render context: either offscreen low-res or the real canvas
+    let useOffscreen = !!this.pixelated;
+    if (useOffscreen) {
+      // create or resize offscreen buffer as needed
+      try {
+        if (!this._pixelCanvas) {
+          this._pixelCanvas = document.createElement('canvas');
+          this._pixelCtx = this._pixelCanvas.getContext('2d');
+        }
+        // choose integer pixel scale based on view size and _pixelScale
+        const scale = Math.max(0.04, Math.min(0.75, this._pixelScale));
+        const offW = Math.max(32, Math.floor(vw * scale));
+        const offH = Math.max(32, Math.floor(vh * scale));
+        if (this._pixelCanvas.width !== offW || this._pixelCanvas.height !== offH) {
+          this._pixelCanvas.width = offW;
+          this._pixelCanvas.height = offH;
+        }
+        var ctxLocal = this._pixelCtx;
+        // Ensure a clean transform for offscreen drawing: scale transforms will be managed manually
+        ctxLocal.setTransform(1,0,0,1,0,0);
+        // scale the offscreen context so world units map approximately (we render world scaled down)
+        const sx = this._pixelCanvas.width / vw;
+        const sy = this._pixelCanvas.height / vh;
+        ctxLocal.scale(sx, sy);
+      } catch (e) {
+        // fallback to direct render if offscreen creation fails
+        useOffscreen = false;
+        var ctxLocal = this.ctx;
+      }
+    } else {
+      var ctxLocal = this.ctx;
+    }
+
+    // Now perform the same drawing steps but using ctxLocal instead of this.ctx.
+    // Clear with a base color first
+    ctxLocal.save();
+    ctxLocal.fillStyle = '#1b1d1f';
+    ctxLocal.fillRect(0, 0, vw, vh);
+    ctxLocal.restore();
+
+    // Camera world offset (camera.x/y represent translation applied later; invert them to world position)
+    const camWorldX = -this.camera.x || 0;
+    const camWorldY = -this.camera.y || 0;
+
+    // Draw each background layer using its speed to offset less than camera (parallax)
+    for (const layer of this.bgLayers) {
+      ctxLocal.save();
+      ctxLocal.globalAlpha = layer.alpha;
+      const ox = camWorldX * (1 - layer.speed);
+      const oy = camWorldY * (1 - layer.speed);
+      try {
+        layer.draw(ctxLocal, ox, oy, vw, vh);
+      } catch (e) {}
+      ctxLocal.restore();
+    }
+
+    // Apply mirror transform if requested: mirror the entire world horizontally around the screen
+    // We do this before applying camera transforms so the camera math stays the same, but rendering is flipped.
+    if (this.mirrorMode) {
+      ctxLocal.save();
+      // translate to the right edge then scale -1 so the world is mirrored about the vertical centerline
+      ctxLocal.translate((this.viewWidth || window.innerWidth), 0);
+      ctxLocal.scale(-1, 1);
+      // After mirroring, camera.apply will position world correctly in mirrored coordinate space
+      this.camera.apply(ctxLocal, this.viewWidth || window.innerWidth, this.viewHeight || window.innerHeight);
+    } else {
+      // Apply camera transform (pass current view size so camera centers correctly after resizes)
+      ctxLocal.save();
+      this.camera.apply(ctxLocal, this.viewWidth || window.innerWidth, this.viewHeight || window.innerHeight);
+    }
+
+    // Draw platforms (support spinning when enabled). When spinning, store a per-platform _spinAngle so hitboxes can be tested in the rotated frame.
+    if (this.spinMode) {
+      const angle = (Date.now() * 0.002) % (Math.PI * 2); // shared global spin angle (radians)
+      for (const platform of this.platforms) {
+        try {
+          // remember rotation on platform for collision handling
+          platform._spinAngle = angle;
+          ctxLocal.save();
+          // compute platform center
+          const cx = platform.x + platform.width / 2;
+          const cy = platform.y + platform.height / 2;
+          ctxLocal.translate(cx, cy);
+          ctxLocal.rotate(angle);
+          ctxLocal.translate(-cx, -cy);
+          // let platform draw itself at rotated transform
+          platform.draw(ctxLocal);
+          ctxLocal.restore();
+        } catch (e) {
+          // fallback to normal draw if anything goes wrong, and clear rotation
+          try { delete platform._spinAngle; platform.draw(ctxLocal); } catch (err) {}
+        }
+      }
+    } else {
+      // ensure any leftover rotation markers are cleared
+      for (const platform of this.platforms) {
+        if (platform && typeof platform._spinAngle !== 'undefined') delete platform._spinAngle;
+        platform.draw(ctxLocal);
+      }
+    }
+
+    // Draw player(s)
+    this.player.draw(ctxLocal);
+
+    // Local player's speech bubble: draw while camera transform is active so it aligns with player's world position.
+    try {
+      const nowBubble = Date.now();
+      if (this._localSpeech && this._localSpeechUntil && nowBubble < this._localSpeechUntil) {
+        const text = String(this._localSpeech).slice(0, 140);
+        const pw = this.player.width || 40;
+        const ph = this.player.height || 60;
+        // player world coords (camera transform is active here)
+        const rx = this.player.x || 0;
+        const ry = this.player.y || 0;
+
+        // bubble geometry in world coords: center above player's head
+        const cx = rx + pw / 2;
+        const bh = 22;
+        const padX = 10;
+        // measure text width (clamp)
+        ctxLocal.save();
+        ctxLocal.font = '14px Arial';
+        const measured = ctxLocal.measureText(text);
+        const textWidth = Math.min(220, measured.width);
+        const bw = textWidth + padX * 2;
+        const bx = cx - bw / 2;
+        const by = ry - 12 - bh - 6; // above player's head (world y)
+        // draw rounded rect background
+        ctxLocal.fillStyle = 'rgba(0,0,0,0.78)';
+        const rrr = 8;
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(bx + rrr, by);
+        ctxLocal.lineTo(bx + bw - rrr, by);
+        ctxLocal.quadraticCurveTo(bx + bw, by, bx + bw, by + rrr);
+        ctxLocal.lineTo(bx + bw, by + bh - rrr);
+        ctxLocal.quadraticCurveTo(bx + bw, by + bh, bx + bw - rrr, by + bh);
+        ctxLocal.lineTo(bx + rrr, by + bh);
+        ctxLocal.quadraticCurveTo(bx, by + bh, bx, by + bh - rrr);
+        ctxLocal.lineTo(bx, by + rrr);
+        ctxLocal.quadraticCurveTo(bx, by, bx + rrr, by);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+
+        // tail
+        ctxLocal.beginPath();
+        const tx = cx;
+        const ty = by + bh;
+        const tailW = 10;
+        const tailH = 8;
+        ctxLocal.moveTo(tx - tailW / 2, ty);
+        ctxLocal.lineTo(tx, ty + tailH);
+        ctxLocal.lineTo(tx + tailW / 2, ty);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+
+        // text
+        ctxLocal.fillStyle = '#fff';
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        ctxLocal.font = '14px Arial';
+        ctxLocal.fillText(text, cx, by + bh / 2);
+        ctxLocal.restore();
+      }
+    } catch (e) {
+      // ignore bubble render errors
+    }
+
+    // Draw remote players (multiplayer presence) so other players are visible in the world.
+    try {
+      const now = Date.now();
+      for (const cid in this.remotePlayers) {
+        const rp = this.remotePlayers[cid];
+        if (!rp) continue;
+        // simple interpolation / smoothing could be added; for now draw at reported coords
+        // Render skin preview similar to Player.draw but simplified: rounded rect with face text
+        ctxLocal.save();
+        const pw = rp.width || 40;
+        const ph = rp.height || 60;
+        const rx = rp.x || 0;
+        const ry = rp.y || 0;
+        // body gradient using a tiny palette fallback
+        const pal = (rp.skin && typeof rp.skin === 'string') ? ['#90caf9','#ffcc80','#ffd54f'] : ['#90caf9','#ffcc80'];
+        const g = ctxLocal.createLinearGradient(rx - 40, ry, rx + pw + 40, ry);
+        g.addColorStop(0, pal[0]);
+        g.addColorStop(1, pal[pal.length - 1] || pal[0]);
+        // rounded rect
+        const rrad = 6;
+        ctxLocal.fillStyle = g;
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(rx + rrad, ry);
+        ctxLocal.lineTo(rx + pw - rrad, ry);
+        ctxLocal.quadraticCurveTo(rx + pw, ry, rx + pw, ry + rrad);
+        ctxLocal.lineTo(rx + pw, ry + ph - rrad);
+        ctxLocal.quadraticCurveTo(rx + pw, ry + ph, rx + pw - rrad, ry + ph);
+        ctxLocal.lineTo(rx + rrad, ry + ph);
+        ctxLocal.quadraticCurveTo(rx, ry + ph, rx, ry + ph - rrad);
+        ctxLocal.lineTo(rx, ry + rrad);
+        ctxLocal.quadraticCurveTo(rx, ry, rx + rrad, ry);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+        // face text — use id suffix or skin name short
+        ctxLocal.fillStyle = '#000';
+        ctxLocal.font = `${Math.max(10, Math.round(ph * 0.36))}px Arial`;
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        const faceText = (rp.skin && rp.skin.length) ? (rp.skin.length > 6 ? rp.skin.slice(0,6) : rp.skin) : (rp.username ? '@' + rp.username.slice(0,6) : 'P');
+        ctxLocal.fillText(faceText, rx + pw / 2, ry + ph / 2 + 1);
+
+        // Draw username and map label above the remote player
+        try {
+          ctxLocal.font = '12px Arial';
+          ctxLocal.textAlign = 'center';
+          ctxLocal.textBaseline = 'bottom';
+          ctxLocal.fillStyle = 'rgba(0,0,0,0.6)';
+          // background rounded rect for readability
+          const label = `${rp.username || 'Player'} — ${rp.map || (this.multiplayer && this.multiplayer.room) || 'map'}`;
+          const metrics = ctxLocal.measureText(label);
+          const pad = 6;
+          const lw = Math.max(48, metrics.width + pad * 2);
+          const lx = rx + pw / 2 - lw / 2;
+          const ly = ry - 8 - 18; // above head
+          ctxLocal.fillRect(lx, ly, lw, 18);
+          ctxLocal.fillStyle = '#fff';
+          ctxLocal.fillText(label, rx + pw / 2, ly + 14);
+        } catch (e) {
+          // on any failure, ignore label draw
+        }
+
+        // Draw speech bubble above player when message exists and still within display time
+        try {
+          if (rp.speech && rp.speechUntil && now < rp.speechUntil) {
+            const text = String(rp.speech).slice(0, 140); // cap length
+            ctxLocal.save();
+            ctxLocal.font = '14px Arial';
+            ctxLocal.textAlign = 'center';
+            ctxLocal.textBaseline = 'bottom';
+            // measure text and clamp width
+            const maxWidth = 220;
+            const metrics = ctxLocal.measureText(text);
+            const textWidth = Math.min(maxWidth, metrics.width);
+            const padX = 10;
+            const padY = 6;
+            const bw = textWidth + padX * 2;
+            const bh = 22;
+            const bx = rx + pw / 2 - bw / 2;
+            const by = ry - 12 - bh - 6; // slightly above name label / head
+            // bubble background
+            ctxLocal.fillStyle = 'rgba(0,0,0,0.75)';
+            // rounded rect
+            const rrr = 8;
+            ctxLocal.beginPath();
+            ctxLocal.moveTo(bx + rrr, by);
+            ctxLocal.lineTo(bx + bw - rrr, by);
+            ctxLocal.quadraticCurveTo(bx + bw, by, bx + bw, by + rrr);
+            ctxLocal.lineTo(bx + bw, by + bh - rrr);
+            ctxLocal.quadraticCurveTo(bx + bw, by + bh, bx + bw - rrr, by + bh);
+            ctxLocal.lineTo(bx + rrr, by + bh);
+            ctxLocal.quadraticCurveTo(bx, by + bh, bx, by + bh - rrr);
+            ctxLocal.lineTo(bx, by + rrr);
+            ctxLocal.quadraticCurveTo(bx, by, bx + rrr, by);
+            ctxLocal.closePath();
+            ctxLocal.fill();
+            // little tail
+            ctxLocal.beginPath();
+            const tailW = 10;
+            const tailH = 8;
+            const tx = rx + pw / 2;
+            const ty = by + bh;
+            ctxLocal.moveTo(tx - tailW/2, ty);
+            ctxLocal.lineTo(tx, ty + tailH);
+            ctxLocal.lineTo(tx + tailW/2, ty);
+            ctxLocal.closePath();
+            ctxLocal.fill();
+
+            // text
+            ctxLocal.fillStyle = '#fff';
+            ctxLocal.font = '14px Arial';
+            ctxLocal.textAlign = 'center';
+            ctxLocal.textBaseline = 'middle';
+            ctxLocal.fillText(text, rx + pw / 2, by + bh / 2);
+            ctxLocal.restore();
+          }
+        } catch (e) {
+          // ignore bubble draw errors
+        }
+
+        ctxLocal.restore();
+      }
+    } catch (e) {
+      // ignore remote draw errors
+    }
+
+    // simple particle rendering for players based on their selected preset (draw after player so particles appear around them)
+    // particles are limited and fade out over 2 seconds to avoid instant pops and overdensity, and match skin preview behavior
+    const drawParticlesFor = (playerObj, idSeed = 0) => {
+      try {
+        if (!playerObj) return;
+        const preset = playerObj._particles || playerObj._particlePreset || null;
+        if (!preset || preset === 'None') return;
+
+        // center for particle emission (same as skin preview: center below face area)
+        const cx = Math.round(playerObj.x + (playerObj.width || 40) / 2);
+        const cy = Math.round(playerObj.y + (playerObj.height || 60) * 0.75);
+
+        const nowMs = Date.now();
+        const LIFETIME = 2000; // ms
+
+        // deterministic pseudo-random like the skin preview so motion is smooth and consistent
+        const rnd = (i, tOffset = 0) => {
+          const t = nowMs * 0.001 + (tOffset || 0);
+          return Math.abs(Math.sin(t * (0.7 + (idSeed % 7) * 0.01) + i * 12.9898)) % 1;
+        };
+
+        // map preset names to color/count/radius similar to the skin modal
+        const mapPreset = (name) => {
+          const n = (name || '').toLowerCase();
+          if (n === 'rainbow') return { colors: ['#ff3b3b','#ff8a00','#ffd400','#4caf50','#2196f3','#9c27b0'], count: 12, radius: 40 };
+          if (n === 'fire') return { colors: ['#ff5722','#ff9800','#ffd54f'], count: 8, radius: 28 };
+          if (n === 'ice cubes' || n === 'ice') return { colors: ['#e0f7fa','#b2ebf2','#80deea'], count: 8, radius: 28 };
+          if (n === 'green code' || n === 'binary stream') return { colors: ['#00ff66','#00dd44','#00aa22'], count: 11, radius: 40 };
+          if (n === 'sparkle') return { colors: ['#fff9c4','#fff176','#ffd54f'], count: 8, radius: 30 };
+          if (n === 'smoke') return { colors: ['rgba(200,200,200,0.9)'], count: 6, radius: 26 };
+          if (n === 'hearts') return { colors: ['#ff6b9a','#ff3b3b','#ff8a80'], count: 7, radius: 26 };
+          if (n === 'stars') return { colors: ['#fffacd','#fff176','#ffd54f'], count: 8, radius: 28 };
+          if (n === 'confetti' || n === 'candy burst' || n === 'candyburst') return { colors: ['#ff4da6','#ffd54f','#66ffea','#7c4dff','#ff8a65'], count: 12, radius: 44 };
+          if (n === 'aurora trail') return { colors: ['#8de0ff','#6ad7ff','#4fc3f7','#7c9bff'], count: 12, radius: 46 };
+          if (n === 'ember sparks' || n === ' ember sparks' || n === 'embersparks') return { colors: ['#ff8a50','#ff7043','#ffab66'], count: 10, radius: 30 };
+          if (n === 'glacial shards') return { colors: ['#e0f7fa','#b2ebf2','#cfeff5'], count: 9, radius: 36 };
+          return null;
+        };
+
+        const spec = mapPreset(preset);
+        if (!spec) return;
+
+        // limit how many draw calls per frame to avoid spikes (match skin preview cap)
+        const displayCount = Math.min(10, Math.max(0, Math.round(spec.count * 0.6)));
+
+        for (let i = 0; i < displayCount; i++) {
+          // deterministic birth offset so particles fade over LIFETIME smoothly and appear staggered
+          const birthOffset = Math.floor(rnd(i, 0.13) * LIFETIME);
+          const age = (nowMs - birthOffset) % LIFETIME;
+          const lifeFrac = 1 - (age / LIFETIME); // 1 -> new, 0 -> dead
+          if (lifeFrac <= 0.02) continue;
+
+          const ang = (i / Math.max(1, displayCount)) * Math.PI * 2 + (nowMs * 0.001 * 0.5);
+          const r = spec.radius * (0.45 + 0.55 * Math.abs(Math.sin(nowMs * 0.001 + i)));
+          const ox = Math.cos(ang) * r * (0.7 + 0.3 * rnd(i));
+          const oy = Math.sin(ang) * r * (0.35 + 0.65 * rnd(i));
+          const col = spec.colors[i % spec.colors.length];
+          const sz = 1 + Math.floor(3 * rnd(i));
+          // alpha eased so particles fade out smoothly over 2s
+          const alpha = (0.55 + 0.45 * rnd(i)) * lifeFrac;
+
+          ctxLocal.save();
+          ctxLocal.globalAlpha = Math.max(0, Math.min(1, alpha));
+          ctxLocal.fillStyle = col;
+          ctxLocal.beginPath();
+          ctxLocal.arc(cx + ox, cy + oy, sz, 0, Math.PI * 2);
+          ctxLocal.fill();
+          ctxLocal.restore();
+        }
+      } catch (e) {
+        // ignore particle draw errors
+      }
+    };
+
+    // draw particles for player1
+    drawParticlesFor(this.player, 11);
+
+    if (this.twoPlayer && this.player2) {
+      // Draw the secondary player with a slight alpha so it's visually distinct
+      ctxLocal.save();
+      ctxLocal.globalAlpha = 0.95;
+      this.player2.draw(ctxLocal);
+      ctxLocal.restore();
+
+      // draw particles for player2
+      drawParticlesFor(this.player2, 37);
+    }
+
+    // Draw dropped temporary coins (with blink in last 2 seconds)
+    try {
+      const nowDraw = Date.now();
+      for (let i = 0; i < this.droppedCoins.length; i++) {
+        const dc = this.droppedCoins[i];
+        const age = nowDraw - dc.bornAt;
+        const remaining = Math.max(0, dc.lifeMs - age);
+        // blinking last 2 seconds
+        let visible = true;
+        if (remaining <= 2000) {
+          // blink quickly: 8Hz toggle
+          visible = Math.floor((nowDraw % 250) / 125) % 2 === 0;
+        }
+        if (!visible) continue;
+        // use shared helper to draw the animated coin frame (uses rows=2, cols=3, skip last, fps=15)
+        try {
+          this._drawCoinFrame(ctxLocal || this.ctx, dc);
+        } catch (e) {
+          // fallback to simple gold circle if helper fails
+          try {
+            const drawCtx = ctxLocal || this.ctx;
+            drawCtx.save();
+            drawCtx.fillStyle = '#ffd54f';
+            drawCtx.beginPath();
+            drawCtx.ellipse(dc.x + dc.width/2, dc.y + dc.height/2, dc.width/2, dc.height/2, 0, 0, Math.PI*2);
+            drawCtx.fill();
+            drawCtx.restore();
+          } catch (err) {}
+        }
+      }
+    } catch (e) {
+      console.warn('droppedCoins render failed', e);
+    }
+
+    // Draw chase ghost (smooth rounded angry animated red/black face rotated like player) if active
+    try {
+      // primary chase ghost render
+      if (this.chaseMode && this.chase && this.chase.ghost) {
+        const g = this.chase.ghost;
+        ctxLocal.save();
+        const t = (Date.now() % 1200) / 1200;
+        const pulse = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin((Date.now() * 0.006)));
+        const colA = `rgba(${Math.round(180 * pulse)},${Math.round(20 * pulse)},${Math.round(20 * pulse)},1)`;
+        const colB = `rgba(${Math.round(30 * (1 - pulse))},0,0,1)`;
+        const gx = ctxLocal.createLinearGradient(g.x, g.y, g.x + g.width, g.y + g.height);
+        gx.addColorStop(0, colA);
+        gx.addColorStop(1, colB);
+
+        const r = Math.max(6, Math.min(12, Math.round(Math.min(g.width, g.height) * 0.08)));
+        ctxLocal.shadowColor = 'rgba(0,0,0,0.45)';
+        ctxLocal.shadowBlur = 18;
+        ctxLocal.fillStyle = gx;
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(g.x + r, g.y);
+        ctxLocal.lineTo(g.x + g.width - r, g.y);
+        ctxLocal.quadraticCurveTo(g.x + g.width, g.y, g.x + g.width, g.y + r);
+        ctxLocal.lineTo(g.x + g.width, g.y + g.height - r);
+        ctxLocal.quadraticCurveTo(g.x + g.width, g.y + g.height, g.x + g.width - r, g.y + g.height);
+        ctxLocal.lineTo(g.x + r, g.y + g.height);
+        ctxLocal.quadraticCurveTo(g.x, g.y + g.height, g.x, g.y + g.height - r);
+        ctxLocal.lineTo(g.x, g.y + r);
+        ctxLocal.quadraticCurveTo(g.x, g.y, g.x + r, g.y);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+
+        ctxLocal.shadowBlur = 0;
+        ctxLocal.globalAlpha = 0.95;
+        ctxLocal.fillStyle = 'rgba(0,0,0,0.08)';
+        ctxLocal.fillRect(g.x + 2, g.y + 2, g.width - 4, g.height - 4);
+
+        ctxLocal.fillStyle = '#000';
+        const faceSize = Math.max(10, Math.round(g.height * 0.55));
+        ctxLocal.font = `${faceSize}px Arial`;
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        const faceX = g.x + g.width / 2;
+        const faceY = g.y + g.height / 2 + 1;
+        ctxLocal.translate(faceX, faceY);
+        ctxLocal.rotate(Math.PI / 2);
+        ctxLocal.fillText('> :(', 0, 0);
+        ctxLocal.setTransform(1,0,0,1,0,0);
+        ctxLocal.globalAlpha = 1;
+        ctxLocal.restore();
+      }
+
+      // secondary chase ghost (for player2) render
+      if (this.twoPlayer && this.chase2 && this.chase2.ghost) {
+        const g2 = this.chase2.ghost;
+        ctxLocal.save();
+        // use a bluish pulsing palette to distinguish from primary chaser
+        const t2 = (Date.now() % 1400) / 1400;
+        const pulse2 = 0.36 + 0.64 * (0.5 + 0.5 * Math.sin((Date.now() * 0.005)));
+        const colA2 = `rgba(${Math.round(24 * pulse2)},${Math.round(140 * pulse2)},${Math.round(220 * pulse2)},1)`;
+        const colB2 = `rgba(${Math.round(10 * (1 - pulse2))},${Math.round(40 * (1 - pulse2))},${Math.round(80 * (1 - pulse2))},1)`;
+        const gx2 = ctxLocal.createLinearGradient(g2.x, g2.y, g2.x + g2.width, g2.y + g2.height);
+        gx2.addColorStop(0, colA2);
+        gx2.addColorStop(1, colB2);
+
+        const r2 = Math.max(6, Math.min(12, Math.round(Math.min(g2.width, g2.height) * 0.08)));
+        ctxLocal.shadowColor = 'rgba(0,0,0,0.35)';
+        ctxLocal.shadowBlur = 14;
+        ctxLocal.fillStyle = gx2;
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(g2.x + r2, g2.y);
+        ctxLocal.lineTo(g2.x + g2.width - r2, g2.y);
+        ctxLocal.quadraticCurveTo(g2.x + g2.width, g2.y, g2.x + g2.width, g2.y + r2);
+        ctxLocal.lineTo(g2.x + g2.width, g2.y + g2.height - r2);
+        ctxLocal.quadraticCurveTo(g2.x + g2.width, g2.y + g2.height, g2.x + g2.width - r2, g2.y + g2.height);
+        ctxLocal.lineTo(g2.x + r2, g2.y + g2.height);
+        ctxLocal.quadraticCurveTo(g2.x, g2.y + g2.height, g2.x, g2.y + g2.height - r2);
+        ctxLocal.lineTo(g2.x, g2.y + r2);
+        ctxLocal.quadraticCurveTo(g2.x, g2.y, g2.x + r2, g2.y);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+
+        ctxLocal.shadowBlur = 0;
+        ctxLocal.globalAlpha = 0.95;
+        ctxLocal.fillStyle = 'rgba(0,0,0,0.06)';
+        ctxLocal.fillRect(g2.x + 2, g2.y + 2, g2.width - 4, g2.height - 4);
+
+        // draw a happy or neutral face for chase2 to contrast
+        ctxLocal.fillStyle = '#000';
+        const faceSize2 = Math.max(10, Math.round(g2.height * 0.5));
+        ctxLocal.font = `${faceSize2}px Arial`;
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        const faceX2 = g2.x + g2.width / 2;
+        const faceY2 = g2.y + g2.height / 2 + 1;
+        ctxLocal.translate(faceX2, faceY2);
+        ctxLocal.rotate(Math.PI / 2);
+        ctxLocal.fillText(':D', 0, 0);
+        ctxLocal.setTransform(1,0,0,1,0,0);
+        ctxLocal.globalAlpha = 1;
+        ctxLocal.restore();
+      }
+    } catch (e) {}
+
+    // If editor is enabled, draw a preview at pointer if available (shows color / kill / checkpoint / win)
+    if (this.editor.enabled) {
+      const pointer = this.editor.pointer;
+      // If no pointer (e.g., using keyboard to enable editor), fall back to near-player preview
+      const fallbackX = this.player.x + this.player.width + 10;
+      let type = this.editor.spawnType;
+      let w = 60, h = 60;
+      if (type === 1) { w = 120; h = 20; }
+      if (type === 2) { w = 60; h = 60; }
+      if (type === 3) { w = 120; h = 120; }
+      if (type === 4) { w = 20; h = 200; }
+      if (type === 5) { w = 240; h = 16; }
+      if (type === 6) { w = 40; h = 260; }
+      if (type === 7) { w = 24; h = 24; } // small square preview (fix)
+      const color = this.editor.colors[this.editor.colorIndex];
+
+      const px = pointer ? (pointer.x - w / 2) : fallbackX;
+      const py = pointer ? (pointer.y - h / 2) : (this.player.y - h / 2);
+
+      if (this.editor.spawnKill) {
+        // kill preview with glow
+        ctxLocal.save();
+        ctxLocal.fillStyle = color;
+        ctxLocal.shadowColor = color;
+        ctxLocal.shadowBlur = 20;
+        ctxLocal.fillRect(px, py, w, h);
+
+        // inner box
+        ctxLocal.shadowBlur = 0;
+        ctxLocal.globalAlpha = 0.95;
+        ctxLocal.fillStyle = color;
+        ctxLocal.fillRect(px + 2, py + 2, w - 4, h - 4);
+        ctxLocal.globalAlpha = 1;
+        ctxLocal.restore();
+      } else if (this.editor.spawnCheckpoint) {
+        // checkpoint preview pulse between color and yellow
+        const t = (Math.sin(Date.now() * 0.002) + 1) / 2;
+        const start = color;
+        const end = '#FFD600';
+        const lerp = (a,b,tval) => {
+          const ah = a.replace('#',''); const bh = b.replace('#','');
+          const ai = parseInt(ah,16), bi = parseInt(bh,16);
+          const ar = (ai>>16)&255, ag = (ai>>8)&255, ab = ai&255;
+          const br = (bi>>16)&255, bg = (bi>>8)&255, bb = bi&255;
+          const r = Math.round(ar + (br-ar)*tval);
+          const g = Math.round(ag + (bg-ag)*tval);
+          const bl = Math.round(ab + (bb-ab)*tval);
+          return `rgb(${r},${g},${bl})`;
+        };
+        const cur = lerp(start,end,t);
+        ctxLocal.save();
+        ctxLocal.fillStyle = cur;
+        ctxLocal.shadowColor = cur;
+        ctxLocal.shadowBlur = 20;
+        ctxLocal.fillRect(px, py, w, h);
+        ctxLocal.restore();
+      } else if (this.editor.spawnWin) {
+        // win preview - bright green with star icon
+        ctxLocal.save();
+        const winColor = '#64dd17';
+        ctxLocal.fillStyle = winColor;
+        ctxLocal.shadowColor = winColor;
+        ctxLocal.shadowBlur = 22;
+        ctxLocal.fillRect(px, py, w, h);
+        ctxLocal.fillStyle = '#fff';
+        ctxLocal.font = '20px Arial';
+        ctxLocal.fillText('★', px + w/2 - 8, py + h/2 + 8);
+        ctxLocal.restore();
+      } else {
+        // regular placement outline + translucent fill showing selected color
+        ctxLocal.save();
+        ctxLocal.strokeStyle = '#fff';
+        ctxLocal.lineWidth = 2;
+        ctxLocal.strokeRect(px, py, w, h);
+        ctxLocal.fillStyle = color;
+        ctxLocal.globalAlpha = 0.25;
+        ctxLocal.fillRect(px, py, w, h);
+        ctxLocal.globalAlpha = 1;
+        ctxLocal.restore();
+      }
+    }
+
+    ctxLocal.restore();
+
+    // Draw HUD (top-left): Timer, Deaths, Coins, and P2 stats if active
+    try {
+      ctxLocal.save();
+      const pad = 12;
+      const gap = 6;
+      const boxW = 200;
+      // compute values
+      const elapsedSec = Math.floor((Date.now() - (this.startTime || Date.now())) / 1000);
+      const timerText = `Time: ${elapsedSec}s`;
+      const deathsText = `Deaths: ${this.deaths || 0}`;
+
+      // coins: use tracked collected counters (per-player)
+      const coinsText = `Coins: ${this.coinsCollected || 0}`;
+
+      // for P2 show per-player coin counts if twoPlayer enabled
+      const showP2 = !!this.twoPlayer;
+      const deathsP2Text = `DeathsP2: ${showP2 ? (this.deathsP2 || 0) : ''}`;
+      const coinsP2Text = `CoinsP2: ${showP2 ? (this.coinsCollectedP2 || 0) : ''}`;
+
+      // scale / visual sizing
+      const lineHeight = 20;
+      const lines = [timerText, deathsText, coinsText];
+      if (showP2) { lines.push(deathsP2Text); lines.push(coinsP2Text); }
+
+      const totalH = pad * 2 + lines.length * lineHeight + (lines.length - 1) * (gap);
+      // background box with subtle blur
+      ctxLocal.globalAlpha = 0.92;
+      ctxLocal.fillStyle = 'rgba(6,6,8,0.76)';
+      // rounded rect
+      const bx = 12, by = 12;
+      const bw = boxW, bh = totalH;
+      const rr = 10;
+      ctxLocal.beginPath();
+      ctxLocal.moveTo(bx + rr, by);
+      ctxLocal.lineTo(bx + bw - rr, by);
+      ctxLocal.quadraticCurveTo(bx + bw, by, bx + bw, by + rr);
+      ctxLocal.lineTo(bx + bw, by + bh - rr);
+      ctxLocal.quadraticCurveTo(bx + bw, by + bh, bx + bw - rr, by + bh);
+      ctxLocal.lineTo(bx + rr, by + bh);
+      ctxLocal.quadraticCurveTo(bx, by + bh, bx, by + bh - rr);
+      ctxLocal.lineTo(bx, by + rr);
+      ctxLocal.quadraticCurveTo(bx, by, bx + rr, by);
+      ctxLocal.closePath();
+      ctxLocal.fill();
+
+      // subtle header accent
+      ctxLocal.fillStyle = 'rgba(255,255,255,0.03)';
+      ctxLocal.fillRect(bx, by, bw, Math.min(28, bh * 0.18));
+
+      // draw lines
+      ctxLocal.fillStyle = '#fff';
+      ctxLocal.font = '16px Arial';
+      ctxLocal.textAlign = 'left';
+      ctxLocal.textBaseline = 'top';
+      let y = by + pad;
+      for (let i = 0; i < lines.length; i++) {
+        // make the first (timer) slightly larger / bolder
+        if (i === 0) {
+          ctxLocal.font = '18px Arial';
+          ctxLocal.fillStyle = '#ffffff';
+        } else {
+          ctxLocal.font = '15px Arial';
+          ctxLocal.fillStyle = 'rgba(255,255,255,0.95)';
+        }
+        ctxLocal.fillText(lines[i], bx + pad, y);
+        y += lineHeight + gap;
+      }
+      ctxLocal.restore();
+    } catch (hudErr) {
+      // ignore HUD drawing errors to avoid breaking render
+      console.warn('HUD draw failed', hudErr);
+    }
+
+    // Render local player's speech bubble (no fake remote player created)
+    try {
+      const nowBubble = Date.now();
+      if (this._localSpeech && this._localSpeechUntil && nowBubble < this._localSpeechUntil) {
+        const text = String(this._localSpeech).slice(0, 140);
+        // bubble position above the local player
+        const pw = this.player.width || 40;
+        const ph = this.player.height || 60;
+        const rx = this.player.x || 0;
+        const ry = this.player.y || 0;
+        const cx = rx + pw / 2;
+        const byTopBaseline = ry - 12 - 26; // baseline for bubble tail
+        // measure text width (cap)
+        ctxLocal.save();
+        ctxLocal.font = '14px Arial';
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        const metrics = ctxLocal.measureText(text);
+        const textW = Math.min(220, metrics.width);
+        const padX = 10;
+        const bw = textW + padX * 2;
+        const bh = 22;
+        const bx = cx - bw / 2;
+        const byTop = byTopBaseline - bh;
+        // background rounded rect
+        ctxLocal.fillStyle = 'rgba(0,0,0,0.78)';
+        const rrr = 8;
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(bx + rrr, byTop);
+        ctxLocal.lineTo(bx + bw - rrr, byTop);
+        ctxLocal.quadraticCurveTo(bx + bw, byTop, bx + bw, byTop + rrr);
+        ctxLocal.lineTo(bx + bw, byTop + bh - rrr);
+        ctxLocal.quadraticCurveTo(bx + bw, byTop + bh, bx + bw - rrr, byTop + bh);
+        ctxLocal.lineTo(bx + rrr, byTop + bh);
+        ctxLocal.quadraticCurveTo(bx, byTop + bh, bx, byTop + bh - rrr);
+        ctxLocal.lineTo(bx, byTop + rrr);
+        ctxLocal.quadraticCurveTo(bx, byTop, bx + rrr, byTop);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+        // tail
+        ctxLocal.beginPath();
+        ctxLocal.moveTo(cx - 6, byTop + bh);
+        ctxLocal.lineTo(cx, byTop + bh + 8);
+        ctxLocal.lineTo(cx + 6, byTop + bh);
+        ctxLocal.closePath();
+        ctxLocal.fill();
+        // text
+        ctxLocal.fillStyle = '#fff';
+        ctxLocal.fillText(text, cx, byTop + bh / 2);
+        ctxLocal.restore();
+      }
+    } catch (e) {
+      // ignore bubble rendering errors
+    }
+
+    // Draw effects (e.g., checkpoint unlocked)
+    try {
+      const now = Date.now();
+      for (let i = this.effects.length - 1; i >= 0; i--) {
+        const ef = this.effects[i];
+        const t = (now - ef.time) / ef.duration;
+        if (t >= 1) {
+          this.effects.splice(i,1);
+          continue;
+        }
+        const alpha = 1 - t;
+        ctxLocal.save();
+        ctxLocal.globalAlpha = alpha;
+        ctxLocal.fillStyle = '#fff';
+        ctxLocal.font = '18px Arial';
+        ctxLocal.fillText(ef.text, ef.x, ef.y - t * 24);
+        ctxLocal.restore();
+      }
+    } catch (e) {
+      // ignore effect rendering errors
+    }
+
+    // Additional confusion overlays and What mode overlays -- draw using ctxLocal where needed
+    if (this.confusion) {
+      try {
+        // Full-screen tint flash if active
+        if (this._confusionTintUntil && Date.now() < this._confusionTintUntil) {
+          ctxLocal.save();
+          ctxLocal.fillStyle = this._confusionTintColor || 'rgba(255,40,40,0.06)';
+          ctxLocal.fillRect(0, 0, this.viewWidth || window.innerWidth, this.viewHeight || window.innerHeight);
+          ctxLocal.restore();
+        }
+
+        // Fast RGB split / color offset effect: draw thin horizontal bands with slight color offsets for a glitchy look
+        const vw2 = this.viewWidth || window.innerWidth;
+        const vh2 = this.viewHeight || window.innerHeight;
+        ctxLocal.save();
+        const bands = 6 + Math.floor(Math.random() * 6);
+        for (let b = 0; b < bands; b++) {
+          const h = Math.max(2, Math.round(vh2 / (bands + (Math.random() * 6))));
+          const y = Math.round((b / bands) * vh2) + Math.round((Math.random() - 0.5) * 12);
+          const alpha = 0.02 + Math.random() * 0.04;
+          // subtle red / cyan sliver
+          ctxLocal.fillStyle = `rgba(${200 + Math.floor(Math.random()*55)},${30 + Math.floor(Math.random()*60)},${40 + Math.floor(Math.random()*120)},${alpha})`;
+          ctxLocal.fillRect(0, y, vw2, h);
+        }
+        ctxLocal.restore();
+
+        // Scanline overlay
+        ctxLocal.save();
+        ctxLocal.globalAlpha = 0.06;
+        ctxLocal.fillStyle = '#000';
+        const scanGap = 4;
+        for (let sy = 0; sy < (this.viewHeight || window.innerHeight); sy += scanGap) {
+          if (Math.random() < 0.45) ctxLocal.fillRect(0, sy, this.viewWidth || window.innerWidth, 1);
+        }
+        ctxLocal.restore();
+
+        // Subtle noise specks for a short time (cheap per-frame noise)
+        if (Math.random() < 0.65) {
+          ctxLocal.save();
+          const specks = 24 + Math.floor(Math.random() * 48);
+          for (let s = 0; s < specks; s++) {
+            const nx = Math.floor(Math.random() * (this.viewWidth || window.innerWidth));
+            const ny = Math.floor(Math.random() * (this.viewHeight || window.innerHeight));
+            ctxLocal.fillStyle = `rgba(255,255,255,${(Math.random() * 0.06).toFixed(3)})`;
+            ctxLocal.fillRect(nx, ny, 1, 1);
+          }
+          ctxLocal.restore();
+        }
+
+        // Occasional vignette pulse to amplify disorientation
+        if (Math.random() < 0.04) {
+          ctxLocal.save();
+          const g = ctxLocal.createRadialGradient(vw2/2, vh2/2, Math.min(vw2, vh2)*0.2, vw2/2, vh2/2, Math.max(vw2, vh2)/1.2);
+          g.addColorStop(0, 'rgba(0,0,0,0)');
+          g.addColorStop(1, 'rgba(0,0,0,0.35)');
+          ctxLocal.fillStyle = g;
+          ctxLocal.fillRect(0,0,vw2,vh2);
+          ctxLocal.restore();
+        }
+      } catch(e) {
+        // swallow overlay errors to avoid breaking render
+      }
+    }
+
+    if (this.whatMode) {
+      const now2 = Date.now();
+      // invert flash: draw an inverted-ish overlay when active
+      if (this._whatInvertUntil && now2 < this._whatInvertUntil) {
+        ctxLocal.save();
+        // semi-strong inverse-ish effect (bright white with multiply)
+        ctxLocal.fillStyle = 'rgba(255,255,255,0.12)';
+        ctxLocal.fillRect(0, 0, this.viewWidth || window.innerWidth, this.viewHeight || window.innerHeight);
+        ctxLocal.globalCompositeOperation = 'difference';
+        ctxLocal.fillStyle = 'rgba(255,255,255,0.06)';
+        ctxLocal.fillRect(0,0,this.viewWidth || window.innerWidth, this.viewHeight || window.innerHeight);
+        ctxLocal.restore();
+      }
+
+      // big "WHAT?" overlay when scheduled
+      if (this._whatOverlayUntil && now2 < this._whatOverlayUntil) {
+        ctxLocal.save();
+        const vw3 = this.viewWidth || window.innerWidth;
+        const vh3 = this.viewHeight || window.innerHeight;
+        // large bold box
+        ctxLocal.fillStyle = 'rgba(0,0,0,0.8)';
+        ctxLocal.fillRect(vw3*0.12, vh3*0.32, vw3*0.76, vh3*0.36);
+        ctxLocal.fillStyle = '#ffffff';
+        ctxLocal.font = `${Math.max(28, Math.round(vh3 * 0.12))}px Arial`;
+        ctxLocal.textAlign = 'center';
+        ctxLocal.textBaseline = 'middle';
+        ctxLocal.fillText('WHAT?', vw3/2, vh3/2);
+        ctxLocal.restore();
+      }
+    }
+
+    // Draw touch controls overlay onto local context
+    this.touchControls.draw(ctxLocal);
+
+    // If strict black-and-white mode is enabled, do a fast downscaled threshold pass
+    // to avoid expensive full-canvas getImageData operations. This produces pure black/white
+    // (no gray) but runs on a tiny buffer for performance.
+    if (this.blackWhite) {
+      try {
+        // Create or reuse a small BW buffer (scale similar to pixelated mode)
+        if (!this._bwCanvas) {
+          this._bwCanvas = document.createElement('canvas');
+          this._bwCtx = this._bwCanvas.getContext('2d');
+        }
+        // Choose a small working scale (keeps detail enough but is fast)
+        const scale = Math.max(0.06, Math.min(0.18, this._pixelScale || 0.12));
+        const bwW = Math.max(32, Math.floor((this.viewWidth || window.innerWidth) * scale));
+        const bwH = Math.max(32, Math.floor((this.viewHeight || window.innerHeight) * scale));
+        if (this._bwCanvas.width !== bwW || this._bwCanvas.height !== bwH) {
+          this._bwCanvas.width = bwW;
+          this._bwCanvas.height = bwH;
+        }
+
+        // Draw the current main canvas into the tiny buffer
+        // Use the main canvas as source; drawImage will be hardware-accelerated and cheap for small sizes
+        this._bwCtx.setTransform(1,0,0,1,0,0);
+        // draw the main canvas scaled down into bw buffer
+        this._bwCtx.drawImage(this.canvas, 0, 0, this._bwCanvas.width, this._bwCanvas.height);
+
+        // Read a small image buffer and threshold it
+        const id = this._bwCtx.getImageData(0, 0, this._bwCanvas.width, this._bwCanvas.height);
+        const data = id.data;
+        // Threshold mid = 128 (strict black or white)
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i+1], b = data[i+2];
+          const L = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          const v = (L < 128) ? 0 : 255;
+          data[i] = data[i+1] = data[i+2] = v;
+          // preserve alpha channel as fully opaque for visual clarity
+          data[i+3] = 255;
+        }
+        this._bwCtx.putImageData(id, 0, 0);
+
+        // Now copy the small thresholded buffer back to the main canvas scaled up with nearest-neighbor
+        // Disable smoothing on the main context for crisp upscaling
+        try { this.ctx.imageSmoothingEnabled = false; } catch (e) {}
+        // reset any transform and draw full-screen
+        const dpr = window.devicePixelRatio || 1;
+        this.ctx.setTransform(1,0,0,1,0,0);
+        this.ctx.drawImage(this._bwCanvas, 0, 0, (this.viewWidth || window.innerWidth), (this.viewHeight || window.innerHeight));
+        // restore dpr transform for subsequent operations
+        try { this.ctx.setTransform(dpr,0,0,dpr,0,0); } catch(e){}
+        // re-enable smoothing for normal UI drawing
+        try { this.ctx.imageSmoothingEnabled = true; } catch (e) {}
+      } catch (e) {
+        // If anything fails, fall back to a cheap high-contrast overlay (safe but not strict B/W)
+        try {
+          this.ctx.save();
+          this.ctx.globalCompositeOperation = 'saturation';
+          this.ctx.fillStyle = '#000';
+          this.ctx.restore();
+        } catch (e2) {}
+      }
+    }
+
+    // If we used offscreen buffer, copy it to the main canvas scaled up with imageSmoothing disabled
+    if (useOffscreen && this._pixelCanvas && this.ctx) {
+      try {
+        // Preserve devicePixelRatio transform: read current DPR used when setting canvas buffer in setCanvasSize.
+        const dpr = window.devicePixelRatio || 1;
+
+        // Temporarily reset main context to identity so we can draw the upscaled low-res image
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // clear main canvas in CSS pixels
+        this.ctx.clearRect(0, 0, vw, vh);
+
+        // disable smoothing for crisp pixelation when scaling up
+        try { this.ctx.imageSmoothingEnabled = false; } catch (e) {}
+
+        // draw offscreen canvas (low-res) upscaled to viewport size (nearest-neighbor due to imageSmoothing disabled)
+        this.ctx.drawImage(
+          this._pixelCanvas,
+          0, 0, this._pixelCanvas.width, this._pixelCanvas.height,
+          0, 0, vw, vh
+        );
+
+        // restore image smoothing to default (best-effort)
+        try { this.ctx.imageSmoothingEnabled = true; } catch (e) {}
+
+        // Restore the drawing buffer transform so future drawing (and other code that expects DPR-transformed ctx) works correctly.
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      } catch (e) {
+        // fallback: do nothing and let the offscreen be ignored
+      }
+    }
+  }
+
+  // Draw a dropped coin into given 2D context using the shared coin sprite sheet frames (rows=2,cols=3, skip last, fps=15)
+  _drawCoinFrame(ctx, dc) {
+    try {
+      if (!dc || !ctx) return;
+      const img = (this._coinImage && this._coinImage.complete && this._coinImage.naturalWidth) ? this._coinImage : null;
+      if (!img) {
+        ctx.save();
+        ctx.fillStyle = '#ffd54f';
+        ctx.beginPath();
+        ctx.ellipse(dc.x + dc.width/2, dc.y + dc.height/2, dc.width/2, dc.height/2, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+        return;
+      }
+      const cols = 3;
+      const rows = 2;
+      const skipLast = true;
+      const fps = 15;
+      const totalFrames = cols * rows - (skipLast ? 1 : 0);
+      const frameW = Math.floor(img.naturalWidth / cols);
+      const frameH = Math.floor(img.naturalHeight / rows);
+      const now = Date.now();
+      const msPerFrame = Math.max(1, Math.floor(1000 / Math.max(1, fps)));
+      const frameIndex = Math.floor(now / msPerFrame) % totalFrames;
+      const sx = (frameIndex % cols) * frameW;
+      const sy = Math.floor(frameIndex / cols) * frameH;
+      ctx.drawImage(img, sx, sy, frameW, frameH, dc.x, dc.y, dc.width, dc.height);
+    } catch (e) {
+      try {
+        ctx.save();
+        ctx.fillStyle = '#ffd54f';
+        ctx.fillRect(dc.x, dc.y, dc.width, dc.height);
+        ctx.restore();
+      } catch (err) {}
+    }
+  }
+
+  gameLoop() {
+    // Ensure only one RAF loop is active: cancel previous scheduled frame (if any) before continuing.
+    try { if (this._loopRaf) { cancelAnimationFrame(this._loopRaf); this._loopRaf = null; } } catch(e){}
+
+    // If a replay is playing, step through recorded frames by timestamp.
+    if (this.replay.playing) {
+      const now = Date.now();
+      const frames = this.replay.frames || [];
+      if (frames.length === 0) {
+        this.replay.playing = false;
+        this.gamePaused = false;
+      } else {
+        if (this.replay.reverse) {
+          // Reverse playback: compute elapsed since startTime and map to target timestamp moving backward
+          const elapsed = now - this.replay.startTime;
+          // Total recorded duration:
+          const totalDur = frames[frames.length - 1].t - frames[0].t;
+          // Target time moves from last frame's t downwards by elapsed milliseconds, scaled by playbackRate
+          const targetT = frames[frames.length - 1].t - (elapsed * (this.replay.playbackRate || 1));
+          // Move index backward until frame.t <= targetT (or clamp)
+          while (this.replay.index > 0 && frames[this.replay.index - 1].t >= targetT) {
+            this.replay.index--;
+          }
+          const frame = frames[Math.max(0, this.replay.index)];
+          if (frame) {
+            this.player.x = frame.x;
+            this.player.y = frame.y;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            // Camera follow for visual clarity
+            this.camera.update(this.player);
+
+            // If 3D mode is active, update the 3D player mesh so reverse replay shows in 3D as well
+            try {
+              if (this.threeActive && this.threeMode && typeof this.threeMode.updatePlayerMesh === 'function') {
+                this.threeMode.updatePlayerMesh(frame);
+              }
+            } catch(e) {}
+
+            // Play any events attached to this frame (sound events still play)
+            if (frame.events && frame.events.length) {
+              for (const evName of frame.events) {
+                try {
+                  const s = this.sounds[evName];
+                  if (s) {
+                    try { s.currentTime = 0; } catch(e) {}
+                    try { s.play(); } catch(e) {}
+                  }
+                } catch(e) {}
+              }
+            }
+          }
+          // If we've reached the first frame or passed it, stop reverse playback and show win overlay
+          if (this.replay.index <= 0 || targetT <= frames[0].t) {
+            this.replay.playing = false;
+            this.replay.frozen = true;
+            this.gamePaused = true;
+            // show win overlay again (use recorded duration)
+            const elapsedSec = Math.floor((frames[frames.length - 1].t - frames[0].t) / 1000);
+            this._showWinMenu(elapsedSec, this.deaths);
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+          }
+        } else {
+          // Forward playback (existing behavior)
+          const startT = frames[0].t;
+          // Apply playbackRate multiplier to speed up/slow down replay timing
+          const relNow = startT + ((now - this.replay.startTime) * (this.replay.playbackRate || 1));
+          // Advance index until frame.t >= relNow (or end)
+          while (this.replay.index < frames.length - 1 && this.replay.index + 1 < frames.length && frames[this.replay.index + 1].t <= relNow) {
+            this.replay.index++;
+          }
+          const frame = frames[Math.min(this.replay.index, frames.length - 1)];
+          // Apply frame to player for rendering (no physics or collision)
+          if (frame) {
+            this.player.x = frame.x;
+            this.player.y = frame.y;
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            // Keep camera locked onto the player during replay so the view follows the recorded run
+            this.camera.update(this.player);
+
+            // If 3D mode is active, update the 3D player mesh so replay shows in 3D
+            try {
+              if (this.threeActive && this.threeMode && typeof this.threeMode.updatePlayerMesh === 'function') {
+                this.threeMode.updatePlayerMesh(frame);
+              }
+            } catch(e) {}
+
+            // Play any events attached to this frame (do not re-record them)
+            if (frame.events && frame.events.length) {
+              for (const evName of frame.events) {
+                try { 
+                  const s = this.sounds[evName];
+                  if (s) {
+                    try { s.currentTime = 0; } catch(e) {}
+                    try { s.play(); } catch(e) {}
+                  }
+                } catch(e) {}
+              }
+            }
+          }
+          // If reached final frame, stop replay and freeze the replay-ghost (player) in place.
+          if (this.replay.index >= frames.length - 1) {
+            this.replay.playing = false;
+            // Freeze the replay so it stays visible but doesn't accept input or advance
+            this.replay.frozen = true;
+            // Keep the game logically paused while frozen and show win menu
+            this.gamePaused = true;
+            // show win overlay with same stats (use recorded duration)
+            const elapsed = Math.floor((frames[frames.length - 1].t - frames[0].t) / 1000);
+            this._showWinMenu(elapsed, this.deaths);
+            // zero velocities so the frozen ghost doesn't jitter
+            this.player.velocityX = 0;
+            this.player.velocityY = 0;
+            // also ensure 3D mesh is left at final frame if in 3D
+            try {
+              if (this.threeActive && this.threeMode && typeof this.threeMode.updatePlayerMesh === 'function') {
+                this.threeMode.updatePlayerMesh(frames[frames.length - 1]);
+              }
+            } catch(e) {}
+          }
+        }
+      }
+      // Render current replay frame (render always runs so visuals are updated)
+      this.render();
+      this._loopRaf = requestAnimationFrame(() => this.gameLoop());
+      return;
+    }
+
+    if (!this.gamePaused) this.update();
+    this.render();
+    this._loopRaf = requestAnimationFrame(() => this.gameLoop());
+  }
+
+  toggleReplay() {
+    // Flip whether replay recording is enabled during normal play
+    this.replay.enabled = !this.replay.enabled;
+
+    // If disabling while currently recording frames, clear frames to avoid stale data.
+    if (!this.replay.enabled) {
+      this.replay.frames = [];
+      this.replay.playing = false;
+      this.replay.index = 0;
+      this.replay.startTime = 0;
+      this.replay.frozen = false;
+    }
+
+    // Update the win overlay replay button state if present
+    if (this._winReplayBtn) {
+      this._winReplayBtn.disabled = !this.replay.enabled;
+    }
+  }
+
+  togglePathfind() {
+    this.pathfindEnabled = !this.pathfindEnabled;
+    // if enabling: ensure player is in normal play mode (not editor)
+    if (this.pathfindEnabled) {
+      this.editor.enabled = false;
+      if (this.editor.container) this.editor.container.style.display = 'none';
+    }
+  }
+
+  // Enable or disable low gravity mode—adjusts player physics and preserves defaults for restoration
+  setLowGravity(enabled) {
+    try {
+      this.lowGravity = !!enabled;
+      // ensure default gravity/jump defaults are stored
+      if (typeof this._defaultGravity === 'undefined') this._defaultGravity = this.player.gravity;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+
+      // base magnitude (positive)
+      let base = Math.abs(this._defaultGravity || 0.8);
+
+      // apply low gravity scaling if requested
+      if (this.lowGravity) {
+        base = Math.max(0.05, base * 0.25);
+        // slightly boost jump force so jumps remain usable under low gravity
+        this.player.jumpForce = (this._defaultJumpForce !== undefined) ? Math.round(this._defaultJumpForce * 1.15) : this.player.jumpForce * 1.15;
+      } else {
+        // restore jump force default when turning off low gravity (but keep any other modifiers)
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+      }
+
+      // if inverted gravity active, flip sign
+      if (this.invertedGravity) {
+        this.player.gravity = -Math.abs(base);
+      } else {
+        this.player.gravity = Math.abs(base);
+      }
+    } catch (e) {
+      console.warn('setLowGravity failed', e);
+    }
+  }
+
+  // Enable or disable Inverted Gravity: flips gravity sign and respawns player lower when enabled.
+  setInvertedGravity(enabled) {
+    try {
+      this.invertedGravity = !!enabled;
+      // ensure default gravity/jump defaults are stored
+      if (typeof this._defaultGravity === 'undefined') this._defaultGravity = this.player.gravity;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+
+      // compute base magnitude from default and lowGravity flag so both combine predictably
+      let base = Math.abs(this._defaultGravity || 0.8);
+      if (this.lowGravity) {
+        base = Math.max(0.05, base * 0.25);
+      }
+
+      // Apply sign flip if inverted
+      if (this.invertedGravity) {
+        this.player.gravity = -Math.abs(base);
+      } else {
+        this.player.gravity = Math.abs(base);
+      }
+
+      // When enabling inverted gravity, respawn player lower so they start nearer bottom
+      if (this.invertedGravity) {
+        try {
+          const cp = this.activeCheckpoint;
+          if (cp && cp.unlocked) {
+            this.player.respawn(cp.x + (cp.width - this.player.width) / 2, cp.y - this.player.height - 1 + 300);
+          } else {
+            const s = this.getSpawnForMap();
+            this.player.respawn(s.x, s.y + 300);
+          }
+        } catch (e) { /* ignore respawn failures */ }
+      }
+    } catch (e) {
+      console.warn('setInvertedGravity failed', e);
+    }
+  }
+
+  // Enable or disable Speedrun mode: increases player speed and reduces horizontal damping for snappier, faster movement.
+  // Preserves defaults so toggling off restores original physics.
+  setSpeedrun(enabled) {
+    try {
+      this.speedrun = !!enabled;
+      // Ensure we have stored defaults for safe restore
+      if (typeof this._defaultSpeed === 'undefined') this._defaultSpeed = this.player.speed;
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+      if (typeof this._defaultGravity === 'undefined') this._defaultGravity = this.player.gravity;
+
+      // Apply or revert physics adjustments
+      if (this.speedrun) {
+        // Boost speed, reduce damping (increase responsiveness), small jump buff
+        this.player.speed = (this._defaultSpeed !== undefined) ? (this._defaultSpeed * 1.9) : (this.player.speed * 1.9);
+        this.player.friction = (this._defaultFriction !== undefined) ? Math.max(0.85, this._defaultFriction + 0.08) : Math.max(0.85, (this.player.friction || 0.9) + 0.08);
+        this.player.jumpForce = (this._defaultJumpForce !== undefined) ? Math.round(this._defaultJumpForce * 1.08) : Math.round(this.player.jumpForce * 1.08);
+        // keep gravity unchanged except if defaults indicate otherwise (no automatic change)
+      } else {
+        // restore defaults if available
+        if (this._defaultSpeed !== undefined) this.player.speed = this._defaultSpeed;
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+        if (this._defaultGravity !== undefined) this.player.gravity = this._defaultGravity;
+      }
+    } catch (e) {
+      console.warn('setSpeedrun failed', e);
+    }
+  }
+
+  // Easy Mode: relaxes physics to make any map easier to beat (faster run, higher jumps, lower gravity, grippier)
+  setEasyMode(enabled) {
+    try {
+      this.easyMode = !!enabled;
+      // store defaults for reliable restoration
+      if (typeof this._defaultSpeed === 'undefined') this._defaultSpeed = this.player.speed;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+      if (typeof this._defaultGravity === 'undefined') this._defaultGravity = this.player.gravity;
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+
+      if (this.easyMode) {
+        // Increase horizontal speed so gaps are easier to clear
+        this.player.speed = (this._defaultSpeed || 5) * 1.6;
+        // Boost jump height
+        this.player.jumpForce = (this._defaultJumpForce || 15) * 1.4;
+        // Reduce gravity magnitude so player hangs longer (respect invertedGravity flag)
+        const baseGrav = Math.abs(this._defaultGravity !== undefined ? this._defaultGravity : this.player.gravity);
+        this.player.gravity = this.invertedGravity ? -Math.abs(baseGrav * 0.6) : Math.abs(baseGrav * 0.6);
+        // Make horizontal movement grippier (higher friction) so platforming is forgiving
+        this.player.friction = Math.max(0.92, (this._defaultFriction || 0.9) + 0.06);
+
+        // Slightly reduce penalty of falling by clamping extreme downward velocity
+        this._easyFallClamp = 24;
+      } else {
+        // restore defaults
+        if (this._defaultSpeed !== undefined) this.player.speed = this._defaultSpeed;
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+        if (this._defaultGravity !== undefined) this.player.gravity = this._defaultGravity;
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+        this._easyFallClamp = null;
+      }
+    } catch (e) {
+      console.warn('setEasyMode failed', e);
+    }
+  }
+
+  // Enable or disable Pixelated rendering: when enabled, game is rendered to a low-res buffer and scaled up with nearest-neighbor
+  setPixelMode(enabled, scale) {
+    try {
+      this.pixelated = !!enabled;
+      if (typeof scale === 'number' && scale > 0 && scale <= 1) {
+        this._pixelScale = scale;
+      }
+      if (!this.pixelated) {
+        // dispose of offscreen buffer to free memory
+        try {
+          this._pixelCanvas = null;
+          this._pixelCtx = null;
+        } catch (e) {}
+      } else {
+        // ensure buffer will be created on next render with current view size
+        // no-op here; render will lazily create and size it
+      }
+    } catch (e) {
+      console.warn('setPixelMode failed', e);
+    }
+  }
+
+  // Enable or disable strict Black & White mode: when enabled the final displayed canvas is thresholded to pure black or white (no gray).
+  setBlackWhite(enabled) {
+    try {
+      this.blackWhite = !!enabled;
+    } catch (e) {
+      console.warn('setBlackWhite failed', e);
+    }
+  }
+
+  // Enable or disable Mirror Mode: flips the rendered scene horizontally and inverts left/right input
+  setMirrorMode(enabled) {
+    try {
+      this.mirrorMode = !!enabled;
+    } catch (e) {
+      console.warn('setMirrorMode failed', e);
+    }
+  }
+
+  // Enable or disable Confusion mode: when enabled, makes controls partially inverted/random, camera jittery, and heavily altered physics and visuals.
+  setConfusion(enabled) {
+    try {
+      this.confusion = !!enabled;
+      // ensure defaults exist
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+      if (typeof this._defaultGravity === 'undefined') this._defaultGravity = this.player.gravity;
+      if (typeof this._defaultCameraSmooth === 'undefined') this._defaultCameraSmooth = this.camera ? this.camera.smoothFactor : 0.12;
+
+      if (this.confusion) {
+        // Intensify movement disruption: much slipperier controls and stronger gravity so jumps feel odd
+        this.player.friction = Math.max(0.45, (this._defaultFriction || 0.9) - 0.4);
+        this.player.gravity = (this._defaultGravity !== undefined) ? this._defaultGravity * 1.28 : this.player.gravity * 1.28;
+        // slightly change jump force unpredictably (small random variance)
+        this.player.jumpForce = (this._defaultJumpForce !== undefined) ? this._defaultJumpForce * (0.92 + Math.random() * 0.2) : this.player.jumpForce * (0.92 + Math.random() * 0.2);
+        // slow camera smoothing so follow feels laggy and add wobble handled in update()
+        if (this.camera) this.camera.smoothFactor = Math.max(0.02, (this._defaultCameraSmooth || 0.12) * 0.35);
+
+        // initialize confusion timers and seeds
+        this._confusionTimer = Date.now();
+        this._nextConfusionTick = Date.now() + 80;
+        this._confusionWobbleSeed = Math.random() * 9999;
+        this._confusionInvertUntil = 0;
+        this._confusionInputFreezeUntil = 0;
+        this._confusionTintUntil = 0;
+      } else {
+        // restore sensible defaults
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+        if (this._defaultGravity !== undefined) this.player.gravity = this._defaultGravity;
+        if (this._defaultCameraSmooth !== undefined && this.camera) this.camera.smoothFactor = this._defaultCameraSmooth;
+        // restore jump force default when available
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+
+        // clear confusion transient state
+        this._nextConfusionTick = 0;
+        this._confusionInvertUntil = 0;
+        this._confusionInputFreezeUntil = 0;
+        this._confusionTintUntil = 0;
+        this._confusionTintColor = null;
+        this._confusionWobbleSeed = null;
+        this._confusionInvertActive = false;
+        this._confusionFreezeActive = false;
+      }
+    } catch (e) {
+      console.warn('setConfusion failed', e);
+    }
+  }
+
+  // Enable or disable Ball Mode: switches player visual to a circular ball and tweaks some visuals/physics.
+  setBallMode(enabled) {
+    try {
+      this.ballMode = !!enabled;
+      // preserve defaults if not already saved
+      if (typeof this._defaultPlayerSize === 'undefined') this._defaultPlayerSize = { w: this.player.width, h: this.player.height };
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+
+      if (this.ballMode) {
+        this.player.shape = 'ball';
+        // make the player visually round but keep rectangle collision for stability
+        const minSide = Math.min(this._defaultPlayerSize.w, this._defaultPlayerSize.h);
+        this.player.width = minSide;
+        this.player.height = minSide;
+        // slightly increase friction to simulate rolling resistance
+        this.player.friction = Math.min(0.98, (this.player.friction || 0.9) + 0.06);
+      } else {
+        this.player.shape = 'rect';
+        if (this._defaultPlayerSize) {
+          this.player.width = this._defaultPlayerSize.w;
+          this.player.height = this._defaultPlayerSize.h;
+        }
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+      }
+    } catch (e) {
+      console.warn('setBallMode failed', e);
+    }
+  }
+
+  // Enable or disable What Mode: triggers periodic surprising effects (overlay, jolts, invert flash, sound)
+  setWhatMode(enabled) {
+    try {
+      this.whatMode = !!enabled;
+      // reset timers when turning off
+      if (!this.whatMode) {
+        this._whatNextTick = 0;
+        this._whatOverlayUntil = 0;
+        this._whatInvertUntil = 0;
+      } else {
+        // schedule the first surprise shortly
+        this._whatNextTick = Date.now() + 800 + Math.floor(Math.random() * 1800);
+      }
+    } catch (e) {
+      console.warn('setWhatMode failed', e);
+    }
+  }
+
+  // Enable or disable a simple two-player mode: spawns/activates a second player which can be user-controlled (I/J/L).
+  // When enabling 2P, ensure 3D is disabled since 3D mode isn't supported for two-player.
+  setTwoPlayer(enabled) {
+    try {
+      this.twoPlayer = !!enabled;
+      // If CPU-controlled P2 is requested, ensure player2 is bot-controlled; otherwise default to human-controlled when toggling on.
+      this.twoPlayerControlled = this.cpuP2 ? false : !!enabled;
+
+      // If enabling two-player mode, ensure 3D mode is turned off (best-effort).
+      if (this.twoPlayer) {
+        try {
+          if (this.threeActive && typeof this.toggle3D === 'function') {
+            // toggle3D is async; call and ignore errors but ensure 3D is disabled
+            this.toggle3D().catch(()=>{/*ignore*/});
+          }
+        } catch (e) { /* ignore */ }
+
+        if (!this.player2) {
+          const s = this.getSpawnForMap();
+          // spawn player2 directly above player1's spawn location
+          this.player2 = new Player((s.x || 100), (s.y || 300) - (this.player.height || 60) - 20);
+        } else {
+          // if player2 existed but was previously inactive, respawn it relative to player1
+          try {
+            const offset = this._player2VerticalOffset || ((this.player2.height || 60) + 20);
+            this.player2.respawn(this.player.x, this.player.y - offset);
+          } catch(e){}
+        }
+
+        // ensure player2 is active/visible for gameplay
+        try { if (this.player2) this.player2._inactive = false; } catch(e){}
+
+        try {
+          if (!this._defaultPlayer2Size) this._defaultPlayer2Size = { w: this.player2.width, h: this.player2.height };
+        } catch (e) {}
+      } else {
+        // when disabling, teleport player2 far away and mark it inactive so it cannot interact inadvertently
+        try {
+          if (this.player2) {
+            // place very far offscreen (large coordinates) to avoid accidental collisions or visuals
+            this.player2.x = 999999;
+            this.player2.y = 999999;
+            // clear velocities and mark inactive for any logic that checks it
+            this.player2.velocityX = 0;
+            this.player2.velocityY = 0;
+            this.player2.isJumping = false;
+            this.player2._inactive = true;
+          }
+        } catch (e) {}
+      }
+    } catch (e) {
+      console.warn('setTwoPlayer failed', e);
+    }
+  }
+
+  // Optional setter for external UI wiring convenience
+  setP2SeparateCamera(enabled) {
+    try {
+      this.p2SeparateCamera = !!enabled;
+    } catch (e) {
+      console.warn('setP2SeparateCamera failed', e);
+    }
+  }
+
+  // Optional setter to control independent death behavior: when true and twoPlayer active a player's death won't respawn the other
+  setIndependentDeath(enabled) {
+    try {
+      this.independentDeath = !!enabled;
+    } catch (e) {
+      console.warn('setIndependentDeath failed', e);
+    }
+  }
+
+  // Enable or disable CPU P2: when true and twoPlayer is enabled, player2 will act as a bot (twoPlayerControlled=false).
+  setCpuP2(enabled) {
+    try {
+      this.cpuP2 = !!enabled;
+      // If enabling cpuP2, ensure twoPlayer mode is on so the effect is visible and force player2 to bot control.
+      if (this.cpuP2) {
+        try { if (!this.twoPlayer) { if (typeof this.setTwoPlayer === 'function') this.setTwoPlayer(true); else this.twoPlayer = true; } } catch(e){}
+        this.twoPlayerControlled = false;
+      } else {
+        // when turning CPU off, by default allow player2 to be human-controlled only if twoPlayer is active
+        this.twoPlayerControlled = this.twoPlayer ? true : false;
+      }
+    } catch (e) {
+      console.warn('setCpuP2 failed', e);
+    }
+  }
+
+  // Giant Mode: make the player larger and a bit heavier/slower
+  setGiantMode(enabled) {
+    try {
+      this.giantMode = !!enabled;
+      if (typeof this._defaultPlayerSize === 'undefined') this._defaultPlayerSize = { w: this.player.width, h: this.player.height };
+      if (typeof this._defaultSpeed === 'undefined') this._defaultSpeed = this.player.speed;
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+      if (this.giantMode) {
+        this.player.width = Math.round((this._defaultPlayerSize.w || 40) * 2.8);
+        this.player.height = Math.round((this._defaultPlayerSize.h || 60) * 2.8);
+        this.player.speed = (this._defaultSpeed || 5) * 0.6;
+        this.player.friction = Math.max(0.85, (this._defaultFriction || 0.9) - 0.02);
+      } else {
+        if (this._defaultPlayerSize) {
+          this.player.width = this._defaultPlayerSize.w;
+          this.player.height = this._defaultPlayerSize.h;
+        }
+        if (this._defaultSpeed !== undefined) this.player.speed = this._defaultSpeed;
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+      }
+    } catch (e) {
+      console.warn('setGiantMode failed', e);
+    }
+  }
+
+  // Mini Mode: make the player small and nimble
+  setMiniMode(enabled) {
+    try {
+      this.miniMode = !!enabled;
+      if (typeof this._defaultPlayerSize === 'undefined') this._defaultPlayerSize = { w: this.player.width, h: this.player.height };
+      if (typeof this._defaultSpeed === 'undefined') this._defaultSpeed = this.player.speed;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+      if (this.miniMode) {
+        this.player.width = Math.max(8, Math.round((this._defaultPlayerSize.w || 40) * 0.45));
+        this.player.height = Math.max(12, Math.round((this._defaultPlayerSize.h || 60) * 0.45));
+        this.player.speed = (this._defaultSpeed || 5) * 1.45;
+        this.player.jumpForce = (this._defaultJumpForce || 15) * 1.12;
+        this.player.friction = Math.min(0.98, (this._defaultFriction || 0.9) + 0.03);
+      } else {
+        if (this._defaultPlayerSize) {
+          this.player.width = this._defaultPlayerSize.w;
+          this.player.height = this._defaultPlayerSize.h;
+        }
+        if (this._defaultSpeed !== undefined) this.player.speed = this._defaultSpeed;
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+      }
+    } catch (e) {
+      console.warn('setMiniMode failed', e);
+    }
+  }
+
+  // Bouncy Mode: higher jumps and lower damping so player feels springy
+  setBouncyMode(enabled) {
+    try {
+      this.bouncyMode = !!enabled;
+      if (typeof this._defaultJumpForce === 'undefined') this._defaultJumpForce = this.player.jumpForce;
+      if (typeof this._defaultFriction === 'undefined') this._defaultFriction = this.player.friction;
+      if (this.bouncyMode) {
+        this.player.jumpForce = (this._defaultJumpForce || 15) * 1.6;
+        this.player.friction = Math.max(0.7, (this._defaultFriction || 0.9) - 0.2);
+        // give a bit more upward boost while in-air collisions occur naturally in update loop
+      } else {
+        if (this._defaultJumpForce !== undefined) this.player.jumpForce = this._defaultJumpForce;
+        if (this._defaultFriction !== undefined) this.player.friction = this._defaultFriction;
+      }
+    } catch (e) {
+      console.warn('setBouncyMode failed', e);
+    }
+  }
+
+  // Melt Mode: player gradually shrinks over time; when too small, respawn to spawn/checkpoint
+  setMeltMode(enabled) {
+    try {
+      this.meltMode = !!enabled;
+      if (typeof this._defaultPlayerSize === 'undefined') this._defaultPlayerSize = { w: this.player.width, h: this.player.height };
+      this._meltTimer = Date.now();
+      if (!this.meltMode) {
+        // restore size
+        if (this._defaultPlayerSize) {
+          this.player.width = this._defaultPlayerSize.w;
+          this.player.height = this._defaultPlayerSize.h;
+        }
+      }
+    } catch (e) {
+      console.warn('setMeltMode failed', e);
+    }
+  }
+
+  // Enable or disable Chase Mode: records your movement and spawns a delayed "evil" ghost
+  setChaseMode(enabled) {
+    try {
+      this.chaseMode = !!enabled;
+      this.chase.enabled = !!enabled;
+      // initialize ghost and buffer when enabling
+      if (this.chaseMode) {
+        this.chase.frames.length = 0;
+        // place ghost at player's spawn; ghost waits until you move away from it
+        const spawn = this.getSpawnForMap() || { x: this.player.x, y: this.player.y };
+        this.chase.ghost.x = spawn.x;
+        this.chase.ghost.y = spawn.y;
+        this.chase.ghost.width = this.player.width;
+        this.chase.ghost.height = this.player.height;
+        this.chase.ghost.active = false;
+        this.chase.ghost._waiting = true;
+        // seed initial frame so ghost has something to play after delay
+        const nowt = Date.now();
+        this.chase.frames.push({ x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height, t: nowt });
+      } else {
+        // turning off: disable ghost and clear frames
+        this.chase.ghost.active = false;
+        this.chase.ghost._waiting = false;
+        this.chase.frames.length = 0;
+      }
+    } catch (e) {
+      console.warn('setChaseMode failed', e);
+    }
+  }
+
+
+
+  // Toggle 3D mode on/off.
+  // 3D mode has been disabled in this build: this method is a safe no-op that resolves immediately.
+  async toggle3D() {
+    try {
+      // ensure threeActive remains false and do not initialize the heavy 3D subsystem
+      this.threeActive = false;
+      // keep game paused state unchanged by the caller's intent; return resolved promise to keep callers stable
+      return Promise.resolve(false);
+    } catch (e) {
+      console.warn('toggle3D no-op failed', e);
+      return Promise.resolve(false);
+    }
+  }
+
+  // Publish current presence to multiplayer socket (includes map name).
+  // Safe no-op if multiplayer not connected.
+  _publishPresence() {
+    try {
+      if (!this.multiplayer || !this.multiplayer.connected) return;
+      const socket = this.multiplayer.socket;
+      if (!socket || typeof socket.updatePresence !== 'function') return;
+      const payload = {
+        x: this.player.x,
+        y: this.player.y,
+        width: this.player.width,
+        height: this.player.height,
+        skin: (this.player && (this.player._skin || null)) || null,
+        particles: (this.player && (this.player._particles || null)) || null,
+        map: this.currentMapName || this.multiplayer.room || null
+      };
+      try { socket.updatePresence(payload); } catch (e) {}
+    } catch (e) {
+      console.warn('_publishPresence failed', e);
+    }
+  }
+
+  // --- Multiplayer: basic presence using WebsimSocket ---
+  // startMultiplayer(roomName): connects to a shared room and broadcasts presence (position, skin, particles)
+  async startMultiplayer(roomName = 'map-1-room') {
+    try {
+      // guard
+      if (this.multiplayer.connected) return;
+      // WebsimSocket is available globally per the environment; fall back gracefully if not.
+      if (typeof WebsimSocket === 'undefined') {
+        alert('Multiplayer not available in this environment.');
+        return;
+      }
+
+      // create and initialize socket instance
+      const socket = new WebsimSocket();
+      await socket.initialize();
+      this.multiplayer.socket = socket;
+      this.multiplayer.connected = true;
+      this.multiplayer.room = roomName;
+
+      // set an initial presence (player world position and skin)
+      const publishPresence = () => {
+        try {
+          const payload = {
+            x: this.player.x,
+            y: this.player.y,
+            width: this.player.width,
+            height: this.player.height,
+            skin: (this.player && (this.player._skin || this.player._skin)) || null,
+            particles: (this.player && (this.player._particles || null)) || null,
+            map: this.currentMapName || null
+          };
+          socket.updatePresence(payload);
+        } catch (e) {}
+      };
+
+      // Immediately publish and start interval to publish regularly (use central helper semantics)
+      publishPresence();
+      socket._presenceInterval = setInterval(() => publishPresence(), 100); // 10Hz presence updates
+
+      // Subscribe to presence updates from other clients
+      socket.subscribePresence((current) => {
+        try {
+          // `socket.presence` contains map of clientId -> presence object
+          const peers = socket.presence || {};
+          const now = Date.now();
+
+          // Update or add remote players from current presence map (exclude self)
+          for (const cid of Object.keys(peers)) {
+            if (!cid || cid === socket.clientId) continue;
+            const p = peers[cid];
+            if (!p) {
+              // If presence entry is null/removed, ensure immediate cleanup
+              if (this.remotePlayers[cid]) delete this.remotePlayers[cid];
+              continue;
+            }
+
+            // Smooth update: store incoming presence as target positions and initialize displayed pos if missing.
+            const existing = this.remotePlayers[cid] || {};
+            const targetX = (typeof p.x === 'number') ? p.x : (existing.targetX || existing.x || 0);
+            const targetY = (typeof p.y === 'number') ? p.y : (existing.targetY || existing.y || 0);
+
+            this.remotePlayers[cid] = Object.assign({}, existing, {
+              // displayed x/y remain for interpolation; only set if missing
+              x: (typeof existing.x === 'number') ? existing.x : targetX,
+              y: (typeof existing.y === 'number') ? existing.y : targetY,
+              // store the authoritative target the update loop will lerp toward
+              targetX: targetX,
+              targetY: targetY,
+              width: typeof p.width === 'number' ? p.width : (existing.width || 40),
+              height: typeof p.height === 'number' ? p.height : (existing.height || 60),
+              skin: p.skin || existing.skin || null,
+              particles: p.particles || existing.particles || null,
+              // attach username from socket peers when available so labels can show real names
+              username: (socket && socket.peers && socket.peers[cid] && socket.peers[cid].username) ? socket.peers[cid].username : existing.username || null,
+              // prefer the peer-reported map (p.map) when provided, fall back to previous value or our room
+              map: (typeof p.map === 'string' && p.map) ? p.map : (this.multiplayer && this.multiplayer.room ? this.multiplayer.room : existing.map || null),
+              lastSeen: now,
+              // respect the title-screen toggle for enabling/disabling player-player collisions
+              _noCollide: !this.playerPlayerCollisionEnabled
+            });
+          }
+
+          // Immediately remove any remotePlayers that are no longer present in peers (clean disconnect/leave)
+          for (const cid of Object.keys(this.remotePlayers)) {
+            if (!peers[cid]) {
+              // remove immediately instead of waiting; this ensures quick cleanup on leave/disconnect
+              delete this.remotePlayers[cid];
+            }
+          }
+        } catch (e) { console.warn('presence handling failed', e); }
+      });
+
+      // When peer disconnects we get presence entries removed; also listen for explicit events if available
+      socket.onmessage = (ev) => {
+        try {
+          if (!ev || !ev.data) return;
+          const data = ev.data;
+          switch (data.type) {
+            case 'connected':
+              // peer connected — nothing special needed here (presence callback will populate)
+              break;
+            case 'disconnected':
+              // remove peer immediately so their avatar/label disappears for all other clients
+              if (data.clientId && this.remotePlayers[data.clientId]) {
+                delete this.remotePlayers[data.clientId];
+              }
+              break;
+            case 'chat':
+              // incoming chat message from another client
+              try {
+                const fromName = (data.username) ? data.username : 'Player';
+                const mapName = (data.map) ? data.map : (data.room || this.multiplayer.room || '');
+                const message = data.message || '';
+                const label = `${fromName} ${mapName}: ${message}`;
+                // append to chat log UI
+                try { if (this._addChatMessage) this._addChatMessage(label); } catch(e){}
+                // If this message came from our own client, don't create a remote speech bubble (we already show a local one).
+                try {
+                  const socket = this.multiplayer && this.multiplayer.socket;
+                  if (data.clientId && socket && data.clientId === socket.clientId) {
+                    // only append to chat log, skip remote bubble creation for self
+                    break;
+                  }
+                } catch (e) { /* ignore socket check errors and continue to set bubble */ }
+                // create speech bubble record on remote player entry if that client exists, else create ephemeral entry
+                if (data.clientId) {
+                  if (!this.remotePlayers[data.clientId]) {
+                    this.remotePlayers[data.clientId] = { x: 0, y: 0, width: 40, height: 60, username: fromName, map: mapName, skin: null, lastSeen: Date.now() };
+                  }
+                  const now = Date.now();
+                  this.remotePlayers[data.clientId].speech = message;
+                  this.remotePlayers[data.clientId].speechUntil = now + 3500; // show for 3.5s
+                } else {
+                  // If no clientId provided (server-broadcast), attach to a transient '__globalChat' remote slot so own render shows bubble too
+                  const key = '__globalChat__';
+                  if (!this.remotePlayers[key]) this.remotePlayers[key] = { x: this.player.x, y: this.player.y, width: this.player.width, height: this.player.height, username: fromName, map: mapName, skin: null, lastSeen: Date.now() };
+                  const now = Date.now();
+                  this.remotePlayers[key].speech = message;
+                  this.remotePlayers[key].speechUntil = now + 3500;
+                }
+              } catch (e) {}
+              break;
+            default:
+              // handle other custom messages if needed in future
+              break;
+          }
+        } catch (e) { console.warn('multiplayer onmessage handler failed', e); }
+      };
+
+      // Keep a short-lived heartbeat that keeps our presence fresh and allows immediate join
+      socket._heartbeat = setInterval(() => {
+        try {
+          if (socket && socket.updatePresence) {
+            socket.updatePresence({ x: this.player.x, y: this.player.y });
+          }
+        } catch (e) {}
+      }, 250);
+
+      // show chat UI only when multiplayer connects
+      try {
+        if (this._chatContainer && !this._chatContainer.parentNode) {
+          document.body.appendChild(this._chatContainer);
+        }
+      } catch (e) {}
+
+      // mark connected
+      this.multiplayer.connected = true;
+    } catch (err) {
+      console.warn('startMultiplayer failed', err);
+      this.multiplayer.connected = false;
+      if (this.multiplayer.socket) {
+        try { clearInterval(this.multiplayer.socket._presenceInterval); } catch(e){}
+      }
+    }
+  }
+
+  // stopMultiplayer: disconnect and clear remote data
+  async stopMultiplayer() {
+    try {
+      if (!this.multiplayer || !this.multiplayer.connected) return;
+      const socket = this.multiplayer.socket;
+      if (socket) {
+        try { socket.updatePresence(null); } catch(e){}
+        try { if (socket._presenceInterval) clearInterval(socket._presenceInterval); } catch(e){}
+        try { if (socket._heartbeat) clearInterval(socket._heartbeat); } catch(e){}
+        try { if (typeof socket.close === 'function') socket.close(); } catch(e){}
+      }
+      this.multiplayer.socket = null;
+      this.multiplayer.connected = false;
+      // remove chat UI when leaving multiplayer
+      try {
+        if (this._chatContainer && this._chatContainer.parentNode) {
+          this._chatContainer.parentNode.removeChild(this._chatContainer);
+        }
+      } catch (e) {}
+      this.remotePlayers = {};
+    } catch (e) {
+      console.warn('stopMultiplayer failed', e);
+    }
+  }
+
+  // Replace current map platforms with a supplied serializable map array (same format as mapPlatforms)
+  async loadMap(mapArray) {
+    if (!Array.isArray(mapArray)) return;
+    // When loading a map dynamically, preserve an index order for checkpoints so older checkpoints
+    // cannot override a more recently-activated checkpoint.
+    let _loadCk = 0;
+    this.platforms = mapArray.map(p => {
+      if (!p) return null;
+      if (p.type === 'kill') {
+        return new KillBlock(p.x, p.y, p.width, p.height, p.color);
+      }
+      if (p.type === 'checkpoint') {
+        const cp = new Checkpoint(p.x, p.y, p.width, p.height, p.baseColor || p.color || '#43a047');
+        cp._index = _loadCk++;
+        return cp;
+      }
+      if (p.type === 'win') {
+        return new WinBlock(p.x, p.y, p.width, p.height, p.color || '#64dd17');
+      }
+      if (p.type === 'coin_shooter' || p.type === 'coin-shooter' || p.type === 'coinshooter' || p.type === 'shooter') {
+        return new (typeof CoinShooter !== 'undefined' ? CoinShooter : function(x,y,w,h){ this.x=x;this.y=y;this.width=w;this.height=h; this.type='coin_shooter'; })(
+          p.x, p.y, p.width || 48, p.height || 32, p.color || '#ffd54f'
+        );
+      }
+      if (p.type === 'coin') {
+        // Preserve coin visuals/animation when loading maps by constructing a Coin instance
+        return new Coin(p.x, p.y, p.width || 32, p.height || 32);
+      }
+      if (p.type === 'door') {
+        // Door includes an ID for pairing; create Door instance (preserve color and id)
+        return new Door(p.x, p.y, p.width, p.height, p.color || 'rgba(160,160,255,0.36)', p.id || null);
+      }
+      return new Platform(p.x, p.y, p.width, p.height, p.color);
+    }).filter(Boolean);
+
+    // Honor per-map flags such as disabling the void (phase-through instead of death).
+    // Maps can set maps['name']._disableVoid = true and loadMap will apply it.
+    try {
+      this._disableVoid = !!mapArray._disableVoid;
+    } catch (e) {
+      this._disableVoid = false;
+    }
+
+    // snapshot original coin placements for this map so we can restore them on death
+    try {
+      this._initialCoins = mapArray.filter(p => p && p.type === 'coin')
+        .map(c => ({ x: c.x, y: c.y, width: c.width || 32, height: c.height || 32 }));
+    } catch (e) {
+      this._initialCoins = [];
+    }
+    // Reset coin counters for the newly loaded map
+    this.coinsCollected = 0;
+    this.coinsCollectedP2 = 0;
+
+    // Reset active checkpoint if the new map has any unlocked checkpoint; keep none unlocked initially
+    this.activeCheckpoint = null;
+
+    // Place player at spawn point (use spawnPoint import if present; otherwise use first checkpoint or 100,300)
+    try {
+      const s = (typeof spawnPoint !== 'undefined') ? spawnPoint : { x: 100, y: 300 };
+      // If there's a checkpoint, prefer it for spawn
+      const firstCp = this.platforms.find(p => p.type === 'checkpoint');
+      if (firstCp) {
+        // when inverted gravity is on, spawn lower (further down) so player starts nearer bottom
+        const spawnY = this.invertedGravity ? firstCp.y - this.player.height - 1 + 300 : firstCp.y - this.player.height - 1;
+        this.player.respawn(firstCp.x + (firstCp.width - this.player.width) / 2, spawnY);
+      } else {
+        const spawnY = this.invertedGravity ? (s.y + 300) : s.y;
+        this.player.respawn(s.x, spawnY);
+      }
+    } catch (e) {
+      // fallback
+      this.player.respawn(100, 300);
+    }
+
+    // Always ensure player2 spawns relative to player1 (fixed vertical offset above)
+    try {
+      const offset = this._player2VerticalOffset || ((this.player2 && this.player2.height) ? this.player2.height + 20 : (this.player.height + 20));
+      if (this.player2) {
+        this.player2.respawn(this.player.x, this.player.y - offset);
+      }
+    } catch (e) {
+      // ignore player2 respawn errors
+    }
+
+    // Update maze flag after loading map so falling logic can respect maze maps
+    this._currentMapIsMaze = this.platforms.some(p => !!p.isMaze);
+
+    // Reset per-run coin state so coins do NOT persist across map loads.
+    try {
+      this.coinsCollected = 0;
+      this.coinsCollectedP2 = 0;
+      this._collectedCoinSizesP1 = [];
+      this._collectedCoinSizesP2 = [];
+      this.droppedCoins = [];
+    } catch (e) {
+      console.warn('Failed to reset coin runtime state on map load', e);
+    }
+
+    // update camera immediately
+    this.camera.update(this.player);
+
+    // If this map was selected as the "little runmo" recreation, swap to the Little Runmo track for background music;
+    // otherwise ensure the default music is restored. Use currentMapName set by the caller (index.html sets it before calling loadMap).
+    try {
+      const name = (typeof this.currentMapName === 'string') ? this.currentMapName.toLowerCase() : '';
+      if (name.includes('little runmo')) {
+        if (this.music) {
+          try { this.music.pause(); } catch(e){}
+          try { this.music.src = '/Little Runmo.mp3'; this.music.load(); } catch(e){}
+          try { if (this._playMusic) this._playMusic(); } catch(e){}
+        }
+      } else {
+        if (this.music) {
+          try { this.music.pause(); } catch(e){}
+          try { this.music.src = (this._defaultMusicSrc || '/VVVVVV_ Passion for Exploring (Indie Game Music HD).mp3'); this.music.load(); } catch(e){}
+        }
+      }
+    } catch (e) {
+      console.warn('music swap on loadMap failed', e);
+    }
+
+    // If 3D mode is currently active, refresh the 3D scene so it reflects the new map and player.
+    if (this.threeActive && this.threeMode) {
+      try {
+        const camX = this.camera.x;
+        const camY = this.camera.y;
+        // Rebuild the 3D view by disabling and re-enabling with updated data.
+        // Disable cleans up meshes/renderers; enable will recreate them using current platforms & player.
+        this.threeMode.disable();
+        await this.threeMode.enable(this.platforms, this.player, { cameraX: camX, cameraY: camY, player2: this.player2 });
+      } catch (e) {
+        console.warn('Failed to refresh 3D scene after map load', e);
+      }
+    }
+  }
+
+  // Pause menu helpers
+  showPauseMenu(isAuto = false) {
+    // Guard: if already visible, do nothing
+    if (this.isPausedMenuVisible) return;
+    // show overlay and set paused state
+    if (this._pauseOverlay) this._pauseOverlay.style.display = 'block';
+    this.gamePaused = true;
+    this.isPausedMenuVisible = true;
+    // track whether user manually opened the menu to avoid auto-resume on focus
+    if (!isAuto) this._hadAutoPause = false;
+
+    // Pause background music when user opens the pause menu
+    try {
+      if (this.music && typeof this.music.pause === 'function') {
+        this.music.pause();
+      }
+    } catch (e) {
+      console.warn('Pausing music on pause menu failed', e);
+    }
+  }
+
+  hidePauseMenu() {
+    // Guard: if already hidden, do nothing
+    if (!this.isPausedMenuVisible) return;
+    if (this._pauseOverlay) this._pauseOverlay.style.display = 'none';
+    this.isPausedMenuVisible = false;
+
+    // Only unpause game if replay is not frozen and not in win overlay state
+    // If win overlay showing, remain paused; otherwise resume
+    if (!this.replay.frozen && this._winOverlay && this._winOverlay.style.display === 'none') {
+      this.gamePaused = false;
+    }
+
+    // Resume background music when unpausing (best-effort, user gesture may be required on some browsers)
+    try {
+      if (this.music && typeof this._playMusic === 'function') {
+        this._playMusic();
+      } else if (this.music && typeof this.music.play === 'function') {
+        const p = this.music.play();
+        if (p && typeof p.then === 'function') p.catch(() => {});
+      }
+    } catch (e) {
+      console.warn('Resuming music on unpause failed', e);
+    }
+  }
+
+  start() {
+    this.startTime = Date.now();
+    this.deaths = 0;
+    this.gamePaused = false;
+    // Attempt to start background music immediately when the game starts (user already interacted by pressing Begin)
+    try { if (this._playMusic) this._playMusic(); } catch(e){}
+    // Ensure title-screen coin display reflects current saved value
+    try { const el = document.getElementById('totalCoinsDisplay'); if (el) el.textContent = String(this.totalCoins || 0); } catch(e){}
+    // Only start the main loop if it's not already running to avoid duplicate loops that speed up the game.
+    if (!this._loopRaf) this.gameLoop();
+  }
+
+  // Persisted save format stored to localStorage. Fields:
+  // { totalCoins: number, p1Skin: string, p2Skin: string, p1Particles: string, p2Particles: string }
+  saveState() {
+    try {
+      // include purchased items in persistent save so shop ownership persists
+      const data = {
+        totalCoins: this.totalCoins || 0,
+        p1Skin: (this.player && (this.player._skin || null)) || null,
+        p2Skin: (this.player2 && (this.player2._skin || null)) || null,
+        p1Particles: (this.player && (this.player._particles || null)) || null,
+        p2Particles: (this.player2 && (this.player2._particles || null)) || null,
+        _purchases: this._purchases || { skins: [], particles: [] }
+      };
+      try { localStorage.setItem(this._saveKey, JSON.stringify(data)); } catch(e) {}
+      // update title-screen display if present
+      try {
+        const el = document.getElementById('totalCoinsDisplay');
+        if (el) el.textContent = String(data.totalCoins || 0);
+      } catch(e){}
+      // dispatch an event so UI (shop) can update when save changes
+      try { window.dispatchEvent(new CustomEvent('game:save-updated')); } catch(e){}
+    } catch (e) {
+      console.warn('saveState failed', e);
+    }
+  }
+
+  // Clear persistent local save data and reset in-memory persistent values.
+  clearLocalData() {
+    try {
+      // Remove save from localStorage
+      try { localStorage.removeItem(this._saveKey); } catch (e) { /* ignore */ }
+
+      // Reset purchases and totals in memory
+      this._purchases = { skins: [], particles: [] };
+      this.totalCoins = 0;
+
+      // Reset player/p2 skin & particle selections to defaults if possible
+      try {
+        if (this.player) {
+          if (typeof this.player.setSkin === 'function') this.player.setSkin('p1 default'); else this.player._skin = 'p1 default';
+          this.player._particles = null;
+        }
+      } catch (e) {}
+      try {
+        if (this.player2) {
+          if (typeof this.player2.setSkin === 'function') this.player2.setSkin('p2 default'); else this.player2._skin = 'p2 default';
+          this.player2._particles = null;
+        }
+      } catch (e) {}
+
+      // Clear any recorded replay frames and purchases kept in memory
+      try { this.replay.frames = []; this._collectedCoinSizesP1 = []; this._collectedCoinSizesP2 = []; } catch(e){}
+
+      // Fire a save-updated event so UI (shop, title) updates
+      try { window.dispatchEvent(new CustomEvent('game:save-updated')); } catch(e){}
+
+      // Update title UI immediately
+      try { const el = document.getElementById('totalCoinsDisplay'); if (el) el.textContent = '0'; } catch(e){}
+    } catch (err) {
+      console.warn('clearLocalData failed', err);
+    }
+  }
+
+  loadSave() {
+    try {
+      const raw = localStorage.getItem(this._saveKey);
+      if (!raw) {
+        // ensure title shows zero
+        try { const el = document.getElementById('totalCoinsDisplay'); if (el) el.textContent = '0'; } catch(e){}
+        return;
+      }
+      const data = JSON.parse(raw);
+      if (!data) return;
+      if (typeof data.totalCoins === 'number') this.totalCoins = data.totalCoins;
+      // restore purchases if present
+      try {
+        this._purchases = data._purchases || { skins: [], particles: [] };
+      } catch(e) {
+        this._purchases = { skins: [], particles: [] };
+      }
+      // apply saved skins/particles if available
+      try {
+        if (data.p1Skin && this.player && typeof this.player.setSkin === 'function') {
+          this.player.setSkin(data.p1Skin);
+          this.player._particles = data.p1Particles || null;
+        } else if (data.p1Skin && this.player) {
+          this.player._skin = data.p1Skin;
+          this.player._particles = data.p1Particles || null;
+        }
+        if (data.p2Skin && this.player2 && typeof this.player2.setSkin === 'function') {
+          this.player2.setSkin(data.p2Skin);
+          this.player2._particles = data.p2Particles || null;
+        } else if (data.p2Skin && this.player2) {
+          this.player2._skin = data.p2Skin;
+          this.player2._particles = data.p2Particles || null;
+        }
+      } catch (e) { /* ignore skin apply errors */ }
+      // reflect total on title UI if present
+      try { const el = document.getElementById('totalCoinsDisplay'); if (el) el.textContent = String(this.totalCoins || 0); } catch(e){}
+    } catch (e) {
+      console.warn('loadSave failed', e);
+    }
+  }
+
+  _showWinMenu(seconds, deaths) {
+    try {
+      // when a map is cleared, commit collected coins for both players to persistent totalCoins
+      try {
+        const justCollected = (this.coinsCollected || 0) + (this.coinsCollectedP2 || 0);
+        if (justCollected > 0) {
+          this.totalCoins = (this.totalCoins || 0) + justCollected;
+          // reset per-run counters (they will already be cleared by restart paths, but ensure here)
+          this.coinsCollected = 0;
+          this.coinsCollectedP2 = 0;
+          this._collectedCoinSizesP1 = [];
+          this._collectedCoinSizesP2 = [];
+          // persist to storage and update title display
+          try { this.saveState(); } catch(e) { console.warn('saveState on win failed', e); }
+        }
+      } catch (e) {
+        console.warn('coin commit on win failed', e);
+      }
+    } catch (e) {}
+
+    this._winStats.textContent = `Time: ${seconds}s • Deaths: ${deaths}`;
+    // Ensure the replay button state matches current replay.enabled when showing the win overlay
+    if (this._winReplayBtn) this._winReplayBtn.disabled = !this.replay.enabled;
+    this._winOverlay.style.display = 'block';
+  }
+
+  _hideWinMenu() {
+    this._winOverlay.style.display = 'none';
+  }
+}
