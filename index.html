@@ -26,6 +26,7 @@
             <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">My friend's website</button>
             <button id="achievements-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Achievements</button>
             <button id="open-gallery-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">Gallery</button>
+            <button id="admin-btn" class="toggle-btn hidden" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">ADMIN</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
@@ -131,6 +132,52 @@
                     <p id="gallery-caption"></p>
                 </div>
                 <button id="next-btn" class="gallery-btn">&gt;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dev-grid-modal" class="modal hidden">
+        <div class="modal-content" style="width: 280px; text-align: center;">
+            <span id="close-dev-grid-btn" class="close-btn">&times;</span>
+            <h3>Security Verification</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 10px;">Input access pattern.</p>
+            <div id="dev-grid" class="dev-grid"></div>
+            <button id="submit-grid-btn" class="modal-btn" style="width: 100%; margin-top: 15px;">Verify</button>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content" style="width: 420px; max-height: 85vh; overflow-y: auto;">
+            <span id="close-admin-btn" class="close-btn">&times;</span>
+            <h3 style="color: #ff5555; text-align: center;">ADMIN PANEL</h3>
+            
+            <div class="admin-section">
+                <h4>Local Storage Configuration</h4>
+                <button id="admin-clear-ls" class="modal-btn" style="background-color: #8b0000;">Clear All Local Storage</button>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin-top: 10px;">Edit Raw JSON:</p>
+                <textarea id="admin-ls-editor" rows="6" style="width: 100%; background: #111; color: #00ff00; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;"></textarea>
+                <button id="admin-save-ls" class="modal-btn" style="width: 100%;">Save Local Storage Variables</button>
+            </div>
+
+            <div class="admin-section">
+                <h4>Achievement Manager</h4>
+                <select id="admin-achievements-select" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-main);"></select>
+                <button id="admin-unlock-ach" class="modal-btn" style="width: 100%;">Force Unlock Achievement</button>
+            </div>
+
+            <div class="admin-section">
+                <h4>Theme Architect</h4>
+                <div id="theme-creator-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 10px;">
+                    </div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="admin-preview-theme" class="modal-btn" style="flex: 1;">Preview Theme</button>
+                    <button id="admin-generate-css" class="modal-btn" style="flex: 1;">Generate CSS</button>
+                </div>
+                <textarea id="admin-css-output" rows="5" style="width: 100%; background: #111; color: #fff; margin-top: 10px; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;" readonly placeholder="CSS code will appear here..."></textarea>
+            </div>
+
+            <div class="admin-section">
+                <button id="admin-remove-dev" class="modal-btn" style="background-color: #ff0000; color: white; width: 100%; font-weight: bold;">DISABLE DEV MODE</button>
             </div>
         </div>
     </div>
