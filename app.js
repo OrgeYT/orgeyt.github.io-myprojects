@@ -17,7 +17,7 @@ const projects = [
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
 const searchBar = document.getElementById('search-bar');
-const randomProjectBtn = document.getElementById('random-project-btn'); // NEW: Random Button Ref
+const randomProjectBtn = document.getElementById('random-project-btn'); 
 
 // Track the current project identifier and exact file path
 let currentProjectParam = "welcome";
@@ -55,7 +55,7 @@ projects.forEach(project => {
     fileList.appendChild(button);
 });
 
-// NEW: Search Filter Logic
+// Search Filter Logic
 if (searchBar) {
     searchBar.addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
@@ -158,6 +158,37 @@ runnerFrame.addEventListener('load', () => {
         console.warn("Could not attach keyboard shortcut to iframe.");
     }
 });
+
+// ==========================================
+// --- Theme Settings Modal Logic ---
+// ==========================================
+
+const themeModal = document.getElementById('theme-modal');
+const themeBtn = document.getElementById('theme-settings-btn');
+const closeThemeBtn = document.getElementById('close-theme-btn');
+
+themeBtn.addEventListener('click', () => {
+    themeModal.classList.remove('hidden');
+});
+
+closeThemeBtn.addEventListener('click', () => {
+    themeModal.classList.add('hidden');
+});
+
+// Load saved theme on startup
+const savedTheme = localStorage.getItem('orgeyt-theme') || 'default';
+document.body.setAttribute('data-theme', savedTheme);
+
+// Handle theme button clicks
+const themeButtons = document.querySelectorAll('[data-set-theme]');
+themeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const theme = e.target.getAttribute('data-set-theme');
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('orgeyt-theme', theme); // Saves it so it stays when you refresh!
+    });
+});
+
 
 // ==========================================
 // --- Tab Modifier (Cloak) Logic ---
