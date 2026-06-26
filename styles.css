@@ -216,6 +216,19 @@
     --accent-transparent: rgba(42, 161, 152, 0.3);
     --accent-solid: #2aa198;
 }
+:root[data-theme="suns brightness"] {
+    --bg-main: #ffffff;
+    --bg-sidebar: #ffffff;
+    --border-main: #ffffff;
+    --text-main: #000000;
+    --text-accent: #ffffff;
+    --btn-primary: #ffffff;
+    --btn-primary-hover: #ffffff;
+    --btn-secondary: #ffffff;
+    --btn-secondary-hover: #ffffff;
+    --accent-transparent: rgba(255, 255, 255, 0.2);
+    --accent-solid: #ffffff;
+}
 
 /* ==========================================
    Base Styles
