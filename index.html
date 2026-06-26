@@ -6,61 +6,6 @@
     <title>OrgeYT's HTML Projects</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Gallery Carousel Styles */
-        .gallery-section {
-            margin-top: 20px;
-            padding: 10px;
-            background: var(--accent-transparent);
-            border-radius: 10px;
-            text-align: center;
-        }
-        .gallery-section h3 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            font-size: 1.1rem;
-            border-bottom: 1px solid var(--accent-transparent);
-            padding-bottom: 5px;
-        }
-        .gallery-carousel {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .gallery-btn {
-            background: var(--accent-transparent);
-            border: none;
-            color: var(--text-main);
-            font-weight: bold;
-            padding: 10px;
-            cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.2s;
-        }
-        .gallery-btn:hover { background: var(--accent-solid); }
-        .gallery-content {
-            flex-grow: 1;
-            padding: 0 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .gallery-content img {
-            width: 100%;
-            max-width: 100px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-        }
-        .gallery-content p {
-            font-size: 0.85rem;
-            opacity: 0.8;
-            margin: 0;
-            font-style: italic;
-            min-height: 2.5em;
-            display: flex;
-            align-items: center;
-        }
-    </style>
 </head>
 <body>
     <div class="sidebar">
@@ -80,23 +25,12 @@
             <button id="favorite-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">Favorite Current Project</button>
             <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">My friend's website</button>
             <button id="achievements-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Achievements</button>
+            <button id="open-gallery-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">Gallery</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
 
         <div id="file-list"></div>
-
-        <div class="gallery-section">
-            <h3>Gallery</h3>
-            <div class="gallery-carousel">
-                <button id="prev-btn" class="gallery-btn">&lt;</button>
-                <div class="gallery-content">
-                    <img id="gallery-img" src="" alt="Gallery Image">
-                    <p id="gallery-caption"></p>
-                </div>
-                <button id="next-btn" class="gallery-btn">&gt;</button>
-            </div>
-        </div>
     </div>
     
     <div class="main-content">
@@ -182,8 +116,22 @@
         <div class="modal-content" style="width: 350px;">
             <span id="close-achievements-btn" class="close-btn">&times;</span>
             <h3>Achievements</h3>
-            <div id="achievements-list">
+            <div id="achievements-list"></div>
+        </div>
+    </div>
+
+    <div id="gallery-modal" class="modal hidden">
+        <div class="modal-content gallery-modal-content">
+            <span id="close-gallery-btn" class="close-btn">&times;</span>
+            <h3>Gallery</h3>
+            <div class="gallery-carousel">
+                <button id="prev-btn" class="gallery-btn">&lt;</button>
+                <div class="gallery-content">
+                    <img id="gallery-img" src="" alt="Gallery Image">
+                    <p id="gallery-caption"></p>
                 </div>
+                <button id="next-btn" class="gallery-btn">&gt;</button>
+            </div>
         </div>
     </div>
 
