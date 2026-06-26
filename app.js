@@ -488,3 +488,202 @@ window.addEventListener('DOMContentLoaded', () => {
         overrideUpdateGallery(); // Track the first one on boot
     }
 });
+
+// ==========================================
+// --- Dev Mode & Admin Panel ---
+// ==========================================
+
+const adminBtn = document.getElementById('admin-btn');
+const isDevMode = localStorage.getItem('orgeyt-dev-mode') === 'true';
+
+// Show Admin button if dev mode is saved
+if (isDevMode && adminBtn) {
+    adminBtn.classList.remove('hidden');
+}
+
+// 1. Ctrl + Z Hook
+document.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault(); 
+        document.getElementById('dev-grid-modal').classList.remove('hidden');
+        initDevGrid();
+    }
+});
+
+// 2. 5x5 Grid Puzzle Logic
+const devGrid = document.getElementById('dev-grid');
+function initDevGrid() {
+    if(!devGrid) return;
+    devGrid.innerHTML = '';
+    for (let i = 0; i < 25; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'dev-grid-cell';
+        cell.dataset.state = '0';
+        cell.addEventListener('click', () => {
+            cell.classList.toggle('white');
+            cell.dataset.state = cell.classList.contains('white') ? '1' : '0';
+        });
+        devGrid.appendChild(cell);
+    }
+}
+
+document.getElementById('close-dev-grid-btn').addEventListener('click', () => {
+    document.getElementById('dev-grid-modal').classList.add('hidden');
+});
+
+document.getElementById('submit-grid-btn').addEventListener('click', () => {
+    const cells = Array.from(document.querySelectorAll('.dev-grid-cell'));
+    const currentPattern = cells.map(c => c.dataset.state).join('');
+    const targetPattern = "1010101110111110111010101";
+
+    if (currentPattern === targetPattern) {
+        alert("ACCESS GRANTED: Dev Mode Activated.");
+        localStorage.setItem('orgeyt-dev-mode', 'true');
+        adminBtn.classList.remove('hidden');
+        document.getElementById('dev-grid-modal').classList.add('hidden');
+    } else {
+        alert("ACCESS DENIED: Incorrect Pattern.");
+        initDevGrid(); // Reset the grid
+    }
+});
+
+// 3. Admin Modal Logic
+const adminModal = document.getElementById('admin-modal');
+if(adminBtn) {
+    adminBtn.addEventListener('click', () => {
+        adminModal.classList.remove('hidden');
+        refreshAdminPanel();
+    });
+}
+document.getElementById('close-admin-btn').addEventListener('click', () => adminModal.classList.add('hidden'));
+
+function refreshAdminPanel() {
+    // Populate Local Storage Editor
+    const lsData = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        // Exclude the dev-mode toggle itself to prevent accidental lockouts
+        if(key !== 'orgeyt-dev-mode') {
+            lsData[key] = localStorage.getItem(key);
+        }
+    }
+    document.getElementById('admin-ls-editor').value = JSON.stringify(lsData, null, 2);
+
+    // Populate Achievements Dropdown
+    const achSelect = document.getElementById('admin-achievements-select');
+    achSelect.innerHTML = '';
+    for (const key in achievementData) {
+        const opt = document.createElement('option');
+        opt.value = key;
+        const isUnlocked = unlockedAchievements.includes(key);
+        opt.textContent = `${achievementData[key].title} ${isUnlocked ? "✅ (Unlocked)" : "🔒 (Locked)"}`;
+        achSelect.appendChild(opt);
+    }
+
+    // Populate Theme Creator inputs
+    const themeVars = [
+        '--bg-main', '--bg-sidebar', '--border-main', '--text-main', '--text-accent',
+        '--btn-primary', '--btn-primary-hover', '--btn-secondary', '--btn-secondary-hover',
+        '--accent-transparent', '--accent-solid'
+    ];
+    const themeContainer = document.getElementById('theme-creator-inputs');
+    themeContainer.innerHTML = '';
+    const computedStyles = getComputedStyle(document.documentElement);
+    
+    themeVars.forEach(v => {
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.justifyContent = 'space-between';
+        wrapper.style.alignItems = 'center';
+        
+        const label = document.createElement('label');
+        label.textContent = v.replace('--', '');
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'theme-var-' + v;
+        input.value = computedStyles.getPropertyValue(v).trim();
+        input.style.width = '55%';
+        input.style.padding = '3px';
+        input.style.background = 'var(--bg-main)';
+        input.style.color = 'var(--text-main)';
+        input.style.border = '1px solid var(--border-main)';
+        
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        themeContainer.appendChild(wrapper);
+    });
+}
+
+// Admin: Edit Local Storage
+document.getElementById('admin-save-ls').addEventListener('click', () => {
+    try {
+        const parsed = JSON.parse(document.getElementById('admin-ls-editor').value);
+        // Save current dev mode state before wiping
+        const devState = localStorage.getItem('orgeyt-dev-mode');
+        localStorage.clear();
+        
+        // Restore Dev Mode
+        if(devState) localStorage.setItem('orgeyt-dev-mode', devState);
+        
+        for (const key in parsed) {
+            let val = parsed[key];
+            // Fix parsing if it's supposed to be an array or object
+            if (typeof val === 'object') {
+                val = JSON.stringify(val);
+            }
+            localStorage.setItem(key, val);
+        }
+        alert("Local Storage Successfully Updated! Page will refresh.");
+        location.reload();
+    } catch(e) {
+        alert("ERROR: Invalid JSON format. Please check your syntax.");
+    }
+});
+
+// Admin: Clear Local Storage
+document.getElementById('admin-clear-ls').addEventListener('click', () => {
+    if(confirm("WARNING: This will delete ALL data (time, favorites, achievements). Are you sure?")) {
+        const devState = localStorage.getItem('orgeyt-dev-mode');
+        localStorage.clear();
+        if(devState) localStorage.setItem('orgeyt-dev-mode', devState);
+        alert("Storage cleared. Page will refresh.");
+        location.reload();
+    }
+});
+
+// Admin: Unlock Achievement
+document.getElementById('admin-unlock-ach').addEventListener('click', () => {
+    const achId = document.getElementById('admin-achievements-select').value;
+    unlockAchievement(achId);
+    refreshAdminPanel(); 
+});
+
+// Admin: Preview Custom Theme
+document.getElementById('admin-preview-theme').addEventListener('click', () => {
+    const inputs = document.querySelectorAll('[id^="theme-var-"]');
+    inputs.forEach(input => {
+        const cssVar = input.id.replace('theme-var-', '');
+        document.documentElement.style.setProperty(cssVar, input.value);
+    });
+});
+
+// Admin: Generate CSS
+document.getElementById('admin-generate-css').addEventListener('click', () => {
+    let cssCode = `:root[data-theme="custom-theme-name"] {\n`;
+    const inputs = document.querySelectorAll('[id^="theme-var-"]');
+    inputs.forEach(input => {
+        const cssVar = input.id.replace('theme-var-', '');
+        cssCode += `    ${cssVar}: ${input.value};\n`;
+    });
+    cssCode += `}`;
+    document.getElementById('admin-css-output').value = cssCode;
+});
+
+// Admin: Remove Dev Mode
+document.getElementById('admin-remove-dev').addEventListener('click', () => {
+    if(confirm("This will disable Dev Mode and hide the Admin panel. Continue?")) {
+        localStorage.removeItem('orgeyt-dev-mode');
+        location.reload();
+    }
+});
