@@ -550,3 +550,97 @@ body {
 .retake-btn:active {
     transform: scale(0.98);
 }
+
+/* ==========================================
+   Achievements & Time Tracker Styles
+   ========================================== */
+
+#time-counter {
+    font-size: 0.8rem; 
+    margin-bottom: 10px; 
+    color: var(--text-accent);
+    font-family: monospace;
+}
+
+#achievements-list {
+    overflow-y: auto; 
+    flex-grow: 1; 
+    padding-right: 5px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px;
+    max-height: 300px;
+}
+
+#achievements-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#achievements-list::-webkit-scrollbar-thumb {
+    background-color: var(--accent-transparent);
+    border-radius: 4px;
+}
+
+.achievement-item {
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-main);
+    padding: 10px;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0.5; /* Dimmed when locked */
+    transition: opacity 0.3s, border-color 0.3s, background-color 0.3s;
+}
+
+.achievement-item.unlocked {
+    opacity: 1;
+    border-color: var(--text-accent);
+    background-color: var(--accent-transparent);
+}
+
+.achievement-title {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--text-main);
+}
+
+.achievement-desc {
+    font-size: 0.8rem;
+    color: var(--text-accent);
+    margin-top: 3px;
+}
+
+/* Toast Notification (Pop-up) */
+#achievement-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--bg-sidebar);
+    border: 2px solid var(--accent-solid);
+    color: var(--text-main);
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    z-index: 1000;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.4s ease;
+    pointer-events: none;
+}
+
+#achievement-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast-content strong {
+    color: var(--text-accent);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#toast-text {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
