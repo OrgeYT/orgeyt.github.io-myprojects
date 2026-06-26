@@ -644,3 +644,106 @@ body {
     font-size: 1.1rem;
     font-weight: bold;
 }
+
+/* ==========================================
+   Responsive & Small Screen Styles
+   ========================================== */
+
+/* For tablets and smaller screens */
+@media (max-width: 850px) {
+    body {
+        flex-direction: column; /* Stack vertically */
+    }
+
+    .sidebar {
+        width: 100%;
+        height: 45vh; /* Sidebar takes up the top 45% of the screen */
+        border-right: none;
+        border-bottom: 1px solid var(--border-main);
+        padding: 12px;
+    }
+
+    .main-content {
+        width: 100%;
+        height: 55vh; /* Iframe takes up the bottom 55% */
+        flex: none; /* Override the flex: 1 to respect the height */
+    }
+
+    #sidebar-logo {
+        max-width: 140px;
+        margin-bottom: 10px;
+    }
+
+    .sidebar h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Make buttons fit nicer */
+    .sidebar-controls .toggle-btn {
+        font-size: 0.75rem;
+        padding: 6px;
+    }
+
+    #search-bar {
+        padding: 6px;
+        font-size: 0.8rem;
+    }
+
+    /* Adjust overlay buttons so they don't overlap on medium screens */
+    #fullscreen-btn, #share-btn, #open-full-btn {
+        padding: 6px 10px;
+        font-size: 0.75rem;
+    }
+
+    #share-btn {
+        right: 95px;
+    }
+
+    #open-full-btn {
+        right: 195px;
+    }
+}
+
+/* For phones and very narrow screens */
+@media (max-width: 500px) {
+    .sidebar {
+        height: 50vh;
+    }
+
+    .main-content {
+        height: 50vh;
+    }
+
+    #sidebar-logo {
+        max-width: 120px;
+    }
+
+    /* Shrink overlay buttons further and space them tightly */
+    #fullscreen-btn, #share-btn, #open-full-btn {
+        padding: 5px 8px;
+        font-size: 0.65rem;
+        top: 5px; /* Move slightly closer to the top edge */
+    }
+
+    #fullscreen-btn {
+        right: 5px;
+    }
+
+    #share-btn {
+        right: 78px;
+    }
+
+    #open-full-btn {
+        right: 155px;
+    }
+    
+    /* Ensure the modal doesn't break out of the screen on tiny phones */
+    .modal-content {
+        width: 90%;
+        padding: 15px;
+    }
+    
+    #theme-buttons {
+        grid-template-columns: 1fr; /* Make theme buttons a single column on tiny screens */
+    }
+}
