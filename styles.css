@@ -141,6 +141,7 @@
     --accent-transparent: rgba(255, 255, 0, 0.2);
     --accent-solid: #39ff14;
 }
+
 /* RETAKE (Black and Red) */
 :root[data-theme="retake"] {
     --bg-main: #000000;
@@ -360,7 +361,7 @@ body {
     transform: scale(0.98);
 }
 
-/* Favorited Project Styling (35% Yellow Overlay Idea) */
+/* Favorited Project Styling */
 .file-btn.favorited-item {
     background-color: rgba(255, 255, 0, 0.35);
     border-color: rgba(255, 255, 0, 0.5);
@@ -401,17 +402,9 @@ body {
     transition: background 0.2s, border-color 0.3s;
 }
 
-#fullscreen-btn {
-    right: 10px;
-}
-
-#share-btn {
-    right: 110px; 
-}
-
-#open-full-btn {
-    right: 235px;
-}
+#fullscreen-btn { right: 10px; }
+#share-btn { right: 110px; }
+#open-full-btn { right: 235px; }
 
 #fullscreen-btn:hover, #share-btn:hover, #open-full-btn:hover {
     background: var(--accent-solid);
@@ -532,9 +525,9 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background-color: #8b0000; /* Untouched */
+    background-color: #8b0000;
     color: #ffffff;
-    border: 1px solid #550000; /* Untouched */
+    border: 1px solid #550000; 
     padding: 10px 15px;
     border-radius: 5px;
     text-decoration: none;
@@ -544,7 +537,7 @@ body {
 }
 
 .retake-btn:hover {
-    background-color: #a50000; /* Untouched */
+    background-color: #a50000; 
 }
 
 .retake-btn:active {
@@ -698,29 +691,26 @@ body {
 }
 
 /* ==========================================
-   Responsive & Small Screen Styles (UPDATED)
+   Responsive & Small Screen Styles
    ========================================== */
-
-/* For tablets and smaller screens */
 @media (max-width: 1100px) {
     body {
         flex-direction: column; 
-        height: auto; /* Let the whole page scroll naturally on mobile */
+        height: auto; 
         min-height: 100vh;
         overflow-y: auto;
     }
 
     .sidebar {
         width: 100%;
-        height: auto; /* Let it expand to fit everything perfectly */
+        height: auto; 
         border-right: none;
-        border-bottom: 3px solid var(--accent-solid); /* Nice divider */
+        border-bottom: 3px solid var(--accent-solid);
         padding: 15px;
         display: flex;
         flex-direction: column;
     }
 
-    /* Keep the file list scrollable but contained so it doesn't stretch forever */
     #file-list {
         max-height: 250px; 
         border: 1px solid var(--border-main);
@@ -731,7 +721,7 @@ body {
 
     .main-content {
         width: 100%;
-        height: 70vh; /* Give the project iframe plenty of room below */
+        height: 70vh; 
         min-height: 450px;
         flex: none; 
     }
@@ -742,7 +732,7 @@ body {
     }
 
     .sidebar h2, .subtitle, #project-counter, #time-counter {
-        text-align: center; /* Center the text for a cleaner mobile look */
+        text-align: center; 
     }
 
     .sidebar-controls .toggle-btn {
@@ -751,10 +741,9 @@ body {
     }
 }
 
-/* For phones and very narrow screens */
 @media (max-width: 500px) {
     #file-list {
-        max-height: 200px; /* Shrink list slightly more for tiny screens */
+        max-height: 200px;
     }
 
     .main-content {
@@ -762,7 +751,6 @@ body {
         min-height: 400px;
     }
 
-    /* Adjust overlay buttons so they don't overlap */
     #fullscreen-btn, #share-btn, #open-full-btn {
         padding: 5px 8px;
         font-size: 0.65rem;
@@ -773,14 +761,60 @@ body {
     #share-btn { right: 80px; }
     #open-full-btn { right: 160px; }
     
-    /* Ensure the modals don't break out of the screen */
     .modal-content {
         width: 90%;
         padding: 15px;
     }
     
-    /* Make theme buttons stack cleanly in a single column */
     #theme-buttons {
         grid-template-columns: 1fr; 
     }
+}
+
+/* ==========================================
+   Dev Mode & Admin Panel Styles
+   ========================================== */
+.dev-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
+    background-color: var(--border-main);
+    border: 2px solid var(--border-main);
+}
+
+.dev-grid-cell {
+    background-color: black;
+    cursor: pointer;
+    transition: background-color 0.1s;
+}
+
+.dev-grid-cell.white {
+    background-color: white;
+}
+
+#admin-btn {
+    background-color: #4d0000;
+    color: #ffcccc;
+    border-color: #ff0000;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+#admin-btn:hover {
+    background-color: #8b0000;
+}
+
+.admin-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border-main);
+}
+
+.admin-section h4 {
+    margin-bottom: 8px;
+    color: var(--text-accent);
 }
