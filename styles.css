@@ -44,7 +44,35 @@ body {
 .subtitle {
     font-size: 0.8rem;
     color: #cc8855; /* Soft orange subtitle */
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Reduced to make room for icon */
+}
+
+/* NEW: Squishy Icon Styling */
+#squish-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 15px auto;
+    display: block;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    user-select: none;
+}
+
+#squish-icon:hover {
+    transform: scale(1.1); /* Gentle pop up when hovering */
+}
+
+/* Squishing Animation */
+.squishing {
+    animation: cute-squish 0.4s ease-in-out;
+}
+
+@keyframes cute-squish {
+    0% { transform: scale(1, 1); }
+    30% { transform: scale(1.4, 0.6); } /* Gets wide and flat */
+    60% { transform: scale(0.8, 1.2); } /* Bounces tall and thin */
+    80% { transform: scale(1.1, 0.9); }
+    100% { transform: scale(1, 1); }
 }
 
 /* Toggle Button Styling */
