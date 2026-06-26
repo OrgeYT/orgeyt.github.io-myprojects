@@ -175,16 +175,17 @@ closeThemeBtn.addEventListener('click', () => {
     themeModal.classList.add('hidden');
 });
 
-// Load saved theme on startup
+// Load saved theme on startup using documentElement instead of body
 const savedTheme = localStorage.getItem('orgeyt-theme') || 'default';
-document.body.setAttribute('data-theme', savedTheme);
+document.documentElement.setAttribute('data-theme', savedTheme);
 
 // Handle theme button clicks
 const themeButtons = document.querySelectorAll('[data-set-theme]');
 themeButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
-        const theme = e.target.getAttribute('data-set-theme');
-        document.body.setAttribute('data-theme', theme);
+        // Use currentTarget to strictly get the button, even if text is clicked
+        const theme = e.currentTarget.getAttribute('data-set-theme');
+        document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('orgeyt-theme', theme); // Saves it so it stays when you refresh!
     });
 });
