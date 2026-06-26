@@ -141,6 +141,80 @@
     --accent-transparent: rgba(255, 255, 0, 0.2);
     --accent-solid: #39ff14;
 }
+/* RETAKE (Black and Red) */
+:root[data-theme="retake"] {
+    --bg-main: #000000;
+    --bg-sidebar: #1a0000;
+    --border-main: #550000;
+    --text-main: #ffcccc;
+    --text-accent: #ff0000;
+    --btn-primary: #8b0000;
+    --btn-primary-hover: #cc0000;
+    --btn-secondary: #2a0000;
+    --btn-secondary-hover: #400000;
+    --accent-transparent: rgba(255, 0, 0, 0.2);
+    --accent-solid: #ff0000;
+}
+
+/* Youtube (Red and Dark Gray) */
+:root[data-theme="youtube"] {
+    --bg-main: #0f0f0f;
+    --bg-sidebar: #0f0f0f;
+    --border-main: #272727;
+    --text-main: #ffffff;
+    --text-accent: #aaaaaa;
+    --btn-primary: #ff0000;
+    --btn-primary-hover: #cc0000;
+    --btn-secondary: #272727;
+    --btn-secondary-hover: #3f3f3f;
+    --accent-transparent: rgba(255, 0, 0, 0.2);
+    --accent-solid: #ff0000;
+}
+
+/* Void (Even blacker) */
+:root[data-theme="void"] {
+    --bg-main: #000000;
+    --bg-sidebar: #000000;
+    --border-main: #111111;
+    --text-main: #444444;
+    --text-accent: #222222;
+    --btn-primary: #050505;
+    --btn-primary-hover: #0a0a0a;
+    --btn-secondary: #020202;
+    --btn-secondary-hover: #080808;
+    --accent-transparent: rgba(255, 255, 255, 0.05);
+    --accent-solid: #222222;
+}
+
+/* Mini Soon Light (Even whiter) */
+:root[data-theme="minisoon-light"] {
+    --bg-main: #ffffff;
+    --bg-sidebar: #f9f9f9;
+    --border-main: #eeeeee;
+    --text-main: #000000;
+    --text-accent: #666666;
+    --btn-primary: #e0e0e0;
+    --btn-primary-hover: #d0d0d0;
+    --btn-secondary: #f0f0f0;
+    --btn-secondary-hover: #e0e0e0;
+    --accent-transparent: rgba(0, 0, 0, 0.1);
+    --accent-solid: #cccccc;
+}
+
+/* Cooking with Bnoob (Cyan, Yellow) */
+:root[data-theme="bnoob"] {
+    --bg-main: #002b36;
+    --bg-sidebar: #073642;
+    --border-main: #268bd2;
+    --text-main: #fdf6e3;
+    --text-accent: #2aa198;
+    --btn-primary: #b58900;
+    --btn-primary-hover: #d3a600;
+    --btn-secondary: #002b36;
+    --btn-secondary-hover: #073642;
+    --accent-transparent: rgba(42, 161, 152, 0.3);
+    --accent-solid: #2aa198;
+}
 
 /* ==========================================
    Base Styles
