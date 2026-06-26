@@ -11,7 +11,7 @@
         .gallery-section {
             margin-top: 20px;
             padding: 10px;
-            background: rgba(204, 85, 0, 0.15); /* Orange tinted background */
+            background: var(--accent-transparent);
             border-radius: 10px;
             text-align: center;
         }
@@ -19,7 +19,7 @@
             margin-top: 0;
             margin-bottom: 10px;
             font-size: 1.1rem;
-            border-bottom: 1px solid rgba(204, 85, 0, 0.3); /* Orange bottom border */
+            border-bottom: 1px solid var(--accent-transparent);
             padding-bottom: 5px;
         }
         .gallery-carousel {
@@ -28,16 +28,16 @@
             justify-content: space-between;
         }
         .gallery-btn {
-            background: rgba(204, 85, 0, 0.2); /* Orange button background */
+            background: var(--accent-transparent);
             border: none;
-            color: white;
+            color: var(--text-main);
             font-weight: bold;
             padding: 10px;
             cursor: pointer;
             border-radius: 5px;
             transition: background 0.2s;
         }
-        .gallery-btn:hover { background: rgba(204, 85, 0, 0.5); }
+        .gallery-btn:hover { background: var(--accent-solid); }
         .gallery-content {
             flex-grow: 1;
             padding: 0 10px;
@@ -71,13 +71,14 @@
 
         <img id="squish-icon" src="favicon.ico" alt="Squishy Favicon">
 
-        <div id="project-counter" style="font-size: 0.8rem; margin-bottom: 10px; color: #cc8855;"></div>
+        <div id="project-counter" style="font-size: 0.8rem; margin-bottom: 10px; color: var(--text-accent);"></div>
 
         <div class="sidebar-controls" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
             <button id="toggle-ui-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Toggle UI (`)</button>
             <button id="tab-modifier-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Tab Settings</button>
+            <button id="theme-settings-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Theme Settings</button>
             <button id="random-project-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Random Project</button>
-            <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">My friend's website</button>
+            <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; width: 100%;">My friend's website</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
@@ -102,6 +103,25 @@
         <button id="share-btn">Share Project</button>
         <button id="fullscreen-btn">Full Screen</button>
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
+    </div>
+
+    <div id="theme-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-theme-btn" class="close-btn">&times;</span>
+            <h3>Theme Settings</h3>
+            <div class="setting-group" id="theme-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button class="modal-btn" data-set-theme="default">Dark Orange (Default)</button>
+                <button class="modal-btn" data-set-theme="grass-dark">Grass Dark</button>
+                <button class="modal-btn" data-set-theme="sky-dark">Sky Dark</button>
+                <button class="modal-btn" data-set-theme="fire-dark">Fire Dark</button>
+                <button class="modal-btn" data-set-theme="white">White</button>
+                <button class="modal-btn" data-set-theme="black">Black</button>
+                <button class="modal-btn" data-set-theme="flower-dark">Flower Dark</button>
+                <button class="modal-btn" data-set-theme="discord">Discord</button>
+                <button class="modal-btn" data-set-theme="ultrabox" style="grid-column: span 2;">Ultrabox</button>
+                <button class="modal-btn" data-set-theme="rainbow-dark" style="grid-column: span 2;">Rainbow Dark</button>
+            </div>
+        </div>
     </div>
 
     <div id="tab-modal" class="modal hidden">
@@ -143,7 +163,7 @@
             <span id="close-friends-modal-btn" class="close-btn">&times;</span>
             <h3>My friend's website</h3>
             <div class="setting-group" style="text-align: center; margin-top: 10px;">
-                <p style="margin-bottom: 15px; color: #e6a873;">Check out my friend's website!</p>
+                <p style="margin-bottom: 15px; color: var(--text-accent);">Check out my friend's website!</p>
                 <a href="https://fcr-official.github.io/RETAKE/" target="_blank" class="retake-btn">
                     RETAKE
                     <img src="https://fcr-official.github.io/RETAKE/favicon.ico" alt="RETAKE Icon" style="width: 16px; height: 16px; margin-left: 8px;">
