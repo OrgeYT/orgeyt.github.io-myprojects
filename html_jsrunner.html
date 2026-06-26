@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple JS Runner - Dark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-950 p-4 md:p-8 text-gray-100">
+    <div class="max-w-4xl mx-auto bg-gray-900 border border-gray-800 rounded-xl shadow-2xl p-6">
+        <h1 class="text-2xl font-bold mb-4 text-white">JS Runner (Dark Mode)</h1>
+        
+        <select id="scriptSelect" class="w-full p-2 mb-4 border border-gray-700 rounded-md bg-gray-800 text-gray-200">
+            <option value="">-- Choose an Example Script --</option>
+        </select>
+
+        <textarea id="codeEditor" class="w-full h-64 p-4 font-mono text-sm bg-black text-green-400 border border-gray-700 rounded-lg mb-4" placeholder="Write your JavaScript here..."></textarea>
+        
+        <div class="flex gap-4">
+            <button id="runBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-500 transition">Run Code</button>
+            <button id="previewBtn" class="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-500 transition">Preview UI</button>
+            <button id="clearBtn" class="bg-gray-700 text-gray-200 px-6 py-2 rounded-lg hover:bg-gray-600 transition">Clear & Reset</button>
+        </div>
+
+        <div class="mt-6">
+            <h2 class="text-lg font-semibold mb-2">Output:</h2>
+            <div id="output" class="p-4 bg-black border border-gray-800 rounded-lg min-h-[50px] text-green-300 font-mono whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
+    <script>
+        const examples = [
+            { name: "Hello World", code: "console.log('Hello, World!');" },
+            { name: "Add Two Numbers", code: "const a = 5; const b = 10; console.log('Sum:', a + b);" },
+            { name: "Array Mapping", code: "const nums = [1, 2, 3]; const doubled = nums.map(n => n * 2); console.log('Doubled:', doubled);" },
+            { name: "Interactive 3D Box", code: `const box = document.createElement("div");
+
+let x = window.innerWidth / 2;
+let y = window.innerHeight / 2;
+let dragging = false;
+let offsetX = 0;
+let offsetY = 0;
+
+Object.assign(box.style, {
+  width: "120px", height: "120px", position: "fixed",
+  left: x + "px", top: y + "px", transform: "translate(-50%, -50%)",
+  borderRadius: "14px", zIndex: 999999, cursor: "grab",
+  transformStyle: "preserve-3d", perspective: "800px",
+  background: "linear-gradient(45deg, red, orange, yellow, lime, cyan, blue, violet)",
+  backgroundSize: "400% 400%", boxShadow: "0 15px 35px rgba(0,0,0,0.35)"
+});
+
+document.body.appendChild(box);
+
+let angle = 0;
+function animate() {
+  angle += 1.2;
+  const floatY = Math.sin(Date.now() / 500) * 20;
+  box.style.transform = \`translate(-50%, -50%) translate(\${x - window.innerWidth/2}px, \${y - window.innerHeight/2 + floatY}px) rotateX(\${Math.sin(angle * 0.02) * 30}deg) rotateY(\${Math.cos(angle * 0.02) * 30}deg) rotateZ(\${angle}deg)\`;
+  requestAnimationFrame(animate);
+}
+animate();
+
+box.addEventListener("mousedown", (e) => {
+  dragging = true;
+  box.style.cursor = "grabbing";
+  offsetX = e.clientX - x; offsetY = e.clientY - y;
+});
+
+document.addEventListener("mousemove", (e) => {
+  if (!dragging) return;
+  x = e.clientX - offsetX; y = e.clientY - offsetY;
+});
+
+document.addEventListener("mouseup", () => {
+  dragging = false; box.style.cursor = "grab";
+});` }
+        ];
+
+        const select = document.getElementById('scriptSelect');
+        const editor = document.getElementById('codeEditor');
+        const output = document.getElementById('output');
+
+        examples.forEach((ex, idx) => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.textContent = ex.name;
+            select.appendChild(opt);
+        });
+
+        select.addEventListener('change', (e) => {
+            if (e.target.value !== "") editor.value = examples[e.target.value].code;
+        });
+
+        document.getElementById('runBtn').addEventListener('click', () => {
+            output.textContent = "";
+            const originalLog = console.log;
+            console.log = (...args) => output.textContent += args.join(' ') + "\n";
+            try { eval(editor.value); } catch (err) { output.textContent = "Error: " + err.message; }
+            finally { console.log = originalLog; }
+        });
+
+        document.getElementById('previewBtn').addEventListener('click', () => {
+            const overlay = document.createElement('div');
+            overlay.className = "fixed inset-0 bg-black z-[10000]";
+            document.body.appendChild(overlay);
+            
+            try {
+                eval(editor.value);
+            } catch (err) {
+                console.error(err);
+            }
+
+            const closeBtn = document.createElement('button');
+            closeBtn.textContent = "Close Preview";
+            closeBtn.className = "absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded";
+            closeBtn.onclick = () => window.location.reload();
+            overlay.appendChild(closeBtn);
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>
