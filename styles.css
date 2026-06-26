@@ -646,104 +646,93 @@ body {
 }
 
 /* ==========================================
-   Responsive & Small Screen Styles
+   Responsive & Small Screen Styles (UPDATED)
    ========================================== */
 
 /* For tablets and smaller screens */
 @media (max-width: 850px) {
     body {
-        flex-direction: column; /* Stack vertically */
+        flex-direction: column; 
+        height: auto; /* Let the whole page scroll naturally on mobile */
+        min-height: 100vh;
+        overflow-y: auto;
     }
 
     .sidebar {
         width: 100%;
-        height: 45vh; /* Sidebar takes up the top 45% of the screen */
+        height: auto; /* Let it expand to fit everything perfectly */
         border-right: none;
-        border-bottom: 1px solid var(--border-main);
-        padding: 12px;
+        border-bottom: 3px solid var(--accent-solid); /* Nice divider */
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Keep the file list scrollable but contained so it doesn't stretch forever */
+    #file-list {
+        max-height: 250px; 
+        border: 1px solid var(--border-main);
+        padding: 5px;
+        border-radius: 5px;
+        background-color: var(--accent-transparent);
     }
 
     .main-content {
         width: 100%;
-        height: 55vh; /* Iframe takes up the bottom 55% */
-        flex: none; /* Override the flex: 1 to respect the height */
+        height: 70vh; /* Give the project iframe plenty of room below */
+        min-height: 450px;
+        flex: none; 
     }
 
     #sidebar-logo {
-        max-width: 140px;
-        margin-bottom: 10px;
+        max-width: 120px;
+        margin: 0 auto 10px auto;
     }
 
-    .sidebar h2 {
-        font-size: 1.1rem;
+    .sidebar h2, .subtitle, #project-counter, #time-counter {
+        text-align: center; /* Center the text for a cleaner mobile look */
     }
 
-    /* Make buttons fit nicer */
     .sidebar-controls .toggle-btn {
-        font-size: 0.75rem;
-        padding: 6px;
-    }
-
-    #search-bar {
-        padding: 6px;
         font-size: 0.8rem;
+        padding: 8px;
     }
-
-    /* Adjust overlay buttons so they don't overlap on medium screens */
-    #fullscreen-btn, #share-btn, #open-full-btn {
-        padding: 6px 10px;
-        font-size: 0.75rem;
-    }
-
-    #share-btn {
-        right: 95px;
-    }
-
-    #open-full-btn {
-        right: 195px;
+    
+    .gallery-section {
+        margin-bottom: 10px;
     }
 }
 
 /* For phones and very narrow screens */
 @media (max-width: 500px) {
-    .sidebar {
-        height: 50vh;
+    #file-list {
+        max-height: 200px; /* Shrink list slightly more for tiny screens */
     }
 
     .main-content {
-        height: 50vh;
+        height: 60vh;
+        min-height: 400px;
     }
 
-    #sidebar-logo {
-        max-width: 120px;
-    }
-
-    /* Shrink overlay buttons further and space them tightly */
+    /* Adjust overlay buttons so they don't overlap */
     #fullscreen-btn, #share-btn, #open-full-btn {
         padding: 5px 8px;
         font-size: 0.65rem;
-        top: 5px; /* Move slightly closer to the top edge */
+        top: 5px; 
     }
 
-    #fullscreen-btn {
-        right: 5px;
-    }
-
-    #share-btn {
-        right: 78px;
-    }
-
-    #open-full-btn {
-        right: 155px;
-    }
+    #fullscreen-btn { right: 5px; }
+    #share-btn { right: 80px; }
+    #open-full-btn { right: 160px; }
     
-    /* Ensure the modal doesn't break out of the screen on tiny phones */
+    /* Ensure the modals don't break out of the screen */
     .modal-content {
         width: 90%;
         padding: 15px;
     }
     
+    /* Make theme buttons stack cleanly in a single column */
     #theme-buttons {
-        grid-template-columns: 1fr; /* Make theme buttons a single column on tiny screens */
+        grid-template-columns: 1fr; 
     }
 }
