@@ -18,10 +18,87 @@ const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
 const searchBar = document.getElementById('search-bar');
 const randomProjectBtn = document.getElementById('random-project-btn'); 
+const favoriteBtn = document.getElementById('favorite-btn');
 
 // Track the current project identifier and exact file path
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
+
+// Favorites Storage
+let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
+
+function updateFavoriteButtonText() {
+    if (favorites.includes(currentProjectParam.toLowerCase())) {
+        favoriteBtn.textContent = "Unfavorite Current Project";
+    } else {
+        favoriteBtn.textContent = "Favorite Current Project";
+    }
+}
+
+// Display Total Project Count
+document.getElementById('project-counter').textContent = `Total Projects: ${projects.length}`;
+
+// Apply search filter (separated so it can be re-applied after rendering)
+function applySearchFilter() {
+    if (!searchBar) return;
+    const searchTerm = searchBar.value.toLowerCase();
+    const buttons = fileList.querySelectorAll('.file-btn');
+    
+    buttons.forEach(btn => {
+        const projectName = btn.dataset.projectName;
+        if (projectName.includes(searchTerm)) {
+            btn.style.display = 'block';
+        } else {
+            btn.style.display = 'none';
+        }
+    });
+}
+
+// Generate the project list UI
+function renderProjectList() {
+    fileList.innerHTML = ''; // Clear current list
+
+    const isWelcome = (p) => {
+        let name = typeof p === 'object' ? p.name : p;
+        return name.toLowerCase() === 'welcome';
+    };
+
+    const isFavorite = (p) => {
+        let name = typeof p === 'object' ? p.name : p;
+        return favorites.includes(name.toLowerCase());
+    };
+
+    // Sort into categories: Welcome -> Favorites -> Rest
+    const welcomeProjects = projects.filter(p => isWelcome(p));
+    const favoritedProjects = projects.filter(p => !isWelcome(p) && isFavorite(p));
+    const regularProjects = projects.filter(p => !isWelcome(p) && !isFavorite(p));
+
+    const sortedProjects = [...welcomeProjects, ...favoritedProjects, ...regularProjects];
+
+    sortedProjects.forEach(project => {
+        const button = document.createElement('button');
+        let projectParam = (typeof project === 'object') ? project.name : project;
+        let isFav = isFavorite(project);
+        
+        button.className = 'file-btn';
+        if (isFav) {
+            button.classList.add('favorited-item');
+        }
+        
+        button.dataset.projectName = projectParam.toLowerCase();
+        
+        let btnText = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
+        if (isFav) {
+            btnText += " ⭐";
+        }
+        button.textContent = btnText;
+        
+        button.onclick = () => { loadProject(project); };
+        fileList.appendChild(button);
+    });
+
+    applySearchFilter();
+}
 
 // Helper: Unified function to load a project
 function loadProject(project) {
@@ -31,10 +108,29 @@ function loadProject(project) {
     runnerFrame.src = filePath;
     currentProjectParam = projectParam;
     currentFilePath = filePath;
+
+    updateFavoriteButtonText();
 }
 
-// Display Total Project Count
-document.getElementById('project-counter').textContent = `Total Projects: ${projects.length}`;
+// Initialize list
+renderProjectList();
+
+// Favorite Button Logic
+favoriteBtn.addEventListener('click', () => {
+    const currentParamLower = currentProjectParam.toLowerCase();
+    
+    if (favorites.includes(currentParamLower)) {
+        // Remove from favorites
+        favorites = favorites.filter(f => f !== currentParamLower);
+    } else {
+        // Add to favorites
+        favorites.push(currentParamLower);
+    }
+    
+    localStorage.setItem('orgeyt-favorites', JSON.stringify(favorites));
+    renderProjectList();
+    updateFavoriteButtonText();
+});
 
 // Random Project Logic
 randomProjectBtn.addEventListener('click', () => {
@@ -42,34 +138,9 @@ randomProjectBtn.addEventListener('click', () => {
     loadProject(randomProject);
 });
 
-projects.forEach(project => {
-    const button = document.createElement('button');
-    button.className = 'file-btn';
-    
-    let projectParam = (typeof project === 'object') ? project.name : project;
-    
-    button.dataset.projectName = projectParam.toLowerCase();
-    button.textContent = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
-    
-    button.onclick = () => { loadProject(project); };
-    fileList.appendChild(button);
-});
-
 // Search Filter Logic
 if (searchBar) {
-    searchBar.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const buttons = fileList.querySelectorAll('.file-btn');
-        
-        buttons.forEach(btn => {
-            const projectName = btn.dataset.projectName;
-            if (projectName.includes(searchTerm)) {
-                btn.style.display = 'block';
-            } else {
-                btn.style.display = 'none';
-            }
-        });
-    });
+    searchBar.addEventListener('input', applySearchFilter);
 }
 
 // --- URL Parameter Auto-Open Logic ---
@@ -263,29 +334,6 @@ friendsWebsiteBtn.addEventListener('click', () => {
 closeFriendsModalBtn.addEventListener('click', () => {
     friendsModal.classList.add('hidden');
 });
-
-// ==========================================
-// --- Squishy Icon Logic ---
-// ==========================================
-
-const squishIcon = document.getElementById('squish-icon');
-const squishAudio = new Audio('squish.mp3');
-
-if (squishIcon) {
-    squishIcon.addEventListener('click', () => {
-        // Reset and play the sound
-        squishAudio.currentTime = 0;
-        squishAudio.play().catch(e => console.warn("Audio play failed:", e));
-
-        // Reset the animation class to allow rapid clicking
-        squishIcon.classList.remove('squishing');
-        
-        // Trigger a reflow so the browser knows to restart the animation
-        void squishIcon.offsetWidth; 
-        
-        squishIcon.classList.add('squishing');
-    });
-}
 
 // ==========================================
 // --- Secret Logo Click Logic ---
