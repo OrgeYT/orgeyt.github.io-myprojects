@@ -233,6 +233,29 @@ closeFriendsModalBtn.addEventListener('click', () => {
 });
 
 // ==========================================
+// --- Squishy Icon Logic ---
+// ==========================================
+
+const squishIcon = document.getElementById('squish-icon');
+const squishAudio = new Audio('squish.mp3');
+
+if (squishIcon) {
+    squishIcon.addEventListener('click', () => {
+        // Reset and play the sound
+        squishAudio.currentTime = 0;
+        squishAudio.play().catch(e => console.warn("Audio play failed:", e));
+
+        // Reset the animation class to allow rapid clicking
+        squishIcon.classList.remove('squishing');
+        
+        // Trigger a reflow so the browser knows to restart the animation
+        void squishIcon.offsetWidth; 
+        
+        squishIcon.classList.add('squishing');
+    });
+}
+
+// ==========================================
 // --- Secret Logo Click Logic ---
 // ==========================================
 
