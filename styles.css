@@ -1,3 +1,150 @@
+/* ==========================================
+   CSS Variables & Themes
+   ========================================== */
+:root, :root[data-theme="default"] {
+    /* Dark Orange (Default) */
+    --bg-main: #1a0a00;
+    --bg-sidebar: #331400;
+    --border-main: #662900;
+    --text-main: #ffffff;
+    --text-accent: #cc8855;
+    --btn-primary: #993d00;
+    --btn-primary-hover: #b34700;
+    --btn-secondary: #4d1f00;
+    --btn-secondary-hover: #662900;
+    --accent-transparent: rgba(204, 85, 0, 0.2);
+    --accent-solid: #cc5500;
+}
+
+:root[data-theme="grass-dark"] {
+    --bg-main: #051405;
+    --bg-sidebar: #0a290a;
+    --border-main: #145214;
+    --text-main: #ffffff;
+    --text-accent: #5cd65c;
+    --btn-primary: #1f7a1f;
+    --btn-primary-hover: #29a329;
+    --btn-secondary: #0f3d0f;
+    --btn-secondary-hover: #145214;
+    --accent-transparent: rgba(41, 163, 41, 0.2);
+    --accent-solid: #29a329;
+}
+
+:root[data-theme="sky-dark"] {
+    --bg-main: #000a1a;
+    --bg-sidebar: #001433;
+    --border-main: #002966;
+    --text-main: #ffffff;
+    --text-accent: #66a3ff;
+    --btn-primary: #003d99;
+    --btn-primary-hover: #0052cc;
+    --btn-secondary: #001f4d;
+    --btn-secondary-hover: #002966;
+    --accent-transparent: rgba(0, 82, 204, 0.2);
+    --accent-solid: #0052cc;
+}
+
+:root[data-theme="fire-dark"] {
+    --bg-main: #1a0000;
+    --bg-sidebar: #330000;
+    --border-main: #660000;
+    --text-main: #ffffff;
+    --text-accent: #ff6666;
+    --btn-primary: #990000;
+    --btn-primary-hover: #cc0000;
+    --btn-secondary: #4d0000;
+    --btn-secondary-hover: #660000;
+    --accent-transparent: rgba(204, 0, 0, 0.2);
+    --accent-solid: #cc0000;
+}
+
+:root[data-theme="white"] {
+    --bg-main: #e6e6e6;
+    --bg-sidebar: #ffffff;
+    --border-main: #cccccc;
+    --text-main: #111111;
+    --text-accent: #555555;
+    --btn-primary: #d9d9d9;
+    --btn-primary-hover: #bfbfbf;
+    --btn-secondary: #f2f2f2;
+    --btn-secondary-hover: #e6e6e6;
+    --accent-transparent: rgba(0, 0, 0, 0.1);
+    --accent-solid: #888888;
+}
+
+:root[data-theme="black"] {
+    --bg-main: #000000;
+    --bg-sidebar: #0a0a0a;
+    --border-main: #333333;
+    --text-main: #ffffff;
+    --text-accent: #aaaaaa;
+    --btn-primary: #222222;
+    --btn-primary-hover: #444444;
+    --btn-secondary: #111111;
+    --btn-secondary-hover: #222222;
+    --accent-transparent: rgba(255, 255, 255, 0.1);
+    --accent-solid: #666666;
+}
+
+:root[data-theme="flower-dark"] {
+    --bg-main: #140514;
+    --bg-sidebar: #290a29;
+    --border-main: #521452;
+    --text-main: #ffffff;
+    --text-accent: #d65cd6;
+    --btn-primary: #7a1f7a;
+    --btn-primary-hover: #a329a3;
+    --btn-secondary: #3d0f3d;
+    --btn-secondary-hover: #521452;
+    --accent-transparent: rgba(163, 41, 163, 0.2);
+    --accent-solid: #a329a3;
+}
+
+:root[data-theme="discord"] {
+    --bg-main: #313338;
+    --bg-sidebar: #2b2d31;
+    --border-main: #1e1f22;
+    --text-main: #f2f3f5;
+    --text-accent: #b5bac1;
+    --btn-primary: #5865F2;
+    --btn-primary-hover: #4752C4;
+    --btn-secondary: #1e1f22;
+    --btn-secondary-hover: #3f4147;
+    --accent-transparent: rgba(88, 101, 242, 0.2);
+    --accent-solid: #5865F2;
+}
+
+:root[data-theme="ultrabox"] {
+    --bg-main: #111111;
+    --bg-sidebar: #1e1e1e;
+    --border-main: #333333;
+    --text-main: #ffffff;
+    --text-accent: #FFD700;
+    --btn-primary: #FF7F50;
+    --btn-primary-hover: #FF6347;
+    --btn-secondary: #2a2a2a;
+    --btn-secondary-hover: #FFA500;
+    --accent-transparent: rgba(255, 127, 80, 0.2);
+    --accent-solid: #FFA500;
+}
+
+:root[data-theme="rainbow-dark"] {
+    --bg-main: #0d001a;
+    --bg-sidebar: #1a0033;
+    --border-main: #8a2be2;
+    --text-main: #ffffff;
+    --text-accent: #00ffff;
+    --btn-primary: #ff0055;
+    --btn-primary-hover: #ff3377;
+    --btn-secondary: #330066;
+    --btn-secondary-hover: #00ccff;
+    --accent-transparent: rgba(255, 255, 0, 0.2);
+    --accent-solid: #39ff14;
+}
+
+/* ==========================================
+   Base Styles
+   ========================================== */
 * {
     margin: 0;
     padding: 0;
@@ -8,17 +155,19 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     height: 100vh;
-    background-color: #1a0a00; /* Darker orange-tinted background */
-    color: #ffffff;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    transition: background-color 0.3s, color 0.3s;
 }
 
 .sidebar {
     width: 250px;
-    background-color: #331400; /* Dark orange/brown sidebar */
+    background-color: var(--bg-sidebar);
     padding: 20px;
     display: flex;
     flex-direction: column;
-    border-right: 1px solid #662900; /* Dark orange border */
+    border-right: 1px solid var(--border-main);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 /* Sidebar Logo Styling */
@@ -43,11 +192,12 @@ body {
 
 .subtitle {
     font-size: 0.8rem;
-    color: #cc8855; /* Soft orange subtitle */
-    margin-bottom: 10px; /* Reduced to make room for icon */
+    color: var(--text-accent);
+    margin-bottom: 10px;
+    transition: color 0.3s;
 }
 
-/* NEW: Squishy Icon Styling */
+/* Squishy Icon Styling */
 #squish-icon {
     width: 48px;
     height: 48px;
@@ -59,7 +209,7 @@ body {
 }
 
 #squish-icon:hover {
-    transform: scale(1.1); /* Gentle pop up when hovering */
+    transform: scale(1.1); 
 }
 
 /* Squishing Animation */
@@ -69,28 +219,28 @@ body {
 
 @keyframes cute-squish {
     0% { transform: scale(1, 1); }
-    30% { transform: scale(1.4, 0.6); } /* Gets wide and flat */
-    60% { transform: scale(0.8, 1.2); } /* Bounces tall and thin */
+    30% { transform: scale(1.4, 0.6); }
+    60% { transform: scale(0.8, 1.2); }
     80% { transform: scale(1.1, 0.9); }
     100% { transform: scale(1, 1); }
 }
 
 /* Toggle Button Styling */
 .toggle-btn {
-    background-color: #993d00; /* Orange button */
-    color: #fff;
-    border: 1px solid #b34700;
+    background-color: var(--btn-primary);
+    color: var(--text-main);
+    border: 1px solid var(--border-main);
     padding: 8px;
     border-radius: 5px;
     cursor: pointer;
     text-align: center;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
     font-size: 0.85rem;
     margin-bottom: 15px; 
 }
 
 .toggle-btn:hover {
-    background-color: #b34700;
+    background-color: var(--btn-primary-hover);
 }
 
 .toggle-btn:active {
@@ -102,22 +252,22 @@ body {
     width: 100%;
     padding: 8px;
     margin-bottom: 15px;
-    background-color: #1a0a00;
-    border: 1px solid #662900;
-    color: #ffffff;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
     border-radius: 5px;
     font-size: 0.85rem;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, background-color 0.3s;
 }
 
 #search-bar::placeholder {
-    color: #e6a873;
+    color: var(--text-accent);
     opacity: 0.7;
 }
 
 #search-bar:focus {
     outline: none;
-    border-color: #cc5500;
+    border-color: var(--accent-solid);
 }
 
 #file-list {
@@ -136,28 +286,28 @@ body {
 }
 
 #file-list::-webkit-scrollbar-thumb {
-    background-color: rgba(204, 85, 0, 0.4); /* Orange scrollbar */
+    background-color: var(--accent-transparent);
     border-radius: 4px;
 }
 
 #file-list::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(204, 85, 0, 0.7);
+    background-color: var(--accent-solid);
 }
 
 .file-btn {
-    background-color: #4d1f00; /* Dark orange file buttons */
-    color: #fff;
-    border: 1px solid #662900;
+    background-color: var(--btn-secondary);
+    color: var(--text-main);
+    border: 1px solid var(--border-main);
     padding: 10px;
     border-radius: 5px;
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.2s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
     font-size: 0.9rem;
 }
 
 .file-btn:hover {
-    background-color: #662900;
+    background-color: var(--btn-secondary-hover);
 }
 
 .file-btn:active {
@@ -167,7 +317,7 @@ body {
 .main-content {
     flex: 1;
     display: flex;
-    background-color: #000;
+    background-color: #000; /* Behind iframe frame stays black */
     position: relative; 
 }
 
@@ -175,7 +325,7 @@ body {
     width: 100%;
     height: 100%;
     border: none;
-    background-color: #fff; /* Kept HTML embed background untouched */
+    background-color: #fff; /* Iframe stays white to not break projects */
 }
 
 /* UI Control Buttons Layering */
@@ -184,13 +334,13 @@ body {
     top: 10px;
     z-index: 10;
     padding: 8px 12px;
-    background: rgba(204, 85, 0, 0.2); /* Orange tinted background */
-    border: 1px solid #cc5500;
-    color: white;
+    background: var(--accent-transparent);
+    border: 1px solid var(--accent-solid);
+    color: var(--text-main);
     cursor: pointer;
     border-radius: 5px;
     font-size: 0.8rem;
-    transition: background 0.2s;
+    transition: background 0.2s, border-color 0.3s;
 }
 
 #fullscreen-btn {
@@ -206,7 +356,7 @@ body {
 }
 
 #fullscreen-btn:hover, #share-btn:hover, #open-full-btn:hover {
-    background: rgba(204, 85, 0, 0.5);
+    background: var(--accent-solid);
 }
 
 /* Utility Class to Hide Elements */
@@ -215,7 +365,7 @@ body {
 }
 
 /* ==========================================
-   Tab Settings Modal Styles 
+   Modal Styles 
    ========================================== */
 .modal {
     position: fixed;
@@ -231,20 +381,21 @@ body {
 }
 
 .modal-content {
-    background-color: #331400; /* Dark orange modal background */
+    background-color: var(--bg-sidebar);
     padding: 20px 25px;
-    border: 1px solid #662900;
+    border: 1px solid var(--border-main);
     border-radius: 8px;
     width: 320px;
     position: relative;
-    color: #fff;
+    color: var(--text-main);
     box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .modal-content h3 {
     margin-bottom: 15px;
     font-size: 1.2rem;
-    border-bottom: 1px solid #662900;
+    border-bottom: 1px solid var(--border-main);
     padding-bottom: 8px;
 }
 
@@ -252,7 +403,7 @@ body {
     position: absolute;
     top: 15px;
     right: 20px;
-    color: #cc8855;
+    color: var(--text-accent);
     font-size: 24px;
     font-weight: bold;
     cursor: pointer;
@@ -260,7 +411,7 @@ body {
 }
 
 .close-btn:hover {
-    color: #fff;
+    color: var(--text-main);
 }
 
 .setting-group {
@@ -272,23 +423,24 @@ body {
 
 .setting-group label {
     font-size: 0.85rem;
-    color: #e6a873;
+    color: var(--text-accent);
 }
 
 .setting-group input[type="text"],
 .setting-group input[type="file"] {
     padding: 8px;
-    background-color: #1a0a00;
-    border: 1px solid #662900;
-    color: white;
+    background-color: var(--bg-main);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
     border-radius: 4px;
     font-size: 0.85rem;
+    transition: background-color 0.3s, border-color 0.3s;
 }
 
 .modal-btn {
-    background-color: #993d00;
-    color: #fff;
-    border: 1px solid #b34700;
+    background-color: var(--btn-primary);
+    color: var(--text-main);
+    border: 1px solid var(--border-main);
     padding: 8px;
     border-radius: 4px;
     cursor: pointer;
@@ -298,7 +450,7 @@ body {
 }
 
 .modal-btn:hover {
-    background-color: #b34700;
+    background-color: var(--btn-primary-hover);
 }
 
 .modal-btn:active {
@@ -316,7 +468,7 @@ body {
 }
 
 /* ==========================================
-   New Styles for the RETAKE button
+   RETAKE button
    ========================================== */
 .retake-btn {
     display: inline-flex;
