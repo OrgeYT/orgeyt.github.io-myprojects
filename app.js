@@ -414,6 +414,12 @@ const achievementsBtn = document.getElementById('achievements-btn');
 document.getElementById('close-achievements-btn').addEventListener('click', () => achievementsModal.classList.add('hidden'));
 achievementsBtn.addEventListener('click', () => achievementsModal.classList.remove('hidden'));
 
+// Gallery Modal Logic
+const galleryModal = document.getElementById('gallery-modal');
+const openGalleryBtn = document.getElementById('open-gallery-btn');
+document.getElementById('close-gallery-btn').addEventListener('click', () => galleryModal.classList.add('hidden'));
+openGalleryBtn.addEventListener('click', () => galleryModal.classList.remove('hidden'));
+
 // Secret Logo Click
 const sidebarLogo = document.getElementById('sidebar-logo');
 let logoClickCount = 0;
@@ -431,8 +437,7 @@ if (sidebarLogo) {
     });
 }
 
-// Gallery Tracking Hook (added to existing gallery script inside index.html)
-// Note: Overriding the updateGallery function from index.html here globally
+// Gallery Tracking Hook
 const originalGalleryImages = [
     { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
     { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
@@ -447,7 +452,6 @@ const originalGalleryImages = [
 let globalCurrentIndex = 0;
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Injecting into the existing gallery scripts if they are running in inline script
     const galleryImg = document.getElementById("gallery-img");
     const galleryCaption = document.getElementById("gallery-caption");
     
@@ -465,7 +469,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const prevBtn = document.getElementById("prev-btn");
     const nextBtn = document.getElementById("next-btn");
     
-    // Replace the old event listeners by cloning the nodes
     if(prevBtn && nextBtn) {
         const newPrev = prevBtn.cloneNode(true);
         const newNext = nextBtn.cloneNode(true);
