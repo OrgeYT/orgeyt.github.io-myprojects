@@ -271,34 +271,6 @@ body {
     transition: color 0.3s;
 }
 
-/* Squishy Icon Styling */
-#squish-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 15px auto;
-    display: block;
-    cursor: pointer;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    user-select: none;
-}
-
-#squish-icon:hover {
-    transform: scale(1.1); 
-}
-
-/* Squishing Animation */
-.squishing {
-    animation: cute-squish 0.4s ease-in-out;
-}
-
-@keyframes cute-squish {
-    0% { transform: scale(1, 1); }
-    30% { transform: scale(1.4, 0.6); }
-    60% { transform: scale(0.8, 1.2); }
-    80% { transform: scale(1.1, 0.9); }
-    100% { transform: scale(1, 1); }
-}
-
 /* Toggle Button Styling */
 .toggle-btn {
     background-color: var(--btn-primary);
@@ -376,7 +348,7 @@ body {
     border-radius: 5px;
     cursor: pointer;
     text-align: left;
-    transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
+    transition: background-color 0.2s, transform 0.1s, border-color 0.3s, color 0.3s;
     font-size: 0.9rem;
 }
 
@@ -386,6 +358,18 @@ body {
 
 .file-btn:active {
     transform: scale(0.98);
+}
+
+/* Favorited Project Styling (35% Yellow Overlay Idea) */
+.file-btn.favorited-item {
+    background-color: rgba(255, 255, 0, 0.35);
+    border-color: rgba(255, 255, 0, 0.5);
+    color: #fff; /* Ensuring visibility */
+    text-shadow: 1px 1px 2px #000;
+}
+
+.file-btn.favorited-item:hover {
+    background-color: rgba(255, 255, 0, 0.5);
 }
 
 .main-content {
