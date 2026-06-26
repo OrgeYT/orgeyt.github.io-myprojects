@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rainbow Cube Parkour</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 12px;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        .panel {
+            background: rgba(10, 10, 15, 0.85);
+            padding: 40px 60px;
+            border-radius: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            text-align: center;
+            color: white;
+            pointer-events: auto;
+            cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            backdrop-filter: blur(8px);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .panel:hover {
+            transform: scale(1.02);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+
+        h1 {
+            margin: 0 0 15px 0;
+            font-size: 3em;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            /* Rainbow text effect */
+            background: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #9400d3);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: rainbow 5s linear infinite;
+            background-size: 200% 100%;
+        }
+
+        @keyframes rainbow {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            color: #ddd;
+        }
+
+        .action-text {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.05); }
+            100% { opacity: 0.8; transform: scale(1); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="crosshair"></div>
+    <div id="ui-layer">
+        <div id="start-panel" class="panel">
+            <h1 id="title-text">Cube Parkour</h1>
+            <p>You are about to land into the void.<br>Use <b>W A S D</b> to move and <b>SPACE</b> to jump.<br>Navigate the cubes to reach the end.</p>
+            <div class="action-text">CLICK TO LAND</div>
+        </div>
+
+        <div id="win-panel" class="panel hidden">
+            <h1>Level Complete!</h1>
+            <p>You have successfully mastered the cubes.</p>
+            <div class="action-text">CLICK TO PLAY AGAIN</div>
+        </div>
+    </div>
+
+    <!-- Load Three.js and PointerLockControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+
+    <script>
+        // --- Core Variables ---
+        let camera, scene, renderer, controls;
+        let introCube;
+        let cubes = [];
+        let cubeBoxes = [];
+        
+        // State management
+        let gameState = 'intro'; // 'intro', 'playing', 'won'
+        
+        // Physics variables
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let canJump = false;
+        let prevTime = performance.now();
+        
+        // UI Elements
+        const uiLayer = document.getElementById('ui-layer');
+        const startPanel = document.getElementById('start-panel');
+        const winPanel = document.getElementById('win-panel');
+        const crosshair = document.getElementById('crosshair');
+        const titleText = document.getElementById('title-text');
+
+        // --- Initialization ---
+        init();
+        animate();
+
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000); // Black background
+            scene.fog = new THREE.FogExp2(0x000000, 0.008); // Fade to black
+
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // Controls setup
+            controls = new THREE.PointerLockControls(camera, document.body);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            scene.add(directionalLight);
+
+            // Create Starry Background
+            createStars();
+
+            // Setup the Intro Scene
+            setupIntro();
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', onKeyDown);
+            document.addEventListener('keyup', onKeyUp);
+            
+            startPanel.addEventListener('click', () => controls.lock());
+            winPanel.addEventListener('click', () => {
+                resetToIntro();
+                winPanel.classList.add('hidden');
+                startPanel.classList.remove('hidden');
+            });
+
+            controls.addEventListener('lock', () => {
+                if (gameState === 'intro') {
+                    startGame();
+                } else if (gameState === 'playing') {
+                    // Resuming game
+                }
+                uiLayer.classList.add('hidden');
+                crosshair.style.display = 'block';
+            });
+
+            controls.addEventListener('unlock', () => {
+                if (gameState === 'playing') {
+                    uiLayer.classList.remove('hidden');
+                    startPanel.classList.remove('hidden');
+                    titleText.innerText = 'Paused';
+                    startPanel.querySelector('.action-text').innerText = 'CLICK TO RESUME';
+                    crosshair.style.display = 'none';
+                }
+            });
+        }
+
+        function createStars() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starCount = 8000;
+            const starPositions = new Float32Array(starCount * 3);
+
+            for(let i = 0; i < starCount * 3; i++) {
+                // Scatter stars in a huge radius
+                starPositions[i] = (Math.random() - 0.5) * 800;
+            }
+
+            starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.8,
+                transparent: true,
+                opacity: 0.8
+            });
+
+            const stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+        }
+
+        function setupIntro() {
+            // Create the central rotating cube
+            const geometry = new THREE.BoxGeometry(6, 6, 6);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                shininess: 100,
+                specular: 0x555555
+            });
+            introCube = new THREE.Mesh(geometry, material);
+            introCube.position.set(0, 0, 0);
+            scene.add(introCube);
+
+            camera.position.set(0, 4, 15);
+            camera.lookAt(introCube.position);
+        }
+
+        function resetToIntro() {
+            gameState = 'intro';
+            titleText.innerText = 'Cube Parkour';
+            startPanel.querySelector('.action-text').innerText = 'CLICK TO LAND';
+            
+            // Clear parkour level
+            cubes.forEach(c => scene.remove(c));
+            cubes = [];
+            cubeBoxes = [];
+
+            // Add intro cube back
+            scene.add(introCube);
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            
+            // Remove intro cube and build level
+            scene.remove(introCube);
+            generateLevel();
+
+            // Set player to start position
+            const controlObj = controls.getObject();
+            controlObj.position.set(0, 5, 0);
+            
+            // Look straight ahead
+            camera.quaternion.setFromEuler(new THREE.Euler(0, 0, 0, 'YXZ'));
+            
+            // Reset physical state
+            velocity.set(0, 0, 0);
+            moveForward = false; moveBackward = false; moveLeft = false; moveRight = false;
+        }
+
+        function generateLevel() {
+            // Clear any existing cubes
+            cubes.forEach(c => scene.remove(c));
+            cubes = [];
+            cubeBoxes = [];
+
+            // 1. Start Platform (Where intro cube used to be)
+            createPlatform(new THREE.Vector3(0, -1, 0), 10, 2, 10, 'start');
+
+            let currentPos = new THREE.Vector3(0, -1, 0);
+            const numJumps = 20;
+
+            // 2. Generate Parkour Path
+            for(let i = 0; i < numJumps; i++) {
+                // Determine next jump distance and direction
+                const forwardJump = Math.random() * 3 + 5.5; // 5.5 to 8.5 units forward
+                const sideJump = (Math.random() - 0.5) * 10;  // -5 to +5 units sideways
+                const verticalJump = (Math.random() - 0.3) * 4; // -1.2 to +2.8 units up/down
+
+                currentPos.z -= forwardJump;
+                currentPos.x += sideJump;
+                currentPos.y += verticalJump;
+
+                // Make platforms progressively smaller to increase difficulty
+                const size = Math.max(2.5, 6 - (i * 0.15));
+                
+                createPlatform(currentPos.clone(), size, 1, size, 'path');
+            }
+
+            // 3. End Platform (Giant)
+            currentPos.z -= 10;
+            createPlatform(currentPos.clone(), 16, 2, 16, 'end');
+        }
+
+        function createPlatform(pos, w, h, d, type) {
+            const geometry = new THREE.BoxGeometry(w, h, d);
+            const material = new THREE.MeshPhongMaterial({ 
+                color: 0xffffff,
+                shininess: 50
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(pos);
+            
+            // Store metadata for animations and collision logic
+            mesh.userData = { 
+                type: type, 
+                timeOffset: Math.random() * 100 // For randomized rainbow cycling
+            };
+
+            // Pre-calculate bounding box for collision detection
+            mesh.updateMatrixWorld();
+            const box = new THREE.Box3().setFromObject(mesh);
+
+            scene.add(mesh);
+            cubes.push(mesh);
+            cubeBoxes.push({ mesh: mesh, box: box });
+        }
+
+        function winGame() {
+            gameState = 'won';
+            document.exitPointerLock();
+            uiLayer.classList.remove('hidden');
+            startPanel.classList.add('hidden');
+            winPanel.classList.remove('hidden');
+            crosshair.style.display = 'none';
+        }
+
+        // --- Input Handling ---
+        function onKeyDown(event) {
+            if (gameState !== 'playing') return;
+            switch (event.code) {
+                case 'KeyW': moveForward = true; break;
+                case 'KeyA': moveLeft = true; break;
+                case 'KeyS': moveBackward = true; break;
+                case 'KeyD': moveRight = true; break;
+                case 'Space': 
+                    if (canJump) {
+                        velocity.y = 16.0; // Jump force
+                        canJump = false;
+                    }
+                    break;
+            }
+        }
+
+        function onKeyUp(event) {
+            switch (event.code) {
+                case 'KeyW': moveForward = false; break;
+                case 'KeyA': moveLeft = false; break;
+                case 'KeyS': moveBackward = false; break;
+                case 'KeyD': moveRight = false; break;
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // --- Main Animation Loop ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.1); // clamp delta to prevent huge jumps on lag
+            const tSeconds = time * 0.001;
+
+            if (gameState === 'intro') {
+                // Orbiting and animating intro cube
+                introCube.rotation.x += 0.5 * delta;
+                introCube.rotation.y += 1.0 * delta;
+                introCube.material.color.setHSL((tSeconds * 0.3) % 1, 1, 0.5);
+
+                // Slow circular camera pan
+                camera.position.x = Math.sin(tSeconds * 0.4) * 15;
+                camera.position.z = Math.cos(tSeconds * 0.4) * 15;
+                camera.position.y = 4 + Math.sin(tSeconds * 0.2) * 2;
+                camera.lookAt(introCube.position);
+            } 
+            else if (gameState === 'playing') {
+                // Animate platform colors (Rainbow)
+                cubes.forEach(c => {
+                    if (c.userData.type === 'end') {
+                        // End platform pulses white and gold
+                        c.material.color.setHSL((tSeconds * 2) % 1, 1, 0.8);
+                    } else {
+                        // Standard path cubes rainbow cycle
+                        c.material.color.setHSL((tSeconds * 0.2 + c.userData.timeOffset) % 1, 1, 0.5);
+                    }
+                });
+
+                updatePhysics(delta);
+            }
+
+            renderer.render(scene, camera);
+            prevTime = time;
+        }
+
+        function updatePhysics(delta) {
+            if (!controls.isLocked) return;
+
+            const controlObj = controls.getObject();
+            const oldPos = controlObj.position.clone();
+
+            // 1. Apply Physics (Gravity & Friction)
+            velocity.x -= velocity.x * 10.0 * delta;
+            velocity.z -= velocity.z * 10.0 * delta;
+            velocity.y -= 45.0 * delta; // Gravity
+
+            // 2. Handle Input Direction
+            direction.z = Number(moveForward) - Number(moveBackward);
+            direction.x = Number(moveRight) - Number(moveLeft);
+            direction.normalize();
+
+            const moveSpeed = 65.0;
+            if (moveForward || moveBackward) velocity.z -= direction.z * moveSpeed * delta;
+            if (moveLeft || moveRight) velocity.x -= direction.x * moveSpeed * delta;
+
+            // 3. Apply Local Transformations
+            controls.moveRight(-velocity.x * delta);
+            controls.moveForward(-velocity.z * delta);
+            controlObj.position.y += velocity.y * delta;
+
+            // 4. Custom AABB Collision Detection & Resolution
+            let newPos = controlObj.position;
+            const radius = 0.4;  // Player collision radius
+            const height = 1.6;  // Player eye height
+
+            let onGround = false;
+
+            // --- Y-Axis Resolution (Floor and Ceiling) ---
+            let pBoxY = new THREE.Box3(
+                new THREE.Vector3(newPos.x - radius, newPos.y - height, newPos.z - radius),
+                new THREE.Vector3(newPos.x + radius, newPos.y, newPos.z + radius)
+            );
+            
+            for (let c of cubeBoxes) {
+                if (pBoxY.intersectsBox(c.box)) {
+                    // Falling onto a platform
+                    if (velocity.y < 0 && (oldPos.y - height) >= c.box.max.y - 0.2) {
+                        newPos.y = c.box.max.y + height;
+                        velocity.y = 0;
+                        onGround = true;
+                        
+                        // Check win condition
+                        if (c.mesh.userData.type === 'end') {
+                            winGame();
+                            return;
+                        }
+                    } 
+                    // Jumping and hitting a ceiling
+                    else if (velocity.y > 0 && oldPos.y <= c.box.min.y + 0.2) {
+                        newPos.y = c.box.min.y;
+                        velocity.y = 0;
+                    }
+                }
+            }
+            canJump = onGround;
+
+            // --- X-Axis Resolution (Walls) ---
+            // Y bounds pushed slightly in to avoid snagging on the floor when moving horizontally
+            let pBoxX = new THREE.Box3(
+                new THREE.Vector3(newPos.x - radius, newPos.y - height + 0.1, oldPos.z - radius),
+                new THREE.Vector3(newPos.x + radius, newPos.y - 0.1, oldPos.z + radius)
+            );
+            
+            for (let c of cubeBoxes) {
+                if (pBoxX.intersectsBox(c.box)) {
+                    newPos.x = oldPos.x; // Block movement
+                    velocity.x = 0;
+                    break;
+                }
+            }
+
+            // --- Z-Axis Resolution (Walls) ---
+            let pBoxZ = new THREE.Box3(
+                new THREE.Vector3(newPos.x - radius, newPos.y - height + 0.1, newPos.z - radius),
+                new THREE.Vector3(newPos.x + radius, newPos.y - 0.1, newPos.z + radius)
+            );
+            
+            for (let c of cubeBoxes) {
+                if (pBoxZ.intersectsBox(c.box)) {
+                    newPos.z = oldPos.z; // Block movement
+                    velocity.z = 0;
+                    break;
+                }
+            }
+
+            // 5. Fall/Death Check
+            if (newPos.y < -35) {
+                // Respawn at start
+                newPos.set(0, 5, 0);
+                velocity.set(0, 0, 0);
+            }
+        }
+    </script>
+</body>
+</html>
