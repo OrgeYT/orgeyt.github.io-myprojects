@@ -122,7 +122,7 @@ const projects = [
     "blobfighting", "faviconextractor", "freegamesorgeyt", "calculator", "orgeytbradwordle", "arrownesetranslator", "scratchlinker", "orgeytaccounts",
     { name: "COLOR MIX!", path: "color mix/index.html" }, "sadfunsandbox", { name: "My OC's lore", path: "loredrop.txt" }, "pongbutitsmadewithscratchblocks", "FCR",
     { name: "idk (By Brad)", path: "idk/index.html" }, { name: "magnet playground", path: "magnet/index.html" }, "batsurvival", "websimprojects", "wheelmaker", "popit", "sb3corrupter",
-    "polygonprinter", "jsrunner", "rainbowparkour", { name: "First version of my website", path: "may20/index.html" }, { name: "what the", path: "index.html" }, "onlinebuilding", "piano"
+    "polygonprinter", "jsrunner", "rainbowparkour", { name: "First version of my website", path: "may20/index.html" }, { name: "what the", path: "index.html" }, "onlinebuilding", "piano", { name: "bounce and roll", path: "bounceandroll/index.html" },
 ];
 
 const fileList = document.getElementById('file-list');
