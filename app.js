@@ -134,12 +134,48 @@ const favoriteBtn = document.getElementById('favorite-btn');
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
 let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
+let currentProjectTab = 'all'; // For All/Favorited/Unfavorited sorting
+
+// Setup Sidebar Pos logic
+const sidebarPosBtn = document.getElementById('sidebar-pos-btn');
+const sidebarPositions = ['left', 'right', 'up', 'down'];
+let currentSidebarPos = localStorage.getItem('orgeyt-sidebar-pos') || 'left';
+
+function applySidebarPosition(pos) {
+    document.body.classList.remove('layout-left', 'layout-right', 'layout-up', 'layout-down');
+    if (pos !== 'left') document.body.classList.add(`layout-${pos}`);
+    if (sidebarPosBtn) {
+        sidebarPosBtn.textContent = `Sidebar: ${pos.charAt(0).toUpperCase() + pos.slice(1)}`;
+    }
+    localStorage.setItem('orgeyt-sidebar-pos', pos);
+}
+
+if (sidebarPosBtn) {
+    sidebarPosBtn.addEventListener('click', () => {
+        let idx = sidebarPositions.indexOf(currentSidebarPos);
+        currentSidebarPos = sidebarPositions[(idx + 1) % sidebarPositions.length];
+        applySidebarPosition(currentSidebarPos);
+    });
+}
+// Apply on boot
+applySidebarPosition(currentSidebarPos);
+
+// Setup Tab Buttons
+const tabBtns = document.querySelectorAll('.tab-btn');
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentProjectTab = e.target.dataset.tab;
+        renderProjectList();
+    });
+});
 
 function updateFavoriteButtonText() {
     if (favorites.includes(currentProjectParam.toLowerCase())) {
-        favoriteBtn.textContent = "Unfavorite Current Project";
+        favoriteBtn.textContent = "Unfavorite Project";
     } else {
-        favoriteBtn.textContent = "Favorite Current Project";
+        favoriteBtn.textContent = "Favorite Project";
     }
 }
 
@@ -180,9 +216,14 @@ function renderProjectList() {
     const sortedProjects = [...welcomeProjects, ...favoritedProjects, ...regularProjects];
 
     sortedProjects.forEach(project => {
-        const button = document.createElement('button');
         let projectParam = (typeof project === 'object') ? project.name : project;
         let isFav = isFavorite(project);
+        
+        // Filter based on currently selected tab
+        if (currentProjectTab === 'favorites' && !isFav && !isWelcome(project)) return;
+        if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
+
+        const button = document.createElement('button');
         
         button.className = 'file-btn';
         if (isFav) button.classList.add('favorited-item');
@@ -244,9 +285,13 @@ favoriteBtn.addEventListener('click', () => {
 });
 
 randomProjectBtn.addEventListener('click', () => {
-    const randomProject = projects[Math.floor(Math.random() * projects.length)];
-    loadProject(randomProject);
-    unlockAchievement('randomizer'); // Unlock Randomizer
+    // Only pick from currently visible elements if tabs are active
+    const buttons = Array.from(fileList.querySelectorAll('.file-btn')).filter(btn => btn.style.display !== 'none');
+    if (buttons.length > 0) {
+        const randomBtn = buttons[Math.floor(Math.random() * buttons.length)];
+        randomBtn.click();
+        unlockAchievement('randomizer'); // Unlock Randomizer
+    }
 });
 
 if (searchBar) {
