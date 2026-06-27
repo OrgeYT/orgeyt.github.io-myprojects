@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro 8-Bit Synth Piano</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* Retro styling and scanlines */
+        body {
+            font-family: 'Press Start 2P', monospace;
+            background-color: #050505;
+            color: #0ff;
+            overflow-x: hidden;
+        }
+
+        .crt-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .synth-body {
+            background: linear-gradient(135deg, #1e1e24 0%, #0d0d12 100%);
+            box-shadow: 0 0 20px #0ff3, inset 0 0 10px #000;
+            border: 4px solid #333;
+            border-bottom: 8px solid #111;
+        }
+
+        .retro-text-glow {
+            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+        }
+        
+        .retro-pink-glow {
+            text-shadow: 0 0 5px #f0f, 0 0 10px #f0f;
+            color: #f0f;
+        }
+
+        /* Keyboard layout */
+        .keyboard-container {
+            position: relative;
+            display: flex;
+            height: 380px;
+            width: 100%;
+            border: 4px solid #222;
+            background: #111;
+            padding: 2px;
+            border-radius: 4px;
+        }
+
+        .key {
+            border: 2px solid #000;
+            border-radius: 0 0 6px 6px;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: transform 0.05s ease, box-shadow 0.05s ease;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            padding-bottom: 25px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .key-white {
+            background: #ddd;
+            color: #666;
+            flex: 1;
+            z-index: 1;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5), inset 0 -4px 0 #bbb;
+        }
+
+        .key-white.active {
+            background: #0ff;
+            color: #000;
+            transform: translateY(2px);
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px #0ff;
+            border-color: #0ff;
+        }
+
+        .key-black {
+            background: #111;
+            color: #555;
+            position: absolute;
+            top: 0;
+            height: 60%;
+            z-index: 10;
+            box-shadow: inset 0 0 5px rgba(255,255,255,0.2), inset 0 -3px 0 #000;
+        }
+
+        .key-black.active {
+            background: #f0f;
+            color: #fff;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 0 15px #f0f;
+            border-color: #f0f;
+        }
+        
+        /* Custom Inputs */
+        select, input[type=range] {
+            font-family: inherit;
+            background: #000;
+            color: #0ff;
+            border: 2px solid #0ff;
+            padding: 8px;
+            outline: none;
+            box-shadow: 0 0 5px #0ff;
+            cursor: pointer;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            height: 16px;
+            padding: 0;
+            background: #222;
+            border-radius: 8px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 32px;
+            background: #f0f;
+            box-shadow: 0 0 8px #f0f;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div class="crt-overlay"></div>
+
+    <div class="synth-body w-full max-w-[95vw] xl:max-w-7xl p-8 rounded-xl flex flex-col gap-8 relative z-10">
+        <!-- Header & Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-black/60 p-6 rounded-lg border-2 border-gray-800 shadow-inner items-center">
+            
+            <!-- Title Section -->
+            <div class="col-span-1 flex flex-col justify-center border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0 md:pr-4 text-center md:text-left">
+                <h1 class="text-3xl md:text-4xl retro-text-glow mb-2 leading-tight">NEON<br><span class="retro-pink-glow">SYNTH</span><span class="text-xl ml-2">84</span></h1>
+                <p class="text-[10px] text-gray-400">POLYPHONIC WAVE GENERATOR</p>
+            </div>
+
+            <!-- Waveform Section -->
+            <div class="col-span-1 flex flex-col justify-center gap-3 px-0 md:px-4 border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0">
+                <label class="text-xs text-pink-500 tracking-widest text-center">WAVEFORM SELECT</label>
+                <select id="instrument-select" class="text-sm uppercase text-center w-full py-4 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
+                    <option value="square">Square</option>
+                    <option value="triangle">Triangle</option>
+                    <option value="sawtooth">Sawtooth</option>
+                    <option value="sine">Sine</option>
+                    <option value="pulse14">1/4 Pulse (25%)</option>
+                    <option value="sqsaw">SqSaw (Mix)</option>
+                </select>
+            </div>
+
+            <!-- Volume Section -->
+            <div class="col-span-1 flex flex-col justify-center gap-3 pl-0 md:pl-4">
+                <label class="text-xs text-pink-500 tracking-widest text-center">MASTER VOLUME</label>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="w-full mt-2">
+                <div class="flex justify-between text-[10px] text-gray-500 w-full px-1">
+                    <span>MIN</span>
+                    <span>MAX</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="flex flex-col md:flex-row justify-between items-center text-[10px] text-gray-400 bg-black/40 p-3 rounded border border-gray-800 px-6">
+            <span><strong>USE MOUSE OR TOUCH TO PLAY</strong></span>
+            <span class="hidden md:inline"><strong>KEYBOARD CONTROLS:</strong> LOWER OCTAVE: [ Z - M ] &nbsp;|&nbsp; UPPER OCTAVE: [ Q - P ]</span>
+        </div>
+
+        <!-- Keyboard Container -->
+        <div class="keyboard-container" id="keyboard">
+            <!-- Keys will be injected here via JS -->
+        </div>
+    </div>
+
+    <script>
+        // Web Audio API Context
+        let audioCtx = null;
+        let masterGain = null;
+        let pulseWave = null;
+        
+        // Active oscillator state to manage polyphony (key tracking)
+        const activeNotes = {};
+        
+        // Configuration
+        const synthState = {
+            instrument: 'square',
+            volume: 0.5
+        };
+
+        // Note Definitions (C3 to E5 - 2.5 Octaves)
+        const notes = [
+            // Lower Octave (C3 to B3) - Bottom row
+            { name: 'C3', freq: 130.81, keyMapped: 'z', type: 'white' },
+            { name: 'C#3', freq: 138.59, keyMapped: 's', type: 'black' },
+            { name: 'D3', freq: 146.83, keyMapped: 'x', type: 'white' },
+            { name: 'D#3', freq: 155.56, keyMapped: 'd', type: 'black' },
+            { name: 'E3', freq: 164.81, keyMapped: 'c', type: 'white' },
+            { name: 'F3', freq: 174.61, keyMapped: 'v', type: 'white' },
+            { name: 'F#3', freq: 185.00, keyMapped: 'g', type: 'black' },
+            { name: 'G3', freq: 196.00, keyMapped: 'b', type: 'white' },
+            { name: 'G#3', freq: 207.65, keyMapped: 'h', type: 'black' },
+            { name: 'A3', freq: 220.00, keyMapped: 'n', type: 'white' },
+            { name: 'A#3', freq: 233.08, keyMapped: 'j', type: 'black' },
+            { name: 'B3', freq: 246.94, keyMapped: 'm', type: 'white' },
+            
+            // Middle Octave (C4 to B4) - Top row
+            { name: 'C4', freq: 261.63, keyMapped: 'q', type: 'white' },
+            { name: 'C#4', freq: 277.18, keyMapped: '2', type: 'black' },
+            { name: 'D4', freq: 293.66, keyMapped: 'w', type: 'white' },
+            { name: 'D#4', freq: 311.13, keyMapped: '3', type: 'black' },
+            { name: 'E4', freq: 329.63, keyMapped: 'e', type: 'white' },
+            { name: 'F4', freq: 349.23, keyMapped: 'r', type: 'white' },
+            { name: 'F#4', freq: 369.99, keyMapped: '5', type: 'black' },
+            { name: 'G4', freq: 392.00, keyMapped: 't', type: 'white' },
+            { name: 'G#4', freq: 415.30, keyMapped: '6', type: 'black' },
+            { name: 'A4', freq: 440.00, keyMapped: 'y', type: 'white' },
+            { name: 'A#4', freq: 466.16, keyMapped: '7', type: 'black' },
+            { name: 'B4', freq: 493.88, keyMapped: 'u', type: 'white' },
+
+            // High notes (C5 to E5)
+            { name: 'C5', freq: 523.25, keyMapped: 'i', type: 'white' },
+            { name: 'C#5', freq: 554.37, keyMapped: '9', type: 'black' },
+            { name: 'D5', freq: 587.33, keyMapped: 'o', type: 'white' },
+            { name: 'D#5', freq: 622.25, keyMapped: '0', type: 'black' },
+            { name: 'E5', freq: 659.25, keyMapped: 'p', type: 'white' }
+        ];
+
+        // Initialize Audio Environment (Requires user interaction first)
+        function initAudio() {
+            if (audioCtx) return; // Already initialized
+            
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = synthState.volume;
+            masterGain.connect(audioCtx.destination);
+
+            // Generate the custom 1/4 Pulse (25% Duty Cycle) Waveform
+            // Using Fourier series synthesis: amplitude = 2/(n*pi) * sin(n*pi*duty)
+            const dutyCycle = 0.25;
+            const terms = 64; 
+            const real = new Float32Array(terms);
+            const imag = new Float32Array(terms);
+            for (let i = 1; i < terms; i++) {
+                real[i] = (2 / (i * Math.PI)) * Math.sin(i * Math.PI * dutyCycle);
+            }
+            pulseWave = audioCtx.createPeriodicWave(real, imag);
+        }
+
+        // Play a specific frequency
+        function startNote(freq, noteName) {
+            initAudio(); // Guarantee context is awake
+            
+            if (activeNotes[noteName]) return; // Note already playing
+
+            const noteGain = audioCtx.createGain();
+            
+            // Envelope - fast attack (retro style)
+            noteGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            // Cap max gain per note slightly lower to prevent clipping when chords are played
+            const maxVolume = 0.4; 
+            noteGain.gain.linearRampToValueAtTime(maxVolume, audioCtx.currentTime + 0.02); 
+            
+            noteGain.connect(masterGain);
+
+            let osc1 = audioCtx.createOscillator();
+            let osc2 = null; // Used for layered instruments
+
+            if (synthState.instrument === 'pulse14') {
+                osc1.setPeriodicWave(pulseWave);
+            } else if (synthState.instrument === 'sqsaw') {
+                // Layer 1: Square
+                osc1.type = 'square';
+                
+                // Layer 2: Sawtooth
+                osc2 = audioCtx.createOscillator();
+                osc2.type = 'sawtooth';
+                osc2.frequency.value = freq;
+                
+                // Balance volumes slightly to prevent overdrive
+                const mixGain = audioCtx.createGain();
+                mixGain.gain.value = 0.6;
+                osc2.connect(mixGain);
+                mixGain.connect(noteGain);
+                osc2.start();
+            } else {
+                // Standard waveforms: sine, square, sawtooth, triangle
+                osc1.type = synthState.instrument;
+            }
+
+            osc1.frequency.value = freq;
+            osc1.connect(noteGain);
+            osc1.start();
+
+            // Store oscillators and gain node to stop them cleanly later
+            activeNotes[noteName] = { osc1, osc2, noteGain };
+            
+            // Visual Update
+            const keyEl = document.getElementById(`key-${noteName}`);
+            if (keyEl) keyEl.classList.add('active');
+        }
+
+        // Stop a specific note
+        function stopNote(noteName) {
+            const noteObj = activeNotes[noteName];
+            if (!noteObj) return;
+
+            // Envelope - quick release
+            noteObj.noteGain.gain.cancelScheduledValues(audioCtx.currentTime);
+            noteObj.noteGain.gain.setValueAtTime(noteObj.noteGain.gain.value, audioCtx.currentTime);
+            noteObj.noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+
+            // Stop oscillators slightly after release
+            noteObj.osc1.stop(audioCtx.currentTime + 0.1);
+            if (noteObj.osc2) noteObj.osc2.stop(audioCtx.currentTime + 0.1);
+
+            delete activeNotes[noteName];
+
+            // Visual Update
+            const keyEl = document.getElementById(`key-${noteName}`);
+            if (keyEl) keyEl.classList.remove('active');
+        }
+
+        // DOM Render Logic
+        function renderKeyboard() {
+            const container = document.getElementById('keyboard');
+            
+            // Count white keys to calculate widths
+            const whiteKeys = notes.filter(n => n.type === 'white');
+            const totalWhiteKeys = whiteKeys.length;
+            const whiteKeyWidthPercent = 100 / totalWhiteKeys;
+            
+            let currentWhiteIndex = 0;
+
+            notes.forEach((note) => {
+                const keyEl = document.createElement('div');
+                keyEl.id = `key-${note.name}`;
+                keyEl.className = `key key-${note.type}`;
+                
+                // Show mapped keyboard key
+                keyEl.innerText = note.keyMapped.toUpperCase();
+
+                if (note.type === 'white') {
+                    // White keys follow standard flex layout
+                    currentWhiteIndex++;
+                } else {
+                    // Black keys are absolutely positioned between white keys
+                    // Dynamically size black keys to be about 65% the width of a white key
+                    const blackKeyWidth = whiteKeyWidthPercent * 0.65; 
+                    // Position at the right edge of the *previous* white key
+                    const leftOffset = (currentWhiteIndex * whiteKeyWidthPercent) - (blackKeyWidth / 2);
+                    keyEl.style.width = `${blackKeyWidth}%`;
+                    keyEl.style.left = `${leftOffset}%`;
+                }
+
+                // Event Listeners for Mouse/Touch
+                const startEvent = (e) => { 
+                    e.preventDefault(); 
+                    startNote(note.freq, note.name); 
+                };
+                const stopEvent = (e) => { 
+                    e.preventDefault(); 
+                    stopNote(note.name); 
+                };
+
+                keyEl.addEventListener('mousedown', startEvent);
+                keyEl.addEventListener('touchstart', startEvent, {passive: false});
+                
+                keyEl.addEventListener('mouseup', stopEvent);
+                keyEl.addEventListener('mouseleave', stopEvent);
+                keyEl.addEventListener('touchend', stopEvent);
+                keyEl.addEventListener('touchcancel', stopEvent);
+
+                container.appendChild(keyEl);
+            });
+        }
+
+        // Initialize Settings Control Listeners
+        document.getElementById('instrument-select').addEventListener('change', (e) => {
+            synthState.instrument = e.target.value;
+        });
+
+        document.getElementById('volume-slider').addEventListener('input', (e) => {
+            synthState.volume = parseFloat(e.target.value);
+            if (masterGain) {
+                // Smoothly transition volume to avoid popping
+                masterGain.gain.setTargetAtTime(synthState.volume, audioCtx.currentTime, 0.05);
+            }
+        });
+
+        // Keyboard mapping system
+        const keyMap = {};
+        notes.forEach(n => keyMap[n.keyMapped] = n);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return; // Ignore hold repetition
+            const keyStr = e.key.toLowerCase();
+            if (keyMap[keyStr]) {
+                startNote(keyMap[keyStr].freq, keyMap[keyStr].name);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const keyStr = e.key.toLowerCase();
+            if (keyMap[keyStr]) {
+                stopNote(keyMap[keyStr].name);
+            }
+        });
+
+        // Build the layout on load
+        renderKeyboard();
+
+    </script>
+</body>
+</html>
