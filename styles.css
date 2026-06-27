@@ -231,7 +231,7 @@
 }
 
 /* ==========================================
-   Base Styles
+   Base Styles & Dynamic Layouts
    ========================================== */
 * {
     margin: 0;
@@ -247,6 +247,18 @@ body {
     color: var(--text-main);
     transition: background-color 0.3s, color 0.3s;
 }
+
+/* Dynamic Sidebar Positions */
+body.layout-right { flex-direction: row-reverse; }
+body.layout-right .sidebar { border-right: none; border-left: 1px solid var(--border-main); }
+
+body.layout-up { flex-direction: column; }
+body.layout-up .sidebar { width: 100%; border-right: none; border-bottom: 3px solid var(--accent-solid); padding: 15px; display: flex; flex-direction: column; }
+body.layout-up #file-list { max-height: 200px; }
+
+body.layout-down { flex-direction: column-reverse; }
+body.layout-down .sidebar { width: 100%; border-right: none; border-top: 3px solid var(--accent-solid); padding: 15px; display: flex; flex-direction: column; }
+body.layout-down #file-list { max-height: 200px; }
 
 .sidebar {
     width: 250px;
@@ -285,6 +297,14 @@ body {
     transition: color 0.3s;
 }
 
+/* Grid layout for identical sizing */
+.sidebar-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-bottom: 15px;
+}
+
 /* Toggle Button Styling */
 .toggle-btn {
     background-color: var(--btn-primary);
@@ -296,7 +316,7 @@ body {
     text-align: center;
     transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
     font-size: 0.85rem;
-    margin-bottom: 15px; 
+    width: 100%;
 }
 
 .toggle-btn:hover {
@@ -305,6 +325,34 @@ body {
 
 .toggle-btn:active {
     transform: scale(0.98);
+}
+
+/* Tabs Styling */
+.project-tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.tab-btn {
+    flex: 1;
+    background-color: var(--btn-secondary);
+    color: var(--text-main);
+    border: 1px solid var(--border-main);
+    padding: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.tab-btn.active {
+    background-color: var(--accent-solid);
+    font-weight: bold;
+}
+
+.tab-btn:hover:not(.active) {
+    background-color: var(--btn-secondary-hover);
 }
 
 /* Search Bar Styling */
