@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Building Game</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: sans-serif;
+            background-color: #222;
+        }
+
+        #title-screen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: white;
+            text-align: center;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        button {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background-color: #ff5f6d;
+            border: none;
+            color: white;
+            border-radius: 50px;
+            transition: transform 0.2s;
+        }
+
+        button:hover { transform: scale(1.1); }
+
+        #game-container {
+            display: none;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-frame {
+            width: 149.25%; /* 100 / 0.67 */
+            height: 149.25%; /* 100 / 0.67 */
+            border: none;
+            transform-origin: top left;
+            transform: scale(0.67);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="title-screen">
+        <h1>Online Building Game</h1>
+        <button onclick="startGame()">PLAY GAME</button>
+    </div>
+
+    <div id="game-container">
+        <iframe id="game-frame" src=""></iframe>
+    </div>
+
+    <script>
+        function startGame() {
+            document.getElementById('title-screen').style.display = 'none';
+            const container = document.getElementById('game-container');
+            const frame = document.getElementById('game-frame');
+            
+            container.style.display = 'block';
+            frame.src = 'https://simple-game-page-canvas-main-script--orgeyt.on.websim.com/';
+        }
+    </script>
+</body>
+</html>
