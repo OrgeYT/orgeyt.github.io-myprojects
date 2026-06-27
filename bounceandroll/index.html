@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Bounce & Roll - 15 Levels</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div id="hud" class="hidden">Level: <span id="levelText">1</span> / 15</div>
+
+        <div id="startScreen" class="overlay">
+            <h1>Bounce & Roll</h1>
+            <p>Use your <b>Blue Cursor</b> to bounce the <b>Red Cube</b> into the green goal.<br><br>Avoid the black holes!<br>The path gets longer and narrower.</p>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button id="startBtn">Start Game</button>
+                <button id="playgroundBtn">Playground</button>
+            </div>
+        </div>
+
+        <div id="winScreen" class="overlay hidden">
+            <h1>Level Complete!</h1>
+            <p>Great job navigating that maze.</p>
+            <button id="nextBtn">Next Level</button>
+        </div>
+
+        <div id="gameOverScreen" class="overlay hidden">
+            <h1>You Won!</h1>
+            <p>You completed all 15 levels. Incredible bouncing skills!</p>
+            <button id="playAgainBtn">Play Again</button>
+        </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>
