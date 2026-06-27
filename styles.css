@@ -857,17 +857,11 @@ body.layout-down #file-list { max-height: 200px; }
 }
 
 #admin-btn {
-    background-color: #4d0000;
-    color: #ffcccc;
-    border-color: #ff0000;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-
-#admin-btn:hover {
-    background-color: #8b0000;
-}
+/* The hover effect and colors will now automatically be handled by the .toggle-btn class! */
 
 .admin-section {
     margin-top: 15px;
