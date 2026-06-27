@@ -17,16 +17,23 @@
         <div id="project-counter" style="font-size: 0.8rem; color: var(--text-accent);"></div>
         <div id="time-counter">Time: 0s</div>
 
-        <div class="sidebar-controls" style="display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap;">
-            <button id="toggle-ui-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Toggle UI (`)</button>
-            <button id="tab-modifier-btn" class="toggle-btn" style="margin-bottom: 0; flex: 1 1 45%;">Tab Settings</button>
-            <button id="theme-settings-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Theme Settings</button>
-            <button id="random-project-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Random Project</button>
-            <button id="favorite-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">Favorite Current Project</button>
-            <button id="friends-website-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">My friend's website</button>
-            <button id="achievements-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 45%;">Achievements</button>
-            <button id="open-gallery-btn" class="toggle-btn" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">Gallery</button>
-            <button id="admin-btn" class="toggle-btn hidden" style="margin-top: 5px; margin-bottom: 0; flex: 1 1 100%;">ADMIN</button>
+        <div class="sidebar-controls" id="sidebar-controls">
+            <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
+            <button id="tab-modifier-btn" class="toggle-btn">Tab Settings</button>
+            <button id="theme-settings-btn" class="toggle-btn">Theme Settings</button>
+            <button id="random-project-btn" class="toggle-btn">Random Project</button>
+            <button id="favorite-btn" class="toggle-btn">Favorite Project</button>
+            <button id="friends-website-btn" class="toggle-btn">Friend's Website</button>
+            <button id="achievements-btn" class="toggle-btn">Achievements</button>
+            <button id="open-gallery-btn" class="toggle-btn">Gallery</button>
+            <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
+            <button id="admin-btn" class="toggle-btn hidden" style="grid-column: 1 / -1;">ADMIN</button>
+        </div>
+
+        <div class="project-tabs">
+            <button class="tab-btn active" data-tab="all">All</button>
+            <button class="tab-btn" data-tab="favorites">Favorited</button>
+            <button class="tab-btn" data-tab="unfavorited">Unfavorited</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
