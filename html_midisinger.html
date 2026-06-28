@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDI Singer Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Using a basic MIDI parser -->
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a; /* Slate 900 */
+            color: #f8fafc; /* Slate 50 */
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7); /* Slate 800 with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .custom-file-upload {
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        /* Custom Scrollbar for textarea */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        
+        #visualizer {
+            width: 100%;
+            height: 150px;
+            background-color: #1e293b;
+            border-radius: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .note-block {
+            position: absolute;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            border-radius: 4px;
+            box-shadow: 0 0 10px rgba(139, 92, 246, 0.5);
+        }
+        
+        .current-lyric {
+            color: #f472b6; /* Pink 400 */
+            text-shadow: 0 0 10px rgba(244, 114, 182, 0.5);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="max-w-4xl w-full">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500 mb-4 tracking-tight">
+                MIDI Singer Studio
+            </h1>
+            <p class="text-slate-400 text-lg">Upload a melody, write lyrics, and hear it performed.</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Left Column: Inputs -->
+            <div class="space-y-6">
+                <!-- MIDI Upload -->
+                <div class="glass-panel p-6 rounded-2xl shadow-xl">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                        1. Upload Melody (MIDI)
+                    </h2>
+                    <label class="custom-file-upload w-full">
+                        <input type="file" id="midi-upload" accept=".mid,.midi" class="hidden" />
+                        <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 text-center hover:border-blue-400 hover:bg-slate-800 transition-all duration-300 group">
+                            <svg class="mx-auto h-12 w-12 text-slate-400 group-hover:text-blue-400 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="mt-4 flex text-sm text-slate-400 justify-center">
+                                <span class="relative cursor-pointer rounded-md font-medium text-blue-400 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span id="file-name-display">Select a file</span>
+                                </span>
+                                <p class="pl-1">or drag and drop</p>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-2">.mid or .midi format</p>
+                        </div>
+                    </label>
+                    <div id="midi-info" class="mt-4 text-sm text-slate-300 hidden">
+                        <p>Track loaded: <span id="track-name" class="font-semibold text-blue-300"></span></p>
+                        <p>Notes found: <span id="note-count" class="font-semibold text-purple-300"></span></p>
+                    </div>
+                </div>
+
+                <!-- Lyrics Input -->
+                <div class="glass-panel p-6 rounded-2xl shadow-xl flex flex-col h-[300px]">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <svg class="w-6 h-6 mr-2 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        2. Write Lyrics
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-2">Each word or syllable will be mapped to a note in the melody.</p>
+                    <textarea id="lyrics-input" class="w-full flex-grow bg-slate-900 text-slate-100 p-4 rounded-xl border border-slate-700 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-colors resize-none" placeholder="Enter your lyrics here...&#10;Example:&#10;Twinkle twinkle little star,&#10;How I wonder what you are."></textarea>
+                </div>
+            </div>
+
+            <!-- Right Column: Playback & Visualization -->
+            <div class="space-y-6 flex flex-col">
+                <!-- Controls -->
+                <div class="glass-panel p-6 rounded-2xl shadow-xl flex-grow flex flex-col justify-center">
+                    <h2 class="text-xl font-semibold mb-6 text-center">3. Perform</h2>
+                    
+                    <div class="flex justify-center space-x-4 mb-8">
+                        <button id="play-btn" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white font-bold py-4 px-10 rounded-full shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center" disabled>
+                            <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path></svg>
+                            Sing It!
+                        </button>
+                        <button id="stop-btn" class="bg-slate-700 hover:bg-slate-600 text-white font-bold py-4 px-6 rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center" disabled>
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd"></path></svg>
+                        </button>
+                    </div>
+
+                    <!-- Options -->
+                    <div class="space-y-4">
+                        <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-4">
+                            <h3 class="text-indigo-300 font-semibold mb-1 text-sm flex items-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                                Custom Formant Engine Active
+                            </h3>
+                            <p class="text-xs text-indigo-200/70">Instead of clunky browser TTS, this uses a custom built-in synthesizer. It splits your words into vowels and consonants to create a robotic vocoder that perfectly matches the MIDI pitch.</p>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm text-slate-400">Play Backing Synth</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                              <input type="checkbox" id="synth-toggle" class="sr-only peer" checked>
+                              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Visualizer -->
+                <div class="glass-panel p-6 rounded-2xl shadow-xl">
+                    <div id="visualizer" class="mb-4">
+                        <!-- Notes will be rendered here -->
+                        <div id="playback-line" class="absolute top-0 bottom-0 left-0 w-0.5 bg-red-500 shadow-[0_0_8px_#ef4444] z-10 hidden"></div>
+                    </div>
+                    <div id="lyric-display" class="h-16 flex items-center justify-center text-2xl text-center bg-slate-900 rounded-xl border border-slate-700 overflow-hidden px-4">
+                        <span class="text-slate-500 italic text-lg">Lyrics will appear here</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer class="mt-12 text-center text-slate-500 text-sm pb-8">
+            <p>Note: The singing voice is generated entirely in your browser using a custom Web Audio Formant Synthesizer. It models human vocal tracts using oscillators and bandpass filters!</p>
+        </footer>
+    </div>
+
+    <script>
+        // State variables
+        let parsedMidiData = null;
+        let melodyNotes = [];
+        let synth = null;
+        let isPlaying = false;
+        let scheduledEvents = []; // Keep track to clear them
+        let animationFrameId;
+        
+        // Custom Formant Synthesizer Pool
+        let voicePool = [];
+        let voiceIndex = 0;
+        
+        // DOM Elements
+        const uploadInput = document.getElementById('midi-upload');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        const midiInfo = document.getElementById('midi-info');
+        const trackNameEl = document.getElementById('track-name');
+        const noteCountEl = document.getElementById('note-count');
+        
+        const lyricsInput = document.getElementById('lyrics-input');
+        const playBtn = document.getElementById('play-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const voiceSelect = document.getElementById('voice-select');
+        const synthToggle = document.getElementById('synth-toggle');
+        
+        const visualizer = document.getElementById('visualizer');
+        const playbackLine = document.getElementById('playback-line');
+        const lyricDisplay = document.getElementById('lyric-display');
+
+        uploadInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            fileNameDisplay.textContent = file.name;
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const midi = new Midi(arrayBuffer);
+                parsedMidiData = midi;
+                
+                processMidiData(midi);
+                
+            } catch (error) {
+                console.error("Error parsing MIDI:", error);
+                alert("Could not parse this MIDI file. Please try another one.");
+            }
+        });
+
+        function processMidiData(midi) {
+            melodyNotes = [];
+            
+            // Find the track with the most notes, assume it's the melody
+            let longestTrack = null;
+            let maxNotes = 0;
+
+            midi.tracks.forEach(track => {
+                if (track.notes.length > maxNotes) {
+                    maxNotes = track.notes.length;
+                    longestTrack = track;
+                }
+            });
+
+            if (!longestTrack || longestTrack.notes.length === 0) {
+                alert("No notes found in the MIDI file.");
+                return;
+            }
+
+            // Extract notes, sorting by start time
+            melodyNotes = longestTrack.notes.sort((a, b) => a.time - b.time);
+            
+            // Update UI
+            trackNameEl.textContent = longestTrack.name || "Main Melody";
+            noteCountEl.textContent = melodyNotes.length;
+            midiInfo.classList.remove('hidden');
+            
+            checkReadyState();
+            drawVisualizer();
+        }
+
+        function checkReadyState() {
+            if (melodyNotes.length > 0 && lyricsInput.value.trim().length > 0) {
+                playBtn.disabled = false;
+            } else {
+                playBtn.disabled = true;
+            }
+        }
+
+        lyricsInput.addEventListener('input', checkReadyState);
+
+        function drawVisualizer() {
+            // Clear existing notes
+            document.querySelectorAll('.note-block').forEach(e => e.remove());
+            
+            if (melodyNotes.length === 0) return;
+
+            const duration = melodyNotes[melodyNotes.length - 1].time + melodyNotes[melodyNotes.length - 1].duration;
+            
+            // Find min/max pitch to scale vertically
+            let minPitch = 127;
+            let maxPitch = 0;
+            melodyNotes.forEach(note => {
+                if (note.midi < minPitch) minPitch = note.midi;
+                if (note.midi > maxPitch) maxPitch = note.midi;
+            });
+            
+            // Padding
+            minPitch -= 2;
+            maxPitch += 2;
+            const pitchRange = maxPitch - minPitch;
+
+            melodyNotes.forEach(note => {
+                const block = document.createElement('div');
+                block.className = 'note-block';
+                
+                // Calculate position percentages
+                const left = (note.time / duration) * 100;
+                const width = (note.duration / duration) * 100;
+                
+                // Invert Y axis (higher pitch = lower top value)
+                const top = 100 - (((note.midi - minPitch) / pitchRange) * 100);
+                
+                block.style.left = `${left}%`;
+                block.style.width = `${Math.max(0.5, width)}%`; // Ensure visible
+                block.style.top = `${top}%`;
+                block.style.height = `${100 / pitchRange}%`;
+                
+                visualizer.appendChild(block);
+            });
+        }
+
+        function getWords() {
+            // Split by whitespace and common punctuation, filter out empties
+            const rawText = lyricsInput.value;
+            // Simple split: words or explicit syllables (if user uses hyphens, we keep them as separate elements for now)
+            // A more advanced version would use a syllabifier library.
+            let words = rawText.replace(/[\n\r]/g, ' ').split(/\s+/).filter(w => w.length > 0);
+            
+            // Further process to break hyphenated words if user is trying to map syllables
+            let processedWords = [];
+            words.forEach(w => {
+                if (w.includes('-')) {
+                    const parts = w.split('-');
+                    parts.forEach((p, i) => {
+                        // Keep hyphen for visual display except on last part
+                        processedWords.push(p + (i < parts.length - 1 ? '-' : ''));
+                    });
+                } else {
+                    processedWords.push(w);
+                }
+            });
+            
+            return processedWords;
+        }
+
+        // 1. Grapheme-to-Phoneme (G2P) rule engine
+        // Converts tricky English spelling into raw phonetic blocks for the synthesizer
+        function textToPhonemes(word) {
+            let w = word.toLowerCase().replace(/[^a-z]/g, '');
+            if (!w) return ['a']; // fallback
+            
+            // Common English pronunciation rules
+            if (w.length > 2 && w.endsWith('e') && !w.endsWith('ee') && !w.endsWith('me')) {
+                w = w.slice(0, -1); // Remove Silent E
+            }
+            
+            w = w.replace(/tion/g, 'S-u-n');
+            w = w.replace(/ture/g, 'C-u-r');
+            w = w.replace(/th/g, 'T');
+            w = w.replace(/sh/g, 'S');
+            w = w.replace(/ch/g, 'C');
+            w = w.replace(/ph/g, 'f');
+            w = w.replace(/oo/g, 'u');
+            w = w.replace(/ee/g, 'i');
+            w = w.replace(/ea/g, 'i');
+            w = w.replace(/ou/g, 'a-u');
+            w = w.replace(/ow/g, 'a-u');
+            w = w.replace(/ay/g, 'e-i');
+            w = w.replace(/ai/g, 'e-i');
+            w = w.replace(/oa/g, 'o-u');
+            w = w.replace(/igh/g, 'a-i');
+            w = w.replace(/aw/g, 'o');
+            w = w.replace(/ck/g, 'k');
+            w = w.replace(/qu/g, 'k-w');
+            w = w.replace(/wh/g, 'w');
+            w = w.replace(/wr/g, 'r');
+            w = w.replace(/kn/g, 'n');
+            w = w.replace(/ng/g, 'N');
+            w = w.replace(/([bcdfghjklmnpqrstvwxyz])\1/g, '$1'); // Deduplicate repeated consonants
+            
+            // Split into array, ignoring hyphens used for logic
+            return w.split('-').join('').split('');
+        }
+
+        // Phonetic Formant Dictionary - Maps letters to vowel frequencies and consonant noise
+        const PHONEMES = {
+            // Vowels (v) - [F1, F2, F3] - Adjusted for better human resonance
+            'a': { type: 'v', f: [730, 1090, 2440], amp: 1.0 }, // ah
+            'e': { type: 'v', f: [530, 1840, 2480], amp: 1.0 }, // eh
+            'i': { type: 'v', f: [270, 2290, 3010], amp: 1.0 }, // ee
+            'o': { type: 'v', f: [400,  800, 2600], amp: 1.0 }, // oh
+            'u': { type: 'v', f: [300,  870, 2240], amp: 1.0 }, // oo
+            'y': { type: 'v', f: [270, 2290, 3010], amp: 1.0 }, // ee
+            
+            // Voiced Consonants (vc) - pitch + formants
+            'm': { type: 'vc', f: [250, 1200, 2500], amp: 0.5 },
+            'n': { type: 'vc', f: [250, 1800, 2500], amp: 0.5 },
+            'N': { type: 'vc', f: [250, 2000, 2500], amp: 0.5 }, // ng
+            'l': { type: 'vc', f: [350, 1200, 2800], amp: 0.6 },
+            'r': { type: 'vc', f: [350, 1200, 1600], amp: 0.6 },
+            'w': { type: 'vc', f: [300,  800, 2200], amp: 0.6 },
+            'j': { type: 'vc', f: [300, 2000, 2800], amp: 0.5, noiseAmp: 0.2, noiseFreq: 3000 },
+            'v': { type: 'vc', f: [300, 1000, 2400], amp: 0.4, noiseAmp: 0.3, noiseFreq: 4000 },
+            'z': { type: 'vc', f: [300, 1000, 2400], amp: 0.4, noiseAmp: 0.4, noiseFreq: 6000 },
+            
+            // Unvoiced Fricatives (n) - pure noise
+            's': { type: 'n', noiseFreq: 6000, noiseAmp: 0.8 },
+            'f': { type: 'n', noiseFreq: 4000, noiseAmp: 0.6 },
+            'h': { type: 'n', noiseFreq: 1500, noiseAmp: 0.5 },
+            'S': { type: 'n', noiseFreq: 3000, noiseAmp: 0.8 }, // sh
+            'T': { type: 'n', noiseFreq: 5000, noiseAmp: 0.6 }, // th
+            'c': { type: 'n', noiseFreq: 6000, noiseAmp: 0.8 }, // soft c / s
+            'x': { type: 'n', noiseFreq: 6000, noiseAmp: 0.8 },
+            
+            // Plosives (p) - unvoiced burst
+            't': { type: 'p', noiseFreq: 6000, noiseAmp: 1.0 },
+            'p': { type: 'p', noiseFreq: 1000, noiseAmp: 1.0 },
+            'k': { type: 'p', noiseFreq: 3000, noiseAmp: 1.0 },
+            'q': { type: 'p', noiseFreq: 3000, noiseAmp: 1.0 },
+            'C': { type: 'p', noiseFreq: 4000, noiseAmp: 1.0 }, // ch
+            
+            // Voiced Plosives (pv) - pitch + burst
+            'd': { type: 'pv', f: [300, 1500, 2500], amp: 0.4, noiseFreq: 6000, noiseAmp: 0.7 },
+            'b': { type: 'pv', f: [300, 1500, 2500], amp: 0.4, noiseFreq: 1000, noiseAmp: 0.7 },
+            'g': { type: 'pv', f: [300, 1500, 2500], amp: 0.4, noiseFreq: 3000, noiseAmp: 0.7 },
+            
+            // default
+            'default': { type: 'v', f: [500, 1500, 2500], amp: 1.0 }
+        };
+
+        class FormantVoice {
+            constructor() {
+                // Master Envelope shapes the entire note
+                this.env = new Tone.AmplitudeEnvelope({
+                    attack: 0.02, decay: 0.1, sustain: 1.0, release: 0.1 // Faster attack for intelligibility
+                });
+                this.masterGain = new Tone.Gain(2.0).toDestination();
+
+                // 1. PITCH PATH (Vocal Cords -> OscGain -> Formant Filters)
+                // Using Pulse wave alongside sawtooth gives a much better throat/vocal tone
+                this.osc = new Tone.Oscillator({ type: "sawtooth" });
+                this.pulse = new Tone.PulseOscillator({ width: 0.3 }); // Adds depth
+                
+                this.vibrato = new Tone.Vibrato({ maxDelay: 0.005, frequency: 5, depth: 0.03 });
+                this.oscGain = new Tone.Gain(0); 
+                
+                // Formant Filters (Q lowered to 5 to make vowels broader and clearer)
+                this.f1 = new Tone.Filter({ type: "bandpass", Q: 5 });
+                this.f2 = new Tone.Filter({ type: "bandpass", Q: 5 });
+                this.f3 = new Tone.Filter({ type: "bandpass", Q: 5 });
+                
+                this.osc.connect(this.vibrato);
+                this.pulse.connect(this.vibrato);
+                this.vibrato.connect(this.oscGain);
+                
+                this.oscGain.connect(this.f1);
+                this.oscGain.connect(this.f2);
+                this.oscGain.connect(this.f3);
+                
+                this.f1.connect(this.env);
+                this.f2.connect(this.env);
+                this.f3.connect(this.env);
+
+                // 2. NOISE PATH (Consonants -> NoiseFilter -> NoiseGain)
+                this.noise = new Tone.Noise("white");
+                this.noiseFilter = new Tone.Filter(4000, "highpass");
+                this.noiseGain = new Tone.Gain(0);
+                
+                this.noise.connect(this.noiseFilter);
+                this.noiseFilter.connect(this.noiseGain);
+                this.noiseGain.connect(this.env);
+
+                // Connect to master out
+                this.env.connect(this.masterGain);
+
+                // Start sources silently
+                this.osc.start();
+                this.pulse.start();
+                this.noise.start();
+            }
+
+            sing(word, noteName, duration, time) {
+                // Run the spelling through our new phonetic translator!
+                let chars = textToPhonemes(word);
+                if (chars.length === 0) chars = ['a'];
+
+                // Consonants are fast (30ms). Vowels stretch to fill the note length.
+                let vCount = 0;
+                let cCount = 0;
+                const vowels = ['a','e','i','o','u','y'];
+                chars.forEach(c => vowels.includes(c) ? vCount++ : cCount++);
+                
+                if (vCount === 0) vCount = 1;
+                
+                const cDur = 0.03; // Sharper 30ms consonants
+                const totalCDur = cCount * cDur;
+                let vDur = (duration - totalCDur) / vCount;
+                
+                // Compress timing if the melody note is incredibly short
+                if (vDur < 0.03) {
+                    vDur = duration / chars.length;
+                }
+
+                let timeline = [];
+                let currTime = time;
+                chars.forEach(c => {
+                    const isVowel = vowels.includes(c);
+                    const stepDur = (duration - totalCDur) <= 0 ? (duration / chars.length) : (isVowel ? vDur : cDur);
+                    timeline.push({ char: c, time: currTime, stepDur: stepDur });
+                    currTime += stepDur;
+                });
+
+                // Set initial pitch and trigger note envelope
+                this.osc.frequency.setValueAtTime(noteName, time);
+                this.pulse.frequency.setValueAtTime(noteName, time);
+                this.env.triggerAttackRelease(duration, time);
+
+                // Reset internal gains
+                this.oscGain.gain.setValueAtTime(0, time);
+                this.noiseGain.gain.setValueAtTime(0, time);
+
+                // Sequence the translated phonemes!
+                timeline.forEach(item => {
+                    const p = PHONEMES[item.char] || PHONEMES['default'];
+                    const t = item.time;
+                    const ramp = Math.min(0.03, item.stepDur); // Quick 30ms glide between sounds
+
+                    // Vowel / Pitched elements
+                    if (p.type === 'v' || p.type === 'vc' || p.type === 'pv') {
+                        this.oscGain.gain.linearRampToValueAtTime(p.amp || 1.0, t + ramp);
+                        if (p.f) {
+                            this.f1.frequency.linearRampToValueAtTime(p.f[0], t + ramp);
+                            this.f2.frequency.linearRampToValueAtTime(p.f[1], t + ramp);
+                            this.f3.frequency.linearRampToValueAtTime(p.f[2], t + ramp);
+                        }
+                    } else {
+                        this.oscGain.gain.linearRampToValueAtTime(0, t + ramp);
+                    }
+
+                    // Consonant / Noise elements
+                    if (p.type === 'n' || p.type === 'p' || p.type === 'pv' || p.noiseAmp) {
+                        this.noiseFilter.frequency.setValueAtTime(p.noiseFreq || 4000, t);
+                        
+                        if (p.type === 'p' || p.type === 'pv') {
+                            // Plosive Burst (T, K, P) - Snappy 5ms spike!
+                            this.noiseGain.gain.setValueAtTime(0, t); 
+                            this.noiseGain.gain.linearRampToValueAtTime(p.noiseAmp || 1.0, t + 0.005);
+                            this.noiseGain.gain.linearRampToValueAtTime(0, t + Math.min(0.04, item.stepDur));
+                        } else {
+                            // Sustained Noise (S, F)
+                            this.noiseGain.gain.linearRampToValueAtTime(p.noiseAmp || 0.8, t + ramp);
+                        }
+                    } else {
+                        this.noiseGain.gain.linearRampToValueAtTime(0, t + ramp);
+                    }
+                });
+
+                // Final Cleanup
+                this.oscGain.gain.setValueAtTime(0, time + duration);
+                this.noiseGain.gain.setValueAtTime(0, time + duration);
+            }
+        }
+
+        function initVoicePool() {
+            if (voicePool.length === 0) {
+                // 4 polyphonic voices so overlapping/fast words don't clip
+                for(let i = 0; i < 4; i++) {
+                    voicePool.push(new FormantVoice());
+                }
+            }
+        }
+
+        function getNextVoice() {
+            const v = voicePool[voiceIndex];
+            voiceIndex = (voiceIndex + 1) % voicePool.length;
+            return v;
+        }
+
+        // Helper to schedule a word
+        function scheduleWord(word, time, duration, noteName) {
+            // Get an available custom voice from the pool
+            const voice = getNextVoice();
+            
+            // Schedule the audio synthesis perfectly in time
+            Tone.Transport.schedule((t) => {
+                voice.sing(word, noteName, duration, t);
+            }, time);
+
+            // Visual update
+            Tone.Draw.schedule(() => {
+                lyricDisplay.innerHTML = `<span class="current-lyric text-4xl">${word}</span>`;
+            }, time);
+        }
+
+        async function startPlayback() {
+            if (melodyNotes.length === 0) return;
+            
+            await Tone.start();
+            initVoicePool(); // Ensure our custom synth engine is ready
+
+            Tone.Transport.stop();
+            Tone.Transport.cancel(); // Clear previous events
+            
+            const words = getWords();
+            if (words.length === 0) {
+                alert("Please enter some lyrics.");
+                return;
+            }
+
+            isPlaying = true;
+            playBtn.disabled = true;
+            stopBtn.disabled = false;
+            uploadInput.disabled = true;
+            lyricsInput.disabled = true;
+
+            // Setup backing Synth
+            if (!synth) {
+                synth = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: "sine" }, // Make backing much softer
+                    envelope: { attack: 0.1, decay: 0.2, sustain: 0.2, release: 1 }
+                }).toDestination();
+                // Lower synth volume significantly to hear our custom robotic voices better
+                synth.volume.value = -18; 
+            }
+
+            const playSynth = synthToggle.checked;
+
+            // Schedule Notes and Lyrics
+            let wordIndex = 0;
+            const totalDuration = melodyNotes[melodyNotes.length - 1].time + melodyNotes[melodyNotes.length - 1].duration;
+
+            melodyNotes.forEach((note) => {
+                // Schedule Backing Synth
+                if (playSynth) {
+                    Tone.Transport.schedule((time) => {
+                        synth.triggerAttackRelease(note.name, note.duration, time, note.velocity * 0.4); 
+                    }, note.time);
+                }
+
+                // Schedule Lyric
+                if (wordIndex < words.length) {
+                    const word = words[wordIndex];
+                    scheduleWord(word, note.time, note.duration, note.name); // Using exact note name
+                    wordIndex++;
+                }
+            });
+
+            // Schedule end of playback
+            Tone.Transport.schedule((time) => {
+                Tone.Draw.schedule(() => {
+                    stopPlayback();
+                }, time);
+            }, totalDuration + 0.5);
+
+            // Start Visualizer Animation
+            playbackLine.classList.remove('hidden');
+            const startTime = Tone.now();
+            
+            function animate() {
+                if (!isPlaying) return;
+                
+                const elapsed = Tone.Transport.seconds;
+                const progress = (elapsed / totalDuration) * 100;
+                
+                if (progress <= 100) {
+                    playbackLine.style.left = `${progress}%`;
+                    animationFrameId = requestAnimationFrame(animate);
+                }
+            }
+
+            Tone.Transport.start();
+            animate();
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            Tone.Transport.stop();
+            Tone.Transport.cancel();
+            
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            
+            playbackLine.classList.add('hidden');
+            playbackLine.style.left = '0%';
+            lyricDisplay.innerHTML = '<span class="text-slate-500 italic text-lg">Performance Finished</span>';
+            
+            playBtn.disabled = false;
+            stopBtn.disabled = true;
+            uploadInput.disabled = false;
+            lyricsInput.disabled = false;
+        }
+
+        playBtn.addEventListener('click', startPlayback);
+        stopBtn.addEventListener('click', stopPlayback);
+
+    </script>
+</body>
+</html>
