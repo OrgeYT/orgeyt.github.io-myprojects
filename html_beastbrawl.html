@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEAST BRAWL</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --blood: #c0392b;
+    --gold: #f39c12;
+    --deep: #0a0a0f;
+    --panel: rgba(10,10,20,0.85);
+    --hp-green: #2ecc71;
+    --hp-yellow: #f1c40f;
+    --hp-red: #e74c3c;
+  }
+
+  body {
+    background: var(--deep);
+    font-family: 'Rajdhani', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    user-select: none;
+  }
+
+  #game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  #three-canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* ── HUD ─────────────────────────────────────────── */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 14px 20px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    pointer-events: none;
+  }
+
+  .fighter-hud {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .fighter-hud.right { align-items: flex-end; }
+
+  .fighter-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(243,156,18,0.7);
+  }
+
+  .hp-track {
+    width: 100%;
+    max-width: 340px;
+    height: 22px;
+    background: rgba(0,0,0,0.6);
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+    position: relative;
+  }
+  .hp-fill {
+    height: 100%;
+    transition: width 0.12s ease-out, background 0.3s;
+    position: relative;
+  }
+  .hp-fill::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40%;
+    background: rgba(255,255,255,0.15);
+  }
+
+  .stamina-track {
+    width: 100%;
+    max-width: 340px;
+    height: 8px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .stamina-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3498db, #2980b9);
+    transition: width 0.05s linear;
+  }
+
+  .hp-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* center hud */
+  .center-hud {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    min-width: 80px;
+  }
+
+  #round-timer {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 0 20px rgba(243,156,18,0.5);
+  }
+  #round-timer.urgent { color: var(--hp-red); animation: pulse 0.5s ease-in-out infinite alternate; }
+
+  #round-label {
+    font-size: 12px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+  }
+
+  /* ── COMBO / ANNOUNCER ────────────────────────────── */
+  #combo-display {
+    position: absolute;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  #combo-display.show { opacity: 1; }
+  #combo-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(243,156,18,0.8), 3px 3px 0 rgba(0,0,0,0.8);
+    line-height: 1;
+  }
+  #combo-label {
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.7);
+    text-transform: uppercase;
+  }
+
+  #announcer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 80px;
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 4px 4px 0 var(--blood), 0 0 40px rgba(192,57,43,0.8);
+    pointer-events: none;
+    opacity: 0;
+    text-align: center;
+    white-space: nowrap;
+    z-index: 50;
+  }
+
+  /* ── CONTROLS HINT ────────────────────────────────── */
+  #controls-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 24px;
+    pointer-events: none;
+  }
+
+  .ctrl-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .ctrl-label {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,0.35);
+    text-transform: uppercase;
+  }
+
+  .ctrl-keys {
+    display: flex;
+    gap: 3px;
+  }
+
+  .key {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.6);
+    font-family: 'Rajdhani', sans-serif;
+  }
+
+  /* ── SCREENS ──────────────────────────────────────── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: rgba(5,5,12,0.92);
+    backdrop-filter: blur(4px);
+  }
+
+  .screen.hidden { display: none; }
+
+  .screen-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(56px, 10vw, 120px);
+    letter-spacing: 8px;
+    color: #fff;
+    text-shadow: 0 0 40px rgba(243,156,18,0.5), 5px 5px 0 var(--blood);
+    line-height: 1;
+    text-align: center;
+  }
+
+  .screen-sub {
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    margin-top: 8px;
+    text-align: center;
+  }
+
+  .btn {
+    margin-top: 36px;
+    padding: 14px 48px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 4px;
+    color: #fff;
+    background: var(--blood);
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    box-shadow: 0 4px 20px rgba(192,57,43,0.4);
+  }
+  .btn:hover {
+    background: #e74c3c;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(192,57,43,0.6);
+  }
+  .btn:active { transform: translateY(0); }
+
+  .controls-list {
+    margin-top: 28px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 32px;
+    color: rgba(255,255,255,0.5);
+    font-size: 13px;
+  }
+  .controls-list span { color: rgba(255,255,255,0.9); font-weight: 700; }
+
+  /* ── WIN SCREEN extras ────────────────────────────── */
+  #win-screen .winner-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 5vw, 52px);
+    color: var(--gold);
+    letter-spacing: 4px;
+    margin-top: 12px;
+    text-shadow: 0 0 20px rgba(243,156,18,0.7);
+  }
+
+  #score-display {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: rgba(255,255,255,0.5);
+  }
+  #score-display .score-val { color: #fff; }
+
+  /* ── DAMAGE NUMBERS ───────────────────────────────── */
+  .dmg-num {
+    position: absolute;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: #fff;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.8);
+    pointer-events: none;
+    z-index: 30;
+    animation: floatUp 0.8s ease-out forwards;
+  }
+  .dmg-num.crit { color: var(--gold); font-size: 44px; }
+  .dmg-num.block { color: #3498db; font-size: 24px; }
+
+  /* ── FLASH ────────────────────────────────────────── */
+  #hit-flash {
+    position: absolute;
+    inset: 0;
+    background: rgba(255,50,50,0.25);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 20;
+  }
+
+  /* ── ROUND WIN BANNER ─────────────────────────────── */
+  #round-banner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 64px;
+    letter-spacing: 6px;
+    color: #fff;
+    text-shadow: 3px 3px 0 var(--blood), 0 0 30px rgba(192,57,43,0.6);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 40;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* ── ROUND WINS PIPS ──────────────────────────────── */
+  .round-pips {
+    display: flex;
+    gap: 5px;
+    margin-top: 2px;
+  }
+  .pip {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.3);
+    background: transparent;
+    transition: background 0.2s;
+  }
+  .pip.won { background: var(--gold); border-color: var(--gold); }
+
+  @keyframes pulse {
+    from { opacity: 1; } to { opacity: 0.5; }
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-60px); opacity: 0; }
+  }
+  @keyframes announceIn {
+    0% { opacity: 0; transform: translate(-50%,-50%) scale(1.6); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    75% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%,-50%) scale(0.9); }
+  }
+  @keyframes bannerIn {
+    0% { opacity: 0; transform: translate(-50%,-50%) scaleX(0); }
+    20% { opacity: 1; transform: translate(-50%,-50%) scaleX(1); }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  @keyframes flashOut {
+    0% { opacity: 1; } 100% { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <canvas id="three-canvas"></canvas>
+  <div id="hit-flash"></div>
+
+  <!-- HUD -->
+  <div id="hud">
+    <!-- Player -->
+    <div class="fighter-hud">
+      <div class="fighter-name" id="p1-name">YOU</div>
+      <div class="hp-track"><div class="hp-fill" id="p1-hp" style="width:100%;background:var(--hp-green)"></div></div>
+      <div class="hp-label">HP <span id="p1-hp-val">100</span></div>
+      <div class="stamina-track"><div class="stamina-fill" id="p1-stamina" style="width:100%"></div></div>
+      <div class="round-pips" id="p1-pips">
+        <div class="pip" id="p1-pip-0"></div>
+        <div class="pip" id="p1-pip-1"></div>
+        <div class="pip" id="p1-pip-2"></div>
+      </div>
+    </div>
+
+    <!-- Center -->
+    <div class="center-hud">
+      <div id="round-label">ROUND <span id="round-num">1</span></div>
+      <div id="round-timer">60</div>
+    </div>
+
+    <!-- Enemy -->
+    <div class="fighter-hud right">
+      <div class="fighter-name" id="p2-name">ENEMY</div>
+      <div class="hp-track"><div class="hp-fill" id="p2-hp" style="width:100%;background:var(--hp-green)"></div></div>
+      <div class="hp-label">HP <span id="p2-hp-val">100</span></div>
+      <div class="stamina-track"><div class="stamina-fill" id="p2-stamina" style="width:100%"></div></div>
+      <div class="round-pips" id="p2-pips">
+        <div class="pip" id="p2-pip-0"></div>
+        <div class="pip" id="p2-pip-1"></div>
+        <div class="pip" id="p2-pip-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Combo display -->
+  <div id="combo-display">
+    <div id="combo-count">0</div>
+    <div id="combo-label">COMBO</div>
+  </div>
+
+  <!-- Announcer text -->
+  <div id="announcer"></div>
+  <div id="round-banner"></div>
+
+  <!-- Controls hint -->
+  <div id="controls-hint">
+    <div class="ctrl-group">
+      <div class="ctrl-keys">
+        <div class="key">A</div><div class="key">D</div>
+      </div>
+      <div class="ctrl-label">Move</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-keys"><div class="key">Space</div></div>
+      <div class="ctrl-label">Jump</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-keys"><div class="key">J</div></div>
+      <div class="ctrl-label">Attack</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-keys"><div class="key">K</div></div>
+      <div class="ctrl-label">Bite</div>
+    </div>
+    <div class="ctrl-group">
+      <div class="ctrl-keys"><div class="key">L</div></div>
+      <div class="ctrl-label">Block</div>
+    </div>
+  </div>
+
+  <!-- Screens -->
+  <div class="screen" id="start-screen">
+    <div class="screen-title">BEAST<br>BRAWL</div>
+    <div class="screen-sub">Made by Claude</div>
+    <div class="controls-list">
+      <div><span>WASD</span> — Move (all dirs)</div>
+      <div><span>Space</span> — Jump</div>
+      <div><span>J</span> — Attack (fast)</div>
+      <div><span>K</span> — Bite (heavy)</div>
+      <div><span>L</span> — Block</div>
+      <div><span>J+K</span> — Combo!</div>
+    </div>
+    <button class="btn" id="start-btn">FIGHT</button>
+  </div>
+
+  <div class="screen hidden" id="win-screen">
+    <div class="screen-title" id="win-title">KO!</div>
+    <div class="winner-name" id="winner-name"></div>
+    <div id="score-display">
+      <div>YOU <span class="score-val" id="final-p1-score">0</span></div>
+      <div>—</div>
+      <div>ENEMY <span class="score-val" id="final-p2-score">0</span></div>
+    </div>
+    <button class="btn" id="restart-btn">PLAY AGAIN</button>
+  </div>
+</div>
+
+<!-- Three.js r134 + GLTFLoader + SkeletonUtils -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/utils/SkeletonUtils.js"></script>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════
+//  CONSTANTS & CONFIG
+// ═══════════════════════════════════════════════════════════
+const MODEL_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/exported-model.glb';
+const ANIMS = { Idle:'Idle', Death:'Death', Hit:'Hit', Bite:'Bite', Attack:'Attack', Walk:'Walk' };
+
+const CFG = {
+  ARENA_X: 10,   // ±half-width  (was 5)
+  ARENA_Z: 8,    // ±half-depth  (new)
+  GRAVITY: -28,
+  JUMP_VEL: 12,
+  MOVE_SPEED: 5.0,
+  PLAYER_SCALE: 1.2,
+  ROUND_TIME: 60,
+  MAX_ROUNDS: 3,
+  ATK_DMG:  [10, 16],
+  BITE_DMG: [18, 28],
+  BLOCK_ABSORB: 0.75,
+  ATK_CD:  550,
+  BITE_CD: 900,
+  MAX_STAMINA: 100,
+  STAMINA_REGEN: 18,
+  ATK_STAM:   12,
+  BITE_STAM:  22,
+  BLOCK_DRAIN: 20,
+  ATK_RANGE: 2.2,   // 3-D hit radius
+  AI_REACT_MIN: 300,
+  AI_REACT_MAX: 900,
+  AI_CHASE_RANGE: 14,
+  // The GLB spider's mesh faces along +X in world space.
+  // atan2(dx,dz) gives a yaw for a model whose forward is +Z.
+  // So we need to add -PI/2 to rotate the mesh 90° so it points correctly.
+  MODEL_YAW_OFFSET: 0,
+};
+
+// ═══════════════════════════════════════════════════════════
+//  THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════
+const canvas = document.getElementById('three-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+if (THREE.sRGBEncoding    !== undefined) renderer.outputEncoding  = THREE.sRGBEncoding;
+if (THREE.ACESFilmicToneMapping !== undefined) renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0x0a0a1a, 0.025);
+scene.background = new THREE.Color(0x080810);
+
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 120);
+
+function resizeRenderer() {
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resizeRenderer();
+window.addEventListener('resize', resizeRenderer);
+
+// Lights
+scene.add(new THREE.AmbientLight(0x223344, 1.2));
+
+const dirLight = new THREE.DirectionalLight(0xfff0dd, 2.5);
+dirLight.position.set(5, 14, 8);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+Object.assign(dirLight.shadow.camera, { near:0.5, far:60, left:-16, right:16, top:16, bottom:-16 });
+scene.add(dirLight);
+
+const rimLight = new THREE.DirectionalLight(0x4466ff, 1.0);
+rimLight.position.set(-5, 5, -8);
+scene.add(rimLight);
+
+const groundLight = new THREE.PointLight(0xff3300, 0.6, 20);
+groundLight.position.set(0, 0.5, 0);
+scene.add(groundLight);
+
+// ── Arena floor (wider + deeper) ──────────────────────────
+const floorGeo = new THREE.PlaneGeometry(CFG.ARENA_X*2+8, CFG.ARENA_Z*2+8, 40, 40);
+const floorMat = new THREE.MeshStandardMaterial({ color:0x111118, roughness:0.9, metalness:0.1 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+scene.add(new THREE.GridHelper(CFG.ARENA_X*2+4, 28, 0x222230, 0x181825));
+
+// Corner pillars
+function makePillar(x, z) {
+  const mat = new THREE.MeshStandardMaterial({ color:0x1a1a28, roughness:0.8 });
+  const col = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 7, 8), mat);
+  col.position.set(x, 3.5, z); col.castShadow = true; scene.add(col);
+  const ringMat = new THREE.MeshStandardMaterial({ color:0xff2200, emissive:0xff2200, emissiveIntensity:2 });
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.05, 8, 24), ringMat);
+  ring.position.set(x, 7.1, z); ring.rotation.x = Math.PI/2; scene.add(ring);
+}
+const px = CFG.ARENA_X + 0.5, pz = CFG.ARENA_Z + 0.5;
+makePillar(-px, -pz); makePillar( px, -pz);
+makePillar(-px,  pz); makePillar( px,  pz);
+
+// Particles
+const PARTICLE_COUNT = 180;
+const particleGeo = new THREE.BufferGeometry();
+const pPos = new Float32Array(PARTICLE_COUNT * 3);
+const pVel = [];
+for (let i = 0; i < PARTICLE_COUNT; i++) {
+  pPos[i*3]   = (Math.random()-0.5)*(CFG.ARENA_X*2+4);
+  pPos[i*3+1] = Math.random()*7;
+  pPos[i*3+2] = (Math.random()-0.5)*(CFG.ARENA_Z*2+4);
+  pVel.push({ x:(Math.random()-0.5)*0.3, y:Math.random()*0.4+0.1, z:(Math.random()-0.5)*0.15 });
+}
+particleGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+const particleMat = new THREE.PointsMaterial({ color:0xff4400, size:0.06, transparent:true, opacity:0.55 });
+const particles = new THREE.Points(particleGeo, particleMat);
+scene.add(particles);
+
+// ═══════════════════════════════════════════════════════════
+//  FIGHTER CLASS
+// ═══════════════════════════════════════════════════════════
+class Fighter {
+  constructor(name, startX, startZ, isPlayer) {
+    this.name      = name;
+    this.isPlayer  = isPlayer;
+    this.hp        = 100;
+    this.maxHp     = 100;
+    this.stamina   = CFG.MAX_STAMINA;
+    this.pos       = new THREE.Vector3(startX, 0, startZ);
+    this.vel       = new THREE.Vector3();
+    this.grounded  = true;
+    this.blocking  = false;
+    this.state     = 'idle';
+    this.stateTimer   = 0;
+    this.atkCooldown  = 0;
+    this.biteCooldown = 0;
+    this.hitStun   = 0;
+    this.combo     = 0;
+    this.lastComboTime = 0;
+    this.roundWins = 0;
+    // Facing as a yaw angle (radians). Spider model's mesh forward = +Z,
+    // so rotation.y=0 means the spider looks toward +Z.
+    // We'll set this to point the spider toward its opponent each frame.
+    this.facingAngle = isPlayer ? 0 : Math.PI; // player faces +Z, enemy faces -Z initially
+
+    this.pivot = new THREE.Group();
+    this.pivot.position.copy(this.pos);
+    scene.add(this.pivot);
+
+    this.mixer  = null;
+    this.model  = null;
+    this.actions = {};
+    this.currentAction = null;
+
+    // Shadow
+    const shadowGeo = new THREE.CircleGeometry(0.5, 16);
+    const shadowMat = new THREE.MeshBasicMaterial({ color:0x000000, transparent:true, opacity:0.35 });
+    this.shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    this.shadowMesh.rotation.x = -Math.PI/2;
+    this.shadowMesh.position.y = 0.005;
+    this.pivot.add(this.shadowMesh);
+
+    // 3D HP bar
+    const barBgGeo = new THREE.PlaneGeometry(1.4, 0.12);
+    const barBgMat = new THREE.MeshBasicMaterial({ color:0x111111, transparent:true, opacity:0.7 });
+    this.hpBarBg  = new THREE.Mesh(barBgGeo, barBgMat);
+    this.hpBarBg.position.y = 2.8;
+    const barGeo = new THREE.PlaneGeometry(1.4, 0.09);
+    const barMat = new THREE.MeshBasicMaterial({ color:0x2ecc71 });
+    this.hpBar3D  = new THREE.Mesh(barGeo, barMat);
+    this.hpBar3D.position.y = 2.8;
+    this.hpBar3D.position.z = 0.01;
+    this.pivot.add(this.hpBarBg);
+    this.pivot.add(this.hpBar3D);
+
+    // AI
+    this.aiAction = 'chase';
+  }
+
+  onModelLoaded(gltf) {
+    this.model = gltf.scene;
+    this.model.scale.setScalar(CFG.PLAYER_SCALE);
+    this.pivot.add(this.model);
+
+    this.model.traverse(child => {
+      if (child.isMesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        if (!this.isPlayer && child.material) {
+          const m = child.material.clone();
+          m.color = (m.color || new THREE.Color(1,1,1)).clone().multiply(new THREE.Color(1.6, 0.5, 0.5));
+          child.material = m;
+        }
+      }
+    });
+
+    this.mixer = new THREE.AnimationMixer(this.model);
+    gltf.animations.forEach(clip => {
+      this.actions[clip.name] = this.mixer.clipAction(clip);
+    });
+
+    this.playAnim(ANIMS.Idle, true);
+    this.applyFacing();
+  }
+
+  playAnim(name, loop = false, crossFade = 0.15) {
+    const action = this.actions[name];
+    if (!action) return;
+    if (this.currentAction === action && loop) return;
+    const prev = this.currentAction;
+    this.currentAction = action;
+    action.reset();
+    action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, Infinity);
+    action.clampWhenFinished = !loop;
+    if (prev && prev !== action) action.crossFadeFrom(prev, crossFade, false);
+    action.play();
+  }
+
+  // Apply yaw angle to model.
+  // The GLB spider's mesh faces +X by default (left-right in world).
+  // We rotate model.rotation.y so it points toward facingAngle.
+  applyFacing() {
+    if (this.model) {
+      this.model.rotation.y = this.facingAngle;
+    }
+  }
+
+  // Point toward a world-space target (opponent position)
+  faceToward(targetPos) {
+    const dx = targetPos.x - this.pos.x;
+    const dz = targetPos.z - this.pos.z;
+    if (Math.abs(dx) < 0.001 && Math.abs(dz) < 0.001) return;
+    // atan2 gives the angle to face toward (dx,dz) in XZ plane.
+    // THREE yaw: rotation.y = angle means the model's +Z faces that direction.
+    // Spider mesh naturally faces +X, so we add -PI/2 to offset.
+    this.facingAngle = Math.atan2(dx, dz) + CFG.MODEL_YAW_OFFSET;
+    this.applyFacing();
+  }
+
+  setState(s, duration = 0) {
+    this.state = s;
+    this.stateTimer = duration;
+  }
+
+  takeDamage(amount, isBlock) {
+    if (this.state === 'dead') return 0;
+    const actual = isBlock ? Math.round(amount * (1 - CFG.BLOCK_ABSORB)) : amount;
+    this.hp = Math.max(0, this.hp - actual);
+    this.updateHpBar();
+    if (this.hp <= 0) { this.die(); return actual; }
+    if (!isBlock) {
+      this.playAnim(ANIMS.Hit, false, 0.05);
+      this.setState('hit', 300);
+      this.hitStun = 300;
+      // Knockback away from attacker (XZ plane)
+      const kbWorldAngle = (this.facingAngle - CFG.MODEL_YAW_OFFSET) + Math.PI;
+      this.vel.x = Math.sin(kbWorldAngle) * 2.5;
+      this.vel.z = Math.cos(kbWorldAngle) * 2.5;
+    } else {
+      this.stamina = Math.max(0, this.stamina - CFG.BLOCK_DRAIN);
+    }
+    return actual;
+  }
+
+  die() {
+    this.setState('dead', 9999);
+    this.playAnim(ANIMS.Death, false, 0.1);
+    this.vel.set(0, 0, 0);
+  }
+
+  updateHpBar() {
+    const pct = this.hp / this.maxHp;
+    this.hpBar3D.scale.x = Math.max(0, pct);
+    this.hpBar3D.position.x = (pct - 1) * 0.7;
+    const c = pct > 0.5
+      ? new THREE.Color(0.18, 0.8, 0.44)
+      : pct > 0.25
+        ? new THREE.Color(0.95, 0.77, 0.06)
+        : new THREE.Color(0.91, 0.3, 0.24);
+    this.hpBar3D.material.color.copy(c);
+    this.hpBarBg.lookAt(camera.position);
+    this.hpBar3D.lookAt(camera.position);
+  }
+
+  update(dt, opponent) {
+    if (this.state === 'dead') {
+      if (this.mixer) this.mixer.update(dt);
+      this.pivot.position.copy(this.pos);
+      this.updateHpBar();
+      return;
+    }
+
+    // Cooldowns / timers
+    this.atkCooldown  = Math.max(0, this.atkCooldown  - dt * 1000);
+    this.biteCooldown = Math.max(0, this.biteCooldown - dt * 1000);
+    this.hitStun      = Math.max(0, this.hitStun      - dt * 1000);
+    if (this.stateTimer > 0) {
+      this.stateTimer -= dt * 1000;
+      if (this.stateTimer <= 0 && this.state !== 'dead') this.state = 'idle';
+    }
+
+    // Stamina regen
+    if (!this.blocking) {
+      this.stamina = Math.min(CFG.MAX_STAMINA, this.stamina + CFG.STAMINA_REGEN * dt);
+    }
+
+    // Gravity
+    if (!this.grounded) this.vel.y += CFG.GRAVITY * dt;
+
+    // Friction on XZ when grounded
+    if (this.grounded) {
+      this.vel.x *= 0.80;
+      this.vel.z *= 0.80;
+    }
+
+    // Move
+    this.pos.x += this.vel.x * dt;
+    this.pos.y += this.vel.y * dt;
+    this.pos.z += this.vel.z * dt;
+
+    // Ground
+    if (this.pos.y <= 0) { this.pos.y = 0; this.vel.y = 0; this.grounded = true; }
+
+    // Arena boundary clamp
+    this.pos.x = Math.max(-CFG.ARENA_X, Math.min(CFG.ARENA_X, this.pos.x));
+    this.pos.z = Math.max(-CFG.ARENA_Z, Math.min(CFG.ARENA_Z, this.pos.z));
+
+    // Face opponent smoothly (only when not stunned)
+    if (opponent && this.state !== 'dead' && this.hitStun <= 0) {
+      this.faceToward(opponent.pos);
+    }
+
+    this.pivot.position.copy(this.pos);
+    this.updateHpBar();
+
+    const shadowScale = Math.max(0.3, 1 - this.pos.y * 0.12);
+    this.shadowMesh.scale.setScalar(shadowScale);
+    this.shadowMesh.position.y = -this.pos.y + 0.005;
+
+    if (this.mixer) this.mixer.update(dt);
+  }
+
+  jump() {
+    if (this.grounded && this.state !== 'dead' && this.state !== 'hit') {
+      this.vel.y = CFG.JUMP_VEL;
+      this.grounded = false;
+    }
+  }
+
+  // Move in world-XZ plane using WASD relative to camera's horizontal angle
+  moveXZ(moveX, moveZ) {
+    if (this.state === 'dead' || this.hitStun > 0 ||
+        this.state === 'attack' || this.state === 'bite') return;
+
+    const moving = (moveX !== 0 || moveZ !== 0);
+
+    if (moving) {
+      // Transform input by camera yaw so W = into screen, D = right, etc.
+      const camYaw = Math.atan2(
+        camera.position.x - (player ? player.pos.x : 0),
+        camera.position.z - (player ? player.pos.z : 0)
+      );
+      // Rotate move vector by camera yaw
+      const cos = Math.cos(camYaw), sin = Math.sin(camYaw);
+      const wx =  moveX * cos + moveZ * sin;
+      const wz = -moveX * sin + moveZ * cos;
+
+      this.vel.x = wx * CFG.MOVE_SPEED;
+      this.vel.z = wz * CFG.MOVE_SPEED;
+
+      if (this.state !== 'walk') {
+        this.playAnim(ANIMS.Walk, true);
+        this.state = 'walk';
+      }
+    } else {
+      this.vel.x *= 0.5;
+      this.vel.z *= 0.5;
+      if (this.state === 'walk') {
+        this.state = 'idle';
+        this.playAnim(ANIMS.Idle, true);
+      }
+    }
+  }
+
+  stopMove() {
+    if (this.state === 'walk') {
+      this.vel.x = 0;
+      this.vel.z = 0;
+      this.state = 'idle';
+      this.playAnim(ANIMS.Idle, true);
+    }
+  }
+
+  doAttack(type, opponent) {
+    if (this.state === 'dead' || this.hitStun > 0) return false;
+    if (type === 'attack' && this.atkCooldown  > 0) return false;
+    if (type === 'bite'   && this.biteCooldown > 0) return false;
+    const stam = type === 'attack' ? CFG.ATK_STAM : CFG.BITE_STAM;
+    if (this.stamina < stam) return false;
+
+    this.stamina -= stam;
+    this.vel.x = 0; this.vel.z = 0;
+
+    if (type === 'attack') {
+      this.atkCooldown = CFG.ATK_CD;
+      this.playAnim(ANIMS.Attack, false, 0.08);
+      this.setState('attack', 450);
+    } else {
+      this.biteCooldown = CFG.BITE_CD;
+      this.playAnim(ANIMS.Bite, false, 0.08);
+      this.setState('bite', 700);
+    }
+
+    // Lunge forward in facing direction (remove mesh-offset to get world direction)
+    const worldAngle = this.facingAngle - CFG.MODEL_YAW_OFFSET;
+    this.vel.x = Math.sin(worldAngle) * 2.0;
+    this.vel.z = Math.cos(worldAngle) * 2.0;
+
+    const range = type === 'attack' ? CFG.ATK_RANGE : CFG.ATK_RANGE + 0.3;
+    const delay = type === 'attack' ? 180 : 280;
+    const selfPos = this.pos.clone();
+    setTimeout(() => {
+      if (this.state === 'dead') return;
+      const dist3D = opponent.pos.distanceTo(selfPos);
+      if (dist3D < range && opponent.state !== 'dead') {
+        const dmgRange = type === 'attack' ? CFG.ATK_DMG : CFG.BITE_DMG;
+        let dmg = Math.floor(Math.random() * (dmgRange[1] - dmgRange[0])) + dmgRange[0];
+        const isCrit = Math.random() < 0.15;
+        if (isCrit) dmg = Math.round(dmg * 1.5);
+        const actual = opponent.takeDamage(dmg, opponent.blocking);
+        onHit(this, opponent, actual, isCrit, opponent.blocking);
+      }
+    }, delay);
+
+    return true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════
+const state = {
+  phase: 'start',
+  round: 1,
+  roundTime: CFG.ROUND_TIME,
+  p1Wins: 0,
+  p2Wins: 0,
+  comboTimer: null,
+};
+
+let player = null;
+let enemy  = null;
+let modelCache = null;
+
+// ── Input ──────────────────────────────────────────────────
+const keys = {};
+window.addEventListener('keydown', e => {
+  if (!keys[e.key]) { keys[e.key] = true; handleKeyDown(e.key); }
+});
+window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+function handleKeyDown(key) {
+  if (state.phase !== 'fight' || !player || player.state === 'dead') return;
+  const k = key.toLowerCase();
+  if (k === ' ' || k === 'arrowup') player.jump();
+  if (k === 'j') player.doAttack('attack', enemy);
+  if (k === 'k') player.doAttack('bite', enemy);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HIT FEEDBACK
+// ═══════════════════════════════════════════════════════════
+function onHit(attacker, defender, dmg, isCrit, blocked) {
+  spawnDamageNumber(defender, dmg, isCrit, blocked);
+  if (defender.isPlayer) {
+    const flash = document.getElementById('hit-flash');
+    flash.style.animation = 'none';
+    void flash.offsetHeight;
+    flash.style.animation = 'flashOut 0.35s ease-out forwards';
+    cameraShake(isCrit ? 0.22 : 0.12);
+  }
+  if (attacker.isPlayer) {
+    const now = Date.now();
+    attacker.combo = now - attacker.lastComboTime < 1500 ? attacker.combo + 1 : 1;
+    attacker.lastComboTime = now;
+    showCombo(attacker.combo);
+  }
+  updateHPBars();
+}
+
+let shakeAmt = 0, shakeDecay = 8;
+function cameraShake(amount) { shakeAmt = amount; }
+
+function spawnDamageNumber(fighter, dmg, isCrit, blocked) {
+  const pos3 = fighter.pos.clone().add(new THREE.Vector3(0, 2.2, 0));
+  const proj  = pos3.project(camera);
+  const sx = (proj.x * 0.5 + 0.5) * window.innerWidth;
+  const sy = (-proj.y * 0.5 + 0.5) * window.innerHeight;
+  const el = document.createElement('div');
+  el.className = 'dmg-num' + (isCrit ? ' crit' : '') + (blocked ? ' block' : '');
+  el.textContent = blocked ? 'BLOCKED' : (isCrit ? '⚡' + dmg : dmg);
+  el.style.left = (sx + (Math.random()-0.5)*60) + 'px';
+  el.style.top  = (sy - 20) + 'px';
+  document.getElementById('game-container').appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// ── UI ─────────────────────────────────────────────────────
+function updateHPBars() {
+  if (!player || !enemy) return;
+  function setBar(id, valId, stamId, fighter) {
+    const pct = fighter.hp / fighter.maxHp;
+    const el  = document.getElementById(id);
+    el.style.width = (pct * 100) + '%';
+    el.style.background = pct > 0.5 ? 'var(--hp-green)' : pct > 0.25 ? 'var(--hp-yellow)' : 'var(--hp-red)';
+    document.getElementById(valId).textContent = fighter.hp;
+    document.getElementById(stamId).style.width = (fighter.stamina / CFG.MAX_STAMINA * 100) + '%';
+  }
+  setBar('p1-hp', 'p1-hp-val', 'p1-stamina', player);
+  setBar('p2-hp', 'p2-hp-val', 'p2-stamina', enemy);
+}
+
+function showCombo(count) {
+  if (count < 2) return;
+  const el = document.getElementById('combo-display');
+  document.getElementById('combo-count').textContent = count + 'x';
+  el.classList.add('show');
+  clearTimeout(state.comboTimer);
+  state.comboTimer = setTimeout(() => el.classList.remove('show'), 1500);
+}
+
+function announce(text, duration = 1800) {
+  const el = document.getElementById('announcer');
+  el.textContent = text;
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.style.animation = `announceIn ${duration}ms ease forwards`;
+}
+
+function showBanner(text, duration = 1600) {
+  const el = document.getElementById('round-banner');
+  el.textContent = text;
+  el.style.animation = 'none';
+  void el.offsetHeight;
+  el.style.animation = `bannerIn ${duration}ms ease forwards`;
+}
+
+function updateRoundPips() {
+  for (let i = 0; i < 3; i++) {
+    document.getElementById('p1-pip-' + i).className = 'pip' + (i < state.p1Wins ? ' won' : '');
+    document.getElementById('p2-pip-' + i).className = 'pip' + (i < state.p2Wins ? ' won' : '');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AI
+// ═══════════════════════════════════════════════════════════
+let aiDecisionTimer = 0;
+
+function updateAI(dt, ai, target) {
+  if (ai.state === 'dead' || ai.hitStun > 0 || state.phase !== 'fight') return;
+  aiDecisionTimer -= dt * 1000;
+
+  const dist = ai.pos.distanceTo(target.pos);
+  const diffMod = Math.max(0.5, 1 - (state.round - 1) * 0.15);
+
+  if (aiDecisionTimer <= 0) {
+    const r = Math.random();
+    if (dist < CFG.ATK_RANGE + 0.3) {
+      ai.aiAction = r < 0.45 ? 'attack' : r < 0.7 ? 'bite' : r < 0.88 ? 'block' : 'jump';
+    } else if (dist < CFG.AI_CHASE_RANGE) {
+      ai.aiAction = 'chase';
+    } else {
+      ai.aiAction = 'idle';
+    }
+    aiDecisionTimer = CFG.AI_REACT_MIN + Math.random() * (CFG.AI_REACT_MAX - CFG.AI_REACT_MIN) * diffMod;
+  }
+
+  const action = ai.aiAction;
+  if (action === 'chase') {
+    // Move toward player in XZ
+    const dx = target.pos.x - ai.pos.x;
+    const dz = target.pos.z - ai.pos.z;
+    const len = Math.sqrt(dx*dx + dz*dz) || 1;
+    ai.moveXZ(dx/len, dz/len);
+  } else if (action === 'attack') {
+    ai.moveXZ(0, 0);
+    ai.doAttack('attack', target);
+  } else if (action === 'bite') {
+    ai.moveXZ(0, 0);
+    ai.doAttack('bite', target);
+  } else if (action === 'block') {
+    ai.moveXZ(0, 0);
+    ai.blocking = true;
+    setTimeout(() => { if (ai) ai.blocking = false; }, 400 + Math.random() * 400);
+  } else if (action === 'jump') {
+    ai.moveXZ(0, 0);
+    ai.jump();
+  } else {
+    ai.moveXZ(0, 0);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PLAYER INPUT (continuous, per-frame)
+// ═══════════════════════════════════════════════════════════
+function processPlayerInput() {
+  if (state.phase !== 'fight' || !player || player.state === 'dead') return;
+
+  // WASD / Arrow keys
+  const left  = keys['a'] || keys['A'] || keys['ArrowLeft'];
+  const right = keys['d'] || keys['D'] || keys['ArrowRight'];
+  const fwd   = keys['w'] || keys['W'];
+  const back  = keys['s'] || keys['S'] || keys['ArrowDown'];
+
+  player.blocking = (keys['l'] || keys['L']) && player.stamina > 2;
+
+  const mx = (right ? 1 : 0) - (left ? 1 : 0);
+  const mz = (back  ? 1 : 0) - (fwd  ? 1 : 0);
+
+  player.moveXZ(mx, mz);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ROUND MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function startMatch() {
+  state.p1Wins = 0; state.p2Wins = 0; state.round = 1;
+  updateRoundPips();
+  document.getElementById('round-num').textContent = state.round;
+  loadAndStartRound();
+}
+
+function loadAndStartRound() {
+  state.phase = 'loading';
+  document.getElementById('hud').style.opacity = '0';
+  if (modelCache) { initRound(); return; }
+
+  parseModel(MODEL_URL)
+    .then(function(gltf) { modelCache = gltf; initRound(); })
+    .catch(function(err) { console.error('Model load failed:', err); createFallbackModel(); initRound(); });
+}
+
+function parseModel(url) {
+  return new Promise(function(resolve, reject) {
+    var loader = new THREE.GLTFLoader();
+    if (url && url.startsWith('data:')) {
+      var b64 = url.split(',')[1];
+      var binary = atob(b64);
+      var bytes = new Uint8Array(binary.length);
+      for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      loader.parse(bytes.buffer, '', resolve, reject);
+      return;
+    }
+    fetch(url)
+      .then(function(res) { if (!res.ok) throw new Error('HTTP ' + res.status); return res.arrayBuffer(); })
+      .then(function(buffer) { loader.parse(buffer, '', resolve, reject); })
+      .catch(reject);
+  });
+}
+
+function createFallbackModel() {
+  modelCache = { scene: createPlaceholder(), animations: [] };
+}
+
+function createPlaceholder() {
+  const g = new THREE.Group();
+  const matB = new THREE.MeshStandardMaterial({ color:0x888888 });
+  const matH = new THREE.MeshStandardMaterial({ color:0xaaaaaa });
+  const matL = new THREE.MeshStandardMaterial({ color:0x666666 });
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 1.0, 10), matB);
+  body.position.y = 1.0; g.add(body);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 10), matH);
+  head.position.y = 1.85; g.add(head);
+  [-0.18, 0.18].forEach(xOff => {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.7, 8), matL);
+    leg.position.set(xOff, 0.35, 0); g.add(leg);
+  });
+  return g;
+}
+
+function cloneGLTF(gltf) {
+  const clonedScene = (THREE.SkeletonUtils && THREE.SkeletonUtils.clone)
+    ? THREE.SkeletonUtils.clone(gltf.scene)
+    : gltf.scene.clone(true);
+  return { scene: clonedScene, animations: gltf.animations };
+}
+
+function initRound() {
+  if (player) scene.remove(player.pivot);
+  if (enemy)  scene.remove(enemy.pivot);
+  aiDecisionTimer = 500;
+
+  // Spawn on opposite sides of the Z-axis (depth), facing each other
+  player = new Fighter('YOU',   0, -3, true);
+  enemy  = new Fighter('ENEMY', 0,  3, false);
+
+  const gltf1 = cloneGLTF(modelCache);
+  const gltf2 = cloneGLTF(modelCache);
+  player.onModelLoaded(gltf1);
+  enemy.onModelLoaded(gltf2);
+
+  // Make them face each other immediately
+  player.faceToward(enemy.pos);
+  enemy.faceToward(player.pos);
+
+  document.getElementById('round-num').textContent = state.round;
+  state.roundTime = CFG.ROUND_TIME;
+  state.phase = 'countdown';
+  roundTimer = 0;
+
+  document.getElementById('hud').style.opacity = '1';
+  updateHPBars();
+  updateRoundPips();
+
+  setTimeout(() => announce('ROUND ' + state.round), 100);
+  setTimeout(() => announce('FIGHT!'), 1500);
+  setTimeout(() => { state.phase = 'fight'; }, 2200);
+}
+
+let roundTimer = 0;
+
+function tickRound(dt) {
+  if (state.phase !== 'fight') return;
+  roundTimer += dt;
+  if (roundTimer >= 1) {
+    roundTimer -= 1;
+    state.roundTime--;
+    const timerEl = document.getElementById('round-timer');
+    timerEl.textContent = state.roundTime;
+    timerEl.className = state.roundTime <= 10 ? 'urgent' : '';
+    if (state.roundTime <= 0) endRound('timeout');
+  }
+  if (player && player.hp <= 0 && player.state === 'dead') endRound('p2win');
+  else if (enemy && enemy.hp <= 0 && enemy.state === 'dead') endRound('p1win');
+}
+
+function endRound(reason) {
+  if (state.phase === 'roundEnd' || state.phase === 'matchEnd') return;
+  state.phase = 'roundEnd';
+  let winnerText = '';
+  if (reason === 'p1win') {
+    state.p1Wins++; winnerText = 'YOU WIN!'; showBanner('K.O.!');
+  } else if (reason === 'p2win') {
+    state.p2Wins++; winnerText = 'ENEMY WINS!'; showBanner('K.O.!');
+  } else {
+    if      (player.hp > enemy.hp) { state.p1Wins++; winnerText = 'YOU WIN!'; }
+    else if (enemy.hp > player.hp) { state.p2Wins++; winnerText = 'ENEMY WINS!'; }
+    else                            { winnerText = 'DRAW!'; }
+    showBanner('TIME!');
+  }
+  updateRoundPips();
+  setTimeout(() => announce(winnerText), 800);
+  const winsNeeded = Math.ceil(CFG.MAX_ROUNDS / 2);
+  if (state.p1Wins >= winsNeeded || state.p2Wins >= winsNeeded) {
+    setTimeout(endMatch, 2800);
+  } else {
+    state.round++;
+    setTimeout(loadAndStartRound, 3000);
+  }
+}
+
+function endMatch() {
+  state.phase = 'matchEnd';
+  const p1Won = state.p1Wins > state.p2Wins;
+  document.getElementById('win-title').textContent  = p1Won ? 'VICTORY!' : 'DEFEAT!';
+  document.getElementById('winner-name').textContent = p1Won ? '🏆 YOU WIN THE MATCH!' : '💀 ENEMY WINS THE MATCH!';
+  document.getElementById('final-p1-score').textContent = state.p1Wins;
+  document.getElementById('final-p2-score').textContent = state.p2Wins;
+  document.getElementById('win-screen').classList.remove('hidden');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GAME LOOP
+// ═══════════════════════════════════════════════════════════
+let lastTime = 0;
+// Camera orbits slightly above and behind the player
+const camOffset = new THREE.Vector3(0, 7, 14); // will be smoothed
+const camTarget = new THREE.Vector3();
+let camShakeOffset = new THREE.Vector3();
+
+function animate(time) {
+  requestAnimationFrame(animate);
+  const dt = Math.min((time - lastTime) / 1000, 0.05);
+  lastTime = time;
+
+  if (state.phase === 'start' || state.phase === 'loading') {
+    renderer.render(scene, camera);
+    return;
+  }
+
+  processPlayerInput();
+  if (player) player.update(dt, enemy);
+  if (enemy)  { updateAI(dt, enemy, player); enemy.update(dt, player); }
+  tickRound(dt);
+
+  // ── Dynamic camera: sits behind & above the midpoint, looks at it ──
+  if (player && enemy) {
+    const mid = new THREE.Vector3().addVectors(player.pos, enemy.pos).multiplyScalar(0.5);
+    const sep = player.pos.distanceTo(enemy.pos);
+
+    // Camera follows player loosely from behind, elevated
+    const desiredCamPos = new THREE.Vector3(
+      mid.x * 0.5,
+      5 + sep * 0.15,
+      mid.z + Math.max(10, sep * 1.1 + 6)
+    );
+    camera.position.lerp(desiredCamPos, 0.05);
+
+    camTarget.lerp(new THREE.Vector3(mid.x * 0.4, 1.5, mid.z), 0.06);
+    camera.lookAt(camTarget);
+  }
+
+  // Camera shake
+  if (shakeAmt > 0) {
+    shakeAmt = Math.max(0, shakeAmt - shakeDecay * dt);
+    camShakeOffset.set((Math.random()-0.5)*shakeAmt, (Math.random()-0.5)*shakeAmt*0.5, 0);
+  } else {
+    camShakeOffset.multiplyScalar(0.7);
+  }
+  camera.position.add(camShakeOffset);
+
+  // Particles
+  const pPositions = particleGeo.attributes.position.array;
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    pPositions[i*3]   += pVel[i].x * dt;
+    pPositions[i*3+1] += pVel[i].y * dt;
+    pPositions[i*3+2] += pVel[i].z * dt;
+    if (pPositions[i*3+1] > 8) {
+      pPositions[i*3]   = (Math.random()-0.5)*(CFG.ARENA_X*2+4);
+      pPositions[i*3+1] = 0;
+      pPositions[i*3+2] = (Math.random()-0.5)*(CFG.ARENA_Z*2+4);
+    }
+  }
+  particleGeo.attributes.position.needsUpdate = true;
+
+  groundLight.intensity = 0.4 + Math.sin(time * 0.003) * 0.2;
+  renderer.render(scene, camera);
+}
+
+// ── Buttons ────────────────────────────────────────────────
+document.getElementById('start-btn').addEventListener('click', () => {
+  document.getElementById('start-screen').classList.add('hidden');
+  startMatch();
+});
+document.getElementById('restart-btn').addEventListener('click', () => {
+  document.getElementById('win-screen').classList.add('hidden');
+  document.getElementById('combo-display').classList.remove('show');
+  startMatch();
+});
+
+animate(0);
+</script>
+</body>
+</html>
