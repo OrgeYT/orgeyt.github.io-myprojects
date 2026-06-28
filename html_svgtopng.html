@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch SVG to High-Res PNG Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Add JSZip for batch archiving -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        /* Custom scrollbar for preview area */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+        
+        .checkerboard-bg {
+            background-color: #e5e5f7;
+            opacity: 1;
+            background-image:  repeating-linear-gradient(45deg, #d4d4eb 25%, transparent 25%, transparent 75%, #d4d4eb 75%, #d4d4eb), repeating-linear-gradient(45deg, #d4d4eb 25%, #e5e5f7 25%, #e5e5f7 75%, #d4d4eb 75%, #d4d4eb);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans selection:bg-blue-200">
+    <div class="max-w-5xl mx-auto p-6 md:p-8">
+        <!-- Header -->
+        <header class="mb-10 text-center">
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 mb-2 flex items-center justify-center gap-3">
+                <i data-lucide="layers" class="w-8 h-8 text-blue-600"></i>
+                Batch SVG to PNG
+            </h1>
+            <p class="text-slate-500 max-w-lg mx-auto">Convert multiple SVG graphics to high-resolution PNGs at once. Download as a ZIP. Perfectly preserves pixel art.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Controls & Upload -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Dropzone -->
+                <div id="dropzone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-white hover:bg-slate-50 hover:border-blue-400 transition-colors cursor-pointer group relative">
+                    <!-- Note the "multiple" attribute added here -->
+                    <input type="file" id="fileInput" accept=".svg" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                    <div class="flex flex-col items-center justify-center space-y-3 pointer-events-none">
+                        <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <i data-lucide="upload-cloud" class="w-8 h-8 text-blue-600"></i>
+                        </div>
+                        <h3 class="font-semibold text-slate-700">Click or drag SVGs here</h3>
+                        <p class="text-xs text-slate-400">Select multiple files to batch process</p>
+                    </div>
+                </div>
+
+                <!-- Settings Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <i data-lucide="settings-2" class="w-5 h-5 text-slate-500"></i> Export Settings
+                    </h3>
+                    
+                    <div class="space-y-5">
+                        <!-- Scale -->
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1 flex justify-between">
+                                Resolution Scale 
+                                <span id="scaleValue" class="text-blue-600 font-semibold">4x</span>
+                            </label>
+                            <input type="range" id="scaleInput" min="1" max="16" value="4" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                            <p class="text-xs text-slate-500 mt-1">Applies to all files in the batch.</p>
+                        </div>
+
+                        <!-- Pixel Art Toggle -->
+                        <div class="flex items-start bg-slate-50 p-3 rounded-lg border border-slate-200">
+                            <div class="flex items-center h-5">
+                                <input id="pixelArtMode" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 cursor-pointer">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="pixelArtMode" class="font-medium text-slate-800 cursor-pointer select-none">Pixel Art Mode</label>
+                                <p class="text-slate-500 text-xs mt-0.5">Disables anti-aliasing to keep embedded pixel art perfectly crisp.</p>
+                            </div>
+                        </div>
+
+                        <div class="pt-2 flex flex-col gap-3">
+                            <button id="convertBtn" disabled class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                                <i data-lucide="archive" class="w-5 h-5"></i>
+                                Convert & Download ZIP
+                            </button>
+                            
+                            <button id="clearBtn" class="w-full bg-white text-slate-600 font-medium py-2 px-4 rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200 transition-all text-sm hidden">
+                                Clear All Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Preview & Output -->
+            <div class="lg:col-span-8 flex flex-col">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-grow flex flex-col h-[600px]">
+                    <!-- Preview Header -->
+                    <div class="border-b border-slate-100 p-4 flex items-center justify-between bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="layout-grid" class="w-5 h-5 text-slate-500"></i> Gallery Preview
+                        </h3>
+                        <span id="fileCountBadge" class="text-xs font-semibold px-2.5 py-1 bg-blue-100 text-blue-700 rounded-md hidden">
+                            0 Files
+                        </span>
+                    </div>
+                    
+                    <!-- Preview Canvas Area -->
+                    <div class="flex-grow p-4 overflow-auto bg-slate-100 checkerboard-bg relative">
+                        <!-- Placeholder -->
+                        <div id="previewPlaceholder" class="h-full flex flex-col items-center justify-center text-slate-400">
+                            <i data-lucide="images" class="w-16 h-16 mb-3 opacity-50"></i>
+                            <p class="text-sm font-medium">Upload SVGs to see them here</p>
+                        </div>
+                        
+                        <!-- Gallery Container -->
+                        <div id="galleryContainer" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 hidden">
+                            <!-- Thumbnails injected here via JS -->
+                        </div>
+                        
+                        <!-- Loading Overlay -->
+                        <div id="loadingOverlay" class="absolute inset-0 bg-white/90 backdrop-blur-sm hidden flex-col items-center justify-center z-20">
+                            <i data-lucide="loader-2" class="w-10 h-10 text-blue-600 animate-spin mb-4"></i>
+                            <h3 class="text-lg font-bold text-slate-800" id="progressTitle">Converting Files...</h3>
+                            <p class="text-sm text-slate-500 mt-1" id="progressText">0 / 0</p>
+                            
+                            <!-- Progress Bar -->
+                            <div class="w-64 h-2 bg-slate-200 rounded-full mt-4 overflow-hidden">
+                                <div id="progressBar" class="h-full bg-blue-600 transition-all duration-200" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Canvas for Processing -->
+    <canvas id="renderCanvas" class="hidden"></canvas>
+
+    <script>
+        // Initialize Icons
+        lucide.createIcons();
+
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const scaleInput = document.getElementById('scaleInput');
+        const scaleValue = document.getElementById('scaleValue');
+        const pixelArtMode = document.getElementById('pixelArtMode');
+        const convertBtn = document.getElementById('convertBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        
+        const previewPlaceholder = document.getElementById('previewPlaceholder');
+        const galleryContainer = document.getElementById('galleryContainer');
+        const fileCountBadge = document.getElementById('fileCountBadge');
+        
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const progressTitle = document.getElementById('progressTitle');
+        const progressText = document.getElementById('progressText');
+        const progressBar = document.getElementById('progressBar');
+        
+        const renderCanvas = document.getElementById('renderCanvas');
+        const ctx = renderCanvas.getContext('2d');
+
+        // State
+        let uploadedFiles = []; // Array of { name, svgText, objectUrl }
+
+        // Event Listeners
+        scaleInput.addEventListener('input', (e) => {
+            scaleValue.textContent = `${e.target.value}x`;
+        });
+
+        fileInput.addEventListener('change', handleFileSelect);
+        convertBtn.addEventListener('click', processAndDownloadZip);
+        clearBtn.addEventListener('click', clearFiles);
+
+        // Drag and Drop Effects
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.add('border-blue-500', 'bg-blue-50');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.remove('border-blue-500', 'bg-blue-50');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            if (files.length) {
+                fileInput.files = files; // Assign files to input
+                handleFileSelect({ target: { files: files } });
+            }
+        }, false);
+
+        // File Handling
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files).filter(f => f.type === 'image/svg+xml' || f.name.toLowerCase().endsWith('.svg'));
+            
+            if (files.length === 0) {
+                if (uploadedFiles.length === 0) alert('Please select valid SVG files.');
+                return;
+            }
+
+            // Read all files asynchronously
+            const readPromises = files.map(file => {
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        const baseName = file.name.replace(/\.[^/.]+$/, "");
+                        resolve({
+                            name: baseName,
+                            svgText: event.target.result,
+                            // Create a quick native object URL just for the UI gallery preview
+                            previewUrl: URL.createObjectURL(file) 
+                        });
+                    };
+                    reader.readAsText(file);
+                });
+            });
+
+            Promise.all(readPromises).then(results => {
+                // Append to existing files
+                uploadedFiles = [...uploadedFiles, ...results];
+                updateGalleryUI();
+            });
+            
+            // Reset input so the same files can be selected again if needed
+            fileInput.value = '';
+        }
+
+        function clearFiles() {
+            // Revoke object URLs to free memory
+            uploadedFiles.forEach(f => URL.revokeObjectURL(f.previewUrl));
+            uploadedFiles = [];
+            updateGalleryUI();
+        }
+
+        function updateGalleryUI() {
+            if (uploadedFiles.length === 0) {
+                previewPlaceholder.classList.remove('hidden');
+                galleryContainer.classList.add('hidden');
+                convertBtn.disabled = true;
+                clearBtn.classList.add('hidden');
+                fileCountBadge.classList.add('hidden');
+                return;
+            }
+
+            previewPlaceholder.classList.add('hidden');
+            galleryContainer.classList.remove('hidden');
+            convertBtn.disabled = false;
+            clearBtn.classList.remove('hidden');
+            
+            fileCountBadge.textContent = `${uploadedFiles.length} File${uploadedFiles.length > 1 ? 's' : ''}`;
+            fileCountBadge.classList.remove('hidden');
+
+            // Render Thumbnails
+            galleryContainer.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-2 rounded-xl shadow-sm border border-slate-200 flex flex-col aspect-square relative group";
+                
+                // Native SVG preview
+                const imgContainer = document.createElement('div');
+                imgContainer.className = "flex-grow flex items-center justify-center p-2 overflow-hidden checkerboard-bg rounded-lg";
+                
+                const img = document.createElement('img');
+                img.src = file.previewUrl;
+                img.className = "max-w-full max-h-full object-contain drop-shadow-md";
+                
+                // Filename label
+                const label = document.createElement('div');
+                label.className = "text-xs font-medium text-slate-600 truncate mt-2 text-center px-1";
+                label.textContent = file.name + ".svg";
+                label.title = file.name;
+
+                // Delete button overlay
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = "absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600";
+                deleteBtn.innerHTML = `<i data-lucide="x" class="w-3 h-3"></i>`;
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    URL.revokeObjectURL(file.previewUrl);
+                    uploadedFiles.splice(index, 1);
+                    updateGalleryUI();
+                };
+
+                imgContainer.appendChild(img);
+                card.appendChild(imgContainer);
+                card.appendChild(label);
+                card.appendChild(deleteBtn);
+                galleryContainer.appendChild(card);
+            });
+            
+            lucide.createIcons();
+        }
+
+        async function processAndDownloadZip() {
+            if (uploadedFiles.length === 0) return;
+            
+            const scale = parseInt(scaleInput.value, 10);
+            const isPixelArt = pixelArtMode.checked;
+            const zip = new JSZip();
+            
+            showLoading(true);
+            progressTitle.textContent = "Converting Files...";
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Process files sequentially to prevent locking up the browser/canvas
+            for (let i = 0; i < uploadedFiles.length; i++) {
+                const file = uploadedFiles[i];
+                
+                // Update Progress UI
+                progressText.textContent = `${i + 1} / ${uploadedFiles.length} (${file.name})`;
+                progressBar.style.width = `${((i) / uploadedFiles.length) * 100}%`;
+                
+                try {
+                    const dataUrl = await convertSingleSvgToDataUrl(file.svgText, scale, isPixelArt);
+                    
+                    // Extract base64 part
+                    const base64Data = dataUrl.replace(/^data:image\/(png|jpg);base64,/, "");
+                    
+                    // Add to ZIP archive
+                    zip.file(`${file.name}.png`, base64Data, { base64: true });
+                    successCount++;
+                } catch (e) {
+                    console.error(`Failed to convert ${file.name}:`, e);
+                    errorCount++;
+                }
+            }
+
+            progressBar.style.width = `100%`;
+            progressTitle.textContent = "Generating ZIP...";
+            progressText.textContent = "Almost done!";
+
+            if (successCount > 0) {
+                try {
+                    const zipBlob = await zip.generateAsync({ type: "blob" });
+                    
+                    // Create download link for ZIP
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(zipBlob);
+                    link.download = `converted-pngs-${scale}x.zip`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+                } catch (e) {
+                    console.error("ZIP Generation failed:", e);
+                    alert("Failed to generate ZIP file.");
+                }
+            } else {
+                alert("All conversions failed. Ensure your SVGs do not contain broken external links.");
+            }
+
+            if (errorCount > 0) {
+                alert(`${errorCount} file(s) failed to convert. Check console for details (often caused by CORS issues on embedded images).`);
+            }
+
+            showLoading(false);
+        }
+
+        // Promisified version of the core logic to handle async image loading cleanly
+        function convertSingleSvgToDataUrl(svgText, scale, isPixelArt) {
+            return new Promise((resolve, reject) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgText, "image/svg+xml");
+                const svgEl = doc.documentElement;
+
+                if (svgEl.tagName.toLowerCase() === "html") {
+                    return reject(new Error("Invalid SVG format."));
+                }
+
+                // Determine dimensions
+                let width = parseFloat(svgEl.getAttribute('width'));
+                let height = parseFloat(svgEl.getAttribute('height'));
+
+                // Fallback to viewBox
+                if (!width || !height || isNaN(width) || isNaN(height)) {
+                    const viewBox = svgEl.getAttribute('viewBox');
+                    if (viewBox) {
+                        const parts = viewBox.split(/\s+|,/).filter(Boolean);
+                        if (parts.length >= 4) {
+                            width = parseFloat(parts[2]);
+                            height = parseFloat(parts[3]);
+                        }
+                    }
+                }
+
+                if (!width || !height || isNaN(width) || isNaN(height)) {
+                    width = 500; height = 500;
+                }
+
+                svgEl.setAttribute('width', `${width}px`);
+                svgEl.setAttribute('height', `${height}px`);
+
+                if (isPixelArt) {
+                    const existingStyle = svgEl.getAttribute('style') || '';
+                    svgEl.setAttribute('style', `${existingStyle}; image-rendering: pixelated; shape-rendering: crispEdges;`);
+                }
+
+                const serializer = new XMLSerializer();
+                const finalSvgString = serializer.serializeToString(svgEl);
+
+                const blob = new Blob([finalSvgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+
+                const img = new Image();
+                img.onload = () => {
+                    const targetWidth = Math.floor(width * scale);
+                    const targetHeight = Math.floor(height * scale);
+
+                    renderCanvas.width = targetWidth;
+                    renderCanvas.height = targetHeight;
+
+                    // Apply canvas anti-aliasing logic
+                    if (isPixelArt) {
+                        ctx.imageSmoothingEnabled = false;
+                        ctx.mozImageSmoothingEnabled = false;
+                        ctx.webkitImageSmoothingEnabled = false;
+                        ctx.msImageSmoothingEnabled = false;
+                    } else {
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = "high";
+                    }
+
+                    ctx.clearRect(0, 0, targetWidth, targetHeight);
+                    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+                    try {
+                        const dataUrl = renderCanvas.toDataURL('image/png');
+                        URL.revokeObjectURL(url);
+                        resolve(dataUrl);
+                    } catch (e) {
+                        URL.revokeObjectURL(url);
+                        reject(e);
+                    }
+                };
+                
+                img.onerror = (e) => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error("Failed to load SVG into Canvas."));
+                };
+
+                img.src = url;
+            });
+        }
+
+        function showLoading(show) {
+            if (show) {
+                loadingOverlay.classList.remove('hidden');
+                loadingOverlay.classList.add('flex');
+            } else {
+                loadingOverlay.classList.add('hidden');
+                loadingOverlay.classList.remove('flex');
+            }
+        }
+    </script>
+</body>
+</html>
