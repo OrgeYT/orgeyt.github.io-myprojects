@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pet Cube 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; touch-action: none; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; }
+        
+        .panel { pointer-events: auto; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        
+        /* Custom Progress Bars */
+        progress { border-radius: 10px; width: 100%; height: 12px; appearance: none; overflow: hidden; }
+        progress::-webkit-progress-bar { background-color: #e2e8f0; border-radius: 10px; }
+        progress::-webkit-progress-value { border-radius: 10px; transition: width 0.3s ease; }
+        #stat-hunger::-webkit-progress-value { background-color: #f59e0b; }
+        #stat-clean::-webkit-progress-value { background-color: #3b82f6; }
+        #stat-energy::-webkit-progress-value { background-color: #8b5cf6; }
+        #stat-fun::-webkit-progress-value { background-color: #ec4899; }
+        #stat-bladder::-webkit-progress-value { background-color: #eab308; }
+
+        /* Firefox support for progress bars */
+        #stat-hunger::-moz-progress-bar { background-color: #f59e0b; }
+        #stat-clean::-moz-progress-bar { background-color: #3b82f6; }
+        #stat-energy::-moz-progress-bar { background-color: #8b5cf6; }
+        #stat-fun::-moz-progress-bar { background-color: #ec4899; }
+        #stat-bladder::-moz-progress-bar { background-color: #eab308; }
+
+        .action-btn { transition: all 0.2s; }
+        .action-btn:hover { transform: translateY(-3px) scale(1.05); }
+        .action-btn:active { transform: translateY(1px) scale(0.95); }
+
+        /* Minigame Overlay */
+        #minigame-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 50; justify-content: center; align-items: center; pointer-events: auto; }
+        #minigame-box { width: 90%; max-width: 400px; height: 500px; position: relative; background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px rgba(0,0,0,0.5); }
+        #minigame-target { position: absolute; width: 50px; height: 50px; background: radial-gradient(circle, #ff4b4b, #b30000); border-radius: 50%; cursor: pointer; transition: top 0.2s, left 0.2s; box-shadow: 0 4px 10px rgba(255, 0, 0, 0.4); }
+    </style>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="game-container"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer" class="p-4 sm:p-6">
+        
+        <!-- Top Stats Panel -->
+        <div class="panel p-4 w-full max-w-sm">
+            <h1 class="text-xl font-bold text-gray-800 mb-3 text-center">My Pet Cube</h1>
+            <div class="space-y-2">
+                <div class="flex items-center text-sm font-semibold text-gray-700">
+                    <span class="w-20">Hunger</span>
+                    <progress id="stat-hunger" value="100" max="100" class="flex-1 ml-2"></progress>
+                </div>
+                <div class="flex items-center text-sm font-semibold text-gray-700">
+                    <span class="w-20">Clean</span>
+                    <progress id="stat-clean" value="100" max="100" class="flex-1 ml-2"></progress>
+                </div>
+                <div class="flex items-center text-sm font-semibold text-gray-700">
+                    <span class="w-20">Energy</span>
+                    <progress id="stat-energy" value="100" max="100" class="flex-1 ml-2"></progress>
+                </div>
+                <div class="flex items-center text-sm font-semibold text-gray-700">
+                    <span class="w-20">Fun</span>
+                    <progress id="stat-fun" value="100" max="100" class="flex-1 ml-2"></progress>
+                </div>
+                <div class="flex items-center text-sm font-semibold text-gray-700">
+                    <span class="w-20">Bladder</span>
+                    <progress id="stat-bladder" value="100" max="100" class="flex-1 ml-2"></progress>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Actions Panel -->
+        <div class="w-full flex justify-center pb-4">
+            <div class="panel p-3 flex gap-2 sm:gap-4 flex-wrap justify-center">
+                <button onclick="actionFeed()" class="action-btn flex flex-col items-center p-2 sm:p-3 bg-orange-100 rounded-xl w-16 sm:w-20 shadow text-orange-700">
+                    <span class="text-2xl sm:text-3xl mb-1">🍖</span>
+                    <span class="text-xs font-bold">Feed</span>
+                </button>
+                <button onclick="actionWash()" class="action-btn flex flex-col items-center p-2 sm:p-3 bg-blue-100 rounded-xl w-16 sm:w-20 shadow text-blue-700">
+                    <span class="text-2xl sm:text-3xl mb-1">🧼</span>
+                    <span class="text-xs font-bold">Wash</span>
+                </button>
+                <button onclick="actionBed()" class="action-btn flex flex-col items-center p-2 sm:p-3 bg-indigo-100 rounded-xl w-16 sm:w-20 shadow text-indigo-700">
+                    <span class="text-2xl sm:text-3xl mb-1" id="btn-bed-icon">🛏️</span>
+                    <span class="text-xs font-bold" id="btn-bed-text">Bed</span>
+                </button>
+                <button onclick="actionPlay()" class="action-btn flex flex-col items-center p-2 sm:p-3 bg-pink-100 rounded-xl w-16 sm:w-20 shadow text-pink-700">
+                    <span class="text-2xl sm:text-3xl mb-1">🎾</span>
+                    <span class="text-xs font-bold">Play</span>
+                </button>
+                <button onclick="actionRestroom()" class="action-btn flex flex-col items-center p-2 sm:p-3 bg-yellow-100 rounded-xl w-16 sm:w-20 shadow text-yellow-700">
+                    <span class="text-2xl sm:text-3xl mb-1">🚽</span>
+                    <span class="text-xs font-bold">Restroom</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Minigame Overlay -->
+    <div id="minigame-overlay" class="hidden">
+        <div id="minigame-box" class="flex flex-col">
+            <div class="bg-gray-100 p-4 border-b flex justify-between items-center shadow-sm">
+                <h2 class="text-lg font-bold text-gray-800">Catch the Ball!</h2>
+                <div class="text-right">
+                    <div class="text-sm font-semibold text-gray-500">Time: <span id="mg-time" class="text-gray-800">10</span>s</div>
+                    <div class="text-sm font-semibold text-gray-500">Score: <span id="mg-score" class="text-pink-600">0</span></div>
+                </div>
+            </div>
+            <div class="flex-1 relative bg-pink-50" id="mg-area">
+                <div id="minigame-target" onclick="hitTarget(event)"></div>
+            </div>
+            <div id="mg-start-screen" class="absolute inset-0 bg-white bg-opacity-90 flex flex-col items-center justify-center z-10">
+                <h3 class="text-2xl font-bold mb-2">Tap the red ball!</h3>
+                <p class="text-gray-600 mb-6 text-center px-4">Boost your cube's Fun stat.<br>You have 10 seconds.</p>
+                <button onclick="startMinigame()" class="px-6 py-3 bg-pink-500 text-white font-bold rounded-full shadow-lg hover:bg-pink-600 active:scale-95 transition">Start Game</button>
+                <button onclick="closeMinigame()" class="mt-4 text-gray-500 font-semibold hover:text-gray-700">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gameover-overlay" class="hidden absolute inset-0 bg-black/80 z-[100] flex items-center justify-center pointer-events-auto">
+        <div class="bg-white p-8 rounded-3xl text-center max-w-sm w-[90%] shadow-2xl">
+            <h2 id="go-title" class="text-3xl font-bold text-red-600 mb-2">Game Over</h2>
+            <p id="go-message" class="text-gray-600 mb-6">Your pet didn't make it.</p>
+            <button onclick="restartGame()" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition">Start New Life</button>
+        </div>
+    </div>
+
+    <script>
+        /* --- GAME STATE & LOGIC --- */
+        const stats = {
+            hunger: 50,
+            clean: 70,
+            energy: 100,
+            fun: 60,
+            bladder: 100
+        };
+
+        let isSleeping = false;
+        let isGameOver = false;
+
+        function updateUI() {
+            document.getElementById('stat-hunger').value = stats.hunger;
+            document.getElementById('stat-clean').value = stats.clean;
+            document.getElementById('stat-energy').value = stats.energy;
+            document.getElementById('stat-fun').value = stats.fun;
+            document.getElementById('stat-bladder').value = stats.bladder;
+
+            document.getElementById('btn-bed-text').innerText = isSleeping ? "Wake Up" : "Bed";
+            document.getElementById('btn-bed-icon').innerText = isSleeping ? "☀️" : "🛏️";
+        }
+
+        function updateAppearance(delta) {
+            if (isGameOver) return;
+            
+            // Hunger: Scale (Skinny)
+            const targetScale = stats.hunger < 30 ? 0.7 : 1.0;
+            petGroup.scale.x = THREE.MathUtils.lerp(petGroup.scale.x, targetScale, 2 * delta);
+            petGroup.scale.z = THREE.MathUtils.lerp(petGroup.scale.z, targetScale, 2 * delta);
+
+            // Clean: Color (Dirty)
+            const targetColor = stats.clean < 30 ? new THREE.Color(0x654321) : new THREE.Color(0xffaaaa);
+            cubeMesh.material.color.lerp(targetColor, 2 * delta);
+
+            // Energy: Lethargy (Tired)
+            const targetRotationZ = stats.energy < 30 ? 0.3 : 0;
+            petGroup.rotation.z = THREE.MathUtils.lerp(petGroup.rotation.z, targetRotationZ, 2 * delta);
+
+            // Fun: Face tint (Sad)
+            const targetFaceColor = stats.fun < 30 ? new THREE.Color(0x8888ff) : new THREE.Color(0xffffff);
+            faceMesh.material.color.lerp(targetFaceColor, 2 * delta);
+
+            // Bladder: Jitter (Worried)
+            if (stats.bladder < 30) {
+                petGroup.position.x += (Math.random() - 0.5) * 0.05;
+            }
+        }
+
+        function statTick() {
+            if (isGameOver) return;
+
+            if (isSleeping) {
+                stats.energy = Math.min(100, stats.energy + 5); 
+                stats.hunger = Math.max(0, stats.hunger - 0.5);
+                stats.bladder = Math.max(0, stats.bladder - 0.5);
+                stats.fun = Math.max(0, stats.fun - 0.2);
+                stats.clean = Math.max(0, stats.clean - 0.2);
+            } else {
+                stats.energy = Math.max(0, stats.energy - 0.5);
+                stats.hunger = Math.max(0, stats.hunger - 1.5);
+                stats.bladder = Math.max(0, stats.bladder - 1.5);
+                stats.fun = Math.max(0, stats.fun - 1);
+                stats.clean = Math.max(0, stats.clean - 0.5);
+            }
+
+            if (stats.hunger <= 0) gameOver("Your pet starved!");
+            else if (stats.energy <= 0) gameOver("Your pet collapsed from exhaustion!");
+            
+            updateUI();
+        }
+
+        function gameOver(reason) {
+            isGameOver = true;
+            document.getElementById('gameover-overlay').classList.remove('hidden');
+            document.getElementById('go-message').innerText = reason;
+        }
+
+        function restartGame() {
+            stats.hunger = 100;
+            stats.clean = 100;
+            stats.energy = 100;
+            stats.fun = 100;
+            stats.bladder = 100;
+            isGameOver = false;
+            isSleeping = false;
+            document.getElementById('gameover-overlay').classList.add('hidden');
+            updateUI();
+        }
+
+        setInterval(statTick, 1000);
+
+        /* --- THREE.JS SCENE SETUP --- */
+        let scene, camera, renderer, petGroup, cubeMesh, faceMesh;
+        let ambientLight, dirLight;
+        let clock = new THREE.Clock();
+        
+        // Animation states
+        let animState = 'idle'; 
+        let animTimer = 0;
+        let particles = [];
+
+        function initThreeJS() {
+            const container = document.getElementById('game-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB); // Sky blue
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 30);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 4, 12);
+            camera.lookAt(0, 1, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // Lighting
+            ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 7);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            // Environment (Floor)
+            const floorGeo = new THREE.PlaneGeometry(100, 100);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x6dbf5c, roughness: 0.8 }); // Grass green
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Pet Cube setup
+            petGroup = new THREE.Group();
+            petGroup.position.y = 1.5;
+
+            const textureLoader = new THREE.TextureLoader();
+            
+            // Textures provided by user
+            const redTex = textureLoader.load('https://file.garden/Zj01o_oh-G9Y8APf/cube/red.png');
+            const faceTex = textureLoader.load('https://file.garden/Zj01o_oh-G9Y8APf/cube/face.png');
+            
+            // Set filtering to keep pixel art crisp if it is pixel art
+            redTex.magFilter = THREE.NearestFilter;
+            faceTex.magFilter = THREE.NearestFilter;
+
+            // Base Cube
+            const cubeGeo = new THREE.BoxGeometry(2, 2, 2);
+            const cubeMat = new THREE.MeshStandardMaterial({ 
+                map: redTex, 
+                color: 0xffaaaa, // Fallback tint if texture fails to load fast
+                roughness: 0.4 
+            });
+            cubeMesh = new THREE.Mesh(cubeGeo, cubeMat);
+            cubeMesh.castShadow = true;
+            petGroup.add(cubeMesh);
+
+            // Face Decal (Placed slightly in front of the front face)
+            const faceGeo = new THREE.PlaneGeometry(2, 2);
+            const faceMat = new THREE.MeshStandardMaterial({ 
+                map: faceTex, 
+                transparent: true, 
+                depthWrite: false, // Prevents z-fighting artifacts
+                roughness: 0.4
+            });
+            faceMesh = new THREE.Mesh(faceGeo, faceMat);
+            faceMesh.position.z = 1.01; 
+            petGroup.add(faceMesh);
+
+            scene.add(petGroup);
+
+            // Handle Resize
+            window.addEventListener('resize', onWindowResize, false);
+
+            // Start loop
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Particle System for actions
+        function spawnParticles(colorHex, type) {
+            const particleCount = 20;
+            const geo = type === 'water' ? new THREE.SphereGeometry(0.15, 8, 8) : new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true });
+
+            for(let i=0; i < particleCount; i++) {
+                const mesh = new THREE.Mesh(geo, mat);
+                // Start near the cube
+                mesh.position.copy(petGroup.position);
+                mesh.position.y += (Math.random() - 0.5) * 2;
+                mesh.position.x += (Math.random() - 0.5) * 2;
+                mesh.position.z += (Math.random() - 0.5) * 2 + 1; // Bias towards front
+                
+                scene.add(mesh);
+                
+                particles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3(
+                        (Math.random() - 0.5) * 5,
+                        (Math.random()) * 5 + 2, // jump up
+                        (Math.random() - 0.5) * 5
+                    ),
+                    life: 1.0 // 1 second lifespan
+                });
+            }
+        }
+
+        function updateParticles(delta) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.life -= delta;
+                
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                p.velocity.y -= 9.8 * delta; // Gravity
+                p.mesh.position.addScaledVector(p.velocity, delta);
+                p.mesh.rotation.x += p.velocity.x * delta;
+                p.mesh.rotation.y += p.velocity.y * delta;
+                
+                // Fade out
+                p.mesh.material.opacity = p.life;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            // Update particles
+            updateParticles(delta);
+
+            // Apply appearance based on stats
+            updateAppearance(delta);
+
+            // Handle Animations based on state
+            if (isSleeping) {
+                // Sleep: Lie flat on the ground, breathe slowly
+                const targetY = 1.0; 
+                petGroup.position.y = THREE.MathUtils.lerp(petGroup.position.y, targetY, 5 * delta);
+                petGroup.rotation.x = THREE.MathUtils.lerp(petGroup.rotation.x, Math.PI/12, 5 * delta); // Tilt slightly back
+                petGroup.rotation.y = THREE.MathUtils.lerp(petGroup.rotation.y, 0, 5 * delta);
+                
+                // Breathing scale
+                const breath = Math.sin(time * 2) * 0.05;
+                petGroup.scale.set(1 + breath, 1 - breath, 1 + breath);
+
+            } else {
+                // Awake States
+                if (animState === 'idle') {
+                    // Hovering
+                    const hoverY = Math.sin(time * 3) * 0.15 + 1.5;
+                    petGroup.position.y = THREE.MathUtils.lerp(petGroup.position.y, hoverY, 10 * delta);
+                    
+                    // Look around slowly
+                    const lookRot = Math.sin(time * 0.5) * 0.2;
+                    petGroup.rotation.y = THREE.MathUtils.lerp(petGroup.rotation.y, lookRot, 5 * delta);
+                    petGroup.rotation.x = THREE.MathUtils.lerp(petGroup.rotation.x, 0, 5 * delta);
+                    
+                    petGroup.scale.set(1, 1, 1); // Reset scale
+
+                } else if (animState === 'feed') {
+                    animTimer += delta;
+                    if (animTimer < 0.5) {
+                        // Jump and squish
+                        petGroup.position.y = 1.5 + Math.sin(animTimer * Math.PI * 2) * 1.5;
+                        petGroup.scale.set(1.2, 0.8, 1.2); // stretch
+                    } else if (animTimer < 1.0) {
+                        petGroup.scale.set(0.9, 1.1, 0.9); // squish
+                    } else {
+                        animState = 'idle';
+                    }
+
+                } else if (animState === 'wash') {
+                    animTimer += delta;
+                    if (animTimer < 1.0) {
+                        // Spin rapidly
+                        petGroup.rotation.y += 15 * delta;
+                        petGroup.position.y = 1.5 + Math.sin(animTimer * Math.PI * 4) * 0.5;
+                    } else {
+                        petGroup.rotation.y %= (Math.PI * 2); // normalize rotation to prevent snapping
+                        animState = 'idle';
+                    }
+
+                } else if (animState === 'restroom') {
+                    animTimer += delta;
+                    if (animTimer < 1.5) {
+                        // Shake horizontally
+                        petGroup.position.x = Math.sin(animTimer * 40) * 0.2;
+                        petGroup.scale.set(1.1, 0.9, 1.1);
+                    } else {
+                        petGroup.position.x = 0;
+                        animState = 'idle';
+                    }
+                } else if (animState === 'play') {
+                    animTimer += delta;
+                    if (animTimer < 1.0) {
+                        // Happy flips
+                        petGroup.rotation.x -= 10 * delta;
+                        petGroup.position.y = 1.5 + Math.abs(Math.sin(animTimer * Math.PI)) * 2;
+                    } else {
+                        petGroup.rotation.x %= (Math.PI * 2);
+                        animState = 'idle';
+                    }
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        /* --- ACTIONS & INTERACTION --- */
+
+        function wakeUpCheck() {
+            if (isGameOver) return;
+            if (isSleeping) {
+                actionBed();
+            }
+        }
+
+        function actionFeed() {
+            if (isGameOver) return;
+            wakeUpCheck();
+            if (stats.hunger >= 100) return;
+            stats.hunger = Math.min(100, stats.hunger + 30);
+            updateUI();
+            
+            animState = 'feed';
+            animTimer = 0;
+            spawnParticles(0x8B4513, 'food');
+        }
+
+        function actionWash() {
+            if (isGameOver) return;
+            wakeUpCheck();
+            if (stats.clean >= 100) return;
+            stats.clean = Math.min(100, stats.clean + 40);
+            updateUI();
+            
+            animState = 'wash';
+            animTimer = 0;
+            spawnParticles(0x44aaff, 'water');
+        }
+
+        function actionBed() {
+            if (isGameOver) return;
+            isSleeping = !isSleeping;
+            
+            if (isSleeping) {
+                scene.background.setHex(0x1a1a2e); 
+                scene.fog.color.setHex(0x1a1a2e);
+                ambientLight.intensity = 0.2;
+                dirLight.intensity = 0.1;
+                if (!scene.getObjectByName('moonLight')) {
+                    const moonLight = new THREE.DirectionalLight(0xaabbff, 0.4);
+                    moonLight.name = 'moonLight';
+                    moonLight.position.set(-5, 8, -5);
+                    scene.add(moonLight);
+                }
+            } else {
+                scene.background.setHex(0x87CEEB);
+                scene.fog.color.setHex(0x87CEEB);
+                ambientLight.intensity = 0.6;
+                dirLight.intensity = 0.8;
+                const ml = scene.getObjectByName('moonLight');
+                if (ml) scene.remove(ml);
+            }
+            updateUI();
+        }
+
+        function actionRestroom() {
+            if (isGameOver) return;
+            wakeUpCheck();
+            if (stats.bladder >= 100) return;
+            stats.bladder = 100;
+            updateUI();
+            
+            animState = 'restroom';
+            animTimer = 0;
+            spawnParticles(0xffffaa, 'sparkle');
+        }
+
+        function actionPlay() {
+            if (isGameOver) return;
+            wakeUpCheck();
+            document.getElementById('minigame-overlay').style.display = 'flex';
+            document.getElementById('mg-start-screen').style.display = 'flex';
+        }
+
+        function closeMinigame() {
+            document.getElementById('minigame-overlay').style.display = 'none';
+            if (mgActive) {
+                clearInterval(mgTimer);
+                mgActive = false;
+            }
+        }
+
+        function startMinigame() {
+            document.getElementById('mg-start-screen').style.display = 'none';
+            mgScore = 0;
+            mgTimeLeft = 10;
+            mgActive = true;
+            updateMgUI();
+            moveTarget();
+
+            mgTimer = setInterval(() => {
+                mgTimeLeft--;
+                updateMgUI();
+                if (mgTimeLeft <= 0) {
+                    endMinigame();
+                }
+            }, 1000);
+        }
+
+        function updateMgUI() {
+            document.getElementById('mg-score').innerText = mgScore;
+            document.getElementById('mg-time').innerText = mgTimeLeft;
+        }
+
+        function moveTarget() {
+            const area = document.getElementById('mg-area');
+            const target = document.getElementById('minigame-target');
+            
+            // max width/height minus target size
+            const maxX = area.clientWidth - 50; 
+            const maxY = area.clientHeight - 50;
+
+            const randomX = Math.floor(Math.random() * maxX);
+            const randomY = Math.floor(Math.random() * maxY);
+
+            target.style.left = `${randomX}px`;
+            target.style.top = `${randomY}px`;
+        }
+
+        function hitTarget(e) {
+            e.stopPropagation(); // prevent triggering other clicks
+            if (!mgActive) return;
+            
+            mgScore++;
+            updateMgUI();
+            moveTarget();
+            
+            // Add slight shrinking visual to target on click
+            const t = document.getElementById('minigame-target');
+            t.style.transform = 'scale(0.8)';
+            setTimeout(() => t.style.transform = 'scale(1)', 100);
+        }
+
+        function endMinigame() {
+            clearInterval(mgTimer);
+            mgActive = false;
+            
+            // Apply score to fun stat
+            const funGained = mgScore * 5; 
+            stats.fun = Math.min(100, stats.fun + funGained);
+            
+            // Decrease energy due to playing
+            stats.energy = Math.max(0, stats.energy - 10);
+            updateUI();
+
+            closeMinigame();
+
+            // Play happy animation in 3D
+            animState = 'play';
+            animTimer = 0;
+            spawnParticles(0xff69b4, 'fun'); // Pink fun particles
+        }
+
+        // Initialize on load
+        window.onload = () => {
+            initThreeJS();
+            updateUI();
+        };
+
+    </script>
+</body>
+</html>
