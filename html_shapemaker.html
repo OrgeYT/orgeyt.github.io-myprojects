@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shape Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Inter', sans-serif;
+            touch-action: none; /* Prevent scrolling while dragging on touch devices */
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(20, 20, 20, 0.8);
+            padding: 12px 24px;
+            border-radius: 9999px;
+            border: 1px solid #333;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            z-index: 10;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 90%;
+            max-width: 600px;
+        }
+        .btn {
+            background-color: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn:hover {
+            background-color: #444;
+            border-color: #0ff;
+            color: #0ff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+        }
+        .instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ui-panel">
+        <span class="text-white text-sm font-bold mr-2">Templates:</span>
+        <button class="btn" onclick="loadTemplate('triangle')">Triangle</button>
+        <button class="btn" onclick="loadTemplate('square')">Square</button>
+        <button class="btn" onclick="loadTemplate('pentagon')">Pentagon</button>
+        <button class="btn" onclick="loadTemplate('hexagon')">Hexagon</button>
+        <button class="btn" onclick="loadTemplate('star')">Star</button>
+        <button class="btn" onclick="loadTemplate('house')">House</button>
+        <button class="btn" onclick="loadTemplate('cube')">Cube (2D)</button>
+        <button class="btn" onclick="loadTemplate('pyramid')">Pyramid (3D)</button>
+        
+        <div style="width: 1px; height: 24px; background: #555; margin: 0 5px;"></div>
+        <button class="btn" onclick="saveShape()" style="background-color: #1a3622; border-color: #2d5a3a; color: #a3ffc2;">Save JSON</button>
+        <button class="btn" onclick="document.getElementById('fileInput').click()" style="background-color: #1a2336; border-color: #2d3f5a; color: #a3c2ff;">Load JSON</button>
+        <input type="file" id="fileInput" accept=".json" style="display: none;" onchange="loadShape(event)">
+        
+        <button class="btn" onclick="clearCanvas()" style="margin-left: auto; background-color: #422; border-color: #633;">Clear</button>
+    </div>
+
+    <div class="instructions">
+        Drag <span style="color: #0ff;">cyan points</span> to edit the shape.<br>
+        Click on <span style="color: #fff;">white lines</span> to add new points.
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let vertices = [];
+        let edges = []; // Array of {v1: index, v2: index}
+
+        let draggedVertexIndex = -1;
+        let hoveredVertexIndex = -1;
+        let hoveredEdgeIndex = -1;
+        
+        const VERTEX_RADIUS = 8;
+        const LINE_HIT_TOLERANCE = 10;
+
+        // Mouse/Touch state
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            draw();
+        }
+        window.addEventListener('resize', resizeCanvas);
+        
+        function dist2(v, w) {
+            return Math.pow(v.x - w.x, 2) + Math.pow(v.y - w.y, 2);
+        }
+
+        function distToSegmentSquared(p, v, w) {
+            let l2 = dist2(v, w);
+            if (l2 === 0) return dist2(p, v);
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return dist2(p, {
+                x: v.x + t * (w.x - v.x),
+                y: v.y + t * (w.y - v.y)
+            });
+        }
+
+        // Returns the exact point on the line segment closest to point p
+        function closestPointOnSegment(p, v, w) {
+            let l2 = dist2(v, w);
+            if (l2 === 0) return {x: v.x, y: v.y};
+            let t = ((p.x - v.x) * (w.x - v.x) + (p.y - v.y) * (w.y - v.y)) / l2;
+            t = Math.max(0, Math.min(1, t));
+            return {
+                x: v.x + t * (w.x - v.x),
+                y: v.y + t * (w.y - v.y)
+            };
+        }
+
+        function clearCanvas() {
+            vertices = [];
+            edges = [];
+            draw();
+        }
+
+        function saveShape() {
+            const data = { vertices, edges };
+            const json = JSON.stringify(data, null, 2); // Serialize with pretty print formatting
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'custom-shape.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadShape(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.vertices && Array.isArray(data.vertices) && data.edges && Array.isArray(data.edges)) {
+                        vertices = data.vertices;
+                        edges = data.edges;
+                        draw();
+                    } else {
+                        console.error('Invalid shape file format.');
+                    }
+                } catch (err) {
+                    console.error('Error parsing JSON:', err);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset the input value so you can load the same file again if needed
+            event.target.value = ''; 
+        }
+
+        function loadTemplate(type) {
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            const size = Math.min(canvas.width, canvas.height) * 0.25;
+
+            vertices = [];
+            edges = [];
+
+            if (type === 'triangle') {
+                vertices = [
+                    { x: cx, y: cy - size },
+                    { x: cx - size * 0.866, y: cy + size * 0.5 },
+                    { x: cx + size * 0.866, y: cy + size * 0.5 }
+                ];
+                edges = [
+                    { v1: 0, v2: 1 },
+                    { v1: 1, v2: 2 },
+                    { v1: 2, v2: 0 }
+                ];
+            } else if (type === 'square') {
+                vertices = [
+                    { x: cx - size, y: cy - size },
+                    { x: cx + size, y: cy - size },
+                    { x: cx + size, y: cy + size },
+                    { x: cx - size, y: cy + size }
+                ];
+                edges = [
+                    { v1: 0, v2: 1 },
+                    { v1: 1, v2: 2 },
+                    { v1: 2, v2: 3 },
+                    { v1: 3, v2: 0 }
+                ];
+            } else if (type === 'pentagon') {
+                for (let i = 0; i < 5; i++) {
+                    let angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+                    vertices.push({
+                        x: cx + Math.cos(angle) * size,
+                        y: cy + Math.sin(angle) * size
+                    });
+                    edges.push({ v1: i, v2: (i + 1) % 5 });
+                }
+            } else if (type === 'hexagon') {
+                for (let i = 0; i < 6; i++) {
+                    let angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+                    vertices.push({
+                        x: cx + Math.cos(angle) * size,
+                        y: cy + Math.sin(angle) * size
+                    });
+                    edges.push({ v1: i, v2: (i + 1) % 6 });
+                }
+            } else if (type === 'star') {
+                const innerSize = size * 0.4;
+                for (let i = 0; i < 10; i++) {
+                    let angle = (Math.PI * 2 * i) / 10 - Math.PI / 2;
+                    let radius = i % 2 === 0 ? size : innerSize;
+                    vertices.push({
+                        x: cx + Math.cos(angle) * radius,
+                        y: cy + Math.sin(angle) * radius
+                    });
+                    edges.push({ v1: i, v2: (i + 1) % 10 });
+                }
+            } else if (type === 'house') {
+                vertices = [
+                    { x: cx - size, y: cy + size }, // 0: bottom left
+                    { x: cx + size, y: cy + size }, // 1: bottom right
+                    { x: cx + size, y: cy - size*0.2 }, // 2: top right (wall)
+                    { x: cx - size, y: cy - size*0.2 }, // 3: top left (wall)
+                    { x: cx, y: cy - size * 1.2 } // 4: roof peak
+                ];
+                edges = [
+                    { v1: 0, v2: 1 }, { v1: 1, v2: 2 }, { v1: 2, v2: 3 }, { v1: 3, v2: 0 }, // walls
+                    { v1: 3, v2: 4 }, { v1: 2, v2: 4 } // roof
+                ];
+            } else if (type === 'cube') {
+                const offset = size * 0.6;
+                // Front face
+                vertices.push({ x: cx - size, y: cy - size });
+                vertices.push({ x: cx + size, y: cy - size });
+                vertices.push({ x: cx + size, y: cy + size });
+                vertices.push({ x: cx - size, y: cy + size });
+                // Back face
+                vertices.push({ x: cx - size + offset, y: cy - size - offset });
+                vertices.push({ x: cx + size + offset, y: cy - size - offset });
+                vertices.push({ x: cx + size + offset, y: cy + size - offset });
+                vertices.push({ x: cx - size + offset, y: cy + size - offset });
+
+                // Edges
+                edges = [
+                    // Front
+                    { v1: 0, v2: 1 }, { v1: 1, v2: 2 }, { v1: 2, v2: 3 }, { v1: 3, v2: 0 },
+                    // Back
+                    { v1: 4, v2: 5 }, { v1: 5, v2: 6 }, { v1: 6, v2: 7 }, { v1: 7, v2: 4 },
+                    // Connectors
+                    { v1: 0, v2: 4 }, { v1: 1, v2: 5 }, { v1: 2, v2: 6 }, { v1: 3, v2: 7 }
+                ];
+            } else if (type === 'pyramid') {
+                const baseWidth = size * 1.2;
+                const baseHeight = size * 0.4;
+                vertices = [
+                    { x: cx - baseWidth, y: cy + size * 0.5 }, // 0: front left
+                    { x: cx + baseWidth * 0.3, y: cy + size * 0.5 }, // 1: front right
+                    { x: cx + baseWidth, y: cy + size * 0.5 - baseHeight }, // 2: back right
+                    { x: cx - baseWidth * 0.5, y: cy + size * 0.5 - baseHeight }, // 3: back left
+                    { x: cx, y: cy - size } // 4: peak
+                ];
+                edges = [
+                    { v1: 0, v2: 1 }, { v1: 1, v2: 2 }, { v1: 2, v2: 3 }, { v1: 3, v2: 0 }, // base
+                    { v1: 0, v2: 4 }, { v1: 1, v2: 4 }, { v1: 2, v2: 4 }, { v1: 3, v2: 4 } // sides
+                ];
+            }
+            draw();
+        }
+
+        function draw() {
+            // Background
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Edges (Lines)
+            ctx.lineWidth = 3;
+            edges.forEach((edge, index) => {
+                const p1 = vertices[edge.v1];
+                const p2 = vertices[edge.v2];
+                
+                if (!p1 || !p2) return;
+
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                
+                // Highlight edge if hovered and no vertex is hovered/dragged
+                if (index === hoveredEdgeIndex && hoveredVertexIndex === -1 && draggedVertexIndex === -1) {
+                    ctx.strokeStyle = '#00ffff';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = '#00ffff';
+                } else {
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.shadowBlur = 0;
+                }
+                
+                ctx.stroke();
+            });
+            ctx.shadowBlur = 0; // Reset shadow
+
+            // Draw Vertices (Points)
+            vertices.forEach((v, index) => {
+                ctx.beginPath();
+                ctx.arc(v.x, v.y, VERTEX_RADIUS, 0, Math.PI * 2);
+                
+                if (index === hoveredVertexIndex || index === draggedVertexIndex) {
+                    ctx.fillStyle = '#ffffff'; // Highlight on hover/drag
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#00ffff';
+                } else {
+                    ctx.fillStyle = '#00ffff'; // Cyan points
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = '#00ffff';
+                }
+                
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+        }
+
+        function getPointerPos(e) {
+            if (e.touches) {
+                return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
+            return { x: e.clientX, y: e.clientY };
+        }
+
+        function updateHoverState(pos) {
+            if (draggedVertexIndex !== -1) return; // Don't update hover if dragging
+
+            // Check vertices first
+            hoveredVertexIndex = -1;
+            for (let i = 0; i < vertices.length; i++) {
+                if (Math.sqrt(dist2(pos, vertices[i])) <= VERTEX_RADIUS + 5) {
+                    hoveredVertexIndex = i;
+                    break;
+                }
+            }
+
+            // Check edges if no vertex is hovered
+            hoveredEdgeIndex = -1;
+            if (hoveredVertexIndex === -1) {
+                for (let i = 0; i < edges.length; i++) {
+                    const p1 = vertices[edges[i].v1];
+                    const p2 = vertices[edges[i].v2];
+                    if (!p1 || !p2) continue;
+
+                    const distSq = distToSegmentSquared(pos, p1, p2);
+                    if (distSq <= LINE_HIT_TOLERANCE * LINE_HIT_TOLERANCE) {
+                        hoveredEdgeIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            // Change cursor
+            if (hoveredVertexIndex !== -1) {
+                canvas.style.cursor = 'grab';
+            } else if (hoveredEdgeIndex !== -1) {
+                canvas.style.cursor = 'copy'; // Indicates adding something
+            } else {
+                canvas.style.cursor = 'default';
+            }
+        }
+
+        function handlePointerDown(e) {
+            const pos = getPointerPos(e);
+            updateHoverState(pos);
+
+            if (hoveredVertexIndex !== -1) {
+                // Start dragging vertex
+                draggedVertexIndex = hoveredVertexIndex;
+                canvas.style.cursor = 'grabbing';
+            } else if (hoveredEdgeIndex !== -1) {
+                // Add point on line
+                const edgeToSplit = edges[hoveredEdgeIndex];
+                const p1 = vertices[edgeToSplit.v1];
+                const p2 = vertices[edgeToSplit.v2];
+                
+                // Snap new point exactly to the segment
+                const newPoint = closestPointOnSegment(pos, p1, p2);
+                
+                vertices.push(newPoint);
+                const newVertexIndex = vertices.length - 1;
+
+                // Split the edge
+                const v2Original = edgeToSplit.v2;
+                edgeToSplit.v2 = newVertexIndex; // Update existing edge to connect to new point
+                edges.push({ v1: newVertexIndex, v2: v2Original }); // Create new edge from new point to original v2
+
+                // Optionally instantly start dragging the newly created point
+                draggedVertexIndex = newVertexIndex;
+                hoveredVertexIndex = newVertexIndex;
+                canvas.style.cursor = 'grabbing';
+            }
+            draw();
+        }
+
+        function handlePointerMove(e) {
+            const pos = getPointerPos(e);
+            mouseX = pos.x;
+            mouseY = pos.y;
+
+            if (draggedVertexIndex !== -1) {
+                vertices[draggedVertexIndex].x = pos.x;
+                vertices[draggedVertexIndex].y = pos.y;
+                draw();
+            } else {
+                const prevHoverVertex = hoveredVertexIndex;
+                const prevHoverEdge = hoveredEdgeIndex;
+                
+                updateHoverState(pos);
+                
+                if (prevHoverVertex !== hoveredVertexIndex || prevHoverEdge !== hoveredEdgeIndex) {
+                    draw(); // Redraw only if hover state changed
+                }
+            }
+        }
+
+        function handlePointerUp() {
+            if (draggedVertexIndex !== -1) {
+                draggedVertexIndex = -1;
+                updateHoverState({x: mouseX, y: mouseY}); // Re-evaluate hover immediately
+                draw();
+            }
+        }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        window.addEventListener('mousemove', handlePointerMove); // Listen on window so drag doesn't break if moving fast
+        window.addEventListener('mouseup', handlePointerUp);
+
+        // Touch support
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling
+            handlePointerDown(e);
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+            if (draggedVertexIndex !== -1) e.preventDefault();
+            handlePointerMove(e);
+        }, { passive: false });
+        window.addEventListener('touchend', handlePointerUp);
+
+        window.onload = () => {
+            resizeCanvas();
+            loadTemplate('cube'); // Load cube by default
+        };
+
+    </script>
+</body>
+</html>
