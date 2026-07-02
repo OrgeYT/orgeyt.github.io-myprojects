@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beat Catch - Auto Charter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@tonejs/midi@2.0.28/build/Midi.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        .drop-zone {
+            transition: all 0.2s ease;
+        }
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+
+        #chart-preview {
+            background-image: linear-gradient(#1e293b 1px, transparent 1px),
+                              linear-gradient(90deg, #1e293b 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-position: center center;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+    <!-- Header -->
+    <header class="w-full max-w-6xl flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+                <i class="fa-solid fa-music mr-2"></i>Beat Catch Auto Charter
+            </h1>
+            <p class="text-slate-400 mt-1">Convert MIDI files into 30 FPS charts automatically</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-4 space-y-6">
+            
+            <!-- File Upload -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
+                <h2 class="text-xl font-semibold mb-4"><i class="fa-solid fa-file-arrow-up mr-2 text-blue-400"></i>1. Import MIDI</h2>
+                <div id="drop-zone" class="drop-zone border-2 border-dashed border-slate-600 rounded-lg p-8 text-center cursor-pointer hover:border-slate-500">
+                    <input type="file" id="file-input" accept=".mid,.midi" class="hidden">
+                    <i class="fa-solid fa-cloud-arrow-up text-4xl text-slate-400 mb-3"></i>
+                    <p class="text-sm font-medium mb-1" id="file-name">Click or drag a MIDI file here</p>
+                    <p class="text-xs text-slate-500">.mid or .midi files</p>
+                </div>
+
+                <div id="track-selector-container" class="mt-4 hidden">
+                    <label class="block text-sm font-medium text-slate-400 mb-2">Select Track</label>
+                    <select id="track-selector" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2.5 text-sm focus:border-blue-500 outline-none">
+                        <!-- Options populated via JS -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="bg-slate-800 rounded-xl p-6 border border-slate-700 shadow-xl">
+                <h2 class="text-xl font-semibold mb-4"><i class="fa-solid fa-sliders mr-2 text-indigo-400"></i>2. Configure Mapping</h2>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">FPS</label>
+                            <input type="number" id="fps-input" value="30" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Padding (secs)</label>
+                            <input type="number" id="padding-input" value="1" step="0.5" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-700 pt-4 mt-4">
+                        <p class="text-sm font-medium mb-3">X Coordinate Range (Output)</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Min X (Left)</label>
+                                <input type="number" id="min-x" value="-150" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Max X (Right)</label>
+                                <input type="number" id="max-x" value="150" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-700 pt-4 mt-4">
+                        <p class="text-sm font-medium mb-3">MIDI Pitch Range (Input)</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Min Pitch</label>
+                                <input type="number" id="min-pitch" value="36" title="Lowest note (e.g. 36 = C2)" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-slate-400 mb-1">Max Pitch</label>
+                                <input type="number" id="max-pitch" value="84" title="Highest note (e.g. 84 = C6)" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-sm focus:border-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="generate-btn" class="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 rounded-lg shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    Generate Chart
+                </button>
+            </div>
+        </div>
+
+        <!-- Output Column -->
+        <div class="lg:col-span-8 flex flex-col space-y-6">
+            
+            <!-- Output Tabs -->
+            <div class="bg-slate-800 rounded-xl border border-slate-700 shadow-xl flex flex-col h-[700px]">
+                <div class="flex border-b border-slate-700">
+                    <button id="tab-text" class="flex-1 py-4 text-center font-medium text-blue-400 border-b-2 border-blue-500 bg-slate-800/50">
+                        <i class="fa-solid fa-file-lines mr-2"></i>Text Output
+                    </button>
+                    <button id="tab-visual" class="flex-1 py-4 text-center font-medium text-slate-400 hover:text-slate-200">
+                        <i class="fa-solid fa-chart-line mr-2"></i>Visualizer
+                    </button>
+                </div>
+
+                <!-- Text Area View -->
+                <div id="view-text" class="flex-1 p-4 flex flex-col min-h-0">
+                    <textarea id="output-text" readonly class="flex-1 w-full bg-slate-900 border border-slate-700 rounded-lg p-4 font-mono text-sm text-green-400 resize-none focus:outline-none" placeholder="Chart data will appear here..."></textarea>
+                    
+                    <div class="mt-4 flex justify-between items-center">
+                        <p class="text-sm text-slate-400" id="stats-text">Total Frames: 0</p>
+                        <button id="download-btn" disabled class="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-medium transition shadow-md">
+                            <i class="fa-solid fa-download mr-2"></i>Download .txt
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visualizer View -->
+                <div id="view-visual" class="flex-1 p-4 hidden flex-col min-h-0 bg-slate-900 relative rounded-b-xl overflow-hidden">
+                    <div class="absolute inset-x-0 top-4 flex justify-between px-6 text-xs text-slate-500 pointer-events-none">
+                        <span id="lbl-min-x">Min X</span>
+                        <span id="lbl-center-x">0</span>
+                        <span id="lbl-max-x">Max X</span>
+                    </div>
+                    <div class="flex-1 overflow-y-auto mt-4 border border-slate-800 rounded relative" id="canvas-container">
+                        <canvas id="chart-preview" class="block w-full"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Custom Message Box (Modal) -->
+    <div id="msg-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-slate-800 border border-slate-600 rounded-xl p-6 max-w-md w-full shadow-2xl transform scale-95 transition-transform duration-200">
+            <h3 id="msg-title" class="text-xl font-bold mb-2">Notice</h3>
+            <p id="msg-text" class="text-slate-300 mb-6">Message goes here.</p>
+            <div class="flex justify-end">
+                <button onclick="closeMsg()" class="bg-blue-600 hover:bg-blue-500 px-5 py-2 rounded-lg font-medium transition">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let currentMidi = null;
+        let chartLines = [];
+        let generatedFileName = "chart.txt";
+
+        // --- DOM Elements ---
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileNameDisplay = document.getElementById('file-name');
+        const trackSelectorContainer = document.getElementById('track-selector-container');
+        const trackSelector = document.getElementById('track-selector');
+        
+        const btnGenerate = document.getElementById('generate-btn');
+        const btnDownload = document.getElementById('download-btn');
+        const outputText = document.getElementById('output-text');
+        const statsText = document.getElementById('stats-text');
+
+        // Tabs
+        const tabText = document.getElementById('tab-text');
+        const tabVisual = document.getElementById('tab-visual');
+        const viewText = document.getElementById('view-text');
+        const viewVisual = document.getElementById('view-visual');
+        
+        // Canvas
+        const canvas = document.getElementById('chart-preview');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvas-container');
+
+        // --- Message Modal Logic ---
+        function showMsg(title, text, isError = false) {
+            document.getElementById('msg-title').innerText = title;
+            document.getElementById('msg-title').className = `text-xl font-bold mb-2 ${isError ? 'text-red-400' : 'text-blue-400'}`;
+            document.getElementById('msg-text').innerText = text;
+            const modal = document.getElementById('msg-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => {
+                modal.children[0].classList.remove('scale-95');
+                modal.children[0].classList.add('scale-100');
+            }, 10);
+        }
+
+        function closeMsg() {
+            const modal = document.getElementById('msg-modal');
+            modal.children[0].classList.remove('scale-100');
+            modal.children[0].classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // --- File Upload Logic ---
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length > 0) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        async function handleFile(file) {
+            if (!file.name.toLowerCase().endsWith('.mid') && !file.name.toLowerCase().endsWith('.midi')) {
+                showMsg('Invalid File', 'Please upload a valid .mid or .midi file.', true);
+                return;
+            }
+
+            fileNameDisplay.innerText = file.name;
+            generatedFileName = file.name.replace(/\.[^/.]+$/, "") + "_chart.txt";
+            
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                currentMidi = new window.Midi(arrayBuffer);
+                
+                // Populate track selector
+                trackSelector.innerHTML = '';
+                let validTracks = 0;
+                let trackWithMostNotes = -1;
+                let maxNotes = 0;
+
+                currentMidi.tracks.forEach((track, index) => {
+                    if (track.notes.length > 0) {
+                        validTracks++;
+                        const option = document.createElement('option');
+                        option.value = index;
+                        option.text = `Track ${index + 1} (${track.notes.length} notes) ${track.name ? '- ' + track.name : ''}`;
+                        trackSelector.appendChild(option);
+
+                        if (track.notes.length > maxNotes) {
+                            maxNotes = track.notes.length;
+                            trackWithMostNotes = index;
+                        }
+                    }
+                });
+
+                if (validTracks === 0) {
+                    showMsg('Empty MIDI', 'This MIDI file contains no notes.', true);
+                    trackSelectorContainer.classList.add('hidden');
+                    currentMidi = null;
+                } else {
+                    trackSelectorContainer.classList.remove('hidden');
+                    trackSelector.value = trackWithMostNotes; // Auto-select track with most notes
+                    btnGenerate.disabled = false;
+                }
+            } catch (err) {
+                showMsg('Parse Error', 'Failed to read MIDI file. It might be corrupted.', true);
+                console.error(err);
+            }
+        }
+
+        // --- Chart Generation Logic ---
+        btnGenerate.addEventListener('click', () => {
+            if (!currentMidi) return;
+
+            const trackIndex = parseInt(trackSelector.value);
+            const track = currentMidi.tracks[trackIndex];
+            
+            if (!track || track.notes.length === 0) {
+                showMsg('Error', 'Selected track has no notes.', true);
+                return;
+            }
+
+            // Get Settings
+            const fps = parseFloat(document.getElementById('fps-input').value) || 30;
+            const paddingSecs = parseFloat(document.getElementById('padding-input').value) || 1;
+            const minX = parseInt(document.getElementById('min-x').value) || -150;
+            const maxX = parseInt(document.getElementById('max-x').value) || 150;
+            const minPitch = parseInt(document.getElementById('min-pitch').value) || 36;
+            const maxPitch = parseInt(document.getElementById('max-pitch').value) || 84;
+
+            // Update Canvas Labels
+            document.getElementById('lbl-min-x').innerText = minX;
+            document.getElementById('lbl-max-x').innerText = maxX;
+
+            // 1. Process Notes into Frames
+            let notes = track.notes;
+            // Sort by time just to be absolutely sure
+            notes.sort((a, b) => a.time - b.time);
+
+            const totalFrames = Math.ceil((notes[notes.length - 1].time + paddingSecs) * fps);
+            let frameData = new Array(totalFrames).fill(null);
+
+            // Mapping function: Pitch to X
+            function mapPitchToX(pitch) {
+                // Clamp pitch
+                let p = Math.max(minPitch, Math.min(pitch, maxPitch));
+                let normalized = (p - minPitch) / (maxPitch - minPitch);
+                // Map to X and round
+                return Math.round(normalized * (maxX - minX) + minX);
+            }
+
+            // Assign True notes
+            notes.forEach(note => {
+                let frame = Math.round(note.time * fps);
+                let x = mapPitchToX(note.midi);
+                
+                // If a frame already has a note (chord), we just overwrite it with the latest one 
+                // since the format only supports 1 position per frame
+                if (frame < totalFrames) {
+                    frameData[frame] = { x: x, isNote: true };
+                }
+            });
+
+            // 2. Interpolate Missing Frames (Resting Cursor Movement)
+            chartLines = [];
+            
+            // Build an array of just the valid note points to make interpolation easier
+            let validPoints = [];
+            for(let i = 0; i < totalFrames; i++){
+                if(frameData[i]) validPoints.push({frame: i, x: frameData[i].x});
+            }
+
+            for (let i = 0; i < totalFrames; i++) {
+                if (frameData[i]) {
+                    // It's a note frame
+                    chartLines.push(`${frameData[i].x}.true`);
+                } else {
+                    // It's a resting frame - calculate X
+                    let prev = [...validPoints].reverse().find(p => p.frame < i);
+                    let next = validPoints.find(p => p.frame > i);
+                    
+                    let currentX = 0; // Default fallback
+
+                    if (!prev && next) {
+                        currentX = next.x; // Before first note, sit at first note position
+                    } else if (prev && !next) {
+                        currentX = prev.x; // After last note, sit at last note position
+                    } else if (prev && next) {
+                        // Linear Interpolation: smoothly move cursor to the next note
+                        let progress = (i - prev.frame) / (next.frame - prev.frame);
+                        currentX = prev.x + (next.x - prev.x) * progress;
+                    }
+
+                    chartLines.push(`${Math.round(currentX)}.false`);
+                }
+            }
+
+            // 3. Output to UI
+            const resultText = chartLines.join('\n');
+            outputText.value = resultText;
+            statsText.innerText = `Total Frames: ${chartLines.length}`;
+            btnDownload.disabled = false;
+            
+            // Switch to Text Tab automatically
+            switchTab('text');
+            
+            // Draw Visualization
+            drawVisualization(minX, maxX);
+        });
+
+        // --- Download Logic ---
+        btnDownload.addEventListener('click', () => {
+            if (chartLines.length === 0) return;
+            
+            const blob = new Blob([chartLines.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = generatedFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // --- Tab Logic ---
+        function switchTab(tab) {
+            if (tab === 'text') {
+                tabText.classList.add('text-blue-400', 'border-b-2', 'border-blue-500', 'bg-slate-800/50');
+                tabText.classList.remove('text-slate-400');
+                tabVisual.classList.remove('text-blue-400', 'border-b-2', 'border-blue-500', 'bg-slate-800/50');
+                tabVisual.classList.add('text-slate-400');
+                viewText.classList.remove('hidden');
+                viewText.classList.add('flex');
+                viewVisual.classList.add('hidden');
+                viewVisual.classList.remove('flex');
+            } else {
+                tabVisual.classList.add('text-blue-400', 'border-b-2', 'border-blue-500', 'bg-slate-800/50');
+                tabVisual.classList.remove('text-slate-400');
+                tabText.classList.remove('text-blue-400', 'border-b-2', 'border-blue-500', 'bg-slate-800/50');
+                tabText.classList.add('text-slate-400');
+                viewVisual.classList.remove('hidden');
+                viewVisual.classList.add('flex');
+                viewText.classList.add('hidden');
+                viewText.classList.remove('flex');
+            }
+        }
+
+        tabText.addEventListener('click', () => switchTab('text'));
+        tabVisual.addEventListener('click', () => switchTab('visual'));
+
+        // --- Visualization Logic ---
+        function drawVisualization(minX, maxX) {
+            if (chartLines.length === 0) return;
+
+            // Dimensions
+            const frames = chartLines.length;
+            const pxPerFrame = 4; // Height per frame
+            const width = canvasContainer.clientWidth;
+            const height = frames * pxPerFrame;
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // Clear
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw center line
+            ctx.beginPath();
+            ctx.strokeStyle = '#334155'; // slate-700
+            ctx.lineWidth = 1;
+            ctx.moveTo(width / 2, 0);
+            ctx.lineTo(width / 2, height);
+            ctx.stroke();
+
+            // Mapping X to Canvas Width
+            function getCanvasX(val) {
+                // Map the value from [minX, maxX] to [0, width]
+                let normalized = (val - minX) / (maxX - minX);
+                return normalized * width;
+            }
+
+            // Draw path (the cursor interpolation)
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.5)'; // slate-400 transparent
+            ctx.lineWidth = 2;
+
+            let trueNotes = [];
+
+            chartLines.forEach((line, index) => {
+                let parts = line.split('.');
+                if(parts.length !== 2) return;
+                
+                let xVal = parseFloat(parts[0]);
+                let isNote = parts[1] === 'true';
+                
+                let canvasX = getCanvasX(xVal);
+                let canvasY = index * pxPerFrame;
+
+                if (index === 0) {
+                    ctx.moveTo(canvasX, canvasY);
+                } else {
+                    ctx.lineTo(canvasX, canvasY);
+                }
+
+                if (isNote) {
+                    trueNotes.push({ x: canvasX, y: canvasY });
+                }
+            });
+            ctx.stroke();
+
+            // Draw notes on top
+            trueNotes.forEach(note => {
+                // Outer glow
+                ctx.beginPath();
+                ctx.arc(note.x, note.y, 8, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(96, 165, 250, 0.3)'; // blue-400 transparent
+                ctx.fill();
+
+                // Inner core
+                ctx.beginPath();
+                ctx.arc(note.x, note.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#60a5fa'; // blue-400
+                ctx.fill();
+            });
+
+            // Auto scroll to top
+            canvasContainer.scrollTop = 0;
+        }
+
+        // Handle window resize for canvas redraw
+        window.addEventListener('resize', () => {
+            if (chartLines.length > 0 && !viewVisual.classList.contains('hidden')) {
+                const minX = parseInt(document.getElementById('min-x').value) || -150;
+                const maxX = parseInt(document.getElementById('max-x').value) || 150;
+                drawVisualization(minX, maxX);
+            }
+        });
+
+    </script>
+</body>
+</html>
