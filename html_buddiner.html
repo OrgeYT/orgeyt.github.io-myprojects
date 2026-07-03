@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bud's Cozy Diner</title>
+    <!-- Tailwind CSS for rich layouts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300..700&family=Quicksand:wght@400..700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            background-color: #fef3c7; 
+            background-image: radial-gradient(#fde68a 1.5px, transparent 1.5px), radial-gradient(#fde68a 1.5px, #fef3c7 1.5px);
+            background-size: 40px 40px;
+            background-position: 0 0, 20px 20px;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+        
+        .font-bubble { font-family: 'Fredoka', sans-serif; }
+
+        /* Speech bubble arrow */
+        .speech-bubble-dynamic::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 8px 0;
+            border-style: solid;
+            border-color: #ffffff transparent;
+            display: block;
+            width: 0;
+        }
+
+        .speech-bubble-left::after {
+            content: ''; position: absolute; bottom: -8px; left: 24px;
+            border-width: 8px 8px 0; border-style: solid; border-color: #ffffff transparent;
+            display: block; width: 0;
+        }
+
+        .speech-bubble-right::after {
+            content: ''; position: absolute; bottom: -8px; right: 24px;
+            border-width: 8px 8px 0; border-style: solid; border-color: #ffffff transparent;
+            display: block; width: 0;
+        }
+
+        @keyframes gentle-bounce {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
+        }
+        .animate-bounce-gentle { animation: gentle-bounce 2s ease-in-out infinite; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        .shake-effect { animation: shake 0.4s ease-in-out; }
+
+        /* Scene Transitions */
+        .customer-enter { transform: translateY(100px); opacity: 0; }
+        .customer-active { transform: translateY(0); opacity: 1; }
+        .customer-exit-correct { transform: translateX(300px); opacity: 0; }
+        .customer-exit-fail { transform: translateY(150px) rotate(-15deg); opacity: 0; }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fef3c7; }
+        ::-webkit-scrollbar-thumb { background: #f59e0b; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800 selection:bg-amber-200">
+
+    <!-- HEADER / TOP NAV -->
+    <header class="w-full max-w-4xl mx-auto px-4 pt-4 pb-2 flex justify-between items-center z-10">
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-500 text-white font-bubble text-lg md:text-xl px-4 py-2 rounded-2xl shadow-md border-2 border-amber-600 flex items-center gap-2">
+                <span class="text-2xl">🏪</span> <span class="hidden sm:inline">Bud's Diner</span>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2 md:gap-4">
+            <!-- Pause Button -->
+            <button id="btn-pause" class="hidden bg-white/95 backdrop-blur-sm px-3 py-2 rounded-2xl shadow-sm border-2 border-amber-100 hover:bg-amber-50 active:scale-95 transition-transform text-slate-600 text-xl" title="Pause Game">
+                ⏸️
+            </button>
+
+            <div class="bg-white/95 backdrop-blur-sm px-3 md:px-4 py-2 rounded-2xl shadow-sm border-2 border-amber-100 flex items-center gap-2">
+                <span class="text-xs md:text-sm font-semibold text-slate-500 uppercase tracking-wider">Score</span>
+                <span id="score-val" class="font-bubble text-xl md:text-2xl text-amber-600">0</span>
+            </div>
+            
+            <div id="lives-container" class="bg-white/95 backdrop-blur-sm px-3 md:px-4 py-2 rounded-2xl shadow-sm border-2 border-amber-100 flex items-center gap-1.5 text-lg md:text-2xl">
+                ❤️ ❤️ ❤️
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME AREA -->
+    <main id="game-viewport" class="flex-grow w-full max-w-4xl mx-auto px-2 md:px-4 flex flex-col justify-center items-center relative gap-4">
+        
+        <!-- START SCREEN -->
+        <div id="start-screen" class="w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 shadow-xl border-4 border-amber-400 text-center flex flex-col gap-6 transform transition duration-300 z-20">
+            <div class="relative py-2">
+                <h1 class="font-bubble text-4xl text-amber-500 drop-shadow">Bud's Cozy Diner</h1>
+                <p class="text-slate-500 mt-1 font-medium">Serve the colourful buds!</p>
+                <div class="w-24 h-24 mx-auto my-4 relative">
+                    <img src="https://file.garden/Zj01o_oh-G9Y8APf/bud/happy.svg" class="w-full h-full object-contain animate-bounce-gentle" alt="Bud Happy">
+                </div>
+            </div>
+            
+            <div class="bg-amber-50 rounded-2xl p-4 text-left border border-amber-200 space-y-2 text-sm leading-relaxed">
+                <h3 class="font-bubble text-amber-700 text-base">📖 Mechanics:</h3>
+                <ul class="space-y-1 text-slate-600 list-disc list-inside text-xs">
+                    <li>Customers arrive with specific orders.</li>
+                    <li>As you score higher, expect <b>Groups</b>, <b>Hungry</b> buds, and tricky <b>Mind Changers</b>!</li>
+                    <li>Running out of time or tapping wrong items costs 1 Life ❤️.</li>
+                </ul>
+            </div>
+
+            <button id="btn-start" class="font-bubble w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-2xl rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all border-b-4 border-amber-700">
+                Open Shop! 🍳
+            </button>
+        </div>
+
+        <!-- PAUSE OVERLAY -->
+        <div id="pause-screen" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center rounded-3xl p-4">
+            <div class="bg-white p-8 w-full max-w-sm rounded-3xl shadow-2xl text-center border-4 border-amber-400 flex flex-col gap-4">
+                <h2 class="font-bubble text-4xl text-amber-500">Paused</h2>
+                <p class="text-slate-500 font-medium mb-4">Taking a quick break!</p>
+                <button id="btn-resume" class="font-bubble w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-xl rounded-2xl shadow active:scale-95 transition-all">Resume 🍳</button>
+                <button id="btn-quit" class="font-bubble w-full py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xl rounded-2xl shadow active:scale-95 transition-all">Quit Game</button>
+            </div>
+        </div>
+
+        <!-- GAMEPLAY VIEW -->
+        <div id="play-screen" class="hidden w-full flex-grow flex flex-col justify-between items-center gap-2 py-2 relative">
+            
+            <!-- Diner Scene Container -->
+            <div class="w-full relative flex-grow bg-orange-50 rounded-3xl overflow-hidden border-4 border-amber-200 shadow-inner flex flex-col">
+                <!-- Wallpaper pattern -->
+                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#d97706 2px, transparent 2px); background-size: 20px 20px;"></div>
+
+                <!-- Scene Top: Streak & Patience Bar -->
+                <div class="w-full p-4 flex flex-col items-center gap-3 relative z-20">
+                    <div class="h-6">
+                        <span id="combo-badge" class="hidden font-bubble bg-orange-500 text-white px-3 py-1 rounded-full text-xs shadow animate-bounce">
+                            🔥 Combo 2x!
+                        </span>
+                    </div>
+                    
+                    <!-- Patience Bar -->
+                    <div class="w-full max-w-md h-4 bg-white/80 backdrop-blur rounded-full border-2 border-slate-200 shadow-sm relative overflow-hidden">
+                        <div id="patience-fill" class="h-full bg-emerald-400 w-full transition-all duration-75"></div>
+                    </div>
+                    
+                    <!-- Event Tag -->
+                    <div id="event-tag" class="hidden bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                        Friend Group!
+                    </div>
+                </div>
+
+                <!-- Scene Middle: Characters -->
+                <div class="flex-grow relative flex items-end justify-start gap-4 md:gap-12 px-2 md:px-8 pb-4 pt-32 sm:pt-40">
+                    
+                    <!-- Player Character (Chef) -->
+                    <div class="relative flex flex-col items-center z-20 w-24 md:w-32 pb-4 transform -scale-x-100 hidden sm:flex shrink-0">
+                        <div class="text-3xl md:text-4xl absolute -top-8 animate-bounce-gentle">👨‍🍳</div>
+                        <img src="https://file.garden/Zj01o_oh-G9Y8APf/bud/happy.svg" class="w-full h-full object-contain drop-shadow-lg" style="filter: hue-rotate(180deg)">
+                        <div class="bg-white/90 px-3 py-1 rounded-full text-[10px] font-bold text-slate-600 mt-[-10px] shadow z-10 transform -scale-x-100">You</div>
+                    </div>
+
+                    <!-- Customers -->
+                    <div id="customer-wrapper" class="flex-grow flex justify-center sm:justify-start items-end gap-2 md:gap-6 z-10 transition-all duration-500 customer-enter">
+                        <!-- Customers injected here dynamically -->
+                    </div>
+
+                </div>
+
+                <!-- Scene Bottom: Counter Overlay -->
+                <div class="absolute bottom-0 left-0 w-full h-6 md:h-10 bg-amber-700 border-t-4 border-amber-800 z-30 opacity-95 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.15)] flex flex-col justify-between">
+                    <div class="w-full h-1 md:h-2 bg-amber-400/80"></div>
+                    <div class="w-full h-full flex justify-evenly items-end opacity-20">
+                        <div class="w-8 h-full bg-amber-900 rounded-t-lg"></div>
+                        <div class="w-8 h-full bg-amber-900 rounded-t-lg"></div>
+                        <div class="w-8 h-full bg-amber-900 rounded-t-lg"></div>
+                        <div class="w-8 h-full bg-amber-900 rounded-t-lg"></div>
+                    </div>
+                </div>
+
+                <!-- Feedback Toast -->
+                <div id="feedback-toast" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-0 transition-all duration-300 font-bubble text-2xl md:text-3xl z-40">
+                    ✅ Splendid!
+                </div>
+            </div>
+
+            <!-- KITCHEN COUNTER / TRAY -->
+            <div class="w-full bg-orange-100/90 backdrop-blur-md rounded-3xl p-4 md:p-5 border-4 border-amber-600 shadow-lg mt-2 z-20">
+                <div class="flex justify-between items-center mb-2 px-1">
+                    <span class="font-bubble text-amber-900 text-xs md:text-sm tracking-wider uppercase">🍱 Select dish:</span>
+                </div>
+                
+                <div id="food-tray" class="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
+                    <!-- Buttons generated dynamically -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- GAME OVER SCREEN -->
+        <div id="gameover-screen" class="hidden w-full max-w-md bg-white/95 backdrop-blur-md rounded-3xl p-8 shadow-xl border-4 border-rose-500 text-center flex flex-col gap-6 transform transition duration-300 z-20">
+            <div class="relative py-4">
+                <div class="text-6xl mb-2">😴💤</div>
+                <h1 class="font-bubble text-4xl text-rose-500 drop-shadow">Shop Closed!</h1>
+                <p class="text-slate-500 mt-1 font-medium">Bud got overwhelmed!</p>
+            </div>
+
+            <div class="bg-rose-50 rounded-2xl p-6 border border-rose-100 space-y-4">
+                <div>
+                    <div class="text-xs font-bold text-rose-400 uppercase tracking-widest">Final Score</div>
+                    <div id="final-score" class="font-bubble text-5xl text-rose-600">0</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 pt-2 border-t border-rose-200/50">
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Max Combo</div>
+                        <div id="final-combo" class="font-bubble text-xl text-slate-700">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Buds Served</div>
+                        <div id="final-served" class="font-bubble text-xl text-slate-700">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-restart" class="font-bubble w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white text-2xl rounded-2xl shadow-lg hover:shadow-xl active:scale-[0.98] transition-all border-b-4 border-emerald-700">
+                Play Again 🔄
+            </button>
+        </div>
+
+    </main>
+
+    <footer class="w-full text-center py-2 text-xs font-semibold text-amber-700/60 z-10">
+        Bud's Diner &bull; Served with love!
+    </footer>
+
+    <!-- JAVASCRIPT GAME LOGIC -->
+    <script>
+        // --- SOUND EFFECTS ---
+        const SoundFX = {
+            ctx: null,
+            init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            playItemPop() {
+                this.init(); const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.12);
+            },
+            playCorrect() {
+                this.init(); const now = this.ctx.currentTime;
+                const notes = [261.63, 329.63, 392.00, 523.25];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.08); gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.08 + 0.15);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.08); osc.stop(now + idx * 0.08 + 0.18);
+                });
+            },
+            playWrong() {
+                this.init(); const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(80, now + 0.3);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.35);
+            },
+            playWomp() { // Mind changer trick sound
+                this.init(); const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(150, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.25);
+            },
+            playWarning() {
+                this.init(); const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(880, now);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.12);
+            },
+            playGameOver() {
+                this.init(); const now = this.ctx.currentTime;
+                const notes = [311.13, 293.66, 277.18, 220.00];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, now + idx * 0.15);
+                    gain.gain.setValueAtTime(0.15, now + idx * 0.15); gain.gain.exponentialRampToValueAtTime(0.01, now + idx * 0.15 + 0.3);
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    osc.start(now + idx * 0.15); osc.stop(now + idx * 0.15 + 0.32);
+                });
+            },
+            playSwoosh() {
+                this.init(); const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(now); osc.stop(now + 0.16);
+            }
+        };
+
+        // --- ASSETS ---
+        const BUD_EXPRESSIONS = {
+            normal: "https://file.garden/Zj01o_oh-G9Y8APf/bud/normal.svg",
+            happy: "https://file.garden/Zj01o_oh-G9Y8APf/bud/happy.svg",
+            scared: "https://file.garden/Zj01o_oh-G9Y8APf/bud/scared.svg",
+            shy: "https://file.garden/Zj01o_oh-G9Y8APf/bud/shy.svg",
+            embarrassed: "https://file.garden/Zj01o_oh-G9Y8APf/bud/Embarressed.svg",
+            dizzy: "https://file.garden/Zj01o_oh-G9Y8APf/bud/Dizzy.svg",
+            annoyed: "https://file.garden/Zj01o_oh-G9Y8APf/bud/Annoyed.svg",
+            sad: "https://file.garden/Zj01o_oh-G9Y8APf/bud/sad.svg"
+        };
+
+        const FOODS = [
+            { id: "apple", name: "Apple", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Apple.svg" },
+            { id: "cheesypuffs", name: "Cheesy Puffs", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Cheesy%20Puffs.png" },
+            { id: "bananas", name: "Bananas", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Bananas.svg" },
+            { id: "strawberry", name: "Strawberry", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Strawberry-a.svg" },
+            { id: "cake", name: "Cake", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Cake-a.svg" },
+            { id: "dango", name: "Dango", img: "https://file.garden/Zj01o_oh-G9Y8APf/bud/food/Dango.svg" }
+        ];
+
+        function getHueName(hue) {
+            if (hue < 20 || hue >= 340) return "Ruby";
+            if (hue >= 20 && hue < 50) return "Tangerine";
+            if (hue >= 50 && hue < 85) return "Lemon";
+            if (hue >= 85 && hue < 155) return "Mint";
+            if (hue >= 155 && hue < 210) return "Sky";
+            if (hue >= 210 && hue < 265) return "Ocean";
+            if (hue >= 265 && hue < 305) return "Lavender";
+            return "Bubblegum";
+        }
+
+        // --- GAME STATE ---
+        let state = "start"; // start, playing, paused, feedback, gameover
+        let score = 0, lives = 3, combo = 0, maxCombo = 0, budsServed = 0;
+        
+        let activeEvent = { type: 'normal', buds: [] };
+        let timer = null;
+        let customerTimeLimit = 10000;
+        let currentPatience = 10000;
+        let lastUpdateTime = null;
+        let warningTriggered = false;
+
+        // DOM Setup
+        const btnStart = document.getElementById("btn-start");
+        const btnRestart = document.getElementById("btn-restart");
+        const btnPause = document.getElementById("btn-pause");
+        const btnResume = document.getElementById("btn-resume");
+        const btnQuit = document.getElementById("btn-quit");
+        
+        const customerWrapper = document.getElementById("customer-wrapper");
+        const patienceFill = document.getElementById("patience-fill");
+        const eventTag = document.getElementById("event-tag");
+        
+        function initTray() {
+            const foodTray = document.getElementById("food-tray");
+            foodTray.innerHTML = "";
+            FOODS.forEach(food => {
+                const btn = document.createElement("button");
+                btn.className = "group relative bg-white hover:bg-amber-50 active:scale-90 transition-all p-2 rounded-2xl shadow border-2 border-orange-200 flex flex-col items-center gap-1 cursor-pointer select-none";
+                btn.innerHTML = `
+                    <div class="w-10 h-10 md:w-14 md:h-14 flex items-center justify-center transform group-hover:scale-110 transition-transform">
+                        <img src="${food.img}" class="max-w-full max-h-full object-contain pointer-events-none">
+                    </div>
+                    <span class="text-[10px] md:text-xs font-bold text-slate-700 leading-none">${food.name}</span>
+                `;
+                btn.addEventListener("click", () => handleFoodChoice(food.id));
+                foodTray.appendChild(btn);
+            });
+        }
+
+        function togglePause() {
+            if (state === "playing") {
+                state = "paused";
+                document.getElementById("pause-screen").classList.remove("hidden");
+            } else if (state === "paused") {
+                state = "playing";
+                document.getElementById("pause-screen").classList.add("hidden");
+                lastUpdateTime = Date.now(); // crucial fix
+            }
+        }
+
+        function startGame() {
+            SoundFX.init();
+            state = "playing";
+            score = 0; lives = 3; combo = 0; maxCombo = 0; budsServed = 0;
+            
+            updateHeader();
+            initTray();
+
+            document.getElementById("start-screen").classList.add("hidden");
+            document.getElementById("gameover-screen").classList.add("hidden");
+            document.getElementById("play-screen").classList.remove("hidden");
+            btnPause.classList.remove("hidden");
+
+            spawnCustomer();
+        }
+
+        function updateHeader() {
+            document.getElementById("score-val").textContent = score;
+            let hearts = "";
+            for (let i = 0; i < 3; i++) hearts += (i < lives) ? "❤️ " : "🖤 ";
+            document.getElementById("lives-container").textContent = hearts.trim();
+
+            const comboBadge = document.getElementById("combo-badge");
+            if (combo > 1) {
+                comboBadge.textContent = `🔥 Combo x${combo}!`;
+                comboBadge.classList.remove("hidden");
+            } else {
+                comboBadge.classList.add("hidden");
+            }
+        }
+
+        function getNextEventType() {
+            let roll = Math.random();
+            if (score < 400) {
+                return roll < 0.8 ? "normal" : "multiple";
+            } else if (score < 1000) {
+                if (roll < 0.4) return "normal";
+                if (roll < 0.6) return "multiple";
+                if (roll < 0.8) return "mindChanger";
+                return "group";
+            } else {
+                if (roll < 0.2) return "normal";
+                if (roll < 0.4) return "multiple";
+                if (roll < 0.6) return "mindChanger";
+                if (roll < 0.8) return "group";
+                return "hungry";
+            }
+        }
+
+        function createBud(orderCount, isMindChanger = false) {
+            let hue = Math.floor(Math.random() * 360);
+            let orders = [];
+            for(let i=0; i < orderCount; i++) {
+                orders.push({ food: FOODS[Math.floor(Math.random() * FOODS.length)], fulfilled: false });
+            }
+            return {
+                hue: hue,
+                name: getHueName(hue),
+                expression: ["normal", "shy", "scared", "embarrassed", "dizzy"][Math.floor(Math.random()*5)],
+                orders: orders,
+                isMindChanger: isMindChanger,
+                hasChangedMind: false,
+                initialPhraseType: Math.floor(Math.random() * 3),
+                leavingPhraseIdx: Math.floor(Math.random() * 6),
+                warningTriggered: false,
+                state: 'initial' 
+            };
+        }
+
+        function spawnCustomer() {
+            if (state !== "playing") return;
+            if (timer) clearInterval(timer);
+
+            let type = getNextEventType();
+            activeEvent = { type: type, buds: [] };
+            let timeMultiplier = 1;
+
+            if (type === "normal") {
+                activeEvent.buds.push(createBud(1));
+                eventTag.classList.add("hidden");
+            } else if (type === "multiple") {
+                activeEvent.buds.push(createBud(Math.floor(Math.random() * 2) + 2)); // 2 or 3 items
+                timeMultiplier = 1.8;
+                eventTag.textContent = "Multi-Order!";
+                eventTag.className = "absolute top-10 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 transition-all";
+            } else if (type === "hungry") {
+                activeEvent.buds.push(createBud(Math.floor(Math.random() * 2) + 5)); // 5 or 6 items
+                timeMultiplier = 3.0;
+                eventTag.textContent = "Very Hungry Bud!";
+                eventTag.className = "absolute top-10 left-1/2 -translate-x-1/2 bg-rose-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 transition-all";
+            } else if (type === "mindChanger") {
+                activeEvent.buds.push(createBud(1, true));
+                timeMultiplier = 1.3;
+                eventTag.textContent = "Tricky Customer!";
+                eventTag.className = "absolute top-10 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 transition-all";
+            } else if (type === "group") {
+                let count = Math.floor(Math.random() * 2) + 2; // 2 or 3 buds
+                for(let i=0; i<count; i++) activeEvent.buds.push(createBud(1));
+                timeMultiplier = count * 0.9;
+                eventTag.textContent = "Friend Group!";
+                eventTag.className = "absolute top-10 left-1/2 -translate-x-1/2 bg-indigo-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md z-20 transition-all";
+            }
+
+            // Set times
+            let baseTime = Math.max(4000, 10000 - (score * 60)); 
+            customerTimeLimit = baseTime * timeMultiplier;
+            currentPatience = customerTimeLimit;
+            warningTriggered = false;
+
+            // Entrance Anim
+            customerWrapper.className = "flex-grow flex justify-center sm:justify-start items-end gap-2 md:gap-6 z-10 transition-all duration-500 customer-enter";
+            renderBuds();
+            
+            SoundFX.playSwoosh();
+            
+            customerWrapper.offsetHeight; // force reflow
+            customerWrapper.classList.remove("customer-enter");
+            customerWrapper.classList.add("customer-active");
+
+            lastUpdateTime = Date.now();
+            
+            timer = setInterval(() => {
+                if (state !== "playing") return;
+
+                const now = Date.now();
+                currentPatience -= (now - lastUpdateTime);
+                lastUpdateTime = now;
+
+                const percent = Math.max(0, currentPatience / customerTimeLimit);
+                updateTimerBar(percent);
+
+                if (percent <= 0.3 && !warningTriggered) {
+                    warningTriggered = true;
+                    SoundFX.playWarning();
+                    activeEvent.buds.forEach(b => {
+                        b.expression = "annoyed";
+                        b.warningTriggered = true;
+                    });
+                    renderBuds();
+                }
+
+                if (currentPatience <= 0) handleTimeout();
+            }, 50);
+        }
+
+        function renderBuds() {
+            customerWrapper.innerHTML = "";
+
+            activeEvent.buds.forEach((bud, index) => {
+                let orderImgs = bud.orders.map(o => {
+                    let opacityClass = o.fulfilled ? 'opacity-40 grayscale scale-75' : '';
+                    let checkmark = o.fulfilled ? '<div class="absolute inset-0 flex items-center justify-center text-emerald-500 text-sm md:text-base font-black drop-shadow-md">✅</div>' : '';
+                    return `<div class="relative inline-block mx-0.5 align-middle transition-all duration-300 ${opacityClass}"><img src="${o.food.img}" class="w-6 h-6 md:w-8 md:h-8 object-contain">${checkmark}</div>`;
+                });
+                
+                let allImgsHTML = orderImgs.join("");
+                let bubbleText = "";
+
+                if (bud.state === 'leaving') {
+                    const leavingPhrases = ["Im leaving!", "Ugh...", "I guess they are asleep...", "I will go find food somewhere else", "Im out", "peace out"];
+                    bubbleText = leavingPhrases[bud.leavingPhraseIdx];
+                } else if (bud.state === 'mind_changed') {
+                    if (bud.warningTriggered) {
+                        bubbleText = `I said i changed my mind! give me ${allImgsHTML}`;
+                    } else {
+                        bubbleText = `Wait- i mean ${allImgsHTML}`;
+                    }
+                } else if (bud.warningTriggered) {
+                    if (bud.orders.length > 1) {
+                        bubbleText = `Hey! I said give me all of this: ${allImgsHTML}`;
+                    } else {
+                        bubbleText = `PLEASE give me ${allImgsHTML}`;
+                    }
+                } else {
+                    if (bud.orders.length === 1) {
+                        if (bud.initialPhraseType === 0) bubbleText = `I want: ${allImgsHTML}`;
+                        else if (bud.initialPhraseType === 1) bubbleText = `I really want ${allImgsHTML}`;
+                        else bubbleText = `Hey, i want ${allImgsHTML} please`;
+                    } else if (bud.orders.length === 2) {
+                        bubbleText = `i want ${orderImgs[0]} and ${orderImgs[1]}`;
+                    } else {
+                        bubbleText = `I want all of this: ${allImgsHTML}`;
+                    }
+                }
+
+                // Stagger bubbles and adjust alignment to prevent overlapping and screen cut-offs
+                let positionClass = "left-1/2 -translate-x-1/2"; 
+                let arrowClass = "speech-bubble-dynamic"; 
+                
+                if (activeEvent.buds.length > 1) {
+                    if (index === 0) {
+                        positionClass = "left-[-10px] sm:left-0"; 
+                        arrowClass = "speech-bubble-left";
+                    } else if (index === activeEvent.buds.length - 1) {
+                        positionClass = "right-[-10px] sm:right-0"; 
+                        arrowClass = "speech-bubble-right";
+                    }
+                }
+                
+                let staggerMargin = index % 2 === 1 ? "mb-14 sm:mb-20" : "mb-2 sm:mb-4";
+
+                let bubbleHtml = `
+                    <div class="absolute bottom-[100%] ${staggerMargin} ${positionClass} bg-white border-2 border-slate-200 rounded-3xl px-3 py-2 md:px-4 md:py-3 shadow-md flex items-center justify-center text-center text-sm md:text-base font-bubble text-slate-700 w-max max-w-[200px] md:max-w-[280px] leading-snug ${arrowClass} transition-all duration-300" style="z-index: ${50 + index};">
+                        <span>${bubbleText}</span>
+                    </div>
+                `;
+
+                customerWrapper.innerHTML += `
+                    <div id="bud-${index}" class="relative flex flex-col items-center justify-end w-20 md:w-28 h-32 md:h-40" style="z-index: ${10 + index};">
+                        ${bubbleHtml}
+                        <img src="${BUD_EXPRESSIONS[bud.expression]}" class="w-full h-full object-contain drop-shadow-md z-10 animate-bounce-gentle" style="filter: hue-rotate(${bud.hue}deg); animation-delay: ${index * 0.2}s">
+                        <div class="bg-white/90 px-2 py-0.5 rounded-full text-[9px] md:text-[10px] font-bold text-slate-500 shadow-sm z-10 mt-[-5px]">
+                            ${bud.name}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateTimerBar(percent) {
+            patienceFill.style.width = `${percent * 100}%`;
+            if (percent > 0.5) patienceFill.className = "h-full transition-all duration-75 bg-emerald-400";
+            else if (percent > 0.25) patienceFill.className = "h-full transition-all duration-75 bg-amber-400";
+            else patienceFill.className = "h-full transition-all duration-75 bg-rose-500 animate-pulse";
+        }
+
+        function handleFoodChoice(foodId) {
+            if (state !== "playing") return;
+
+            let matchedOrder = null;
+            let matchedBud = null;
+
+            for (const bud of activeEvent.buds) {
+                const order = bud.orders.find(o => o.food.id === foodId && !o.fulfilled);
+                if (order) {
+                    matchedOrder = order;
+                    matchedBud = bud;
+                    break;
+                }
+            }
+
+            if (matchedOrder) {
+                // Handle Mind Changer Trick
+                if (matchedBud.isMindChanger && !matchedBud.hasChangedMind) {
+                    matchedBud.hasChangedMind = true;
+                    matchedBud.state = 'mind_changed';
+                    // Pick a DIFFERENT random food
+                    const otherFoods = FOODS.filter(f => f.id !== foodId);
+                    matchedOrder.food = otherFoods[Math.floor(Math.random() * otherFoods.length)];
+                    matchedBud.expression = "embarrassed";
+                    
+                    // Give a bit of time back
+                    currentPatience += 2000; 
+                    if (currentPatience > customerTimeLimit) customerTimeLimit = currentPatience; 
+                    
+                    SoundFX.playWomp();
+                    showToast("Wait, I want this!", "text-purple-500 bg-purple-50 border-purple-200");
+                    renderBuds();
+                    return;
+                }
+
+                // Normal Fulfillment
+                matchedOrder.fulfilled = true;
+                SoundFX.playItemPop();
+                renderBuds();
+
+                const allFulfilled = activeEvent.buds.every(b => b.orders.every(o => o.fulfilled));
+                if (allFulfilled) {
+                    handleSuccess();
+                }
+            } else {
+                handleFailure(false);
+            }
+        }
+
+        function handleSuccess() {
+            state = "feedback";
+            if (timer) clearInterval(timer);
+
+            const speedMultiplier = currentPatience / customerTimeLimit;
+            const comboMultiplier = combo >= 10 ? 3 : (combo >= 5 ? 2 : 1);
+            let scoreGained = Math.round((100 + (speedMultiplier * 50)) * comboMultiplier * activeEvent.buds.length);
+
+            score += scoreGained;
+            combo++;
+            if (combo > maxCombo) maxCombo = combo;
+            budsServed += activeEvent.buds.length;
+
+            updateHeader();
+            SoundFX.playCorrect();
+
+            activeEvent.buds.forEach(b => b.expression = "happy");
+            renderBuds();
+            showToast(`🎉 +${scoreGained}`, "text-emerald-500 bg-emerald-50 border-emerald-200");
+
+            setTimeout(() => {
+                customerWrapper.classList.remove("customer-active");
+                customerWrapper.classList.add("customer-exit-correct");
+                setTimeout(() => { state = "playing"; spawnCustomer(); }, 500);
+            }, 1000);
+        }
+
+        function handleFailure(isTimeout) {
+            state = "feedback";
+            if (timer) clearInterval(timer);
+
+            combo = 0; lives--;
+            updateHeader();
+
+            activeEvent.buds.forEach(b => {
+                b.expression = ["annoyed", "sad", "dizzy"][Math.floor(Math.random()*3)];
+                if (isTimeout) b.state = 'leaving';
+            });
+            renderBuds();
+
+            document.getElementById("game-viewport").classList.add("shake-effect");
+            setTimeout(() => document.getElementById("game-viewport").classList.remove("shake-effect"), 400);
+
+            SoundFX.playWrong();
+            if (isTimeout) showToast("⏰ Timeout!", "text-rose-500 bg-rose-50 border-rose-200");
+            else showToast("❌ Wrong Snack!", "text-rose-500 bg-rose-50 border-rose-200");
+
+            setTimeout(() => {
+                customerWrapper.classList.remove("customer-active");
+                customerWrapper.classList.add("customer-exit-fail");
+
+                setTimeout(() => {
+                    if (lives <= 0) endGame();
+                    else { state = "playing"; spawnCustomer(); }
+                }, 500);
+            }, 1200);
+        }
+
+        function handleTimeout() {
+            if (state !== "playing") return;
+            handleFailure(true);
+        }
+
+        function showToast(text, colorClasses) {
+            const toast = document.getElementById("feedback-toast");
+            toast.textContent = text;
+            toast.className = `absolute top-1/3 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-100 transition-all duration-300 font-bubble text-xl md:text-3xl px-4 py-2 rounded-2xl shadow-xl border-2 z-40 ${colorClasses}`;
+            setTimeout(() => { toast.classList.remove("opacity-100"); toast.classList.add("opacity-0"); }, 900);
+        }
+
+        function endGame() {
+            state = "gameover";
+            if (timer) clearInterval(timer);
+            SoundFX.playGameOver();
+            document.getElementById("final-score").textContent = score;
+            document.getElementById("final-combo").textContent = maxCombo;
+            document.getElementById("final-served").textContent = budsServed;
+            document.getElementById("play-screen").classList.add("hidden");
+            btnPause.classList.add("hidden");
+            document.getElementById("gameover-screen").classList.remove("hidden");
+        }
+
+        // --- EVENTS ---
+        btnStart.addEventListener("click", startGame);
+        btnRestart.addEventListener("click", startGame);
+        btnPause.addEventListener("click", togglePause);
+        btnResume.addEventListener("click", togglePause);
+        btnQuit.addEventListener("click", () => {
+            lives = 0; togglePause(); endGame();
+        });
+
+        function preloadAssets() {
+            [...Object.values(BUD_EXPRESSIONS), ...FOODS.map(f => f.img)].forEach(src => {
+                const img = new Image(); img.src = src;
+            });
+        }
+        window.onload = preloadAssets;
+    </script>
+</body>
+</html>
