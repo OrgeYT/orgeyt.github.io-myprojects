@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favicon Platformer</title>
+    <!-- We will dynamically inject the favicon via JS -->
+    <style>
+        :root {
+            --bg-color: #0a0a0a;
+            --text-color: #00ffcc;
+            --accent: #ff0055;
+            --tab-bg: #202124;
+            --tab-active: #323639;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        #level-display {
+            font-size: 4rem;
+            font-weight: bold;
+            margin: 1rem 0;
+            color: #00ff00;
+            text-shadow: 0 0 20px #00ff00;
+        }
+
+        .instructions {
+            max-width: 600px;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            color: #ccc;
+        }
+
+        .keys {
+            display: inline-block;
+            background: #222;
+            padding: 5px 10px;
+            border-radius: 4px;
+            color: #fff;
+            border: 1px solid #444;
+        }
+
+        /* Mock Browser Tab UI */
+        .mock-browser {
+            width: 400px;
+            background: var(--tab-bg);
+            border-radius: 8px 8px 0 0;
+            padding: 8px 8px 0 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid #444;
+            border-bottom: none;
+            margin-top: 2rem;
+        }
+
+        .mock-tab {
+            background: var(--tab-active);
+            border-radius: 6px 6px 0 0;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: fit-content;
+            min-width: 150px;
+            position: relative;
+        }
+
+        .mock-tab::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--tab-active);
+        }
+
+        .mock-tab span {
+            font-size: 14px;
+            color: #e8eaed;
+            font-family: Arial, sans-serif;
+            user-select: none;
+        }
+
+        /* The actual game canvas */
+        canvas {
+            width: 32px;
+            height: 32px;
+            image-rendering: pixelated; /* Keeps it sharp and blocky */
+            border-radius: 2px;
+        }
+
+        .notice {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 10px;
+            max-width: 400px;
+        }
+
+        #win-screen {
+            display: none;
+            color: #ffff00;
+            font-size: 3rem;
+            text-shadow: 0 0 20px #ffff00;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Favicon Platformer</h1>
+    
+    <div id="game-ui">
+        <div id="level-display">LEVEL 1</div>
+        <div class="instructions">
+            <p>You are the <strong>Cyan</strong> dot. The goal is the <span style="color:#ffff00">Yellow</span> block.<br>
+            Avoid the <span style="color:#ff0000">Red</span> kill bricks!</p>
+            <p>Use <span class="keys">W A S D</span> or <span class="keys">Arrow Keys</span> to move & jump.</p>
+        </div>
+    </div>
+
+    <div id="win-screen">YOU WIN!</div>
+
+    <div class="mock-browser" id="mock-browser">
+        <div class="mock-tab">
+            <canvas id="game-canvas" width="32" height="32"></canvas>
+            <span id="tab-title">Level 1 - Favicon Platformer</span>
+        </div>
+    </div>
+    <div class="notice" id="mock-notice">
+        (Simulated browser tab. If you open this page in a new window, the actual browser tab icon becomes the game screen!)
+    </div>
+
+    <script>
+        // --- GAME ENGINE & SETUP ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('level-display');
+        const tabTitle = document.getElementById('tab-title');
+        const gameUI = document.getElementById('game-ui');
+        const winScreen = document.getElementById('win-screen');
+
+        // Create the dynamic favicon element
+        const faviconLink = document.createElement('link');
+        faviconLink.rel = 'icon';
+        faviconLink.id = 'dynamic-favicon';
+        document.head.appendChild(faviconLink);
+
+        // --- LEVEL DESIGN (16x16 Grid, each tile is 2x2 pixels) ---
+        // . = Empty (Black)
+        // 1 = Floor/Wall (Green)
+        // 2 = Kill Brick (Red)
+        // G = Goal (Yellow)
+        // P = Player Spawn (Cyan)
+        const levels = [
+            [ // Level 1: Introduction
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "..........11111G",
+                "P.........111111",
+                "11........111111",
+                "111......1111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 2: The Gap
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "P..............G",
+                "11............11",
+                "111...2222...111",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 3: Platforming
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "................",
+                "...........G....",
+                "..........11....",
+                "......11........",
+                "................",
+                "P..11...........",
+                "1...............",
+                "1222222222222222",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 4: Tight Squeeze
+                "................",
+                "................",
+                "................",
+                "................",
+                "1111111111111111",
+                "1.............G1",
+                "11111111111...11",
+                "................",
+                "P...............",
+                "11111..11..11111",
+                "...11..11..11...",
+                "2221122222211222",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 5: Over and Under
+                "................",
+                "P..............1",
+                "11.............1",
+                "111.11...11....1",
+                "111.11...11.1..1",
+                "111.11...11.1..1",
+                "111.11...11.1.G1",
+                "111.11...11.1111",
+                "....11...11.....",
+                "....11...11.....",
+                "................",
+                "2222112221122222",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 6: Precision Drops
+                "................",
+                "................",
+                ".............G..",
+                ".............1..",
+                "...........1....",
+                ".........1......",
+                ".......1........",
+                ".....1..........",
+                "...1............",
+                ".1..............",
+                "P.........222222",
+                "1........1111111",
+                "1222222221111111",
+                "1111111111111111",
+                "1111111111111111",
+                "1111111111111111"
+            ],
+            [ // Level 7: The Final Ascent
+                "1111111111111111",
+                "1.............G1",
+                "1...11........11",
+                "1...22.........1",
+                "1...22....11...1",
+                "1..............1",
+                "1..............1",
+                "1...11.........1",
+                "1...22.........1",
+                "1...22.........1",
+                "1..............1",
+                "1.........11...1",
+                "1..............1",
+                "1P........22...1",
+                "1.........22...1",
+                "1111111111111111"
+            ]
+        ];
+
+        let currentLevel = 0;
+        let gameActive = true;
+
+        // Player physics state
+        const player = {
+            x: 0, y: 0, 
+            vx: 0, vy: 0,
+            w: 1.6, h: 1.6, // Slightly smaller than 2x2 grid to prevent snagging on corners
+            onGround: false
+        };
+
+        const config = {
+            gravity: 0.2,
+            jumpPower: -2.8,
+            speedX: 0.4,
+            maxSpeedX: 1.4,
+            maxSpeedY: 4.0,
+            friction: 0.75
+        };
+
+        const keys = {
+            up: false, left: false, right: false
+        };
+
+        // --- INPUT HANDLING ---
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) { keys.up = true; e.preventDefault(); }
+            if (['ArrowLeft', 'a', 'A'].includes(e.key)) { keys.left = true; }
+            if (['ArrowRight', 'd', 'D'].includes(e.key)) { keys.right = true; }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (['ArrowUp', 'w', 'W', ' '].includes(e.key)) keys.up = false;
+            if (['ArrowLeft', 'a', 'A'].includes(e.key)) keys.left = false;
+            if (['ArrowRight', 'd', 'D'].includes(e.key)) keys.right = false;
+        });
+
+        // --- GAME LOGIC ---
+        function loadLevel(index) {
+            if (index >= levels.length) {
+                winGame();
+                return;
+            }
+            currentLevel = index;
+            levelDisplay.innerText = `LEVEL ${index + 1}`;
+            tabTitle.innerText = `Level ${index + 1} - Favicon Platformer`;
+            
+            const lvlData = levels[index];
+            for (let r = 0; r < 16; r++) {
+                for (let c = 0; c < 16; c++) {
+                    if (lvlData[r][c] === 'P') {
+                        player.x = c * 2 + 0.2; // Add slight offset to center in 2x2 cell
+                        player.y = r * 2 + 0.2;
+                        player.vx = 0;
+                        player.vy = 0;
+                    }
+                }
+            }
+        }
+
+        function isColliding(x, y, tileTypes) {
+            // Check bounding box intersection with tiles
+            const leftCol = Math.floor(x / 2);
+            const rightCol = Math.floor((x + player.w) / 2);
+            const topRow = Math.floor(y / 2);
+            const bottomRow = Math.floor((y + player.h) / 2);
+
+            for (let r = topRow; r <= bottomRow; r++) {
+                for (let c = leftCol; c <= rightCol; c++) {
+                    // Out of bounds counts as solid wall
+                    if (r < 0 || r > 15 || c < 0 || c > 15) {
+                        if (tileTypes.includes('1')) return true;
+                        continue;
+                    }
+                    if (tileTypes.includes(levels[currentLevel][r][c])) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function updatePhysics() {
+            if (!gameActive) return;
+
+            // Horizontal Movement
+            if (keys.left) player.vx -= config.speedX;
+            if (keys.right) player.vx += config.speedX;
+            player.vx *= config.friction;
+
+            if (player.vx > config.maxSpeedX) player.vx = config.maxSpeedX;
+            if (player.vx < -config.maxSpeedX) player.vx = -config.maxSpeedX;
+
+            player.x += player.vx;
+
+            // Horizontal Collision (Walls)
+            if (isColliding(player.x, player.y, ['1'])) {
+                if (player.vx > 0) {
+                    player.x = Math.floor((player.x + player.w) / 2) * 2 - player.w - 0.01;
+                } else if (player.vx < 0) {
+                    player.x = Math.floor(player.x / 2) * 2 + 2.01;
+                }
+                player.vx = 0;
+            }
+
+            // Vertical Movement
+            player.vy += config.gravity;
+            if (player.vy > config.maxSpeedY) player.vy = config.maxSpeedY;
+            
+            player.y += player.vy;
+            player.onGround = false;
+
+            // Vertical Collision (Floor/Ceiling)
+            if (isColliding(player.x, player.y, ['1'])) {
+                if (player.vy > 0) {
+                    player.y = Math.floor((player.y + player.h) / 2) * 2 - player.h - 0.01;
+                    player.onGround = true;
+                } else if (player.vy < 0) {
+                    player.y = Math.floor(player.y / 2) * 2 + 2.01;
+                }
+                player.vy = 0;
+            }
+
+            // Jump
+            if (keys.up && player.onGround) {
+                player.vy = config.jumpPower;
+                player.onGround = false;
+            }
+
+            // Check interactions (Death or Win)
+            if (isColliding(player.x, player.y, ['2']) || player.y > 32) {
+                // Death (Lava/Spikes or fall out of bounds)
+                loadLevel(currentLevel); 
+            } else if (isColliding(player.x, player.y, ['G'])) {
+                // Goal reached
+                loadLevel(currentLevel + 1);
+            }
+        }
+
+        function winGame() {
+            gameActive = false;
+            gameUI.style.display = 'none';
+            winScreen.style.display = 'block';
+            tabTitle.innerText = "YOU WIN! - Favicon Platformer";
+            
+            // Draw a smiley face to the canvas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(4, 4, 24, 24); // face base
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(8, 8, 4, 4); // left eye
+            ctx.fillRect(20, 8, 4, 4); // right eye
+            ctx.fillRect(8, 20, 16, 4); // mouth
+            ctx.fillRect(6, 18, 4, 4); // mouth edge
+            ctx.fillRect(22, 18, 4, 4); // mouth edge
+            
+            forceFaviconUpdate();
+        }
+
+        function drawGame() {
+            if (!gameActive) return;
+
+            // Clear background
+            ctx.fillStyle = '#000000'; // Black
+            ctx.fillRect(0, 0, 32, 32);
+
+            const lvlData = levels[currentLevel];
+
+            // Draw level
+            for (let r = 0; r < 16; r++) {
+                for (let c = 0; c < 16; c++) {
+                    const tile = lvlData[r][c];
+                    if (tile === '1') {
+                        ctx.fillStyle = '#00FF00'; // Green Floor
+                        ctx.fillRect(c * 2, r * 2, 2, 2);
+                    } else if (tile === '2') {
+                        ctx.fillStyle = '#FF0000'; // Red Kill Brick
+                        ctx.fillRect(c * 2, r * 2, 2, 2);
+                    } else if (tile === 'G') {
+                        ctx.fillStyle = '#FFFF00'; // Yellow Goal
+                        ctx.fillRect(c * 2, r * 2, 2, 2);
+                    }
+                }
+            }
+
+            // Draw player
+            ctx.fillStyle = '#00FFFF'; // Cyan Player
+            ctx.fillRect(Math.floor(player.x), Math.floor(player.y), 2, 2);
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            drawGame();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- DYNAMIC FAVICON EXPORT ---
+        // We separate this from requestAnimationFrame so we don't crash the browser.
+        // 20 times a second (50ms) is fast enough to look like a game, but slow enough to be stable.
+        function forceFaviconUpdate() {
+            // Export canvas to base64 PNG and update the actual tab favicon
+            faviconLink.href = canvas.toDataURL('image/png');
+        }
+
+        // --- INITIALIZATION ---
+        loadLevel(0);
+        gameLoop();
+        
+        // Start the favicon syncing interval
+        setInterval(() => {
+            if (gameActive) forceFaviconUpdate();
+        }, 50);
+
+    </script>
+</body>
+</html>
