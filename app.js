@@ -382,6 +382,14 @@ runnerFrame.addEventListener('load', () => {
 // --- Modals & Options ---
 // ==========================================
 
+// Downloads Modal Logic
+const downloadsModal = document.getElementById('downloads-modal');
+const downloadsBtn = document.getElementById('downloads-btn');
+const closeDownloadsBtn = document.getElementById('close-downloads-btn');
+
+downloadsBtn.addEventListener('click', () => downloadsModal.classList.remove('hidden'));
+closeDownloadsBtn.addEventListener('click', () => downloadsModal.classList.add('hidden'));
+
 // Theme Modal
 const themeModal = document.getElementById('theme-modal');
 const themeBtn = document.getElementById('theme-settings-btn');
