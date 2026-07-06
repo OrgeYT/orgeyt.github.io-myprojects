@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HP Bar SVG Generator</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- JSZip for creating the zip file in the browser -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen p-6">
+
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <div class="bg-blue-600 text-white p-6">
+            <h1 class="text-2xl font-bold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                HP Bar SVG Generator
+            </h1>
+            <p class="text-blue-100 text-sm mt-1">Generate custom vector health bars with precise ranges in a single ZIP.</p>
+        </div>
+
+        <div class="p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Settings Panel -->
+                <div class="space-y-6">
+                    <h2 class="text-lg font-semibold border-b pb-2">Settings</h2>
+                    
+                    <!-- HP Range Fields -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Min HP Value</label>
+                            <input type="number" id="minHp" value="0" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 p-2 border">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Max HP Value</label>
+                            <input type="number" id="maxHp" value="100" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 p-2 border">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Color Mode</label>
+                        <select id="colorMode" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 p-2 border">
+                            <option value="gradient">Interpolated (e.g. Red to Green)</option>
+                            <option value="solid">Solid Color</option>
+                        </select>
+                    </div>
+
+                    <!-- Solid Color Picker -->
+                    <div id="solidSettings" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bar Color</label>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="solidColor" value="#22c55e" class="h-10 w-14 cursor-pointer rounded border border-gray-300">
+                            <span class="text-sm text-gray-500">Fixed color for all percentages</span>
+                        </div>
+                    </div>
+
+                    <!-- Gradient Color Pickers -->
+                    <div id="gradientSettings" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Color Stops (Min to Max HP)</label>
+                            <div id="colorStopsContainer" class="space-y-2">
+                                <!-- Colors injected dynamically via JS -->
+                            </div>
+                            <button id="addColorBtn" class="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1 bg-blue-50 py-1 px-3 rounded-md border border-blue-100 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                                </svg>
+                                Add Color Stop
+                            </button>
+                            <p class="text-xs text-gray-500 mt-2">Top color is Min HP, bottom color is Max HP. The bar will seamlessly blend between all stops.</p>
+                        </div>
+                    </div>
+
+                    <!-- Text Overlay Options -->
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Overlay Text Format</label>
+                            <select id="textFormat" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-50 p-2 border">
+                                <option value="percent">Percentage (e.g. 50%)</option>
+                                <option value="value">Raw Value (e.g. 100)</option>
+                                <option value="fraction">Fraction (e.g. 100/200)</option>
+                            </select>
+                        </div>
+
+                        <div class="space-y-3 pt-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="showText" class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4" checked>
+                                <span class="text-sm font-medium text-gray-700">Show Text Overlay</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="scratchMode" class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                <span class="text-sm font-medium text-gray-700">Scratch 3.0 Compatibility Mode</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Panel -->
+                <div>
+                    <h2 class="text-lg font-semibold border-b pb-2 mb-4">Live Preview</h2>
+                    <div class="bg-gray-100 p-4 rounded-lg space-y-4" id="previewContainer">
+                        <!-- Previews injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="mt-8 border-t pt-6 text-center">
+                <button id="downloadBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition-colors flex items-center justify-center gap-2 mx-auto w-full md:w-auto">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    <span id="downloadBtnText">Download ZIP (101 SVGs)</span>
+                </button>
+                <p id="helperText" class="text-xs text-gray-500 mt-3">Files will be named 0.svg, 1.svg ... up to 100.svg</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const minHpInput = document.getElementById('minHp');
+        const maxHpInput = document.getElementById('maxHp');
+        const colorMode = document.getElementById('colorMode');
+        const solidSettings = document.getElementById('solidSettings');
+        const gradientSettings = document.getElementById('gradientSettings');
+        const solidColor = document.getElementById('solidColor');
+        const colorStopsContainer = document.getElementById('colorStopsContainer');
+        const addColorBtn = document.getElementById('addColorBtn');
+        const textFormat = document.getElementById('textFormat');
+        const showText = document.getElementById('showText');
+        const scratchMode = document.getElementById('scratchMode');
+        const previewContainer = document.getElementById('previewContainer');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadBtnText = document.getElementById('downloadBtnText');
+        const helperText = document.getElementById('helperText');
+
+        // Helper to convert Hex to RGB object
+        function hexToRgb(hex) {
+            let r = 0, g = 0, b = 0;
+            if (hex.length === 4) {
+                r = parseInt(hex[1] + hex[1], 16);
+                g = parseInt(hex[2] + hex[2], 16);
+                b = parseInt(hex[3] + hex[3], 16);
+            } else if (hex.length === 7) {
+                r = parseInt(hex.substring(1, 3), 16);
+                g = parseInt(hex.substring(3, 5), 16);
+                b = parseInt(hex.substring(5, 7), 16);
+            }
+            return { r, g, b };
+        }
+
+        // Calculate color based on fractional progress (0.0 to 1.0)
+        function getColorForRatio(ratio) {
+            const mode = colorMode.value;
+            if (mode === 'solid') {
+                return solidColor.value;
+            } else {
+                const colorInputs = Array.from(document.querySelectorAll('.color-stop-input'));
+                const hexColors = colorInputs.map(input => input.value);
+                
+                if (hexColors.length === 0) return '#000000';
+                if (hexColors.length === 1) return hexColors[0];
+                if (ratio <= 0) return hexColors[0];
+                if (ratio >= 1) return hexColors[hexColors.length - 1];
+
+                // Calculate which two colors we are currently between
+                const segmentCount = hexColors.length - 1;
+                const scaledRatio = ratio * segmentCount;
+                const index = Math.floor(scaledRatio);
+                const localRatio = scaledRatio - index;
+
+                // Safety catch for exact upper bound
+                if (index >= segmentCount) return hexColors[segmentCount];
+
+                const start = hexToRgb(hexColors[index]);
+                const end = hexToRgb(hexColors[index + 1]);
+                
+                // Linear interpolation formula between the two active color stops
+                const r = Math.round(start.r + (end.r - start.r) * localRatio);
+                const g = Math.round(start.g + (end.g - start.g) * localRatio);
+                const b = Math.round(start.b + (end.b - start.b) * localRatio);
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+        }
+
+        // Core logic to generate SVG markup
+        function generateSVG(value, isForDownload = false) {
+            const min = parseInt(minHpInput.value) || 0;
+            const max = parseInt(maxHpInput.value) || 100;
+            
+            // Calculate progress ratio securely
+            let ratio = 0;
+            if (max > min) {
+                ratio = (value - min) / (max - min);
+            }
+            ratio = Math.max(0, Math.min(1, ratio)); // Clamp to [0, 1]
+
+            const color = getColorForRatio(ratio);
+            const hasText = showText.checked;
+            const isScratch = scratchMode.checked;
+            
+            const width = 200;
+            const height = 24;
+            const strokeWidth = 2;
+            const innerMargin = 2;
+            
+            const maxFillWidth = width - (innerMargin * 2);
+            const fillWidth = ratio * maxFillWidth;
+
+            // Conditional markup elements
+            const fillRect = fillWidth > 0 
+                ? `<rect x="${innerMargin}" y="${innerMargin}" width="${fillWidth}" height="${height - (innerMargin * 2)}" rx="2" fill="${color}"/>` 
+                : '';
+                
+            let textString = '';
+            const percentValue = Math.round(ratio * 100);
+            
+            if (textFormat.value === 'percent') {
+                textString = `${percentValue}%`;
+            } else if (textFormat.value === 'value') {
+                textString = `${value}`;
+            } else {
+                textString = `${value}/${max}`;
+            }
+
+            let textElement = '';
+            if (hasText) {
+                if (isScratch) {
+                    // Scratch ignores direct x/y attributes on <text>, so we must use transform="translate(x,y)"
+                    // We also stack them to create the outline effect since it lacks paint-order support
+                    textElement = `
+    <text transform="translate(${width / 2}, 16)" font-family="Sans Serif" font-size="12" font-weight="bold" fill="#000000" text-anchor="middle" stroke="#000000" stroke-width="2.5" stroke-linejoin="round" xml:space="preserve" style="mix-blend-mode: normal"><tspan x="0" dy="0">${textString}</tspan></text>
+    <text transform="translate(${width / 2}, 16)" font-family="Sans Serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle" stroke="none" xml:space="preserve" style="mix-blend-mode: normal"><tspan x="0" dy="0">${textString}</tspan></text>`;
+                } else {
+                    textElement = `<text x="${width / 2}" y="16" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif" font-size="12" font-weight="bold" fill="#ffffff" text-anchor="middle" stroke="#000000" stroke-width="2" paint-order="stroke fill">${textString}</text>`;
+                }
+            }
+
+            const xmlDeclaration = isForDownload ? '<?xml version="1.0" encoding="UTF-8"?>\n' : '';
+
+            const svgAttrs = isScratch 
+                ? `version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"`
+                : `xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}"`;
+
+            const groupStart = isScratch 
+                ? `\n    <g data-paper-data="{&quot;isPaintingLayer&quot;:true}" fill-rule="nonzero" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10" stroke-dasharray="" stroke-dashoffset="0" style="mix-blend-mode: normal">` 
+                : '';
+            const groupEnd = isScratch ? `\n    </g>` : '';
+
+            return `${xmlDeclaration}<svg ${svgAttrs}>${groupStart}
+    <!-- Background Frame -->
+    <rect x="0" y="0" width="${width}" height="${height}" rx="4" fill="#2d3748" stroke="#1a202c" stroke-width="${strokeWidth}"/>
+    
+    <!-- Health Fill -->
+    ${fillRect}
+    
+    <!-- Text Overlay -->
+    ${textElement}${groupEnd}
+</svg>`;
+        }
+
+        // Update the live previews and button info
+        function updatePreviews() {
+            let min = parseInt(minHpInput.value);
+            let max = parseInt(maxHpInput.value);
+
+            // Sanitization fallback
+            if (isNaN(min)) min = 0;
+            if (isNaN(max)) max = 100;
+            if (max < min) {
+                // Keep max always above or equal to min
+                max = min;
+            }
+
+            const totalFiles = max - min + 1;
+            downloadBtnText.innerText = `Download ZIP (${totalFiles} SVGs)`;
+            helperText.innerText = `Files will be named ${min}.svg, ${min + 1}.svg ... up to ${max}.svg`;
+
+            previewContainer.innerHTML = '';
+            
+            // Calculate 5 steps based on range
+            const previewSteps = [];
+            if (max === min) {
+                previewSteps.push(min);
+            } else {
+                for (let i = 0; i < 5; i++) {
+                    const val = Math.round(min + (max - min) * (i / 4));
+                    if (!previewSteps.includes(val)) {
+                        previewSteps.push(val);
+                    }
+                }
+            }
+            
+            previewSteps.forEach(val => {
+                const svgMarkup = generateSVG(val, false);
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col items-center gap-1';
+                wrapper.innerHTML = `
+                    <span class="text-xs font-medium text-gray-500 w-full text-left pl-2">Value: ${val}</span>
+                    <div class="shadow-sm rounded bg-white p-1">
+                        ${svgMarkup}
+                    </div>
+                `;
+                previewContainer.appendChild(wrapper);
+            });
+        }
+
+        // Handle generation and zipping
+        async function handleDownload() {
+            let min = parseInt(minHpInput.value);
+            let max = parseInt(maxHpInput.value);
+
+            if (isNaN(min)) min = 0;
+            if (isNaN(max)) max = 100;
+            if (max < min) {
+                alert("Max HP must be greater than or equal to Min HP!");
+                return;
+            }
+
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = `
+                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Generating ZIP...
+            `;
+            downloadBtn.disabled = true;
+            downloadBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+            try {
+                const zip = new JSZip();
+
+                // Generate SVGs from Min to Max
+                for (let i = min; i <= max; i++) {
+                    const svgContent = generateSVG(i, true);
+                    zip.file(`${i}.svg`, svgContent);
+                }
+
+                // Compress and download
+                const blob = await zip.generateAsync({ type: "blob" });
+                const url = URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `hp_bars_${min}_to_${max}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Failed to generate ZIP:", error);
+                alert("An error occurred while generating the ZIP file.");
+            } finally {
+                // Restore button
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+                downloadBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            }
+        }
+
+        // Event Listeners for UI toggles
+        colorMode.addEventListener('change', (e) => {
+            if (e.target.value === 'solid') {
+                solidSettings.classList.remove('hidden');
+                gradientSettings.classList.add('hidden');
+            } else {
+                solidSettings.classList.add('hidden');
+                gradientSettings.classList.remove('hidden');
+            }
+            updatePreviews();
+        });
+
+        // Dynamic Color Stops Logic
+        function createColorStop(value) {
+            const div = document.createElement('div');
+            div.className = 'flex items-center gap-3 animate-fade-in';
+            
+            const input = document.createElement('input');
+            input.type = 'color';
+            input.value = value;
+            input.className = 'color-stop-input h-10 w-14 cursor-pointer rounded border border-gray-300';
+            input.addEventListener('input', updatePreviews);
+            input.addEventListener('change', updatePreviews);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>`;
+            removeBtn.className = 'text-red-400 hover:text-red-600 transition-colors p-1 bg-white rounded-md border shadow-sm';
+            removeBtn.title = 'Remove color';
+            removeBtn.onclick = () => {
+                if (document.querySelectorAll('.color-stop-input').length > 2) {
+                    div.remove();
+                    updatePreviews();
+                } else {
+                    alert('You must have at least 2 colors for an interpolated gradient.');
+                }
+            };
+
+            div.appendChild(input);
+            div.appendChild(removeBtn);
+            return div;
+        }
+
+        addColorBtn.addEventListener('click', () => {
+            colorStopsContainer.appendChild(createColorStop('#3b82f6')); // Default to a blue
+            updatePreviews();
+        });
+
+        // Initialize default colors (Red -> Yellow -> Green)
+        colorStopsContainer.appendChild(createColorStop('#ef4444'));
+        colorStopsContainer.appendChild(createColorStop('#eab308'));
+        colorStopsContainer.appendChild(createColorStop('#22c55e'));
+
+        // Add preview update triggers to all static inputs
+        [minHpInput, maxHpInput, solidColor, showText, scratchMode, textFormat].forEach(input => {
+            input.addEventListener('input', updatePreviews);
+            input.addEventListener('change', updatePreviews);
+        });
+
+        downloadBtn.addEventListener('click', handleDownload);
+
+        // Initial setup
+        updatePreviews();
+    </script>
+</body>
+</html>
