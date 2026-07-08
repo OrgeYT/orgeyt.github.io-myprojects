@@ -412,6 +412,14 @@ body.layout-down #file-list { max-height: 200px; }
     text-align: left;
     transition: background-color 0.2s, transform 0.1s, border-color 0.3s, color 0.3s;
     font-size: 0.9rem;
+    
+    /* ADD THESE LINES TO FIX THE NOCLIP */
+    display: block;          /* Ensures it respects width/max-width */
+    width: 100%;             /* Ensures it fills the sidebar */
+    white-space: nowrap;     /* Prevents the text from wrapping */
+    overflow: hidden;        /* Hides text that goes out of bounds */
+    text-overflow: ellipsis; /* Adds the "..." when text is too long */
+    min-width: 0;            /* Prevents the button from forcing the parent to grow */
 }
 
 .file-btn:hover {
