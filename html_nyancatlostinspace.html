@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nyan Cat Flash Player</title>
+    <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; }
+        #flash-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        #flash-container > ruffle-player { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <div id="flash-container"></div>
+    <audio id="customAudio" class="hidden" loop></audio>
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="fixed top-0 left-0 h-full w-72 bg-purple-900/95 backdrop-blur-md text-white p-6 transform -translate-x-full transition-transform duration-300 z-50 shadow-2xl overflow-y-auto border-r-4 border-pink-400">
+        <h2 class="text-2xl font-bold mb-6 text-pink-300 border-b border-pink-400 pb-2">Nyan Controls</h2>
+        
+        <div class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium mb-2 text-pink-200">Scale (%)</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" id="scaleX" placeholder="Width %" value="100" step="0.1" class="bg-purple-800 p-2 rounded text-white border border-pink-400">
+                    <input type="number" id="scaleY" placeholder="Height %" value="100" step="0.1" class="bg-purple-800 p-2 rounded text-white border border-pink-400">
+                </div>
+                <button onclick="applyScale()" class="mt-2 w-full bg-pink-600 hover:bg-pink-500 py-2 rounded transition font-bold">Apply Scale</button>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-pink-200">Custom Music (Loops)</label>
+                <input type="file" id="audioUpload" accept="audio/*" class="w-full text-sm text-pink-200 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-pink-700 file:text-white hover:file:bg-pink-600">
+                <div class="flex gap-2">
+                    <button onclick="playMusic()" class="flex-1 bg-green-600 hover:bg-green-500 py-2 rounded">Play</button>
+                    <button onclick="pauseMusic()" class="flex-1 bg-gray-600 hover:bg-gray-500 py-2 rounded">Pause</button>
+                    <button onclick="stopMusic()" class="flex-1 bg-red-600 hover:bg-red-500 py-2 rounded">Stop</button>
+                </div>
+            </div>
+
+            <div class="space-y-2 border-t border-pink-400 pt-4">
+                <label class="block text-sm font-medium text-pink-200">Chat Messages</label>
+                <input type="text" id="c1" placeholder="Chat 1" class="w-full bg-purple-800 p-2 rounded border border-pink-400">
+                <input type="text" id="c2" placeholder="Chat 2" class="w-full bg-purple-800 p-2 rounded border border-pink-400">
+                <input type="text" id="c3" placeholder="Chat 3" class="w-full bg-purple-800 p-2 rounded border border-pink-400">
+                <button onclick="generateChatLink()" class="w-full bg-blue-600 hover:bg-blue-500 py-2 rounded transition">Generate Link</button>
+            </div>
+
+            <button onclick="restartRuffle()" class="w-full bg-yellow-600 hover:bg-yellow-500 py-2 rounded transition font-bold">Restart Animation</button>
+        </div>
+
+        <!-- Decorative Nyan at the bottom -->
+        <div class="mt-12 flex justify-center">
+            <img src="https://file.garden/Zj01o_oh-G9Y8APf/nyan.gif" alt="Nyan Cat" class="w-24 opacity-80">
+        </div>
+    </div>
+
+    <button onclick="toggleSidebar()" class="fixed top-4 left-4 z-50 bg-pink-600 p-3 rounded-full hover:bg-pink-500 transition shadow-lg text-white">☰</button>
+
+    <script>
+        const ruffle = window.RufflePlayer.newest();
+        let player = ruffle.createPlayer();
+        const container = document.getElementById("flash-container");
+        const audio = document.getElementById("customAudio");
+        const swfUrl = "https://file.garden/Zj01o_oh-G9Y8APf/570085_NyanCat.swf";
+
+        document.getElementById('audioUpload').onchange = (e) => {
+            audio.src = URL.createObjectURL(e.target.files[0]);
+        };
+
+        function playMusic() {
+            audio.play();
+            player.volume = 0; 
+        }
+        function pauseMusic() { audio.pause(); }
+        function stopMusic() { 
+            audio.pause(); 
+            audio.currentTime = 0; 
+            player.volume = 1; 
+        }
+
+        function loadPlayer(url) {
+            container.innerHTML = "";
+            container.appendChild(player);
+            player.style.width = "100%";
+            player.style.height = "100%";
+            player.load({ url: url || swfUrl });
+        }
+
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('-translate-x-full'); }
+
+        function applyScale() {
+            player.style.width = document.getElementById('scaleX').value + "%";
+            player.style.height = document.getElementById('scaleY').value + "%";
+        }
+
+        function generateChatLink() {
+            const c1 = encodeURIComponent(document.getElementById('c1').value);
+            const c2 = encodeURIComponent(document.getElementById('c2').value);
+            const c3 = encodeURIComponent(document.getElementById('c3').value);
+            window.location.href = `${window.location.origin}${window.location.pathname}?chat1=${c1}&chat2=${c2}&chat3=${c3}`;
+        }
+
+        function restartRuffle() { loadPlayer(); }
+
+        window.addEventListener("DOMContentLoaded", () => loadPlayer());
+    </script>
+</body>
+</html>
