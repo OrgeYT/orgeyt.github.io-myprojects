@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nyan Cat: Lost in Space (Remake)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #003366;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
+            color: white;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        
+        /* UI Screens */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 50, 0.8);
+            z-index: 10;
+            transition: opacity 0.3s;
+        }
+        .hidden {
+            display: none !important;
+        }
+        
+        /* Buttons */
+        .btn {
+            background-color: #ff0055;
+            color: white;
+            border: 4px solid #fff;
+            padding: 15px 30px;
+            margin: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 5px 0 #990033;
+            transition: transform 0.1s, box-shadow 0.1s;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 250px;
+        }
+        .btn:active {
+            transform: translateY(5px);
+            box-shadow: 0 0 0 #990033;
+        }
+        .btn.disabled {
+            background-color: #666;
+            box-shadow: 0 5px 0 #333;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
+        .btn.disabled:active {
+            transform: none;
+            box-shadow: 0 5px 0 #333;
+        }
+        
+        /* Titles */
+        h1 {
+            color: #ff99cc;
+            text-shadow: 3px 3px 0 #fff, -2px -2px 0 #000;
+            font-size: 40px;
+            margin-bottom: 40px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        h2 {
+            color: #ffea00;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 30px;
+        }
+
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 5;
+            pointer-events: none;
+            text-shadow: 2px 2px 0 #000;
+            font-size: 14px;
+        }
+        
+        /* Modals */
+        .modal {
+            background: #0055aa;
+            border: 6px solid white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 80%;
+        }
+
+        /* Popups */
+        #alert-popup {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #ffcc00;
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div id="hud" class="hidden">
+        <div id="score-display">Score: 0</div>
+        <div id="multiplier-display">Mult: 1x</div>
+        <div id="coin-display">Coins: 0</div>
+    </div>
+
+    <!-- Title Screen -->
+    <div id="screen-title" class="screen">
+        <h1>NYAN CAT<br>LOST IN SPACE</h1>
+        <button class="btn" id="btn-play">Play</button>
+        <button class="btn disabled" onclick="showAlert('Editor is Work In Progress')">Nyan Cat Editor (WIP)</button>
+        <button class="btn disabled" onclick="showAlert('Goals are Work In Progress')">Goals (WIP)</button>
+        <button class="btn disabled" onclick="showAlert('Shop is Work In Progress')">Shop (WIP)</button>
+        <button class="btn" onclick="document.getElementById('screen-settings').classList.remove('hidden')">Settings</button>
+    </div>
+
+    <!-- Settings Screen -->
+    <div id="screen-settings" class="screen hidden">
+        <div class="modal">
+            <h2>Settings</h2>
+            <p style="margin-bottom: 30px; font-size: 12px; line-height: 2;">
+                Music: [WIP]<br>
+                SFX: [WIP]<br>
+                Controls: Space/Tap to Jump
+            </p>
+            <button class="btn" onclick="document.getElementById('screen-settings').classList.add('hidden')">Back</button>
+        </div>
+    </div>
+
+    <!-- Mode Select Screen -->
+    <div id="screen-mode" class="screen hidden">
+        <h2>Select Mode</h2>
+        <button class="btn" id="btn-mode-classic">Classic</button>
+        <button class="btn disabled" onclick="showAlert('Universe Mode is WIP')">Universe (WIP)</button>
+        <button class="btn disabled" onclick="showAlert('Nyan Wings Mode is WIP')">Nyan Wings (WIP)</button>
+        <button class="btn disabled" onclick="showAlert('Zen Mode is WIP')">Zen (WIP)</button>
+        <button class="btn disabled" onclick="showAlert('Tac Nayn Mode is WIP')">Tac Nayn (WIP)</button>
+        <button class="btn" style="margin-top: 30px; background: #555;" onclick="showScreen('screen-title')">Back</button>
+    </div>
+
+    <!-- Revive Screen -->
+    <div id="screen-revive" class="screen hidden">
+        <div class="modal">
+            <h2>Oh no!</h2>
+            <p>You fell into the void!</p>
+            <p style="margin: 20px 0; color: #ffea00;" id="revive-cost">Cost: 15 Coins</p>
+            <button class="btn" id="btn-revive">Revive (Fly up!)</button>
+            <button class="btn" style="background: #555;" id="btn-gameover">Give Up</button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="screen-gameover" class="screen hidden">
+        <div class="modal">
+            <h2 style="color: #ff0055;">Game Over</h2>
+            <p id="final-score">Score: 0</p>
+            <p id="final-coins" style="margin-bottom: 20px;">Coins: 0</p>
+            <button class="btn" id="btn-restart">Play Again</button>
+            <button class="btn" style="background: #555;" onclick="showScreen('screen-title')">Main Menu</button>
+        </div>
+    </div>
+
+    <!-- Alert Popup -->
+    <div id="alert-popup">Message</div>
+</div>
+
+<script>
+    // --- UTILS & CORE SETUP ---
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let cw, ch;
+    function resize() {
+        cw = window.innerWidth;
+        ch = window.innerHeight;
+        canvas.width = cw;
+        canvas.height = ch;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Sprite Sheet Loading
+    const spriteImg = new Image();
+    spriteImg.src = 'https://file.garden/Zj01o_oh-G9Y8APf/nyan%20cat%20wing/skin_cathero_2x.webp';
+    
+    // Extracted frames for normal running from provided XML
+    const NYAN_FRAMES = [
+        {x: 139, y: 499, w: 130, h: 81},
+        {x: 139, y: 329, w: 133, h: 81},
+        {x: 2,   y: 410, w: 133, h: 81},
+        {x: 276, y: 405, w: 133, h: 81},
+        {x: 139, y: 414, w: 133, h: 81},
+        {x: 2,   y: 580, w: 130, h: 81}
+    ];
+
+    function showAlert(msg) {
+        const popup = document.getElementById('alert-popup');
+        popup.innerText = msg;
+        popup.style.opacity = 1;
+        setTimeout(() => popup.style.opacity = 0, 2000);
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+        if(id) document.getElementById(id).classList.remove('hidden');
+    }
+
+    // --- GAME STATE & CONSTANTS ---
+    let GAME_STATE = 'MENU'; // MENU, PLAYING, REVIVE, GAMEOVER
+    let lastTime = 0;
+    
+    let camera = { x: 0, y: 0 };
+    
+    const BASE_SPEED = 400; // px per second
+    const GRAVITY = 1800;
+    const JUMP_FORCE = -750;
+    
+    let game = {
+        score: 0,
+        rawScore: 0,
+        multiplier: 1,
+        coins: 0,
+        speed: BASE_SPEED,
+        speedModifier: 1,
+        platforms: [],
+        items: [],
+        particles: [],
+        bgStars: [],
+        lastGenX: 0
+    };
+
+    // --- CLASSES ---
+
+    class Player {
+        constructor() {
+            this.reset();
+        }
+        
+        reset() {
+            this.x = 200;
+            this.y = ch / 2 - 200;
+            this.vx = 0;
+            this.vy = 0;
+            this.width = 70; // Hitbox width
+            this.height = 45; // Hitbox height
+            this.grounded = false;
+            
+            this.frameTime = 0;
+            this.frameIdx = 0;
+            
+            this.powerups = {}; // Store active powerups and remaining time
+            this.trail = [];
+            this.jumpCount = 0;
+            this.jumpDisabled = false;
+            this.slowed = false;
+        }
+
+        hasPower(name) {
+            return this.powerups[name] && this.powerups[name] > 0;
+        }
+
+        applyPowerup(name, duration) {
+            this.powerups[name] = duration;
+            if(name === 'cape' || name === 'balloon') {
+                this.vy = 0;
+            }
+        }
+
+        update(dt) {
+            // Powerup Logic & Timers
+            game.speedModifier = 1;
+            let currentGravity = GRAVITY;
+            this.jumpDisabled = false;
+            this.slowed = false;
+
+            for (let p in this.powerups) {
+                if (this.powerups[p] > 0) {
+                    this.powerups[p] -= dt;
+                    if (this.powerups[p] <= 0) {
+                        this.powerups[p] = 0;
+                        if(p === 'coffee') this.applyPowerup('coffee_crash', 3); // 3 sec slow
+                    }
+                }
+            }
+
+            if (this.hasPower('coffee')) game.speedModifier = 1.8;
+            if (this.hasPower('coffee_crash')) game.speedModifier = 0.5;
+            if (this.hasPower('sugar')) game.speedModifier = 1.4;
+            if (this.hasPower('batman')) currentGravity = GRAVITY * 0.4;
+            if (this.hasPower('sticky')) { this.jumpDisabled = true; game.speedModifier = 0.6; }
+            if (this.hasPower('ice')) { this.jumpDisabled = true; }
+
+            // Movement
+            this.vx = game.speed * game.speedModifier;
+            if (this.hasPower('cape')) this.vx *= 1.5;
+
+            this.x += this.vx * dt;
+
+            // Y Movement
+            if (this.hasPower('balloon') || this.hasPower('cape')) {
+                // Fly towards mouse Y
+                let targetY = input.mouseY;
+                if(targetY === 0) targetY = ch/2;
+                let diff = (targetY + camera.y) - (this.y + this.height/2);
+                this.vy = diff * 5; // Smoothing
+            } else {
+                this.vy += currentGravity * dt;
+            }
+
+            this.y += this.vy * dt;
+
+            // Animation
+            this.frameTime += dt;
+            if (this.frameTime > 0.08) {
+                this.frameTime = 0;
+                this.frameIdx = (this.frameIdx + 1) % NYAN_FRAMES.length;
+            }
+
+            // Rainbow Trail
+            if (this.x - (this.trail.length > 0 ? this.trail[this.trail.length-1].x : 0) > 10 || Math.abs(this.vy) > 100) {
+                this.trail.push({x: this.x, y: this.y + this.height/2});
+                if(this.trail.length > 30) this.trail.shift();
+            }
+
+            // Death condition
+            if (this.y > camera.y + ch + 200) {
+                triggerDeath();
+            }
+        }
+
+        jump() {
+            if (this.jumpDisabled || this.hasPower('balloon') || this.hasPower('cape')) return;
+            if (this.grounded || this.jumpCount < 2 || this.hasPower('bubble')) {
+                this.vy = JUMP_FORCE;
+                if (!this.grounded && !this.hasPower('bubble')) {
+                    this.jumpCount++;
+                } else if (this.grounded) {
+                    this.jumpCount = 1;
+                }
+                this.grounded = false;
+                createParticles(this.x, this.y + this.height, '#fff', 10);
+            }
+        }
+
+        draw(ctx) {
+            // Draw Trail
+            if (this.trail.length > 1) {
+                const colors = ['#ff0000', '#ff9900', '#ffff00', '#33cc00', '#0099ff', '#6633cc'];
+                const bandHeight = this.height / colors.length;
+                
+                for (let c = 0; c < colors.length; c++) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = colors[c];
+                    ctx.lineWidth = bandHeight;
+                    ctx.lineJoin = 'round';
+                    
+                    let startIdx = 0;
+                    ctx.moveTo(this.trail[startIdx].x, this.trail[startIdx].y - this.height/2 + (c * bandHeight) + bandHeight/2);
+                    
+                    for (let i = 1; i < this.trail.length; i++) {
+                        let pt = this.trail[i];
+                        ctx.lineTo(pt.x, pt.y - this.height/2 + (c * bandHeight) + bandHeight/2);
+                    }
+                    ctx.lineTo(this.x, this.y + (c * bandHeight) + bandHeight/2);
+                    ctx.stroke();
+                }
+            }
+
+            // Draw Sprite
+            const frame = NYAN_FRAMES[this.frameIdx];
+            let drawW = frame.w * 0.7; // Scale down slightly
+            let drawH = frame.h * 0.7;
+            
+            // Multiple Powerup Clones
+            if(this.hasPower('multiple')) {
+                ctx.globalAlpha = 0.5;
+                if(spriteImg.complete) {
+                    ctx.drawImage(spriteImg, frame.x, frame.y, frame.w, frame.h, this.x - 15, this.y - 80, drawW, drawH);
+                    ctx.drawImage(spriteImg, frame.x, frame.y, frame.w, frame.h, this.x - 15, this.y + 80, drawW, drawH);
+                }
+                ctx.globalAlpha = 1.0;
+            }
+
+            if(this.hasPower('big')) {
+                drawW *= 1.5; drawH *= 1.5;
+                this.width = 100; this.height = 65;
+            } else {
+                this.width = 70; this.height = 45;
+            }
+
+            if (spriteImg.complete && frame) {
+                ctx.drawImage(spriteImg, frame.x, frame.y, frame.w, frame.h, this.x - 15, this.y - 5, drawW, drawH);
+            } else {
+                // Fallback box
+                ctx.fillStyle = '#ff99cc';
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+            }
+            
+            // Visual aids for powerups
+            if (this.hasPower('bubble')) {
+                ctx.beginPath();
+                ctx.arc(this.x + this.width/2, this.y + this.height/2, this.width, 0, Math.PI*2);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+    }
+
+    class Platform {
+        constructor(x, y, w, type) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = 25;
+            this.type = type; // normal, gold, breakable, treadmill, ice, spiky, sticky
+            this.timer = 0;
+            this.broken = false;
+        }
+
+        update(dt) {
+            if (this.broken) return;
+            if (this.type === 'breakable' && this.touched) {
+                this.timer += dt;
+                if (this.timer > 0.5) {
+                    this.broken = true;
+                    createParticles(this.x + this.w/2, this.y, '#8b4513', 15);
+                }
+            }
+        }
+
+        draw(ctx) {
+            if (this.broken) return;
+
+            // Handle Disco Powerup visually
+            let isDisco = player.hasPower('disco');
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            
+            if (isDisco) {
+                ctx.fillStyle = `hsl(${(Date.now()/5 + this.x)%360}, 100%, 50%)`;
+                ctx.fillRect(0, 0, this.w, this.h);
+                ctx.restore();
+                return;
+            }
+
+            switch(this.type) {
+                case 'normal':
+                    ctx.fillStyle = '#cda470';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    ctx.fillStyle = '#a87c4f';
+                    ctx.fillRect(0,0, this.w, 5);
+                    break;
+                case 'gold':
+                    ctx.fillStyle = '#ffd700';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    break;
+                case 'breakable':
+                    ctx.fillStyle = this.touched ? '#ffb6c1' : '#8b4513';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    // Cracks if touched
+                    if(this.touched) {
+                        ctx.strokeStyle = '#000';
+                        ctx.beginPath(); ctx.moveTo(10, 0); ctx.lineTo(20, this.h); ctx.stroke();
+                    }
+                    break;
+                case 'treadmill':
+                    ctx.fillStyle = '#777';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    ctx.fillStyle = '#000';
+                    let offset = (Date.now() / 10) % 20;
+                    for(let i=0; i<this.w; i+=20) {
+                        if(i + offset < this.w) ctx.fillRect(i + offset, 0, 5, this.h);
+                    }
+                    break;
+                case 'ice':
+                    ctx.fillStyle = '#add8e6';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                    ctx.fillRect(0,0, this.w, 5);
+                    break;
+                case 'spiky':
+                    ctx.fillStyle = '#cda470';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    ctx.fillStyle = '#ff0000';
+                    for(let i=0; i<this.w; i+=15) {
+                        ctx.beginPath();
+                        ctx.moveTo(i, 0);
+                        ctx.lineTo(i+7.5, -10);
+                        ctx.lineTo(i+15, 0);
+                        ctx.fill();
+                    }
+                    break;
+                case 'sticky':
+                    ctx.fillStyle = '#e6e600';
+                    ctx.fillRect(0,0, this.w, this.h);
+                    // goo drips
+                    ctx.beginPath();
+                    ctx.arc(15, this.h, 5, 0, Math.PI);
+                    ctx.arc(this.w-15, this.h+5, 6, 0, Math.PI);
+                    ctx.fill();
+                    break;
+            }
+            ctx.restore();
+        }
+    }
+
+    class Item {
+        constructor(x, y, type) {
+            this.x = x;
+            this.y = y;
+            this.type = type; // coin, snack_icecream, snack_milk, power_bubble, etc.
+            this.w = 30;
+            this.h = 30;
+            this.collected = false;
+            this.floatOffset = Math.random() * Math.PI * 2;
+        }
+
+        update(dt) {
+            if (this.collected) return;
+
+            // Magnet logic
+            if (player.hasPower('magnet') && this.type.startsWith('snack')) this.attract(dt, 1);
+            if (player.hasPower('coin_magnet') && this.type === 'coin') this.attract(dt, 1);
+            if (player.hasPower('detract') && this.type.startsWith('snack')) this.attract(dt, -1);
+            
+            // Multiple logic (expand pickup range)
+            let pickupYDist = player.hasPower('multiple') ? 100 : 0;
+
+            // AABB Collision with player
+            if (this.x < player.x + player.width &&
+                this.x + this.w > player.x &&
+                this.y < player.y + player.height + pickupYDist &&
+                this.y + this.h > player.y - pickupYDist) {
+                this.collect();
+            }
+        }
+
+        attract(dt, dir) {
+            let dx = (player.x + player.width/2) - (this.x + this.w/2);
+            let dy = (player.y + player.height/2) - (this.y + this.h/2);
+            let dist = Math.sqrt(dx*dx + dy*dy);
+            if (dist < 300) {
+                this.x += (dx / dist) * 400 * dt * dir;
+                this.y += (dy / dist) * 400 * dt * dir;
+            }
+        }
+
+        collect() {
+            this.collected = true;
+            createParticles(this.x, this.y, '#fff', 5);
+            
+            if (this.type === 'coin') {
+                game.coins++;
+            } else if (this.type.startsWith('snack')) {
+                game.rawScore += 100 * game.multiplier;
+                if(this.type === 'snack_milk' || this.type === 'snack_bottle') game.multiplier++;
+            } else if (this.type.startsWith('power_')) {
+                let p = this.type.split('_')[1];
+                player.applyPowerup(p, 10); // 10 seconds default
+            }
+        }
+
+        draw(ctx) {
+            if (this.collected) return;
+
+            let drawY = this.y + Math.sin(Date.now()/200 + this.floatOffset) * 5;
+
+            ctx.save();
+            ctx.translate(this.x + this.w/2, drawY + this.h/2);
+
+            // If sugar powerup is active, transform snacks visually
+            let visualType = this.type;
+            if (player.hasPower('sugar') && this.type.startsWith('snack')) {
+                visualType = 'sugar_cube';
+            }
+
+            switch(visualType) {
+                case 'coin':
+                    ctx.fillStyle = '#ffea00';
+                    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#ccaa00';
+                    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+                    break;
+                case 'sugar_cube':
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(-10, -10, 20, 20);
+                    ctx.strokeStyle = '#ccc';
+                    ctx.strokeRect(-10, -10, 20, 20);
+                    break;
+                case 'snack_icecream':
+                    ctx.fillStyle = '#ffcccc'; ctx.beginPath(); ctx.arc(0, -5, 10, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#d2b48c'; ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(10, -2); ctx.lineTo(0, 15); ctx.fill();
+                    break;
+                case 'snack_milk':
+                    ctx.fillStyle = '#fff'; ctx.fillRect(-8, -10, 16, 20);
+                    ctx.fillStyle = '#0055aa'; ctx.fillRect(-8, -10, 16, 5); // cap
+                    ctx.fillStyle = '#000'; ctx.font = '8px Arial'; ctx.fillText('M', -4, 5);
+                    break;
+                case 'power_bubble':
+                    ctx.strokeStyle = '#00ffff'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc(0,0,12,0,Math.PI*2); ctx.stroke();
+                    break;
+                case 'power_magnet':
+                    ctx.fillStyle = '#ff0000'; ctx.fillRect(-10, -10, 8, 20);
+                    ctx.fillStyle = '#ccc'; ctx.fillRect(2, -10, 8, 20);
+                    ctx.fillRect(-10, -10, 20, 5);
+                    break;
+                case 'power_cape':
+                    ctx.fillStyle = '#ff0000';
+                    ctx.beginPath(); ctx.moveTo(-10, -10); ctx.lineTo(10, 0); ctx.lineTo(-10, 10); ctx.fill();
+                    break;
+                default:
+                    // Generic box for others
+                    ctx.fillStyle = this.type.startsWith('power') ? '#00ff00' : '#ff00ff';
+                    ctx.fillRect(-10, -10, 20, 20);
+                    break;
+            }
+            ctx.restore();
+        }
+    }
+
+    class Particle {
+        constructor(x, y, color) {
+            this.x = x; this.y = y;
+            this.vx = (Math.random() - 0.5) * 200;
+            this.vy = (Math.random() - 0.5) * 200;
+            this.life = 1.0;
+            this.color = color;
+        }
+        update(dt) {
+            this.x += this.vx * dt;
+            this.y += this.vy * dt;
+            this.life -= dt * 2;
+        }
+        draw(ctx) {
+            if(this.life <= 0) return;
+            ctx.globalAlpha = this.life;
+            ctx.fillStyle = this.color;
+            ctx.fillRect(this.x, this.y, 4, 4);
+            ctx.globalAlpha = 1.0;
+        }
+    }
+
+    // --- GAME ENGINE ---
+    
+    let player = new Player();
+    let input = { space: false, mouseY: 0 };
+
+    window.addEventListener('keydown', e => {
+        if(e.code === 'Space' || e.code === 'ArrowUp') {
+            if(GAME_STATE === 'PLAYING') player.jump();
+        }
+    });
+    window.addEventListener('mousedown', e => {
+        if(GAME_STATE === 'PLAYING') player.jump();
+    });
+    window.addEventListener('mousemove', e => {
+        input.mouseY = e.clientY;
+    });
+    window.addEventListener('touchmove', e => {
+        input.mouseY = e.touches[0].clientY;
+    });
+    window.addEventListener('touchstart', e => {
+        if(GAME_STATE === 'PLAYING') player.jump();
+        input.mouseY = e.touches[0].clientY;
+    });
+
+    function createParticles(x, y, color, count) {
+        for(let i=0; i<count; i++) game.particles.push(new Particle(x, y, color));
+    }
+
+    function generateChunk() {
+        // Generate world up to player.x + 2000
+        while (game.lastGenX < player.x + 2000) {
+            // Gap (reduced for closer platforms horizontally)
+            let gapX = 10 + Math.random() * 100;
+            let startX = game.lastGenX + gapX;
+            
+            let numPlatforms = 5 + Math.floor(Math.random() * 5); // 5 to 9 platforms vertically
+            let maxW = 0;
+
+            for(let k = 0; k < numPlatforms; k++) {
+                let w = 150 + Math.random() * 250;
+                if (w > maxW) maxW = w;
+                
+                // Vertical spread: reduced to make platforms vertically closer to each other
+                let y = player.y + (Math.random() - 0.5) * 1200;
+
+                // Platform Type Probabilities
+                let r = Math.random();
+                let type = 'normal';
+                if(r < 0.05) type = 'gold';
+                else if(r < 0.15) type = 'breakable';
+                else if(r < 0.20) type = 'treadmill';
+                else if(r < 0.25) type = 'ice';
+                else if(r < 0.35) type = 'spiky';
+                else if(r < 0.40) type = 'sticky';
+
+                // Jitter X a bit so they aren't all in a perfect column (reduced jitter)
+                let pStartX = startX + (Math.random() * 100 - 50);
+                game.platforms.push(new Platform(pStartX, y, w, type));
+
+                // Spawns above platform
+                if (Math.random() < 0.4) {
+                    // Spawn coins
+                    if(Math.random() < 0.5) {
+                        for(let i=0; i<3; i++) {
+                            game.items.push(new Item(pStartX + w/2 - 40 + i*40, y - 40, 'coin'));
+                        }
+                    } else {
+                        // Spawn snack
+                        const snacks = ['snack_icecream', 'snack_milk', 'snack_bottle', 'snack_donut'];
+                        game.items.push(new Item(pStartX + w/2, y - 40, snacks[Math.floor(Math.random()*snacks.length)]));
+                    }
+                }
+                
+                // Spawn Powerup rarely
+                if (Math.random() < 0.05) {
+                    const powers = ['power_bubble', 'power_magnet', 'power_cape', 'power_big', 'power_sugar', 'power_batman', 'power_disco'];
+                    game.items.push(new Item(pStartX + w/2, y - 80, powers[Math.floor(Math.random()*powers.length)]));
+                }
+            }
+            
+            game.lastGenX = startX + maxW;
+        }
+    }
+
+    function initGame() {
+        player.reset();
+        game.platforms = [];
+        game.items = [];
+        game.particles = [];
+        game.score = 0;
+        game.rawScore = 0;
+        game.multiplier = 1;
+        game.lastGenX = player.x - 200;
+        
+        // Initial safe platform
+        game.platforms.push(new Platform(player.x - 50, player.y + 100, 800, 'normal'));
+        game.lastGenX = player.x + 750;
+
+        // Init BG Stars
+        game.bgStars = [];
+        for(let i=0; i<100; i++) {
+            game.bgStars.push({
+                x: Math.random() * cw,
+                y: Math.random() * ch,
+                s: 0.5 + Math.random() * 2
+            });
+        }
+
+        document.getElementById('hud').classList.remove('hidden');
+        GAME_STATE = 'PLAYING';
+        lastTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function triggerDeath() {
+        GAME_STATE = 'REVIVE';
+        document.getElementById('hud').classList.add('hidden');
+        showScreen('screen-revive');
+        const reviveBtn = document.getElementById('btn-revive');
+        if (game.coins >= 15) {
+            reviveBtn.classList.remove('disabled');
+            reviveBtn.onclick = () => {
+                game.coins -= 15;
+                player.y -= 600;
+                player.vy = -1000;
+                player.applyPowerup('cape', 5); // temporary boost upwards
+                
+                // Spawn safe platform under
+                game.platforms.push(new Platform(player.x - 100, player.y + 200, 1000, 'normal'));
+                
+                showScreen(null);
+                document.getElementById('hud').classList.remove('hidden');
+                GAME_STATE = 'PLAYING';
+                lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            };
+        } else {
+            reviveBtn.classList.add('disabled');
+            reviveBtn.onclick = null;
+        }
+    }
+
+    function triggerGameOver() {
+        GAME_STATE = 'GAMEOVER';
+        showScreen('screen-gameover');
+        document.getElementById('final-score').innerText = 'Score: ' + game.score;
+        document.getElementById('final-coins').innerText = 'Coins: ' + game.coins;
+    }
+
+    function update(dt) {
+        if(dt > 0.1) dt = 0.1; // Cap dt to prevent clipping on lag
+
+        player.update(dt);
+        generateChunk();
+
+        // Update Camera
+        camera.x = player.x - cw * 0.2; // Keep player 20% from left
+        // Smooth camera Y follow
+        let targetCamY = player.y - ch/2;
+        camera.y += (targetCamY - camera.y) * 5 * dt;
+
+        // Collision logic
+        player.grounded = false;
+        
+        for (let i = 0; i < game.platforms.length; i++) {
+            let p = game.platforms[i];
+            p.update(dt);
+            
+            // Cleanup old
+            if (p.x + p.w < camera.x - 500) p.broken = true;
+
+            if (p.broken) continue;
+
+            // AABB Collision top only (simplified platformer physics)
+            if (player.vy > 0 && // falling
+                player.x + player.width > p.x && 
+                player.x < p.x + p.w &&
+                player.y + player.height > p.y && 
+                player.y + player.height < p.y + p.h + player.vy * dt) {
+                
+                player.y = p.y - player.height;
+                player.vy = 0;
+                player.grounded = true;
+                player.jumpCount = 0;
+                p.touched = true;
+
+                // Platform effects
+                if (p.type === 'spiky') {
+                    game.rawScore -= 50 * dt; // Lose score over time
+                    createParticles(player.x+player.width/2, player.y+player.height, '#f00', 1);
+                }
+                if (p.type === 'gold') {
+                    game.rawScore += 50 * dt;
+                    createParticles(player.x+player.width/2, player.y+player.height, '#ffd700', 1);
+                }
+                if (p.type === 'treadmill') {
+                    player.vx += 200; // Boost
+                }
+                if (p.type === 'ice') {
+                    player.applyPowerup('ice', 0.1); // Short duration disable jump
+                }
+                if (p.type === 'sticky') {
+                    player.applyPowerup('sticky', 0.1);
+                }
+            }
+        }
+
+        // Cleanup arrays
+        game.platforms = game.platforms.filter(p => !p.broken);
+
+        // Update items
+        for (let i = game.items.length - 1; i >= 0; i--) {
+            let item = game.items[i];
+            item.update(dt);
+            if (item.collected || item.x < camera.x - 500) {
+                game.items.splice(i, 1);
+            }
+        }
+
+        // Update particles
+        for (let i = game.particles.length - 1; i >= 0; i--) {
+            game.particles[i].update(dt);
+            if (game.particles[i].life <= 0) game.particles.splice(i, 1);
+        }
+
+        // Score calc
+        game.score = Math.floor(player.x / 100) + Math.floor(game.rawScore);
+        
+        // Update HUD
+        document.getElementById('score-display').innerText = 'Score: ' + game.score;
+        document.getElementById('multiplier-display').innerText = 'Mult: ' + game.multiplier + 'x';
+        document.getElementById('coin-display').innerText = 'Coins: ' + game.coins;
+    }
+
+    function draw() {
+        // Draw Background
+        if (player.hasPower('disco')) {
+            ctx.fillStyle = '#110022';
+        } else {
+            ctx.fillStyle = '#003366';
+        }
+        ctx.fillRect(0, 0, cw, ch);
+
+        // Draw Parallax Stars
+        ctx.fillStyle = '#ffffff';
+        for(let s of game.bgStars) {
+            let sx = (s.x - camera.x * (s.s * 0.1)) % cw;
+            if (sx < 0) sx += cw;
+            let sy = (s.y - camera.y * (s.s * 0.1)) % ch;
+            if (sy < 0) sy += ch;
+            ctx.fillRect(sx, sy, s.s*2, s.s*2);
+        }
+
+        ctx.save();
+        ctx.translate(-camera.x, -camera.y);
+
+        // Draw World
+        for (let p of game.platforms) p.draw(ctx);
+        for (let i of game.items) i.draw(ctx);
+        player.draw(ctx);
+        for (let p of game.particles) p.draw(ctx);
+
+        ctx.restore();
+    }
+
+    function gameLoop(timestamp) {
+        if (GAME_STATE !== 'PLAYING') return;
+
+        let dt = (timestamp - lastTime) / 1000;
+        lastTime = timestamp;
+
+        update(dt);
+        draw();
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    // --- UI EVENT LISTENERS ---
+    document.getElementById('btn-play').addEventListener('click', () => {
+        showScreen('screen-mode');
+    });
+
+    document.getElementById('btn-mode-classic').addEventListener('click', () => {
+        showScreen(null);
+        initGame();
+    });
+
+    document.getElementById('btn-gameover').addEventListener('click', () => {
+        triggerGameOver();
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+        showScreen(null);
+        initGame();
+    });
+
+    // Start on title screen
+    showScreen('screen-title');
+
+</script>
+</body>
+</html>
