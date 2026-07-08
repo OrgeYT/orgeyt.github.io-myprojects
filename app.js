@@ -504,7 +504,7 @@ const originalGalleryImages = [
     { src: "Gallery/darn.jpg", caption: "fr"},
     { src: "Gallery/amongus art.png", caption: "among us art i made on my phone. not my original character" },
     { src: "Gallery/Untitled178.png", caption: "more art i made on my phone xd"},
-    { src: "Gallery/ugh....png", caption: "ok so something just happened (jul 6), and it actually scared me. i was updating my site with gemini, until my css got nuked. idk what happened but something happened with the css. luckly github had back ups which i used."}
+    { src: "Gallery/ugh....png", caption: "ok so something just happened (jul 8), and it actually scared me. i was updating my site with gemini, until my css got nuked. idk what happened but something happened with the css. luckly github had back ups which i used."}
 ];
 
 let globalCurrentIndex = 0;
