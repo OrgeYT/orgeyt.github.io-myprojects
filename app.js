@@ -124,7 +124,8 @@ const projects = [
     { name: "idk (By Brad)", path: "idk/index.html" }, { name: "magnet playground", path: "magnet/index.html" }, "batsurvival", "websimprojects", "wheelmaker", "popit", "sb3corrupter",
     "polygonprinter", "jsrunner", "rainbowparkour", { name: "First version of my website", path: "may20/index.html" }, { name: "what the", path: "index.html" }, "onlinebuilding", "piano", { name: "bounce and roll", path: "bounceandroll/index.html" },
     "makeyourownai", "midisinger", "art", "svgtopng", "beastbrawl", { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" }, "cubecare", "pixelartcreator", "shapemaker",
-    "beatcatch", "beatcatchautocharter", "buddiner", { name: "dont look at this. look away. NO", path: "balls.txt" }, "faviconplatformer", "hp", "nyancatlostinspace", "nyancatlostinspaceairemakebygemini"
+    "beatcatch", "beatcatchautocharter", "buddiner", { name: "dont look at this. look away. NO", path: "balls.txt" }, "faviconplatformer", "hp", "nyancatlostinspace", "nyancatlostinspaceairemakebygemini",
+    "cursordeath"
 ];
 
 // rip fnfbot. you can download it somewhere else on the site now.
