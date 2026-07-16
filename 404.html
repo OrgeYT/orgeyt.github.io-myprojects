@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Page Not Found</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .error-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 20px;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+
+        .error-image {
+            max-width: 320px;
+            width: 100%;
+            height: auto;
+            margin-bottom: 20px;
+            border-radius: 12px;
+            box-shadow: 0 15px 35px var(--accent-transparent);
+            border: 3px solid var(--border-main);
+        }
+
+        .error-code {
+            font-size: 9rem;
+            font-weight: bold;
+            line-height: 1;
+            color: var(--accent-solid);
+            text-shadow: 0 0 40px var(--accent-transparent);
+            margin: 10px 0 10px 0;
+            opacity: 0.95;
+        }
+
+        .error-title {
+            font-size: 2.4rem;
+            margin: 0 0 20px 0;
+            color: var(--text-main);
+        }
+
+        .error-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-accent);
+            max-width: 520px;
+            margin-bottom: 40px;
+            line-height: 1.5;
+        }
+
+        .home-btn {
+            padding: 14px 36px;
+            font-size: 1.1rem;
+            background-color: var(--btn-primary);
+            color: var(--text-main);
+            border: 2px solid var(--border-main);
+            border-radius: 8px;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .home-btn:hover {
+            background-color: var(--btn-primary-hover);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 25px var(--accent-transparent);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <img src="404.png" alt="404 Error" class="error-image">
+        
+        <h1 class="error-code">404</h1>
+        <h2 class="error-title">Page cannot be found</h2>
+        <p class="error-subtitle">
+            The page you want does not exist!<br>
+            OrgeYT cannot find it! D:
+        </p>
+        
+        <a href="/" class="home-btn">
+            ← Go back
+        </a>
+    </div>
+
+    <script>
+        // Load theme from orgeyt-theme
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('orgeyt-theme') || 'default';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        loadTheme();
+
+        // Listen for theme changes from other tabs
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'orgeyt-theme') loadTheme();
+        });
+    </script>
+</body>
+</html>
