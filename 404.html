@@ -6,46 +6,55 @@
     <title>404 - Page Not Found</title>
     <link rel="stylesheet" href="styles.css">
     <style>
+        /* Override main site layout for 404 page */
+        body {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-direction: column !important;
+            min-height: 100vh !important;
+            margin: 0 !important;
+            padding: 20px !important;
+            overflow: hidden;
+        }
+
         .error-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
             text-align: center;
-            padding: 20px;
-            background-color: var(--bg-main);
-            color: var(--text-main);
+            max-width: 700px;
+            width: 100%;
         }
 
         .error-image {
-            max-width: 320px;
+            max-width: 280px;
             width: 100%;
             height: auto;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             border-radius: 12px;
-            box-shadow: 0 15px 35px var(--accent-transparent);
-            border: 3px solid var(--border-main);
+            box-shadow: 0 15px 40px var(--accent-transparent);
+            border: 4px solid var(--border-main);
         }
 
         .error-code {
-            font-size: 9rem;
+            font-size: 10rem;
             font-weight: bold;
             line-height: 1;
             color: var(--accent-solid);
             text-shadow: 0 0 40px var(--accent-transparent);
-            margin: 10px 0 10px 0;
-            opacity: 0.95;
+            margin: 0 0 10px 0;
         }
 
         .error-title {
-            font-size: 2.4rem;
-            margin: 0 0 20px 0;
+            font-size: 2.6rem;
+            margin: 0 0 16px 0;
             color: var(--text-main);
         }
 
         .error-subtitle {
-            font-size: 1.25rem;
+            font-size: 1.3rem;
             color: var(--text-accent);
             max-width: 520px;
             margin-bottom: 40px;
@@ -71,27 +80,33 @@
             transform: translateY(-4px);
             box-shadow: 0 12px 25px var(--accent-transparent);
         }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .error-code { font-size: 7rem; }
+            .error-image { max-width: 220px; }
+        }
     </style>
 </head>
 <body>
 
     <div class="error-container">
-        <img src="404.png" alt="404 Error" class="error-image">
+        <img src="404.png" alt="404 Error Illustration" class="error-image">
         
         <h1 class="error-code">404</h1>
-        <h2 class="error-title">Page cannot be found</h2>
+        <h2 class="error-title">Page Not Found</h2>
         <p class="error-subtitle">
             The page you want does not exist!<br>
             OrgeYT cannot find it! D:
         </p>
         
         <a href="/" class="home-btn">
-            ← Go back
+            ← Go Back
         </a>
     </div>
 
     <script>
-        // Load theme from orgeyt-theme
+        // Load saved theme
         function loadTheme() {
             const savedTheme = localStorage.getItem('orgeyt-theme') || 'default';
             document.documentElement.setAttribute('data-theme', savedTheme);
@@ -99,7 +114,7 @@
 
         loadTheme();
 
-        // Listen for theme changes from other tabs
+        // Support live theme switching
         window.addEventListener('storage', (e) => {
             if (e.key === 'orgeyt-theme') loadTheme();
         });
