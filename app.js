@@ -125,7 +125,7 @@ const projects = [
     "polygonprinter", "jsrunner", "rainbowparkour", { name: "First version of my website", path: "may20/index.html" }, { name: "what the", path: "index.html" }, "onlinebuilding", "piano", { name: "bounce and roll", path: "bounceandroll/index.html" },
     "makeyourownai", "midisinger", "art", "svgtopng", "beastbrawl", { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" }, "cubecare", "pixelartcreator", "shapemaker",
     "beatcatch", "beatcatchautocharter", "buddiner", { name: "dont look at this. look away. NO", path: "balls.txt" }, "faviconplatformer", "hp", "nyancatlostinspace", "nyancatlostinspaceairemakebygemini",
-    "cursordeath", "bfdiragdollplayground"
+    "cursordeath", "bfdiragdollplayground", { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" }
 ];
 
 // rip fnfbot. you can download it somewhere else on the site now.
