@@ -1,0 +1,12 @@
+export const area_w = 800;
+export const area_h = 600;
+export const tile_sz = 32;
+export const area_tile_w = Math.floor(area_w / tile_sz);
+export const area_tile_h = Math.floor(area_h / tile_sz);
+export const padding = tile_sz / 4;
+export const food_padding = tile_sz / 8;
+export const max_snake = area_tile_w * area_tile_h;
+export const D_UP = 38;
+export const D_DOWN = 40;
+export const D_LEFT = 37;
+export const D_RIGHT = 39;
