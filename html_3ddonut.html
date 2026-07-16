@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spinning Donut</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+
+    /* Donut Display Area */
+    pre {
+      font-family: monospace;
+      font-size: 10px;
+      line-height: 10px;
+      background-color: #000000;
+      color: #ffffff; 
+      padding: 20px;
+      border: 1px solid #1a1a1a;
+      border-radius: 8px;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.9);
+      overflow: hidden;
+      width: 640px;
+      height: 360px;
+      margin-bottom: 20px;
+      
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      white-space: pre;
+    }
+
+    /* Controls Container */
+    .controls-container {
+      width: 100%;
+      max-width: 680px;
+      background-color: #0a0a0a;
+      border: 1px solid #222222;
+      border-radius: 8px;
+      padding: 10px 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+      box-sizing: border-box;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 10px 0;
+    }
+
+    .control-row label {
+      font-size: 14px;
+      font-weight: bold;
+      color: #888888;
+    }
+
+    .slider-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex-grow: 1;
+      justify-content: flex-end;
+      max-width: 400px;
+    }
+
+    .slider-wrapper input[type="range"] {
+      width: 100%;
+      accent-color: #ffffff;
+      cursor: pointer;
+    }
+
+    .slider-val {
+      font-family: monospace;
+      font-size: 14px;
+      color: #ffffff;
+      width: 45px;
+      text-align: right;
+    }
+
+    select {
+      width: 100%;
+      background-color: #1a1a1a;
+      color: #ffffff;
+      border: 1px solid #444444;
+      border-radius: 4px;
+      padding: 6px;
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* Code Container Styling */
+    .code-container {
+      width: 100%;
+      max-width: 680px;
+      background-color: #0a0a0a;
+      border: 1px solid #222222;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+    }
+
+    .code-header {
+      background-color: #111111;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #222222;
+    }
+
+    .code-header span {
+      font-size: 14px;
+      font-weight: bold;
+      color: #888888;
+    }
+
+    .copy-btn {
+      background-color: #ffffff;
+      color: #000000;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    .copy-btn:hover {
+      background-color: #cccccc;
+    }
+
+    textarea {
+      width: 100%;
+      height: 350px;
+      background-color: #0a0a0a;
+      color: #cccccc;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      padding: 15px;
+      border: none;
+      resize: vertical;
+      box-sizing: border-box;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Centered Black & White 3D Donut Output -->
+  <pre id="donut"></pre>
+
+  <!-- Interactive Controls Section -->
+  <div class="controls-container">
+    <div class="control-row">
+      <label for="shapeSelect">3D Shape</label>
+      <div class="slider-wrapper">
+        <select id="shapeSelect">
+          <option value="donut">Torus (Donut)</option>
+          <option value="cube">Cube</option>
+          <option value="pyramid">Pyramid</option>
+          <option value="rhombus">3D Rhombus</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="control-row">
+      <label for="detailSlider">Mesh Detail Density</label>
+      <div class="slider-wrapper">
+        <input type="range" id="detailSlider" min="1" max="5" value="3">
+        <span class="slider-val" id="sliderVal">Med</span>
+      </div>
+    </div>
+    
+    <div class="control-row">
+      <label for="scaleSlider">Shape Scale (Symbols)</label>
+      <div class="slider-wrapper">
+        <input type="range" id="scaleSlider" min="10" max="45" value="30">
+        <span class="slider-val" id="scaleVal">30</span>
+      </div>
+    </div>
+
+    <div class="control-row">
+      <label for="fpsSlider">Animation Speed (FPS)</label>
+      <div class="slider-wrapper">
+        <input type="range" id="fpsSlider" min="1" max="120" value="20">
+        <span class="slider-val" id="fpsVal">20</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Source Code Display Area -->
+  <div class="code-container">
+    <div class="code-header">
+      <span>JavaScript Source Code</span>
+      <button class="copy-btn" id="copyBtn">Copy Code</button>
+    </div>
+    <textarea id="codeBox" readonly></textarea>
+  </div>
+
+  <script>
+    const donutPre = document.getElementById('donut');
+    const codeBox = document.getElementById('codeBox');
+    const copyBtn = document.getElementById('copyBtn');
+    const shapeSelect = document.getElementById('shapeSelect');
+    const detailSlider = document.getElementById('detailSlider');
+    const sliderVal = document.getElementById('sliderVal');
+    const scaleSlider = document.getElementById('scaleSlider');
+    const scaleVal = document.getElementById('scaleVal');
+    const fpsSlider = document.getElementById('fpsSlider');
+    const fpsVal = document.getElementById('fpsVal');
+
+    let A = 1, B = 1;
+    let animationInterval;
+    let currentShape = 'donut';
+    let currentPoints = [];
+
+    // Default configuration variables
+    let stepJ = 0.07;
+    let stepI = 0.02;
+    let scaleX = 30; // Original base multiplier
+    let scaleY = 15; // Vertical squish multiplier to counter text aspect ratio
+    let currentFps = 20; 
+
+    // Detail preset configuration mapping
+    const detailPresets = {
+      1: { name: 'Low',  j: 0.15, i: 0.05 },
+      2: { name: 'Mid-', j: 0.10, i: 0.03 },
+      3: { name: 'Med',  j: 0.07, i: 0.02 },
+      4: { name: 'High', j: 0.04, i: 0.01 },
+      5: { name: 'Max',  j: 0.02, i: 0.005 }
+    };
+
+    // Precompute points to dramatically improve FPS and adapt to different shapes
+    function generatePoints() {
+      currentPoints = [];
+      
+      if (currentShape === 'donut') {
+        for (let j = 0; j < 6.28; j += stepJ) {
+          let ct = Math.cos(j), st = Math.sin(j);
+          for (let i = 0; i < 6.28; i += stepI) {
+            let sp = Math.sin(i), cp = Math.cos(i);
+            let h = ct + 2;
+            // push [x, y, z, normalX, normalY, normalZ]
+            currentPoints.push([h*cp, h*sp, st, cp*ct, sp*ct, st]);
+          }
+        }
+      } else if (currentShape === 'cube') {
+        let step = (stepI + stepJ) / 2.5; 
+        for(let u = -1; u <= 1; u += step) {
+          for(let v = -1; v <= 1; v += step) {
+            currentPoints.push([u*1.5, v*1.5, 1.5, 0, 0, 1]);
+            currentPoints.push([u*1.5, v*1.5, -1.5, 0, 0, -1]);
+            currentPoints.push([u*1.5, 1.5, v*1.5, 0, 1, 0]);
+            currentPoints.push([u*1.5, -1.5, v*1.5, 0, -1, 0]);
+            currentPoints.push([1.5, u*1.5, v*1.5, 1, 0, 0]);
+            currentPoints.push([-1.5, u*1.5, v*1.5, -1, 0, 0]);
+          }
+        }
+      } else if (currentShape === 'pyramid') {
+        let step = (stepI + stepJ) / 2.5;
+        for(let u = -1; u <= 1; u += step) {
+          for(let v = -1; v <= 1; v += step) {
+            currentPoints.push([u*1.5, v*1.5, -1.5, 0, 0, -1]);
+          }
+        }
+        let nx = 2/Math.sqrt(5), nz = 1/Math.sqrt(5);
+        for(let v = 0; v <= 1; v += step/2) {
+          let w = 1 - v;
+          let z0 = -1 + 2*v;
+          for(let u = -w; u <= w; u += step/2) {
+            currentPoints.push([(1-v)*1.5, u*1.5, z0*1.5, nx, 0, nz]); 
+            currentPoints.push([-(1-v)*1.5, u*1.5, z0*1.5, -nx, 0, nz]); 
+            currentPoints.push([u*1.5, (1-v)*1.5, z0*1.5, 0, nx, nz]); 
+            currentPoints.push([u*1.5, -(1-v)*1.5, z0*1.5, 0, -nx, nz]); 
+          }
+        }
+      } else if (currentShape === 'rhombus') {
+        let step = (stepI + stepJ) / 2.5;
+        let n = 1/Math.sqrt(3);
+        for(let u = 0; u <= 1; u += step) {
+          for(let v = 0; v <= 1 - u; v += step) {
+            let z = 1 - u - v;
+            currentPoints.push([u*2, v*2, z*2, n, n, n]);
+            currentPoints.push([-u*2, v*2, z*2, -n, n, n]);
+            currentPoints.push([u*2, -v*2, z*2, n, -n, n]);
+            currentPoints.push([-u*2, -v*2, z*2, -n, -n, n]);
+            currentPoints.push([u*2, v*2, -z*2, n, n, -n]);
+            currentPoints.push([-u*2, v*2, -z*2, -n, n, -n]);
+            currentPoints.push([u*2, -v*2, -z*2, n, -n, -n]);
+            currentPoints.push([-u*2, -v*2, -z*2, -n, -n, -n]);
+          }
+        }
+      }
+    }
+
+    function renderFrame() {
+      let b = [];
+      let z = [];
+      A += 0.07;
+      B += 0.03;
+      let cA = Math.cos(A), sA = Math.sin(A);
+      let cB = Math.cos(B), sB = Math.sin(B);
+
+      for (let k = 0; k < 2400; k++) {
+        b[k] = k % 80 === 79 ? '\n' : ' ';
+        z[k] = 0;
+      }
+
+      for (let i = 0; i < currentPoints.length; i++) {
+        let p = currentPoints[i];
+        let px = p[0], py = p[1], pz = p[2];
+        let nx = p[3], ny = p[4], nz = p[5];
+
+        // 3D Rotation Math for positions
+        let py1 = py*cA - pz*sA, pz1 = py*sA + pz*cA;
+        let px2 = px*cB - py1*sB, py2 = px*sB + py1*cB;
+        
+        // 3D Rotation Math for Surface Normals (Lighting)
+        let ny1 = ny*cA - nz*sA, nz1 = ny*sA + nz*cA;
+        let ny2 = nx*sB + ny1*cB, nz2 = nz1;
+
+        let D = 1 / (pz1 + 5);
+        let x = Math.floor(40 + scaleX * D * px2);
+        let y = Math.floor(14 + scaleY * D * py2);
+        let o = x + 80 * y;
+        let L = Math.floor(8 * (-ny2 - nz2));
+
+        if (y >= 0 && y < 30 && x >= 0 && x < 80 && D > z[o]) {
+          z[o] = D;
+          b[o] = ".,-~:;=!*#$@"[L > 0 ? L : 0];
+        }
+      }
+
+      donutPre.textContent = b.join('');
+    }
+
+    function getShapeGenerationCodeString() {
+      if (currentShape === 'donut') {
+        return `// 1. Generate Torus (Donut) Point Cloud
+for (let j = 0; j < 6.28; j += ${stepJ}) {
+  let ct = Math.cos(j), st = Math.sin(j);
+  for (let i = 0; i < 6.28; i += ${stepI}) {
+    let sp = Math.sin(i), cp = Math.cos(i);
+    let h = ct + 2;
+    pts.push([h*cp, h*sp, st, cp*ct, sp*ct, st]);
+  }
+}`;
+      } else if (currentShape === 'cube') {
+        return `// 1. Generate Cube Point Cloud
+let step = ${(stepI + stepJ) / 2.5}; 
+for(let u = -1; u <= 1; u += step) {
+  for(let v = -1; v <= 1; v += step) {
+    pts.push([u*1.5, v*1.5, 1.5, 0, 0, 1]);
+    pts.push([u*1.5, v*1.5, -1.5, 0, 0, -1]);
+    pts.push([u*1.5, 1.5, v*1.5, 0, 1, 0]);
+    pts.push([u*1.5, -1.5, v*1.5, 0, -1, 0]);
+    pts.push([1.5, u*1.5, v*1.5, 1, 0, 0]);
+    pts.push([-1.5, u*1.5, v*1.5, -1, 0, 0]);
+  }
+}`;
+      } else if (currentShape === 'pyramid') {
+        return `// 1. Generate Pyramid Point Cloud
+let step = ${(stepI + stepJ) / 2.5};
+for(let u = -1; u <= 1; u += step) {
+  for(let v = -1; v <= 1; v += step) {
+    pts.push([u*1.5, v*1.5, -1.5, 0, 0, -1]);
+  }
+}
+let nx = 2/Math.sqrt(5), nz = 1/Math.sqrt(5);
+for(let v = 0; v <= 1; v += step/2) {
+  let w = 1 - v;
+  let z0 = -1 + 2*v;
+  for(let u = -w; u <= w; u += step/2) {
+    pts.push([(1-v)*1.5, u*1.5, z0*1.5, nx, 0, nz]); 
+    pts.push([-(1-v)*1.5, u*1.5, z0*1.5, -nx, 0, nz]); 
+    pts.push([u*1.5, (1-v)*1.5, z0*1.5, 0, nx, nz]); 
+    pts.push([u*1.5, -(1-v)*1.5, z0*1.5, 0, -nx, nz]); 
+  }
+}`;
+      } else if (currentShape === 'rhombus') {
+        return `// 1. Generate 3D Rhombus (Octahedron) Point Cloud
+let step = ${(stepI + stepJ) / 2.5};
+let n = 1/Math.sqrt(3);
+for(let u = 0; u <= 1; u += step) {
+  for(let v = 0; v <= 1 - u; v += step) {
+    let z = 1 - u - v;
+    pts.push([u*2, v*2, z*2, n, n, n]);
+    pts.push([-u*2, v*2, z*2, -n, n, n]);
+    pts.push([u*2, -v*2, z*2, n, -n, n]);
+    pts.push([-u*2, -v*2, z*2, -n, -n, n]);
+    pts.push([u*2, v*2, -z*2, n, n, -n]);
+    pts.push([-u*2, v*2, -z*2, -n, n, -n]);
+    pts.push([u*2, -v*2, -z*2, n, -n, -n]);
+    pts.push([-u*2, -v*2, -z*2, -n, -n, -n]);
+  }
+}`;
+      }
+    }
+
+    // Dynamic generation function to rebuild matching text area block
+    function updateCodeBoxText() {
+      const msDelay = Math.round(1000 / currentFps);
+      
+      codeBox.value = `let A = 1, B = 1;
+let pts = [];
+
+${getShapeGenerationCodeString()}
+
+// 2. Continuous Render Loop
+setInterval(() => {
+  let b = [], z = [];
+  A += 0.07; B += 0.03;
+  let cA = Math.cos(A), sA = Math.sin(A);
+  let cB = Math.cos(B), sB = Math.sin(B);
+
+  for (let k = 0; k < 2400; k++) {
+    b[k] = k % 80 === 79 ? '\\n' : ' ';
+    z[k] = 0;
+  }
+
+  for (let i = 0; i < pts.length; i++) {
+    let p = pts[i];
+    let px = p[0], py = p[1], pz = p[2];
+    let nx = p[3], ny = p[4], nz = p[5];
+
+    let py1 = py*cA - pz*sA, pz1 = py*sA + pz*cA;
+    let px2 = px*cB - py1*sB, py2 = px*sB + py1*cB;
+    
+    let ny1 = ny*cA - nz*sA, nz1 = ny*sA + nz*cA;
+    let ny2 = nx*sB + ny1*cB, nz2 = nz1;
+
+    let D = 1 / (pz1 + 5);
+    let x = Math.floor(40 + ${scaleX} * D * px2);
+    let y = Math.floor(14 + ${scaleY} * D * py2);
+    let o = x + 80 * y;
+    let L = Math.floor(8 * (-ny2 - nz2));
+
+    if (y >= 0 && y < 30 && x >= 0 && x < 80 && D > z[o]) {
+      z[o] = D;
+      b[o] = ".,-~:;=!*#$@"[L > 0 ? L : 0];
+    }
+  }
+  console.clear();
+  console.log(b.join(''));
+}, ${msDelay});`;
+    }
+
+    // Helper to start or restart the animation interval
+    function startAnimation() {
+      if (animationInterval) clearInterval(animationInterval);
+      const msDelay = Math.round(1000 / currentFps);
+      animationInterval = setInterval(renderFrame, msDelay);
+    }
+
+    // Event listeners tracking controls
+    shapeSelect.addEventListener('change', (e) => {
+      currentShape = e.target.value;
+      generatePoints();
+      updateCodeBoxText();
+    });
+
+    detailSlider.addEventListener('input', (e) => {
+      const config = detailPresets[e.target.value];
+      sliderVal.textContent = config.name;
+      stepJ = config.j;
+      stepI = config.i;
+      generatePoints();
+      updateCodeBoxText();
+    });
+
+    scaleSlider.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      scaleVal.textContent = val;
+      scaleX = val;
+      scaleY = Math.round(val / 2);
+      updateCodeBoxText();
+    });
+
+    fpsSlider.addEventListener('input', (e) => {
+      currentFps = parseInt(e.target.value, 10);
+      fpsVal.textContent = currentFps;
+      updateCodeBoxText();
+      startAnimation();
+    });
+
+    // Initialization
+    generatePoints();
+    updateCodeBoxText();
+    startAnimation();
+
+    // Clipboard Copy Handler
+    copyBtn.addEventListener('click', () => {
+      codeBox.select();
+      try {
+        document.execCommand('copy'); 
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => {
+          copyBtn.textContent = 'Copy Code';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy text', err);
+      }
+    });
+  </script>
+</body>
+</html>
