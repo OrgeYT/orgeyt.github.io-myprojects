@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XY Oscilloscope & Audio Synthesizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #050505; color: #e0e0e0; font-family: 'Courier New', Courier, monospace; }
+        canvas {
+            background-color: #000;
+            border: 2px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.1);
+        }
+        .custom-file-upload {
+            border: 1px solid #4a5568; display: inline-block; padding: 6px 12px; cursor: pointer; border-radius: 4px; transition: all 0.2s;
+        }
+        .custom-file-upload:hover { background-color: #2d3748; }
+        input[type="file"] { display: none; }
+        
+        .text-phosphor { color: #4ade80; }
+        .border-phosphor { border-color: #4ade80; }
+        .bg-phosphor { background-color: #4ade80; }
+        .bg-phosphor-dark { background-color: #166534; }
+        .glow { text-shadow: 0 0 5px #4ade80; }
+        
+        input[type=range] {
+            -webkit-appearance: none; width: 100%; background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #4ade80; cursor: pointer; margin-top: -6px; box-shadow: 0 0 10px #4ade80;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%; height: 4px; cursor: pointer; background: #333; border-radius: 2px;
+        }
+        
+        .active-pill {
+            background-color: #166534;
+            color: #4ade80;
+            border-color: #4ade80;
+        }
+
+        .btn-secondary {
+            background-color: #1f2937;
+            border: 1px solid #374151;
+            transition: all 0.2s;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #374151;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8">
+
+    <header class="w-full max-w-5xl mb-6 flex justify-between items-end border-b border-gray-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-bold text-phosphor glow uppercase tracking-wider">Vector Oscilloscope</h1>
+            <p class="text-xs text-gray-500 mt-1">Lissajous Visualizer & Audio Shape Synthesizer</p>
+        </div>
+        <div id="audio-status" class="text-xs px-2 py-1 bg-red-900 text-red-200 rounded border border-red-700">Audio Context Offline</div>
+    </header>
+
+    <main class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Canvas Viewer Column -->
+        <div class="lg:col-span-2 flex flex-col items-center">
+            <div class="relative w-full aspect-square max-w-2xl">
+                <canvas id="scopeCanvas" class="w-full h-full object-contain"></canvas>
+                <div class="absolute top-2 left-2 text-[10px] text-green-800 pointer-events-none">CH1 (L) -> X-AXIS<br>CH2 (R) -> Y-AXIS</div>
+            </div>
+            
+            <div class="w-full max-w-2xl mt-4 flex flex-col gap-4 bg-gray-900 p-4 rounded-lg border border-gray-800">
+                <div class="flex flex-wrap gap-4 items-center justify-between">
+                    <div class="flex gap-2 items-center">
+                        <label class="custom-file-upload text-sm text-phosphor border-phosphor hover:bg-phosphor-dark">
+                            <input type="file" id="audioUpload" accept="audio/*">
+                            ⏏ Load File
+                        </label>
+                        <button id="playBtn" class="text-sm px-6 py-1.5 rounded bg-gray-700 hover:bg-gray-600 disabled:opacity-50 font-bold" disabled>▶ Play</button>
+                        <button id="loopBtn" class="text-xs px-3 py-1.5 rounded border border-gray-700 hover:border-gray-500 transition-colors">Loop: OFF</button>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="text-gray-400">Vol:</span>
+                            <input type="range" id="gainControl" min="0" max="2" step="0.1" value="1" class="w-20">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transport Controls -->
+                <div class="grid grid-cols-2 gap-4 pt-2 border-t border-gray-800">
+                    <div>
+                        <div class="flex justify-between text-[10px] text-gray-500 mb-1 uppercase tracking-tighter">
+                            <span>Playback Rate</span>
+                            <span id="rateVal">1.00x</span>
+                        </div>
+                        <input type="range" id="rateControl" min="0.05" max="10" step="0.05" value="1">
+                    </div>
+                    <div class="flex flex-col justify-center">
+                         <p class="text-[9px] text-gray-500 italic leading-tight">High rates (up to 10x) turn low-frequency vectors into audible tones and stable shapes.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls & Generator Column -->
+        <div class="flex flex-col gap-6">
+            
+            <!-- Scope Settings -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-5">
+                <h2 class="text-phosphor border-b border-gray-800 pb-2 mb-4 uppercase text-sm font-bold glow">Display Mode</h2>
+                <div class="flex flex-col gap-3">
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="displayMode" value="xy" checked class="accent-phosphor">
+                        XY Vector Mode
+                    </label>
+                    <label class="flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="radio" name="displayMode" value="time" class="accent-phosphor">
+                        Time Domain
+                    </label>
+                </div>
+                
+                <div class="mt-4 pt-4 border-t border-gray-800">
+                    <div class="flex justify-between items-center text-xs mb-1">
+                        <span class="text-gray-400">Phosphor Decay</span>
+                        <span id="decayVal">15%</span>
+                    </div>
+                    <input type="range" id="decayControl" min="0" max="100" value="15">
+                </div>
+            </div>
+
+            <!-- WAV Synthesizer -->
+            <div class="bg-gray-900 border border-gray-800 rounded-lg p-5 flex-1">
+                <h2 class="text-phosphor border-b border-gray-800 pb-2 mb-4 uppercase text-sm font-bold glow">Shape Synthesizer</h2>
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Shape Algorithm</label>
+                        <select id="shapeSelect" class="w-full bg-black border border-gray-700 text-sm p-2 rounded focus:border-phosphor outline-none text-gray-200">
+                            <optgroup label="Geometric">
+                                <option value="filledCircle">Filled-in Circle</option>
+                                <option value="spiral">Hypnotic Spiral</option>
+                                <option value="circle">Perfect Circle</option>
+                            </optgroup>
+                            <optgroup label="3D Scenes">
+                                <option value="sphereInCube">Sphere in Rotating Cube</option>
+                                <option value="camSphere">Rotating Camera & Sphere</option>
+                                <option value="cube">Spinning 3D Cube</option>
+                                <option value="pyramid">Spinning 3D Pyramid</option>
+                                <option value="octahedron">Spinning 3D Octahedron</option>
+                            </optgroup>
+                            <optgroup label="Worlds & Animation">
+                                <option value="scrollingWorld">Scrolling World (Trees/Houses)</option>
+                                <option value="stickman">Running Stickman</option>
+                                <option value="helix">Tumbling Double Helix</option>
+                                <option value="bird">Flapping Bird</option>
+                                <option value="star">Rotating & Pulsing Star</option>
+                            </optgroup>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Dur (s)</label>
+                            <input type="number" id="durationInput" value="5" min="1" max="30" class="w-full bg-black border border-gray-700 text-sm p-2 rounded focus:border-phosphor outline-none text-gray-200">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Anim Spd</label>
+                            <input type="number" id="animSpeedInput" value="1.0" step="0.1" min="0.1" max="10" class="w-full bg-black border border-gray-700 text-sm p-2 rounded focus:border-phosphor outline-none text-gray-200">
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 mt-2">
+                        <button id="generateBtn" class="w-full py-2 bg-green-900 hover:bg-green-800 text-green-100 border border-green-700 rounded transition-colors text-sm font-bold relative overflow-hidden">
+                            <span id="genText">⚙ Generate Preview</span>
+                            <div id="genProgress" class="absolute left-0 bottom-0 h-1 bg-phosphor w-0 transition-all duration-200"></div>
+                        </button>
+                        
+                        <button id="downloadBtn" disabled class="w-full py-2 btn-secondary text-gray-400 rounded text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-30">
+                            <span>⬇ Download .WAV</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const UI = {
+            canvas: document.getElementById('scopeCanvas'),
+            ctx: document.getElementById('scopeCanvas').getContext('2d', { alpha: false }),
+            audioUpload: document.getElementById('audioUpload'),
+            playBtn: document.getElementById('playBtn'),
+            loopBtn: document.getElementById('loopBtn'),
+            gainCtrl: document.getElementById('gainControl'),
+            decayCtrl: document.getElementById('decayControl'),
+            decayVal: document.getElementById('decayVal'),
+            rateCtrl: document.getElementById('rateControl'),
+            rateVal: document.getElementById('rateVal'),
+            modeRadios: document.getElementsByName('displayMode'),
+            audioStatus: document.getElementById('audio-status'),
+            generateBtn: document.getElementById('generateBtn'),
+            downloadBtn: document.getElementById('downloadBtn'),
+            genText: document.getElementById('genText'),
+            genProgress: document.getElementById('genProgress'),
+            shapeSelect: document.getElementById('shapeSelect'),
+            durationInput: document.getElementById('durationInput'),
+            animSpeedInput: document.getElementById('animSpeedInput')
+        };
+
+        function resizeCanvas() {
+            UI.canvas.width = 1024;
+            UI.canvas.height = 1024;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let audioCtx;
+        let analyserL, analyserR;
+        let dataArrayL, dataArrayR;
+        let gainNode;
+        let isAudioInit = false;
+        let isPlaying = false;
+        let isLooping = false;
+        
+        let activeSource = null;
+        let audioBuffer = null;
+        let currentWavBlob = null;
+        let startTime = 0;
+        let pausedAt = 0;
+
+        const FFT_SIZE = 2048; 
+        const SAMPLE_RATE = 44100;
+
+        async function initAudio() {
+            if (isAudioInit) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const splitter = audioCtx.createChannelSplitter(2);
+                analyserL = audioCtx.createAnalyser();
+                analyserR = audioCtx.createAnalyser();
+                gainNode = audioCtx.createGain();
+                analyserL.fftSize = FFT_SIZE;
+                analyserR.fftSize = FFT_SIZE;
+                analyserL.smoothingTimeConstant = 0; 
+                analyserR.smoothingTimeConstant = 0;
+                dataArrayL = new Float32Array(analyserL.frequencyBinCount);
+                dataArrayR = new Float32Array(analyserR.frequencyBinCount);
+                splitter.connect(analyserL, 0);
+                splitter.connect(analyserR, 1);
+                gainNode.connect(audioCtx.destination);
+                isAudioInit = true;
+                UI.audioStatus.textContent = "Audio Context Active";
+                UI.audioStatus.className = "text-xs px-2 py-1 bg-green-900 text-green-200 rounded border border-green-700";
+                drawScope();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function playBuffer() {
+            if (!audioBuffer || !isAudioInit) return;
+            if (activeSource) activeSource.stop();
+            activeSource = audioCtx.createBufferSource();
+            activeSource.buffer = audioBuffer;
+            activeSource.loop = isLooping;
+            activeSource.playbackRate.value = parseFloat(UI.rateCtrl.value);
+            activeSource.connect(gainNode);
+            const splitter = audioCtx.createChannelSplitter(2);
+            activeSource.connect(splitter);
+            splitter.connect(analyserL, 0);
+            splitter.connect(analyserR, 1);
+            activeSource.onended = () => { if (!isLooping) { isPlaying = false; UI.playBtn.textContent = "▶ Play"; } };
+            startTime = audioCtx.currentTime - (pausedAt % audioBuffer.duration);
+            activeSource.start(0, pausedAt % audioBuffer.duration);
+            isPlaying = true;
+            UI.playBtn.textContent = "⏸ Pause";
+        }
+
+        function stopBuffer() {
+            if (activeSource) {
+                activeSource.stop();
+                activeSource = null;
+                pausedAt = audioCtx.currentTime - startTime;
+            }
+            isPlaying = false;
+            UI.playBtn.textContent = "▶ Play";
+        }
+
+        UI.audioUpload.addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!isAudioInit) await initAudio();
+            const arrayBuffer = await file.arrayBuffer();
+            audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            currentWavBlob = null;
+            UI.downloadBtn.disabled = true;
+            pausedAt = 0;
+            UI.playBtn.disabled = false;
+            playBuffer();
+        });
+
+        UI.playBtn.addEventListener('click', async () => {
+            if (!isAudioInit) await initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (isPlaying) stopBuffer(); else playBuffer();
+        });
+
+        UI.loopBtn.addEventListener('click', () => {
+            isLooping = !isLooping;
+            UI.loopBtn.textContent = `Loop: ${isLooping ? 'ON' : 'OFF'}`;
+            UI.loopBtn.classList.toggle('active-pill', isLooping);
+            if (activeSource) activeSource.loop = isLooping;
+        });
+
+        UI.rateCtrl.addEventListener('input', (e) => {
+            const val = parseFloat(e.target.value);
+            UI.rateVal.textContent = val.toFixed(2) + 'x';
+            if (activeSource) activeSource.playbackRate.setTargetAtTime(val, audioCtx.currentTime, 0.05);
+        });
+
+        UI.gainCtrl.addEventListener('input', (e) => { if (gainNode) gainNode.gain.value = e.target.value; });
+
+        function drawScope() {
+            requestAnimationFrame(drawScope);
+            if (!isAudioInit) return;
+            const width = UI.canvas.width, height = UI.canvas.height;
+            const cx = width / 2, cy = height / 2;
+            const decay = parseInt(UI.decayCtrl.value) / 100;
+            if (decay === 0) {
+                UI.ctx.fillStyle = '#000';
+                UI.ctx.fillRect(0, 0, width, height);
+            } else {
+                const alpha = Math.max(0.02, decay * 0.4); 
+                UI.ctx.fillStyle = `rgba(0, 5, 0, ${alpha})`;
+                UI.ctx.fillRect(0, 0, width, height);
+            }
+            let mode = 'xy';
+            for (const radio of UI.modeRadios) if (radio.checked) mode = radio.value;
+            analyserL.getFloatTimeDomainData(dataArrayL);
+            analyserR.getFloatTimeDomainData(dataArrayR);
+            UI.ctx.lineWidth = 2.5;
+            UI.ctx.strokeStyle = '#4ade80';
+            UI.ctx.shadowBlur = 10;
+            UI.ctx.shadowColor = '#4ade80';
+            UI.ctx.beginPath();
+            const bufferLength = analyserL.frequencyBinCount;
+            if (mode === 'xy') {
+                for (let i = 0; i < bufferLength; i++) {
+                    let x = cx + (dataArrayL[i] * cx * 0.9);
+                    let y = cy - (dataArrayR[i] * cy * 0.9);
+                    if (i === 0) UI.ctx.moveTo(x, y); else UI.ctx.lineTo(x, y);
+                }
+            } else {
+                UI.ctx.shadowBlur = 4;
+                for(let i = 0; i < bufferLength; i++) {
+                    let x = (i / bufferLength) * width;
+                    let y = (height/4) - (dataArrayL[i] * (height/4));
+                    if(i===0) UI.ctx.moveTo(x, y); else UI.ctx.lineTo(x, y);
+                }
+                UI.ctx.stroke();
+                UI.ctx.strokeStyle = '#38bdf8'; 
+                UI.ctx.shadowColor = '#38bdf8';
+                UI.ctx.beginPath();
+                for(let i = 0; i < bufferLength; i++) {
+                    let x = (i / bufferLength) * width;
+                    let y = (height * 0.75) - (dataArrayR[i] * (height/4));
+                    if(i===0) UI.ctx.moveTo(x, y); else UI.ctx.lineTo(x, y);
+                }
+            }
+            UI.ctx.stroke();
+            UI.ctx.shadowBlur = 0;
+        }
+
+        UI.decayCtrl.addEventListener('input', (e) => UI.decayVal.textContent = e.target.value + '%');
+
+        // --- WAV ENCODING ---
+        function encodeWAV(leftChannel, rightChannel, sampleRate) {
+            const length = leftChannel.length;
+            const buffer = new ArrayBuffer(44 + length * 4);
+            const view = new DataView(buffer);
+            const writeStr = (v, o, s) => { for(let i=0; i<s.length; i++) v.setUint8(o+i, s.charCodeAt(i)); };
+            writeStr(view, 0, 'RIFF');
+            view.setUint32(4, 36 + length * 4, true);
+            writeStr(view, 8, 'WAVE');
+            writeStr(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 2, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 4, true);
+            view.setUint16(32, 4, true);
+            view.setUint16(34, 16, true);
+            writeStr(view, 36, 'data');
+            view.setUint32(40, length * 4, true);
+            let offset = 44;
+            for (let i = 0; i < length; i++) {
+                let l = Math.max(-1, Math.min(1, leftChannel[i])), r = Math.max(-1, Math.min(1, rightChannel[i]));
+                view.setInt16(offset, l < 0 ? l * 0x8000 : l * 0x7FFF, true);
+                offset += 2;
+                view.setInt16(offset, r < 0 ? r * 0x8000 : r * 0x7FFF, true);
+                offset += 2;
+            }
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        class ShapeSynth {
+            constructor(durationSecs) {
+                this.totalSamples = Math.floor(durationSecs * SAMPLE_RATE);
+                this.leftBuffer = new Float32Array(this.totalSamples);
+                this.rightBuffer = new Float32Array(this.totalSamples);
+                this.sampleIndex = 0;
+                this.samplesPerFrame = 882; 
+            }
+            drawLine(x1, y1, x2, y2, sampleCount) {
+                for (let i = 0; i < sampleCount; i++) {
+                    if (this.sampleIndex >= this.totalSamples) break;
+                    const t = i / sampleCount;
+                    this.leftBuffer[this.sampleIndex] = x1 + (x2 - x1) * t;
+                    this.rightBuffer[this.sampleIndex] = y1 + (y2 - y1) * t;
+                    this.sampleIndex++;
+                }
+            }
+            drawPath(points, totalSamplesForPath) {
+                if (points.length < 2) return;
+                const segments = points.length - 1, samplesPerSegment = Math.floor(totalSamplesForPath / segments);
+                for (let i = 0; i < segments; i++) {
+                    const p1 = points[i], p2 = points[i+1];
+                    const sCount = (i === segments - 1) ? (totalSamplesForPath - (samplesPerSegment * i)) : samplesPerSegment;
+                    this.drawLine(p1.x, p1.y, p2.x, p2.y, sCount);
+                }
+            }
+        }
+
+        // Shape Generators
+        const shapes = {
+            circle: (duration) => {
+                const s = new ShapeSynth(duration);
+                for(let i=0; i<s.totalSamples; i++) {
+                    const t = i / SAMPLE_RATE;
+                    s.leftBuffer[i] = Math.sin(t * Math.PI * 2 * 50) * 0.8;
+                    s.rightBuffer[i] = Math.cos(t * Math.PI * 2 * 50) * 0.8;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            filledCircle: (duration) => {
+                const s = new ShapeSynth(duration);
+                let time = 0;
+                while(s.sampleIndex < s.totalSamples) {
+                    let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                    let pts = [];
+                    for(let i=0; i<100; i++) {
+                        let r = (i % 2 === 0) ? 0.9 : 0;
+                        let a = i/100 * Math.PI * 2;
+                        pts.push({x: Math.cos(a)*r, y: Math.sin(a)*r});
+                    }
+                    s.drawPath(pts, samples);
+                    time += samples / SAMPLE_RATE;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            house: (duration) => {
+                const s = new ShapeSynth(duration);
+                const pts = [{x:-.5,y:-.5},{x:.5,y:-.5},{x:.5,y:.5},{x:0,y:.9},{x:-.5,y:.5},{x:-.5,y:-.5},{x:.5,y:.5},{x:-.5,y:.5},{x:.5,y:-.5},{x:-.5,y:-.5}];
+                while(s.sampleIndex < s.totalSamples) s.drawPath(pts, Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex));
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            rotate3D: (v, indices, duration, animSpeed, rotX, rotY, rotZ, scale=0.5) => {
+                const s = new ShapeSynth(duration);
+                let time = 0;
+                while(s.sampleIndex < s.totalSamples) {
+                    let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                    let t = time * animSpeed;
+                    let ax = t * rotX, ay = t * rotY, az = t * rotZ;
+                    let cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay), cz = Math.cos(az), sz = Math.sin(az);
+                    let pts = indices.map(idx => {
+                        let p = v[idx];
+                        let x1 = p.x * cy + p.z * sy, z1 = -p.x * sy + p.z * cy;
+                        let y2 = p.y * cx - z1 * sx, z2 = p.y * sx + z1 * cx;
+                        let x3 = x1 * cz - y2 * sz, y3 = x1 * sz + y2 * cz;
+                        return { x: x3 * scale, y: y3 * scale };
+                    });
+                    s.drawPath(pts, samples);
+                    time += samples / SAMPLE_RATE;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            sphereInCube: (duration, animSpeed) => {
+                const s = new ShapeSynth(duration);
+                let time = 0;
+                const cubeV = [{x:-1,y:-1,z:-1},{x:1,y:-1,z:-1},{x:1,y:1,z:-1},{x:-1,y:1,z:-1},{x:-1,y:-1,z:1},{x:1,y:-1,z:1},{x:1,y:1,z:1},{x:-1,y:1,z:1}];
+                const cubeI = [0,1,2,3,0,4,5,6,7,4,5,1,2,6,7,3,0];
+                const spherePts = [];
+                for(let i=0; i<12; i++) {
+                    let a = i/12*Math.PI*2;
+                    spherePts.push({x:Math.cos(a)*0.4, y:Math.sin(a)*0.4, z:0});
+                }
+                while(s.sampleIndex < s.totalSamples) {
+                    let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                    let t = time * animSpeed, ax = t*0.5, ay = t*0.8, az = t*0.3;
+                    let cx=Math.cos(ax), sx=Math.sin(ax), cy=Math.cos(ay), sy=Math.sin(ay), cz=Math.cos(az), sz=Math.sin(az);
+                    
+                    const project = (p) => {
+                        let x1 = p.x * cy + p.z * sy, z1 = -p.x * sy + p.z * cy;
+                        let y2 = p.y * cx - z1 * sx, z2 = p.y * sx + z1 * cx;
+                        let x3 = x1 * cz - y2 * sz, y3 = x1 * sz + y2 * cz;
+                        return {x: x3*0.5, y: y3*0.5};
+                    };
+
+                    let pts = cubeI.map(i => project(cubeV[i]));
+                    // Add sphere path
+                    let bX = Math.sin(t*3)*0.4, bY = Math.cos(t*2.3)*0.4, bZ = Math.sin(t*1.7)*0.4;
+                    pts.push(project({x:bX, y:bY, z:bZ})); // Connect to sphere
+                    spherePts.forEach(p => pts.push(project({x:p.x+bX, y:p.y+bY, z:p.z+bZ})));
+                    pts.push(project({x:bX, y:bY, z:bZ})); // Return to start of sphere
+
+                    s.drawPath(pts, samples);
+                    time += samples/SAMPLE_RATE;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            camSphere: (duration, animSpeed) => {
+                const s = new ShapeSynth(duration);
+                let time = 0;
+                while(s.sampleIndex < s.totalSamples) {
+                    let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                    let t = time * animSpeed, camA = t * 2;
+                    let bX = Math.sin(t*4)*0.4, bY = Math.cos(t*3)*0.4, bZ = Math.sin(t*2)*0.4;
+                    
+                    const project = (p) => {
+                        // Camera rotation
+                        let sC = Math.sin(camA), cC = Math.cos(camA);
+                        let x1 = p.x * cC + p.z * sC, z1 = -p.x * sC + p.z * cC;
+                        return {x: x1*0.6, y: p.y*0.6}; // Simple projection
+                    };
+
+                    let pts = [];
+                    // Background grid
+                    pts.push(project({x:-1,y:-1,z:0}), project({x:1,y:-1,z:0}), project({x:1,y:1,z:0}), project({x:-1,y:1,z:0}), project({x:-1,y:-1,z:0}));
+                    // The sphere
+                    for(let i=0; i<=16; i++) {
+                        let a = i/16*Math.PI*2;
+                        pts.push(project({x:bX+Math.cos(a)*0.2, y:bY+Math.sin(a)*0.2, z:bZ}));
+                    }
+                    s.drawPath(pts, samples);
+                    time += samples/SAMPLE_RATE;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            },
+            scrollingWorld: (duration, animSpeed) => {
+                const s = new ShapeSynth(duration);
+                let time = 0;
+                while(s.sampleIndex < s.totalSamples) {
+                    let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                    let t = time * animSpeed, offset = (t * 0.5) % 2;
+                    let pts = [];
+                    // Horizon/Ground
+                    pts.push({x:-1, y:-0.5}, {x:1, y:-0.5});
+                    // Scrolling objects
+                    for(let i=-2; i<=2; i++) {
+                        let x = i + (1 - offset);
+                        if(x < -1.2 || x > 1.2) continue;
+                        // House
+                        if(Math.abs(i)%2 === 0) {
+                            pts.push({x:x-.1, y:-.5}, {x:x-.1, y:-.3}, {x:x, y:-.2}, {x:x+.1, y:-.3}, {x:x+.1, y:-.5});
+                        } else {
+                            // Tree
+                            pts.push({x:x, y:-.5}, {x:x, y:-.2}, {x:x-.1, y:-.2}, {x:x, y:0}, {x:x+.1, y:-.2}, {x:x, y:-.2});
+                        }
+                    }
+                    // Hills in far background
+                    pts.push({x:-1, y:-.5});
+                    for(let i=0; i<=10; i++) {
+                        let hx = -1 + (i/5);
+                        let hy = -0.5 + Math.sin(hx*3 + t)*0.2;
+                        pts.push({x:hx, y:hy});
+                    }
+                    s.drawPath(pts, samples);
+                    time += samples/SAMPLE_RATE;
+                }
+                return { l: s.leftBuffer, r: s.rightBuffer };
+            }
+        };
+
+        UI.generateBtn.addEventListener('click', async () => {
+            if (!isAudioInit) await initAudio();
+            const shape = UI.shapeSelect.value;
+            const duration = Math.min(30, Math.max(1, parseFloat(UI.durationInput.value) || 5));
+            const animSpeed = parseFloat(UI.animSpeedInput.value) || 1.0;
+            
+            UI.generateBtn.disabled = true;
+            UI.genText.textContent = "Synthesizing...";
+            UI.genProgress.style.width = "40%";
+
+            setTimeout(async () => {
+                let buffers;
+                if (shape === 'circle') buffers = shapes.circle(duration);
+                else if (shape === 'filledCircle') buffers = shapes.filledCircle(duration);
+                else if (shape === 'house') buffers = shapes.house(duration);
+                else if (shape === 'cube') buffers = shapes.rotate3D([{x:-1,y:-1,z:-1},{x:1,y:-1,z:-1},{x:1,y:1,z:-1},{x:-1,y:1,z:-1},{x:-1,y:-1,z:1},{x:1,y:-1,z:1},{x:1,y:1,z:1},{x:-1,y:1,z:1}], [0,1,2,3,0,4,5,6,7,4,5,1,2,6,7,3,0,4], duration, animSpeed, 0.7, 1.1, 0.3);
+                else if (shape === 'pyramid') buffers = shapes.rotate3D([{x:-1,y:-1,z:-1},{x:1,y:-1,z:-1},{x:1,y:-1,z:1},{x:-1,y:-1,z:1},{x:0,y:1.2,z:0}], [0,1,2,3,0,4,1,4,2,4,3,4,0], duration, animSpeed, 0.6, 1.0, 0.4);
+                else if (shape === 'octahedron') buffers = shapes.rotate3D([{x:0,y:1.2,z:0},{x:0,y:-1.2,z:0},{x:0,y:0,z:-1.2},{x:1.2,y:0,z:0},{x:0,y:0,z:1.2},{x:-1.2,y:0,z:0}], [2,3,4,5,2,0,3,1,4,0,5,1,2,0], duration, animSpeed, 0.8, 1.2, 0.5);
+                else if (shape === 'sphereInCube') buffers = shapes.sphereInCube(duration, animSpeed);
+                else if (shape === 'camSphere') buffers = shapes.camSphere(duration, animSpeed);
+                else if (shape === 'scrollingWorld') buffers = shapes.scrollingWorld(duration, animSpeed);
+                else if (shape === 'helix') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0;
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let t = time * animSpeed, ay = t*1.5, ax = t*0.7;
+                        let cy = Math.cos(ay), sy = Math.sin(ay), cx = Math.cos(ax), sx = Math.sin(ax);
+                        let pts = [];
+                        for(let i=0; i<=30; i++) {
+                            let f = i/30, y = f*2-1, a = f*Math.PI*4, x = Math.cos(a)*.5, z = Math.sin(a)*.5;
+                            let x1 = x*cy+z*sy, z1 = -x*sy+z*cy, y2 = y*cx-z1*sx;
+                            pts.push({x: x1*0.6, y: y2*0.6});
+                        }
+                        for(let i=30; i>=0; i--) {
+                            let f = i/30, y = f*2-1, a = f*Math.PI*4+Math.PI, x = Math.cos(a)*.5, z = Math.sin(a)*.5;
+                            let x1 = x*cy+z*sy, z1 = -x*sy+z*cy, y2 = y*cx-z1*sx;
+                            pts.push({x: x1*0.6, y: y2*0.6});
+                        }
+                        s.drawPath(pts, samples);
+                        time += samples / SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                } else if (shape === 'stickman') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0;
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let ph = time * animSpeed * 5 * Math.PI * 2, as = Math.sin(ph)*.3, ls = Math.sin(ph)*.4, ll = Math.cos(ph);
+                        let pts = [];
+                        for(let i=0; i<=12; i++) pts.push({x:Math.cos(i/12*Math.PI*2)*0.15, y:0.6+Math.sin(i/12*Math.PI*2)*0.15});
+                        pts.push({x:0,y:.45},{x:0,y:-.1},{x:-ls,y:-.7+Math.max(0,ll)*.2},{x:0,y:-.1},{x:ls,y:-.7+Math.max(0,-ll)*.2},{x:0,y:-.1},{x:0,y:.45},{x:-as,y:.1},{x:0,y:.45},{x:as,y:.1},{x:0,y:.45});
+                        s.drawPath(pts, samples);
+                        time += samples / SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                } else if (shape === 'star') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0;
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let t = time * animSpeed, rot = t*2, p = 0.35 + Math.sin(t*5)*0.15, pts = [];
+                        for(let i=0; i<=10; i++) { let r = (i%2==0)?0.9:p, a = i/10*Math.PI*2+rot; pts.push({x:Math.cos(a)*r, y:Math.sin(a)*r}); }
+                        s.drawPath(pts, samples);
+                        time += samples/SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                } else if (shape === 'bird') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0;
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let t = time * animSpeed, f = Math.sin(t*8)*.5, b = Math.sin(t*2)*.2;
+                        let pts = [{x:-.8,y:.2+f+b},{x:-.3,y:b},{x:0,y:-.3+b},{x:.3,y:b},{x:.8,y:.2+f+b},{x:0,y:-.3+b},{x:-.8,y:.2+f+b}];
+                        s.drawPath(pts, samples);
+                        time += samples/SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                } else if (shape === 'bounce') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0, c = [];
+                    for(let i=0; i<=20; i++) c.push({x:Math.cos(i/20*Math.PI*2),y:Math.sin(i/20*Math.PI*2)});
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let t = time * animSpeed, bp = Math.abs(Math.sin(t*4)), cy = -0.6+bp*1.2, sx=1, sy=1;
+                        if(bp<0.15) { let sq=(0.15-bp)*3; sx+=sq; sy-=sq; }
+                        s.drawPath(c.map(p=>({x:p.x*0.2*sx,y:cy+p.y*0.2*sy})), samples);
+                        time += samples/SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                } else if (shape === 'spiral') {
+                    const s = new ShapeSynth(duration);
+                    let time = 0;
+                    while(s.sampleIndex < s.totalSamples) {
+                        let samples = Math.min(s.samplesPerFrame, s.totalSamples - s.sampleIndex);
+                        let t = time * animSpeed, rot = t*-3, pts = [];
+                        for(let i=0; i<=40; i++) { let f=i/40, a=f*Math.PI*8+rot; pts.push({x:Math.cos(a)*f*0.9,y:Math.sin(a)*f*0.9}); }
+                        for(let i=40; i>=0; i--) { let f=i/40, a=f*Math.PI*8+rot; pts.push({x:Math.cos(a)*f*0.9,y:Math.sin(a)*f*0.9}); }
+                        s.drawPath(pts, samples);
+                        time += samples/SAMPLE_RATE;
+                    }
+                    buffers = { l: s.leftBuffer, r: s.rightBuffer };
+                }
+
+                UI.genProgress.style.width = "80%";
+                currentWavBlob = encodeWAV(buffers.l, buffers.r, SAMPLE_RATE);
+                audioBuffer = await audioCtx.decodeAudioData(await currentWavBlob.arrayBuffer());
+                
+                UI.playBtn.disabled = false;
+                UI.downloadBtn.disabled = false;
+                UI.downloadBtn.classList.remove('text-gray-400');
+                UI.downloadBtn.classList.add('text-phosphor', 'border-phosphor');
+                pausedAt = 0;
+                
+                playBuffer();
+
+                UI.generateBtn.disabled = false;
+                UI.genText.textContent = "⚙ Regenerate Preview";
+                UI.genProgress.style.width = "0%";
+            }, 50);
+        });
+
+        UI.downloadBtn.addEventListener('click', () => {
+            if (!currentWavBlob) return;
+            const url = URL.createObjectURL(currentWavBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `vector_${UI.shapeSelect.value}_${Date.now()}.wav`;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
