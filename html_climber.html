@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climber 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Inter', sans-serif; user-select: none; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; display: flex; flex-direction: column;
+            justify-content: space-between; padding: 20px; box-sizing: border-box;
+        }
+
+        #crosshair {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px; height: 8px; background-color: white;
+            border-radius: 50%; border: 1.5px solid rgba(0,0,0,0.5);
+            transition: all 0.1s ease;
+        }
+        #crosshair.active {
+            width: 16px; height: 16px; background-color: #32CD32;
+            border: 2px solid white; box-shadow: 0 0 10px #32CD32;
+        }
+
+        #blocker {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); display: flex;
+            flex-direction: column; justify-content: center; align-items: center;
+            color: white; pointer-events: auto; z-index: 50; cursor: pointer;
+            backdrop-filter: blur(4px);
+        }
+
+        .hud-text {
+            text-shadow: 1px 1px 2px black, 0 0 1em rgba(0,0,0,0.8);
+            font-weight: 600; color: white; font-size: 1.1rem;
+        }
+
+        .hand-status {
+            display: flex; gap: 20px; align-items: flex-end; justify-content: center;
+            width: 100%; position: absolute; bottom: 40px; left: 0;
+        }
+        .hand-indicator {
+            padding: 10px 20px; border-radius: 8px; background: rgba(0,0,0,0.4);
+            border: 2px solid rgba(255,255,255,0.2); transition: all 0.2s;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .hand-indicator.grabbing {
+            background: rgba(50, 205, 50, 0.4); border-color: #32CD32;
+            transform: scale(1.05); box-shadow: 0 0 15px rgba(50,205,50,0.5);
+        }
+        .key-hint { font-size: 1.5rem; font-weight: bold; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+    <div id="blocker">
+        <h1 class="text-6xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">CLIMBER 3D</h1>
+        <p class="text-xl mb-8">Click anywhere to start</p>
+        <div class="grid grid-cols-2 gap-x-12 gap-y-4 text-lg bg-black/40 p-8 rounded-2xl border border-white/10">
+            <div><span class="font-bold text-green-400">MOUSE</span> : Look & Aim</div>
+            <div><span class="font-bold text-green-400">WASD</span> : Move / Swing / Pull Up</div>
+            <div><span class="font-bold text-yellow-400">Hold Q</span> : Grab Left Hand</div>
+            <div><span class="font-bold text-yellow-400">Hold E</span> : Grab Right Hand</div>
+            <div><span class="font-bold text-blue-400">SPACE</span> : Jump</div>
+            <div class="text-gray-400 text-sm col-span-2 mt-4 text-center">Tip: Grab a hold, then hold W to pull your body up to it!</div>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="hud-text">Reach: <span id="reach-readout">0</span>m</div>
+        <div id="crosshair"></div>
+        <div class="hand-status">
+            <div id="left-hand-ui" class="hand-indicator">
+                <span class="key-hint">Q</span>
+                <span>Left Arm</span>
+            </div>
+            <div id="right-hand-ui" class="hand-indicator">
+                <span class="key-hint">E</span>
+                <span>Right Arm</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer;
+        let holds = [];
+        let raycaster = new THREE.Raycaster();
+        const centerScreen = new THREE.Vector2(0, 0);
+        let targetedHold = null;
+
+        // Player physics and state
+        const player = {
+            position: new THREE.Vector3(0, 2, 0),
+            velocity: new THREE.Vector3(0, 0, 0),
+            radius: 1.0,
+            onGround: false,
+            speed: 15.0,
+            jumpForce: 12.0,
+            gravity: 25.0,
+            maxReach: 9.0,
+            pullSpeed: 8.0,
+            armLength: 5.0, // Current dynamic rest distance
+            yaw: 0,
+            pitch: 0
+        };
+
+        const hands = {
+            left: { active: false, point: new THREE.Vector3(), normal: new THREE.Vector3(), mesh: null, line: null },
+            right: { active: false, point: new THREE.Vector3(), normal: new THREE.Vector3(), mesh: null, line: null }
+        };
+
+        const keys = { w: false, a: false, s: false, d: false, q: false, e: false, space: false };
+        let isPointerLocked = false;
+        let prevTime = performance.now();
+
+        // UI Elements
+        const blocker = document.getElementById('blocker');
+        const crosshair = document.getElementById('crosshair');
+        const leftUi = document.getElementById('left-hand-ui');
+        const rightUi = document.getElementById('right-hand-ui');
+        const reachReadout = document.getElementById('reach-readout');
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.015);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.rotation.order = 'YXZ';
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 100, 50);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.top = 100;
+            dirLight.shadow.camera.bottom = -100;
+            dirLight.shadow.camera.left = -100;
+            dirLight.shadow.camera.right = 100;
+            scene.add(dirLight);
+
+            buildLevel();
+            setupHandsVisuals();
+            setupEventListeners();
+
+            animate();
+        }
+
+        function buildLevel() {
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(200, 200);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a5a40, roughness: 0.8 });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Wall Material
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a817c, roughness: 0.9 });
+
+            // Main Face (Z = -20)
+            const mainWall = new THREE.Mesh(new THREE.BoxGeometry(80, 200, 10), wallMat);
+            mainWall.position.set(0, 100, -20);
+            mainWall.receiveShadow = true;
+            mainWall.castShadow = true;
+            scene.add(mainWall);
+
+            // Left Face
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(10, 200, 60), wallMat);
+            leftWall.position.set(-45, 100, 5);
+            leftWall.receiveShadow = true;
+            leftWall.castShadow = true;
+            scene.add(leftWall);
+
+            // Right Face
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(10, 200, 60), wallMat);
+            rightWall.position.set(45, 100, 5);
+            rightWall.receiveShadow = true;
+            rightWall.castShadow = true;
+            scene.add(rightWall);
+
+            // Overhang / Ceiling part
+            const overhang = new THREE.Mesh(new THREE.BoxGeometry(80, 10, 30), wallMat);
+            overhang.position.set(0, 160, -10);
+            overhang.receiveShadow = true;
+            overhang.castShadow = true;
+            scene.add(overhang);
+
+            // Generate Climbing Holds
+            const holdGeos = [
+                new THREE.DodecahedronGeometry(0.4),
+                new THREE.BoxGeometry(0.6, 0.4, 0.5),
+                new THREE.IcosahedronGeometry(0.35)
+            ];
+            const colors = [0xff0040, 0x00ff40, 0x0040ff, 0xffaa00, 0xff00ff];
+
+            const placeHoldsOnWall = (wallMesh, count) => {
+                const box = new THREE.Box3().setFromObject(wallMesh);
+                for (let i = 0; i < count; i++) {
+                    const geo = holdGeos[Math.floor(Math.random() * holdGeos.length)];
+                    const mat = new THREE.MeshStandardMaterial({ 
+                        color: colors[Math.floor(Math.random() * colors.length)],
+                        roughness: 0.6, metalness: 0.1
+                    });
+                    const hold = new THREE.Mesh(geo, mat);
+                    
+                    // Random position on the bounding box face facing inward
+                    let x = box.min.x + Math.random() * (box.max.x - box.min.x);
+                    let y = Math.max(2, box.min.y + Math.random() * (box.max.y - box.min.y));
+                    let z = box.min.z + Math.random() * (box.max.z - box.min.z);
+
+                    // Snap to the correct face based on which wall it is
+                    if (wallMesh === mainWall) z = box.max.z; 
+                    else if (wallMesh === leftWall) x = box.max.x;
+                    else if (wallMesh === rightWall) x = box.min.x;
+                    else if (wallMesh === overhang) y = box.min.y;
+
+                    hold.position.set(x, y, z);
+                    
+                    // Slight random rotation
+                    hold.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+                    hold.castShadow = true;
+                    hold.receiveShadow = true;
+                    scene.add(hold);
+                    holds.push(hold);
+                }
+            };
+
+            placeHoldsOnWall(mainWall, 300);
+            placeHoldsOnWall(leftWall, 150);
+            placeHoldsOnWall(rightWall, 150);
+            placeHoldsOnWall(overhang, 80);
+        }
+
+        function setupHandsVisuals() {
+            const handGeo = new THREE.SphereGeometry(0.2, 16, 16);
+            const leftMat = new THREE.MeshBasicMaterial({ color: 0x32CD32 });
+            const rightMat = new THREE.MeshBasicMaterial({ color: 0x1E90FF });
+
+            hands.left.mesh = new THREE.Mesh(handGeo, leftMat);
+            hands.right.mesh = new THREE.Mesh(handGeo, rightMat);
+            scene.add(hands.left.mesh);
+            scene.add(hands.right.mesh);
+
+            const lineMat = new THREE.LineBasicMaterial({ color: 0xdddddd, linewidth: 3 });
+            
+            const leftLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            hands.left.line = new THREE.Line(leftLineGeo, lineMat);
+            scene.add(hands.left.line);
+
+            const rightLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+            hands.right.line = new THREE.Line(rightLineGeo, lineMat);
+            scene.add(hands.right.line);
+        }
+
+        function setupEventListeners() {
+            blocker.addEventListener('click', () => {
+                document.body.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = document.pointerLockElement === document.body;
+                blocker.style.display = isPointerLocked ? 'none' : 'flex';
+                if (isPointerLocked) prevTime = performance.now();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isPointerLocked) return;
+                const sensitivity = 0.002;
+                player.yaw -= e.movementX * sensitivity;
+                player.pitch -= e.movementY * sensitivity;
+                // Clamp pitch to look straight up or down
+                player.pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, player.pitch));
+                
+                camera.rotation.set(player.pitch, player.yaw, 0);
+            });
+
+            const setKey = (code, state) => {
+                switch(code) {
+                    case 'KeyW': keys.w = state; break;
+                    case 'KeyA': keys.a = state; break;
+                    case 'KeyS': keys.s = state; break;
+                    case 'KeyD': keys.d = state; break;
+                    case 'Space': keys.space = state; break;
+                    case 'KeyQ': 
+                        if (state && !keys.q) attemptGrab('left');
+                        if (!state && keys.q) releaseGrab('left');
+                        keys.q = state; 
+                        break;
+                    case 'KeyE': 
+                        if (state && !keys.e) attemptGrab('right');
+                        if (!state && keys.e) releaseGrab('right');
+                        keys.e = state; 
+                        break;
+                }
+            };
+
+            document.addEventListener('keydown', (e) => setKey(e.code, true));
+            document.addEventListener('keyup', (e) => setKey(e.code, false));
+            
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function attemptGrab(side) {
+            if (!targetedHold) return;
+            const hand = hands[side];
+            hand.active = true;
+            hand.point.copy(targetedHold.point);
+            hand.normal.copy(targetedHold.face.normal).transformDirection(targetedHold.object.matrixWorld).normalize();
+            
+            // Update UI
+            if (side === 'left') leftUi.classList.add('grabbing');
+            if (side === 'right') rightUi.classList.add('grabbing');
+
+            // Reset arm length dynamically based on current distance so we don't snap wildly
+            let activeHands = 0;
+            let centerPoint = new THREE.Vector3();
+            if (hands.left.active) { centerPoint.add(hands.left.point); activeHands++; }
+            if (hands.right.active) { centerPoint.add(hands.right.point); activeHands++; }
+            centerPoint.divideScalar(activeHands);
+            
+            player.armLength = Math.min(player.maxReach, player.position.distanceTo(centerPoint));
+        }
+
+        function releaseGrab(side) {
+            hands[side].active = false;
+            if (side === 'left') leftUi.classList.remove('grabbing');
+            if (side === 'right') rightUi.classList.remove('grabbing');
+        }
+
+        function updateRaycaster() {
+            if (targetedHold && targetedHold.object.material.emissive) {
+                targetedHold.object.material.emissive.setHex(0x000000);
+            }
+            targetedHold = null;
+
+            raycaster.setFromCamera(centerScreen, camera);
+            const intersects = raycaster.intersectObjects(holds);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                if (hit.distance <= player.maxReach) {
+                    targetedHold = hit;
+                    // Highlight targeted hold
+                    hit.object.material.emissive.setHex(0x333333);
+                    crosshair.classList.add('active');
+                } else {
+                    crosshair.classList.remove('active');
+                }
+            } else {
+                crosshair.classList.remove('active');
+            }
+        }
+
+        function updatePhysics(dt) {
+            const isHanging = hands.left.active || hands.right.active;
+
+            if (isHanging) {
+                // Determine anchor point and normal
+                let anchor = new THREE.Vector3();
+                let normal = new THREE.Vector3();
+                let activeCount = 0;
+                
+                if (hands.left.active) { anchor.add(hands.left.point); normal.add(hands.left.normal); activeCount++; }
+                if (hands.right.active) { anchor.add(hands.right.point); normal.add(hands.right.normal); activeCount++; }
+                
+                anchor.divideScalar(activeCount);
+                normal.divideScalar(activeCount).normalize();
+
+                // Climbing W/S inputs contract/extend the "spring" resting distance
+                if (keys.w) player.armLength = Math.max(1.0, player.armLength - player.pullSpeed * dt);
+                if (keys.s) player.armLength = Math.min(player.maxReach, player.armLength + player.pullSpeed * dt);
+
+                // Calculate where the player's body "wants" to be
+                // Hang slightly away from the wall normal, and down by the arm length
+                const targetPos = anchor.clone().add(normal.clone().multiplyScalar(1.2)); 
+                targetPos.y -= player.armLength;
+
+                // A/D inputs allow lateral swinging
+                if (keys.a || keys.d) {
+                    const camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                    camRight.y = 0; camRight.normalize();
+                    const swingForce = 25.0;
+                    if (keys.a) player.velocity.sub(camRight.multiplyScalar(swingForce * dt));
+                    if (keys.d) player.velocity.add(camRight.multiplyScalar(swingForce * dt));
+                }
+
+                // Spring physics to pull player to target position
+                const springForce = targetPos.sub(player.position).multiplyScalar(15.0);
+                player.velocity.add(springForce.multiplyScalar(dt));
+                
+                // Heavy damping while hanging for stability
+                player.velocity.multiplyScalar(0.85); 
+
+            } else {
+                // Freefall / Ground Movement
+                player.velocity.y -= player.gravity * dt;
+
+                const moveDir = new THREE.Vector3();
+                if (keys.w) moveDir.z -= 1;
+                if (keys.s) moveDir.z += 1;
+                if (keys.a) moveDir.x -= 1;
+                if (keys.d) moveDir.x += 1;
+
+                moveDir.normalize();
+                moveDir.applyEuler(new THREE.Euler(0, player.yaw, 0));
+
+                if (player.onGround) {
+                    const moveSpeed = player.speed * dt;
+                    player.position.add(moveDir.multiplyScalar(moveSpeed));
+                    
+                    // Friction
+                    player.velocity.x *= 0.8;
+                    player.velocity.z *= 0.8;
+
+                    if (keys.space) {
+                        player.velocity.y = player.jumpForce;
+                        player.onGround = false;
+                    }
+                } else {
+                    // Slight air control
+                    const airSpeed = player.speed * 0.2 * dt;
+                    player.velocity.add(moveDir.multiplyScalar(airSpeed));
+                    // Air resistance
+                    player.velocity.x *= 0.98;
+                    player.velocity.z *= 0.98;
+                }
+            }
+
+            // Apply velocity to position
+            player.position.add(player.velocity.clone().multiplyScalar(dt));
+
+            // Basic Floor Collision
+            if (player.position.y < player.radius) {
+                player.position.y = player.radius;
+                player.velocity.y = 0;
+                player.onGround = true;
+            } else {
+                player.onGround = false;
+            }
+            
+            // Sync camera
+            camera.position.copy(player.position);
+            
+            // UI Readout
+            reachReadout.innerText = player.position.y.toFixed(1);
+        }
+
+        function updateVisuals() {
+            // Helper to get shoulder position based on camera view
+            const getShoulderPos = (isLeft) => {
+                const offset = new THREE.Vector3(isLeft ? -0.4 : 0.4, -0.5, 0);
+                offset.applyQuaternion(camera.quaternion);
+                return camera.position.clone().add(offset);
+            };
+
+            const updateArm = (side) => {
+                const hand = hands[side];
+                const shoulderPos = getShoulderPos(side === 'left');
+
+                if (hand.active) {
+                    // Hand locked to wall
+                    hand.mesh.position.copy(hand.point);
+                } else {
+                    // Hand floating in front of camera
+                    const restingOffset = new THREE.Vector3(side === 'left' ? -0.4 : 0.4, -0.3, -1.2);
+                    restingOffset.applyQuaternion(camera.quaternion);
+                    const targetFloatingPos = camera.position.clone().add(restingOffset);
+                    
+                    // Smoothly interpolate back to resting position
+                    hand.mesh.position.lerp(targetFloatingPos, 0.2);
+                }
+
+                // Update Line connecting shoulder to hand
+                const positions = hand.line.geometry.attributes.position.array;
+                positions[0] = shoulderPos.x;
+                positions[1] = shoulderPos.y;
+                positions[2] = shoulderPos.z;
+                positions[3] = hand.mesh.position.x;
+                positions[4] = hand.mesh.position.y;
+                positions[5] = hand.mesh.position.z;
+                hand.line.geometry.attributes.position.needsUpdate = true;
+            };
+
+            updateArm('left');
+            updateArm('right');
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const time = performance.now();
+            // Cap delta time to prevent physics explosions on lag spikes
+            const dt = Math.min((time - prevTime) / 1000, 0.05); 
+            prevTime = time;
+
+            if (isPointerLocked) {
+                updateRaycaster();
+                updatePhysics(dt);
+            }
+            
+            updateVisuals();
+            renderer.render(scene, camera);
+        }
+
+        // Boot up
+        window.onload = init;
+
+    </script>
+</body>
+</html>
