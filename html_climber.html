@@ -64,8 +64,8 @@
         <div class="grid grid-cols-2 gap-x-12 gap-y-4 text-lg bg-black/40 p-8 rounded-2xl border border-white/10">
             <div><span class="font-bold text-green-400">MOUSE</span> : Look & Aim</div>
             <div><span class="font-bold text-green-400">WASD</span> : Move / Swing / Pull Up</div>
-            <div><span class="font-bold text-yellow-400">Hold Q</span> : Grab Left Hand</div>
-            <div><span class="font-bold text-yellow-400">Hold E</span> : Grab Right Hand</div>
+            <div><span class="font-bold text-yellow-400">Press Q</span> : Toggle Left Grab</div>
+            <div><span class="font-bold text-yellow-400">Press E</span> : Toggle Right Grab</div>
             <div><span class="font-bold text-blue-400">SPACE</span> : Jump</div>
             <div class="text-gray-400 text-sm col-span-2 mt-4 text-center">Tip: Grab a hold, then hold W to pull your body up to it!</div>
         </div>
@@ -116,6 +116,8 @@
         };
 
         const keys = { w: false, a: false, s: false, d: false, q: false, e: false, space: false };
+        // Track the previous state of Q and E to detect edge (presses)
+        const prevKeys = { q: false, e: false };
         let isPointerLocked = false;
         let prevTime = performance.now();
 
@@ -172,30 +174,30 @@
             // Wall Material
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x8a817c, roughness: 0.9 });
 
-            // Main Face (Z = -20)
-            const mainWall = new THREE.Mesh(new THREE.BoxGeometry(80, 200, 10), wallMat);
-            mainWall.position.set(0, 100, -20);
+            // Main Face (Z = -20) - Made taller
+            const mainWall = new THREE.Mesh(new THREE.BoxGeometry(80, 400, 10), wallMat);
+            mainWall.position.set(0, 200, -20);
             mainWall.receiveShadow = true;
             mainWall.castShadow = true;
             scene.add(mainWall);
 
-            // Left Face
-            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(10, 200, 60), wallMat);
-            leftWall.position.set(-45, 100, 5);
+            // Left Face - Made taller
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(10, 400, 60), wallMat);
+            leftWall.position.set(-45, 200, 5);
             leftWall.receiveShadow = true;
             leftWall.castShadow = true;
             scene.add(leftWall);
 
-            // Right Face
-            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(10, 200, 60), wallMat);
-            rightWall.position.set(45, 100, 5);
+            // Right Face - Made taller
+            const rightWall = new THREE.Mesh(new THREE.BoxGeometry(10, 400, 60), wallMat);
+            rightWall.position.set(45, 200, 5);
             rightWall.receiveShadow = true;
             rightWall.castShadow = true;
             scene.add(rightWall);
 
-            // Overhang / Ceiling part
+            // Overhang / Ceiling part - Moved up
             const overhang = new THREE.Mesh(new THREE.BoxGeometry(80, 10, 30), wallMat);
-            overhang.position.set(0, 160, -10);
+            overhang.position.set(0, 400, -10);
             overhang.receiveShadow = true;
             overhang.castShadow = true;
             scene.add(overhang);
@@ -240,10 +242,10 @@
                 }
             };
 
-            placeHoldsOnWall(mainWall, 300);
-            placeHoldsOnWall(leftWall, 150);
-            placeHoldsOnWall(rightWall, 150);
-            placeHoldsOnWall(overhang, 80);
+            placeHoldsOnWall(mainWall, 1500);
+            placeHoldsOnWall(leftWall, 800);
+            placeHoldsOnWall(rightWall, 800);
+            placeHoldsOnWall(overhang, 300);
         }
 
         function setupHandsVisuals() {
@@ -297,14 +299,18 @@
                     case 'KeyD': keys.d = state; break;
                     case 'Space': keys.space = state; break;
                     case 'KeyQ': 
-                        if (state && !keys.q) attemptGrab('left');
-                        if (!state && keys.q) releaseGrab('left');
-                        keys.q = state; 
+                        if (state && !prevKeys.q) { // Just pressed
+                            if (hands.left.active) releaseGrab('left');
+                            else attemptGrab('left');
+                        }
+                        prevKeys.q = state; 
                         break;
                     case 'KeyE': 
-                        if (state && !keys.e) attemptGrab('right');
-                        if (!state && keys.e) releaseGrab('right');
-                        keys.e = state; 
+                        if (state && !prevKeys.e) { // Just pressed
+                            if (hands.right.active) releaseGrab('right');
+                            else attemptGrab('right');
+                        }
+                        prevKeys.e = state; 
                         break;
                 }
             };
@@ -322,6 +328,10 @@
 
         function attemptGrab(side) {
             if (!targetedHold) return;
+            
+            // Check distance before grabbing to ensure we don't grab something too far
+            if (targetedHold.distance > player.maxReach) return;
+
             const hand = hands[side];
             hand.active = true;
             hand.point.copy(targetedHold.point);
@@ -374,7 +384,18 @@
         function updatePhysics(dt) {
             const isHanging = hands.left.active || hands.right.active;
 
-            if (isHanging) {
+            // Enforce max reach - if arm stretches too far, let go!
+            if (hands.left.active && player.position.distanceTo(hands.left.point) > player.maxReach * 1.5) {
+                 releaseGrab('left');
+            }
+            if (hands.right.active && player.position.distanceTo(hands.right.point) > player.maxReach * 1.5) {
+                 releaseGrab('right');
+            }
+            
+            // Re-check hanging status after possible forced release
+            const stillHanging = hands.left.active || hands.right.active;
+
+            if (stillHanging) {
                 // Determine anchor point and normal
                 let anchor = new THREE.Vector3();
                 let normal = new THREE.Vector3();
