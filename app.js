@@ -125,7 +125,8 @@ const projects = [
     "polygonprinter", "jsrunner", "rainbowparkour", { name: "First version of my website", path: "may20/index.html" }, { name: "what the", path: "index.html" }, "onlinebuilding", "piano", { name: "bounce and roll", path: "bounceandroll/index.html" },
     "makeyourownai", "midisinger", "art", "svgtopng", "beastbrawl", { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" }, "cubecare", "pixelartcreator", "shapemaker",
     "beatcatch", "beatcatchautocharter", "buddiner", { name: "dont look at this. look away. NO", path: "balls.txt" }, "faviconplatformer", "hp", "nyancatlostinspace", "nyancatlostinspaceairemakebygemini",
-    "cursordeath", "bfdiragdollplayground", { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" }, { name: "Minimal Snake", path: "minimal snake/index.html" }, "3ddonut", "oscilloscope", { name: "Bad apple dodge", path: "https://bad-apple-dodge--orgeyt.on.websim.com/" }
+    "cursordeath", "bfdiragdollplayground", { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" }, { name: "Minimal Snake", path: "minimal snake/index.html" }, "3ddonut", "oscilloscope", { name: "Bad apple dodge", path: "https://bad-apple-dodge--orgeyt.on.websim.com/" },
+    "climber"
 ];
 
 // rip fnfbot. you can download it somewhere else on the site now.
