@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mega Chess 100x25</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a202c;
+            touch-action: none; /* Prevent browser handling of gestures */
+            font-family: 'Inter', sans-serif;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #gameCanvas:active {
+            cursor: grabbing;
+        }
+        /* Custom scrollbar for logs */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2); 
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="text-white select-none">
+
+    <div class="absolute top-4 left-4 z-10 flex flex-col gap-4 pointer-events-none w-72">
+        
+        <!-- Game Controls -->
+        <div class="bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-gray-700 shadow-2xl pointer-events-auto">
+            <h1 class="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent mb-2">Mega Chess 100x25</h1>
+            
+            <div class="mb-4">
+                <label class="block text-xs font-semibold text-gray-400 mb-1 uppercase tracking-wider">Game Mode</label>
+                <select id="modeSelect" class="w-full bg-gray-800 text-white border border-gray-600 rounded px-3 py-2 outline-none focus:border-yellow-500 transition-colors">
+                    <option value="pvc">Player vs CPU</option>
+                    <option value="pvp">Player vs Player</option>
+                    <option value="cvc">CPU vs CPU</option>
+                </select>
+            </div>
+
+            <div class="mb-4 flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="fastCpuToggle" class="w-4 h-4 text-yellow-500 bg-gray-800 border-gray-600 rounded focus:ring-yellow-500 focus:ring-2 cursor-pointer">
+                <label for="fastCpuToggle" class="text-xs font-semibold text-gray-400 uppercase tracking-wider cursor-pointer">Fast CPU Speed</label>
+            </div>
+
+            <div class="flex gap-2 mb-4">
+                <button id="btnReset" class="flex-1 bg-red-600 hover:bg-red-500 text-white py-2 rounded font-semibold transition-colors shadow-lg active:scale-95">Restart</button>
+            </div>
+
+            <div class="bg-gray-800 p-3 rounded-lg border border-gray-700 flex flex-col items-center justify-center">
+                <span class="text-xs text-gray-400 uppercase tracking-wider mb-1">Status</span>
+                <span id="statusText" class="text-lg font-bold text-white">White's Turn</span>
+            </div>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="bg-gray-900/80 backdrop-blur-md p-2 rounded-xl border border-gray-700 shadow-xl pointer-events-auto flex justify-between items-center px-4">
+            <span class="text-xs text-gray-400 font-semibold">ZOOM</span>
+            <div class="flex gap-2">
+                <button id="btnZoomOut" class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center font-bold text-xl active:scale-90 transition-transform">-</button>
+                <button id="btnZoomIn" class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-full flex items-center justify-center font-bold text-xl active:scale-90 transition-transform">+</button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-gray-900/80 backdrop-blur-md p-4 rounded-xl border border-gray-700 shadow-xl pointer-events-auto text-sm text-gray-300">
+            <p class="mb-2"><strong class="text-white">Goal:</strong> Capture the opponent's single King.</p>
+            <p class="mb-2"><strong class="text-white">Controls:</strong> Click & drag to pan. Scroll or use buttons to zoom.</p>
+            <p class="text-xs text-gray-500 italic">Rules simplified for massive scale: No castling, no en-passant. Kings can be captured directly.</p>
+        </div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Modal for Game Over -->
+    <div id="gameOverModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex-col items-center justify-center">
+        <h2 id="winnerText" class="text-5xl font-black mb-6 text-center drop-shadow-lg text-white">White Wins!</h2>
+        <button id="btnPlayAgain" class="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black px-8 py-3 rounded-full font-bold text-xl transition-transform hover:scale-105 active:scale-95 shadow-[0_0_15px_rgba(234,179,8,0.5)]">Play Again</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // UI Elements
+        const modeSelect = document.getElementById('modeSelect');
+        const fastCpuToggle = document.getElementById('fastCpuToggle');
+        const btnReset = document.getElementById('btnReset');
+        const statusText = document.getElementById('statusText');
+        const btnZoomIn = document.getElementById('btnZoomIn');
+        const btnZoomOut = document.getElementById('btnZoomOut');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const winnerText = document.getElementById('winnerText');
+        const btnPlayAgain = document.getElementById('btnPlayAgain');
+
+        // Game Constants
+        const BOARD_WIDTH = 100;
+        const BOARD_HEIGHT = 25;
+        const LIGHT_SQUARE = '#f0d9b5';
+        const DARK_SQUARE = '#b58863';
+        const HIGHLIGHT_SELECTED = 'rgba(234, 179, 8, 0.6)'; // Tailwind yellow-500
+        const HIGHLIGHT_MOVE = 'rgba(34, 197, 94, 0.8)'; // Tailwind green-500
+        const HIGHLIGHT_CAPTURE = 'rgba(239, 68, 68, 0.8)'; // Tailwind red-500
+
+        const PIECE_TYPES = ['q', 'r', 'b', 'n'];
+
+        // Custom SVG Generator for Pieces
+        const pieceImages = { w: {}, b: {} };
+        
+        function createPieceSVG(type, isWhite) {
+            const fill = isWhite ? '#ffffff' : '#2d3748';
+            const stroke = isWhite ? '#1a202c' : '#ffffff';
+            const strokeW = 4;
+            let paths = '';
+
+            const base = `<path d="M 20 80 L 80 80 L 75 90 L 25 90 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+
+            switch(type) {
+                case 'p':
+                    paths = `<circle cx="50" cy="35" r="15" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/><path d="M 50 35 L 70 80 L 30 80 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+                    break;
+                case 'r':
+                    paths = `<path d="M 25 30 L 25 80 L 75 80 L 75 30 L 65 30 L 65 40 L 55 40 L 55 30 L 45 30 L 45 40 L 35 40 L 35 30 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+                    break;
+                case 'n':
+                    paths = `<path d="M 35 80 L 65 80 L 65 50 L 75 30 L 55 20 L 35 40 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`;
+                    break;
+                case 'b':
+                    paths = `<path d="M 50 20 L 65 50 L 50 80 L 35 50 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/><circle cx="50" cy="15" r="5" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+                    break;
+                case 'q':
+                    paths = `<path d="M 15 20 L 30 50 L 50 20 L 70 50 L 85 20 L 75 80 L 25 80 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/><circle cx="15" cy="15" r="4" fill="${fill}"/><circle cx="50" cy="15" r="4" fill="${fill}"/><circle cx="85" cy="15" r="4" fill="${fill}"/>`;
+                    break;
+                case 'k':
+                    paths = `<path d="M 20 30 L 30 60 L 50 30 L 70 60 L 80 30 L 75 80 L 25 80 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>
+                             <path d="M 45 5 L 55 5 L 55 25 L 45 25 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>
+                             <path d="M 40 10 L 60 10 L 60 15 L 40 15 Z" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}"/>`;
+                    break;
+            }
+
+            const svgString = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">${paths}${base}</svg>`;
+            const img = new Image();
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+            return img;
+        }
+
+        // Initialize images
+        ['w', 'b'].forEach(color => {
+            ['k', 'q', 'r', 'b', 'n', 'p'].forEach(type => {
+                pieceImages[color][type] = createPieceSVG(type, color === 'w');
+            });
+        });
+
+        // Game State
+        let board = [];
+        let turn = 'w';
+        let gameMode = 'pvc'; // pvp, pvc, cvc
+        let gameState = 'PLAYING'; // PLAYING, GAMEOVER
+        let selectedCell = null;
+        let validMoves = [];
+        let cpuTimer = null;
+
+        // Viewport & Pan/Zoom State
+        let cellSize = 30; // Current zoom level
+        const MIN_CELL_SIZE = 10;
+        const MAX_CELL_SIZE = 100;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        let isDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let initialOffsetX = 0;
+        let initialOffsetY = 0;
+        let dragDistance = 0;
+
+        function initBoard() {
+            board = Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+            
+            // Black setup (Top, y = 0)
+            setupArmy('b', 0, 1);     // Direction +1
+            
+            // White setup (Bottom, y = 24)
+            setupArmy('w', BOARD_HEIGHT - 1, -1);   // Direction -1
+
+            turn = 'w';
+            gameState = 'PLAYING';
+            selectedCell = null;
+            validMoves = [];
+            gameMode = modeSelect.value;
+            
+            clearTimeout(cpuTimer);
+            updateStatus();
+            
+            // Center the camera on White King
+            centerCamera(Math.floor(BOARD_WIDTH / 2), BOARD_HEIGHT - 1);
+            gameOverModal.classList.add('hidden');
+            gameOverModal.classList.remove('flex');
+
+            if (gameMode === 'cvc') {
+                triggerCPU();
+            }
+        }
+
+        function setupArmy(color, backRow, direction) {
+            // Row 0 (relative to backRow): Major pieces
+            let y = backRow;
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                // Place exactly ONE king on the very back row at the center
+                if (x === Math.floor(BOARD_WIDTH / 2)) {
+                    board[y][x] = { type: 'k', color: color };
+                } else {
+                    // Random major piece
+                    let type = PIECE_TYPES[Math.floor(Math.random() * PIECE_TYPES.length)];
+                    board[y][x] = { type: type, color: color };
+                }
+            }
+            
+            // Row 1 (relative to backRow): Pawns
+            y = backRow + direction;
+            for (let x = 0; x < BOARD_WIDTH; x++) {
+                board[y][x] = { type: 'p', color: color };
+            }
+        }
+
+        function getValidMoves(x, y) {
+            const piece = board[y][x];
+            if (!piece) return [];
+            
+            let moves = [];
+            const color = piece.color;
+            const enemy = color === 'w' ? 'b' : 'w';
+
+            function addMove(tx, ty, limit = false) {
+                if (tx >= 0 && tx < BOARD_WIDTH && ty >= 0 && ty < BOARD_HEIGHT) {
+                    const target = board[ty][tx];
+                    if (!target) {
+                        moves.push({ x: tx, y: ty, capture: false });
+                        return true; // continue sliding
+                    } else if (target.color === enemy) {
+                        moves.push({ x: tx, y: ty, capture: true });
+                        return false; // stop sliding, blocked by enemy
+                    } else {
+                        return false; // stop sliding, blocked by ally
+                    }
+                }
+                return false; // out of bounds
+            }
+
+            function slide(dx, dy) {
+                let cx = x + dx;
+                let cy = y + dy;
+                while (addMove(cx, cy)) {
+                    cx += dx;
+                    cy += dy;
+                }
+            }
+
+            switch (piece.type) {
+                case 'p':
+                    const dir = color === 'w' ? -1 : 1;
+                    // Forward
+                    if (y + dir >= 0 && y + dir < BOARD_HEIGHT && !board[y + dir][x]) {
+                        moves.push({ x: x, y: y + dir, capture: false });
+                    }
+                    // Diagonal Captures
+                    if (y + dir >= 0 && y + dir < BOARD_HEIGHT) {
+                        if (x > 0 && board[y + dir][x - 1] && board[y + dir][x - 1].color === enemy) {
+                            moves.push({ x: x - 1, y: y + dir, capture: true });
+                        }
+                        if (x < BOARD_WIDTH - 1 && board[y + dir][x + 1] && board[y + dir][x + 1].color === enemy) {
+                            moves.push({ x: x + 1, y: y + dir, capture: true });
+                        }
+                    }
+                    break;
+                case 'r':
+                    slide(1, 0); slide(-1, 0); slide(0, 1); slide(0, -1);
+                    break;
+                case 'b':
+                    slide(1, 1); slide(1, -1); slide(-1, 1); slide(-1, -1);
+                    break;
+                case 'q':
+                    slide(1, 0); slide(-1, 0); slide(0, 1); slide(0, -1);
+                    slide(1, 1); slide(1, -1); slide(-1, 1); slide(-1, -1);
+                    break;
+                case 'n':
+                    const knightMoves = [
+                        [2, 1], [2, -1], [-2, 1], [-2, -1],
+                        [1, 2], [1, -2], [-1, 2], [-1, -2]
+                    ];
+                    for (let m of knightMoves) addMove(x + m[0], y + m[1]);
+                    break;
+                case 'k':
+                    const kingMoves = [
+                        [1, 0], [-1, 0], [0, 1], [0, -1],
+                        [1, 1], [1, -1], [-1, 1], [-1, -1]
+                    ];
+                    for (let m of kingMoves) addMove(x + m[0], y + m[1]);
+                    break;
+            }
+            return moves;
+        }
+
+        function executeMove(fx, fy, tx, ty) {
+            const piece = board[fy][fx];
+            const target = board[ty][tx];
+
+            // Check for King capture (Win Condition)
+            if (target && target.type === 'k') {
+                endGame(piece.color);
+            }
+
+            // Move piece
+            board[ty][tx] = piece;
+            board[fy][fx] = null;
+
+            // Pawn Promotion
+            if (piece.type === 'p') {
+                if ((piece.color === 'w' && ty === 0) || (piece.color === 'b' && ty === BOARD_HEIGHT - 1)) {
+                    piece.type = 'q';
+                }
+            }
+
+            selectedCell = null;
+            validMoves = [];
+            
+            if (gameState === 'PLAYING') {
+                turn = turn === 'w' ? 'b' : 'w';
+                updateStatus();
+                checkCPU();
+            }
+        }
+
+        function endGame(winnerColor) {
+            gameState = 'GAMEOVER';
+            let winnerName = winnerColor === 'w' ? 'White' : 'Black';
+            winnerText.innerText = `${winnerName} Wins!`;
+            winnerText.className = `text-6xl font-black mb-6 text-center drop-shadow-[0_0_15px_rgba(255,255,255,0.8)] ${winnerColor === 'w' ? 'text-white' : 'text-gray-900 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]'}`;
+            
+            gameOverModal.classList.remove('hidden');
+            gameOverModal.classList.add('flex');
+            clearTimeout(cpuTimer);
+        }
+
+        function updateStatus() {
+            if (gameState === 'GAMEOVER') return;
+            
+            statusText.innerText = turn === 'w' ? "White's Turn" : "Black's Turn";
+            if (turn === 'w') {
+                statusText.className = "text-lg font-bold text-white";
+            } else {
+                statusText.className = "text-lg font-bold text-gray-400";
+            }
+        }
+
+        function checkCPU() {
+            if (gameState !== 'PLAYING') return;
+            if (gameMode === 'cvc' || (gameMode === 'pvc' && turn === 'b')) {
+                triggerCPU();
+            }
+        }
+
+        function triggerCPU() {
+            clearTimeout(cpuTimer);
+            const delay = fastCpuToggle.checked ? 10 : 600; // 10ms for Fast, 600ms for Normal
+            cpuTimer = setTimeout(cpuMove, delay);
+        }
+
+        function cpuMove() {
+            if (gameState !== 'PLAYING') return;
+
+            let pieces = [];
+            for (let y = 0; y < BOARD_HEIGHT; y++) {
+                for (let x = 0; x < BOARD_WIDTH; x++) {
+                    if (board[y][x] && board[y][x].color === turn) {
+                        pieces.push({ x, y, piece: board[y][x] });
+                    }
+                }
+            }
+
+            // Shuffle pieces to add randomness and prevent stuck loops
+            pieces.sort(() => Math.random() - 0.5);
+
+            let bestMove = null;
+            let bestScore = -Infinity;
+
+            for (let p of pieces) {
+                let moves = getValidMoves(p.x, p.y);
+                for (let m of moves) {
+                    let score = evaluateMove(p, m);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMove = { from: {x: p.x, y: p.y}, to: m };
+                    }
+                }
+            }
+
+            if (bestMove) {
+                executeMove(bestMove.from.x, bestMove.from.y, bestMove.to.x, bestMove.to.y);
+            } else {
+                // No valid moves? Technically a stalemate, but massive scale makes this rare.
+                endGame(turn === 'w' ? 'b' : 'w'); 
+            }
+        }
+
+        function evaluateMove(from, to) {
+            let score = 0;
+            const target = board[to.y][to.x];
+            
+            if (target) {
+                // Prioritize captures
+                if (target.type === 'k') score += 100000;
+                else if (target.type === 'q') score += 900;
+                else if (target.type === 'r') score += 500;
+                else if (target.type === 'b' || target.type === 'n') score += 300;
+                else if (target.type === 'p') score += 100;
+            }
+
+            // Positional bias: encourage moving forward
+            const piece = board[from.y][from.x];
+            if (piece.color === 'w') {
+                score += (from.y - to.y); // White wants to go to lower y
+            } else {
+                score += (to.y - from.y); // Black wants to go to higher y
+            }
+
+            // Tiny random noise to break ties
+            score += Math.random();
+            
+            return score;
+        }
+
+        function getGridPos(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = clientX - rect.left - offsetX;
+            const mouseY = clientY - rect.top - offsetY;
+            const gridX = Math.floor(mouseX / cellSize);
+            const gridY = Math.floor(mouseY / cellSize);
+            return { x: gridX, y: gridY };
+        }
+
+        function handlePointerDown(clientX, clientY) {
+            isDragging = true;
+            dragStartX = clientX;
+            dragStartY = clientY;
+            initialOffsetX = offsetX;
+            initialOffsetY = offsetY;
+            dragDistance = 0;
+        }
+
+        function handlePointerMove(clientX, clientY) {
+            if (!isDragging) return;
+            
+            const dx = clientX - dragStartX;
+            const dy = clientY - dragStartY;
+            dragDistance += Math.abs(dx) + Math.abs(dy); // Rough estimate of drag movement
+            
+            offsetX = initialOffsetX + dx;
+            offsetY = initialOffsetY + dy;
+            
+            // Constrain panning
+            const maxOffsetX = canvas.width / 2;
+            const minOffsetX = canvas.width / 2 - (BOARD_WIDTH * cellSize);
+            const maxOffsetY = canvas.height / 2;
+            const minOffsetY = canvas.height / 2 - (BOARD_HEIGHT * cellSize);
+            
+            offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+            offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+        }
+
+        function handlePointerUp(clientX, clientY) {
+            isDragging = false;
+            
+            // If we didn't drag much, treat it as a click
+            if (dragDistance < 10) {
+                handleGridClick(clientX, clientY);
+            }
+        }
+
+        function handleGridClick(clientX, clientY) {
+            if (gameState !== 'PLAYING') return;
+            // Block input if it's CPU's turn
+            if (gameMode === 'cvc' || (gameMode === 'pvc' && turn === 'b')) return;
+
+            const { x, y } = getGridPos(clientX, clientY);
+
+            // Bounds check
+            if (x < 0 || x >= BOARD_WIDTH || y < 0 || y >= BOARD_HEIGHT) return;
+
+            const piece = board[y][x];
+
+            // If we have a selected piece, check if we clicked a valid move
+            if (selectedCell) {
+                const move = validMoves.find(m => m.x === x && m.y === y);
+                if (move) {
+                    executeMove(selectedCell.x, selectedCell.y, x, y);
+                    return;
+                }
+            }
+
+            // Select a piece of our color
+            if (piece && piece.color === turn) {
+                selectedCell = { x, y };
+                validMoves = getValidMoves(x, y);
+            } else {
+                selectedCell = null;
+                validMoves = [];
+            }
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', (e) => handlePointerDown(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', (e) => handlePointerUp(e.clientX, e.clientY));
+
+        // Touch Events
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) handlePointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 1) handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }, { passive: false });
+        window.addEventListener('touchend', (e) => {
+            if (e.changedTouches.length === 1) handlePointerUp(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+        });
+
+        function adjustZoom(delta, centerX = canvas.width / 2, centerY = canvas.height / 2) {
+            const oldCellSize = cellSize;
+            cellSize += delta;
+            cellSize = Math.max(MIN_CELL_SIZE, Math.min(MAX_CELL_SIZE, cellSize));
+
+            // Adjust offset to zoom towards the center point
+            const scale = cellSize / oldCellSize;
+            offsetX = centerX - (centerX - offsetX) * scale;
+            offsetY = centerY - (centerY - offsetY) * scale;
+        }
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -2 : 2;
+            adjustZoom(delta, e.clientX, e.clientY);
+        }, { passive: false });
+
+        btnZoomIn.addEventListener('click', () => adjustZoom(5));
+        btnZoomOut.addEventListener('click', () => adjustZoom(-5));
+
+        function centerCamera(gridX, gridY) {
+            const targetScreenX = canvas.width / 2;
+            const targetScreenY = canvas.height / 2;
+            
+            offsetX = targetScreenX - (gridX * cellSize + cellSize / 2);
+            offsetY = targetScreenY - (gridY * cellSize + cellSize / 2);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Calculate visible grid area for culling (massive performance boost)
+            const startX = Math.max(0, Math.floor(-offsetX / cellSize));
+            const startY = Math.max(0, Math.floor(-offsetY / cellSize));
+            const endX = Math.min(BOARD_WIDTH, Math.ceil((canvas.width - offsetX) / cellSize));
+            const endY = Math.min(BOARD_HEIGHT, Math.ceil((canvas.height - offsetY) / cellSize));
+
+            ctx.save();
+            ctx.translate(offsetX, offsetY);
+
+            // Draw Grid
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    // Checkerboard
+                    const isLight = (x + y) % 2 === 0;
+                    ctx.fillStyle = isLight ? LIGHT_SQUARE : DARK_SQUARE;
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+
+                    // Highlight selected
+                    if (selectedCell && selectedCell.x === x && selectedCell.y === y) {
+                        ctx.fillStyle = HIGHLIGHT_SELECTED;
+                        ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+
+            // Draw Valid Moves
+            for (let m of validMoves) {
+                // Only draw if within visible bounds
+                if (m.x >= startX && m.x < endX && m.y >= startY && m.y < endY) {
+                    ctx.fillStyle = m.capture ? HIGHLIGHT_CAPTURE : HIGHLIGHT_MOVE;
+                    if (m.capture) {
+                        ctx.fillRect(m.x * cellSize, m.y * cellSize, cellSize, cellSize);
+                    } else {
+                        ctx.beginPath();
+                        ctx.arc(m.x * cellSize + cellSize / 2, m.y * cellSize + cellSize / 2, cellSize * 0.25, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+            }
+
+            // Draw Pieces
+            for (let y = startY; y < endY; y++) {
+                for (let x = startX; x < endX; x++) {
+                    const piece = board[y][x];
+                    if (piece) {
+                        const img = pieceImages[piece.color][piece.type];
+                        const pad = cellSize * 0.1; // padding inside the tile
+                        
+                        // Add subtle shadow for depth
+                        ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                        ctx.shadowBlur = 4;
+                        ctx.shadowOffsetX = 2;
+                        ctx.shadowOffsetY = 2;
+
+                        ctx.drawImage(img, x * cellSize + pad, y * cellSize + pad, cellSize - pad * 2, cellSize - pad * 2);
+                        
+                        // reset shadow for next draw
+                        ctx.shadowColor = 'transparent';
+                    }
+                }
+            }
+
+            ctx.restore();
+            requestAnimationFrame(draw);
+        }
+
+        modeSelect.addEventListener('change', () => {
+            initBoard();
+        });
+
+        btnReset.addEventListener('click', () => {
+            initBoard();
+        });
+
+        btnPlayAgain.addEventListener('click', () => {
+            initBoard();
+        });
+
+        // Initialize and Start
+        window.onload = () => {
+            resizeCanvas();
+            initBoard();
+            requestAnimationFrame(draw);
+        };
+
+    </script>
+</body>
+</html>
