@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell Machine: Web Mod</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; overflow: hidden; background-color: #0f172a; color: white; user-select: none; }
+        #game-canvas { display: block; width: 100vw; height: 100vh; }
+        .tool-btn.active { border-color: #3b82f6; background-color: #1e293b; }
+        .custom-scrollbar::-webkit-scrollbar { height: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        /* Floating selection menu transition */
+        #selection-menu { transition: opacity 0.2s, transform 0.2s; }
+        .hidden-menu { opacity: 0; pointer-events: none; transform: translateY(10px); }
+        .visible-menu { opacity: 1; pointer-events: auto; transform: translateY(0); }
+    </style>
+</head>
+<body class="w-screen h-screen m-0 p-0 relative text-sm">
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="absolute inset-0 z-50 flex items-center justify-center bg-slate-900 bg-opacity-95 backdrop-blur-sm">
+        <div class="bg-slate-800 p-8 rounded-xl shadow-2xl border border-slate-700 w-96 max-w-[90%] text-center flex flex-col gap-6">
+            <div>
+                <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">Cell Machine</h1>
+                <p class="text-slate-400 mt-2 text-xs">Web Mod Engine</p>
+            </div>
+            
+            <div class="text-left flex flex-col gap-2">
+                <label class="text-slate-300 font-semibold text-sm">Grid Size (Max 1000):</label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="grid-size" value="100" min="5" max="1000" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-3 text-white focus:outline-none focus:border-blue-500 transition-colors">
+                </div>
+            </div>
+
+            <button id="btn-create" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg shadow-lg hover:shadow-blue-500/25 transition-all transform hover:-translate-y-0.5">
+                Create World
+            </button>
+        </div>
+    </div>
+
+    <!-- Game UI (Hidden initially) -->
+    <div id="game-ui" class="absolute inset-0 z-10 pointer-events-none hidden flex-col justify-between">
+        <!-- Top Bar: Controls -->
+        <div class="p-4 flex justify-center pointer-events-none">
+            <div class="bg-slate-800 border border-slate-700 rounded-full shadow-lg flex overflow-hidden pointer-events-auto">
+                <button id="btn-play" class="px-6 py-3 hover:bg-slate-700 text-emerald-400 font-semibold flex items-center gap-2 transition-colors border-r border-slate-700">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Play
+                </button>
+                <button id="btn-pause" class="px-6 py-3 hover:bg-slate-700 text-amber-400 font-semibold flex items-center gap-2 transition-colors border-r border-slate-700 hidden">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Pause
+                </button>
+                <button id="btn-stop" class="px-6 py-3 hover:bg-slate-700 text-red-400 font-semibold flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg> Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Selection Context Menu -->
+        <div id="selection-menu" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-slate-800 border border-slate-600 rounded-lg shadow-xl pointer-events-auto hidden-menu flex items-center overflow-hidden">
+            <button id="btn-sel-move" class="px-4 py-2 hover:bg-slate-700 text-blue-300 font-medium transition-colors border-r border-slate-600">Move</button>
+            <button id="btn-sel-clone" class="px-4 py-2 hover:bg-slate-700 text-green-300 font-medium transition-colors border-r border-slate-600">Clone</button>
+            <button id="btn-sel-delete" class="px-4 py-2 hover:bg-slate-700 text-red-300 font-medium transition-colors">Delete</button>
+        </div>
+
+        <!-- Bottom Bar: Tools & Cells -->
+        <div class="w-full bg-slate-800 border-t border-slate-700 p-2 flex flex-col items-center gap-2 pointer-events-auto mt-auto">
+            <!-- Instructions/Status -->
+            <div id="status-text" class="text-slate-400 text-xs">
+                WASD to move camera. Scroll to zoom.
+            </div>
+
+            <!-- Toolbar -->
+            <div class="flex items-center gap-4 max-w-full overflow-x-auto custom-scrollbar px-2 pb-1">
+                
+                <!-- Tools -->
+                <div class="flex items-center gap-1 border-r border-slate-700 pr-4">
+                    <button id="tool-select" class="tool-btn w-12 h-12 rounded-lg border-2 border-transparent hover:bg-slate-700 flex items-center justify-center transition-colors" title="Select (Drag area)">
+                        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" stroke-dasharray="2 2"/></svg>
+                    </button>
+                    <button id="tool-drag" class="tool-btn w-12 h-12 rounded-lg border-2 border-transparent hover:bg-slate-700 flex items-center justify-center transition-colors" title="Drag Cells (Arrows)">
+                        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9l-3 3 3 3m4-6l3 3-3 3M4 12h16"/></svg>
+                    </button>
+                </div>
+
+                <!-- Cells -->
+                <div id="cell-palette" class="flex items-center gap-1">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Canvas -->
+    <canvas id="game-canvas"></canvas>
+
+    <script>
+        // --- Core Constants & State ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        let width = window.innerWidth;
+        let height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+
+        // Constants
+        const CELL_TYPES = [
+            { id: 'mover', name: 'Move Cell', desc: 'Moves in direction. Can be pushed.' },
+            { id: 'push', name: 'Push Cell', desc: 'Does nothing. Can be pushed.' },
+            { id: 'generator', name: 'Generator', desc: 'Clones cell behind to front.' },
+            { id: 'rotator_cw', name: 'CW Rotator', desc: 'Rotates adjacent cells clockwise.' },
+            { id: 'rotator_ccw', name: 'CCW Rotator', desc: 'Rotates adjacent cells counter-clockwise.' },
+            { id: 'slider', name: 'Slider', desc: 'Can only be pushed along its axis.' },
+            { id: 'enemy', name: 'Enemy', desc: 'Destroys itself and anything touching it.' },
+            { id: 'trash', name: 'Trash', desc: 'Deletes any cell pushed into it.' },
+            { id: 'wall', name: 'Block', desc: 'Unmovable wall.' },
+            { id: 'plus', name: 'Plus (BG)', desc: 'Background element.' }
+        ];
+
+        const DIRS = [
+            [1, 0],   // 0: Right
+            [0, 1],   // 1: Down
+            [-1, 0],  // 2: Left
+            [0, -1]   // 3: Up
+        ];
+
+        // State
+        let gameState = 'MENU'; // MENU, EDIT, PLAY
+        let gridSize = 100;
+        let camera = { x: 0, y: 0, zoom: 40 }; // x,y are top-left grid coordinates (float)
+        let keys = { w: false, a: false, s: false, d: false };
+        let activeTool = 'build'; // 'build', 'select', 'drag'
+        let currentBuildType = 'mover';
+        let currentBuildRot = 0;
+        
+        // Data Structures (Spatial Hash: Map with "x,y" keys)
+        let editorCells = new Map(); // Foreground
+        let editorBg = new Map();    // Background (Plus)
+        
+        let simCells = new Map();
+        let simBg = new Map();
+        
+        let isSimulating = false;
+        let simTickRate = 150; // ms per tick
+        let lastTickTime = 0;
+
+        // Interaction State
+        let mouse = { x: 0, y: 0, gx: 0, gy: 0, down: false, rightDown: false };
+        let dragState = { active: false, startGx: 0, startGy: 0, cell: null, isPan: false };
+        let selectState = { 
+            active: false, startGx: 0, startGy: 0, endGx: 0, endGy: 0, 
+            hasSelection: false, selectedCells: [], 
+            mode: 'none' // 'none', 'moving', 'cloning'
+        };
+
+        // --- STREAMING_CHUNK:Asset Rendering Functions (Canvas Graphics) ---
+        // Generates the graphics procedurally so no external assets are needed.
+        function drawCellAsset(context, type, rot, cx, cy, size) {
+            context.save();
+            context.translate(cx + size / 2, cy + size / 2);
+            context.rotate(rot * Math.PI / 2);
+            context.translate(-size / 2, -size / 2);
+
+            const pad = size * 0.05;
+            const innerSize = size - pad * 2;
+            const center = size / 2;
+
+            // Base Backgrounds
+            context.lineJoin = 'round';
+            context.lineCap = 'round';
+            
+            switch (type) {
+                case 'mover':
+                    // Blue square, white arrow
+                    context.fillStyle = '#3b82f6';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.fillStyle = 'white';
+                    context.beginPath();
+                    context.moveTo(size * 0.25, size * 0.25);
+                    context.lineTo(size * 0.75, size * 0.5);
+                    context.lineTo(size * 0.25, size * 0.75);
+                    context.fill();
+                    break;
+                case 'push':
+                    // Yellow square, grid pattern
+                    context.fillStyle = '#eab308';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.strokeStyle = '#ca8a04';
+                    context.lineWidth = size * 0.08;
+                    context.beginPath();
+                    context.moveTo(size * 0.33, pad); context.lineTo(size * 0.33, size - pad);
+                    context.moveTo(size * 0.66, pad); context.lineTo(size * 0.66, size - pad);
+                    context.moveTo(pad, size * 0.33); context.lineTo(size - pad, size * 0.33);
+                    context.moveTo(pad, size * 0.66); context.lineTo(size - pad, size * 0.66);
+                    context.stroke();
+                    break;
+                case 'generator':
+                    // Green square, unfilled box, filled arrow
+                    context.fillStyle = '#22c55e';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    // empty box behind
+                    context.strokeStyle = '#14532d';
+                    context.lineWidth = size * 0.08;
+                    context.strokeRect(size * 0.15, size * 0.3, size * 0.2, size * 0.4);
+                    
+                    // filled arrow forward
+                    context.fillStyle = '#14532d';
+                    context.beginPath();
+                    context.moveTo(size * 0.4, size * 0.25);
+                    context.lineTo(size * 0.8, size * 0.5);
+                    context.lineTo(size * 0.4, size * 0.75);
+                    context.fill();
+                    break;
+                case 'rotator_cw':
+                    // Orange square, CW circle arrow
+                    context.fillStyle = '#f97316';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.strokeStyle = 'white';
+                    context.lineWidth = size * 0.12;
+                    context.beginPath();
+                    context.arc(center, center, size * 0.25, Math.PI * -0.8, Math.PI * 0.4);
+                    context.stroke();
+                    
+                    context.fillStyle = 'white';
+                    context.beginPath();
+                    context.moveTo(size * 0.75, center + size * 0.15);
+                    context.lineTo(size * 0.85, center - size * 0.1);
+                    context.lineTo(size * 0.65, center - size * 0.05);
+                    context.fill();
+                    break;
+                case 'rotator_ccw':
+                    // Teal square, CCW circle arrow
+                    context.fillStyle = '#14b8a6';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.strokeStyle = 'white';
+                    context.lineWidth = size * 0.12;
+                    context.beginPath();
+                    context.arc(center, center, size * 0.25, Math.PI * -0.4, Math.PI * 0.8);
+                    context.stroke();
+                    
+                    context.fillStyle = 'white';
+                    context.beginPath();
+                    context.moveTo(size * 0.25, center + size * 0.15);
+                    context.lineTo(size * 0.15, center - size * 0.1);
+                    context.lineTo(size * 0.35, center - size * 0.05);
+                    context.fill();
+                    break;
+                case 'slider':
+                    // Yellow square, two dark horizontal lines
+                    context.fillStyle = '#eab308';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.fillStyle = '#854d0e';
+                    context.fillRect(pad, size * 0.25, innerSize, size * 0.15);
+                    context.fillRect(pad, size * 0.6, innerSize, size * 0.15);
+                    break;
+                case 'enemy':
+                    // Red square, evil face
+                    context.fillStyle = '#ef4444';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.strokeStyle = '#7f1d1d';
+                    context.lineWidth = size * 0.08;
+                    // Eyes
+                    context.beginPath();
+                    context.moveTo(size * 0.25, size * 0.25); context.lineTo(size * 0.45, size * 0.4);
+                    context.moveTo(size * 0.75, size * 0.25); context.lineTo(size * 0.55, size * 0.4);
+                    context.stroke();
+                    // Mouth zigzag
+                    context.beginPath();
+                    context.moveTo(size * 0.2, size * 0.7);
+                    context.lineTo(size * 0.35, size * 0.6);
+                    context.lineTo(size * 0.5, size * 0.75);
+                    context.lineTo(size * 0.65, size * 0.6);
+                    context.lineTo(size * 0.8, size * 0.7);
+                    context.stroke();
+                    break;
+                case 'trash':
+                    // Purple square, trash can
+                    context.fillStyle = '#a855f7';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    
+                    context.strokeStyle = 'white';
+                    context.lineWidth = size * 0.08;
+                    context.beginPath();
+                    context.moveTo(size * 0.3, size * 0.3); context.lineTo(size * 0.7, size * 0.3); // lid
+                    context.moveTo(size * 0.4, size * 0.3); context.lineTo(size * 0.4, size * 0.2); context.lineTo(size * 0.6, size * 0.2); context.lineTo(size * 0.6, size * 0.3); // handle
+                    context.moveTo(size * 0.35, size * 0.3); context.lineTo(size * 0.4, size * 0.8); context.lineTo(size * 0.6, size * 0.8); context.lineTo(size * 0.65, size * 0.3); // body
+                    context.stroke();
+                    break;
+                case 'wall':
+                    // Gray square, inner border
+                    context.fillStyle = '#737373';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    context.strokeStyle = '#404040';
+                    context.lineWidth = size * 0.05;
+                    context.strokeRect(size * 0.15, size * 0.15, size * 0.7, size * 0.7);
+                    break;
+                case 'plus':
+                    // BG element
+                    context.fillStyle = '#d4d4d4';
+                    context.fillRect(pad, pad, innerSize, innerSize);
+                    context.fillStyle = '#737373';
+                    context.fillRect(size * 0.4, size * 0.2, size * 0.2, size * 0.6);
+                    context.fillRect(size * 0.2, size * 0.4, size * 0.6, size * 0.2);
+                    break;
+            }
+            context.restore();
+        }
+
+        // --- STREAMING_CHUNK:UI Setup & Events ---
+        function initUI() {
+            const palette = document.getElementById('cell-palette');
+            
+            CELL_TYPES.forEach((cell, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `tool-btn cell-btn w-12 h-12 rounded-lg border-2 border-transparent hover:bg-slate-700 flex items-center justify-center transition-colors relative group`;
+                if (idx === 0) btn.classList.add('active', 'border-blue-500');
+                btn.title = cell.name + ' - ' + cell.desc;
+                
+                const cvs = document.createElement('canvas');
+                cvs.width = 40; cvs.height = 40;
+                drawCellAsset(cvs.getContext('2d'), cell.id, 0, 0, 0, 40);
+                btn.appendChild(cvs);
+
+                // Keyboard hint
+                const hint = document.createElement('div');
+                hint.className = 'absolute -bottom-2 -right-2 bg-slate-900 text-[10px] w-5 h-5 rounded-full border border-slate-700 flex items-center justify-center opacity-70 group-hover:opacity-100';
+                hint.innerText = idx === 9 ? '0' : (idx + 1).toString();
+                btn.appendChild(hint);
+
+                btn.onclick = () => {
+                    setTool('build', cell.id);
+                };
+                palette.appendChild(btn);
+            });
+
+            // Menu
+            document.getElementById('btn-create').onclick = () => {
+                let size = parseInt(document.getElementById('grid-size').value);
+                if (size >= 5 && size <= 1000) {
+                    gridSize = size;
+                    document.getElementById('main-menu').style.display = 'none';
+                    document.getElementById('game-ui').classList.remove('hidden');
+                    document.getElementById('game-ui').classList.add('flex');
+                    gameState = 'EDIT';
+                    
+                    // Center camera on grid
+                    camera.zoom = Math.min(width / (gridSize + 2), height / (gridSize + 2));
+                    camera.zoom = Math.max(10, Math.min(40, camera.zoom)); // Clamp
+                    camera.x = - (width / camera.zoom - gridSize) / 2;
+                    camera.y = - (height / camera.zoom - gridSize) / 2;
+                    
+                    requestAnimationFrame(gameLoop);
+                }
+            };
+
+            // Playback
+            document.getElementById('btn-play').onclick = () => setSimState(true);
+            document.getElementById('btn-pause').onclick = () => setSimState(false, true);
+            document.getElementById('btn-stop').onclick = () => {
+                setSimState(false);
+                simCells.clear();
+                simBg.clear();
+            };
+
+            // Tools
+            document.getElementById('tool-select').onclick = () => setTool('select');
+            document.getElementById('tool-drag').onclick = () => setTool('drag');
+
+            // Selection Context Menu
+            document.getElementById('btn-sel-delete').onclick = deleteSelection;
+            document.getElementById('btn-sel-move').onclick = () => selectState.mode = 'moving';
+            document.getElementById('btn-sel-clone').onclick = () => selectState.mode = 'cloning';
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (gameState === 'MENU') return;
+                let k = e.key.toLowerCase();
+                if (keys.hasOwnProperty(k)) keys[k] = true;
+                
+                // Number keys for tools
+                if (k >= '0' && k <= '9') {
+                    let idx = parseInt(k) - 1;
+                    if (idx === -1) idx = 9; // 0 is 10th
+                    if (idx < CELL_TYPES.length) {
+                        setTool('build', CELL_TYPES[idx].id);
+                    }
+                }
+                
+                // Q/E to rotate placement brush
+                if (k === 'q') currentBuildRot = (currentBuildRot + 3) % 4; // CCW
+                if (k === 'e') currentBuildRot = (currentBuildRot + 1) % 4; // CW
+                
+                // R to rotate selected/hovered
+                if (k === 'r' && gameState === 'EDIT') {
+                    if (selectState.hasSelection) {
+                        // Rotate all selected cells
+                        selectState.selectedCells.forEach(sel => {
+                            let cell = editorCells.get(`${sel.x},${sel.y}`);
+                            if (cell) cell.rot = (cell.rot + 1) % 4;
+                        });
+                    } else if (mouse.gx >= 0 && mouse.gx < gridSize && mouse.gy >= 0 && mouse.gy < gridSize) {
+                        let cell = editorCells.get(`${mouse.gx},${mouse.gy}`);
+                        if (cell) cell.rot = (cell.rot + 1) % 4;
+                    }
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                let k = e.key.toLowerCase();
+                if (keys.hasOwnProperty(k)) keys[k] = false;
+            });
+        }
+
+        function setTool(tool, buildType = null) {
+            activeTool = tool;
+            
+            document.querySelectorAll('.tool-btn').forEach(b => {
+                b.classList.remove('active', 'border-blue-500');
+                b.style.backgroundColor = '';
+            });
+
+            if (tool === 'build') {
+                currentBuildType = buildType;
+                let idx = CELL_TYPES.findIndex(c => c.id === buildType);
+                if (idx !== -1) {
+                    let btns = document.querySelectorAll('.cell-btn');
+                    btns[idx].classList.add('active', 'border-blue-500');
+                    document.getElementById('status-text').innerText = `Placing: ${CELL_TYPES[idx].name}. Left click place, Right click remove. Q/E to rotate brush, R to rotate placed.`;
+                }
+            } else if (tool === 'select') {
+                document.getElementById('tool-select').classList.add('active', 'border-blue-500');
+                document.getElementById('status-text').innerText = "Drag to select area. Hold R to rotate selection.";
+                clearSelection();
+            } else if (tool === 'drag') {
+                document.getElementById('tool-drag').classList.add('active', 'border-blue-500');
+                document.getElementById('status-text').innerText = "Click and drag to move cells or pan camera.";
+                clearSelection();
+            }
+        }
+
+        function setSimState(playing, paused = false) {
+            if (playing && !isSimulating && gameState === 'EDIT') {
+                // Start sim from editor
+                simCells = new Map(JSON.parse(JSON.stringify(Array.from(editorCells)))); // Deep clone map
+                simBg = new Map(JSON.parse(JSON.stringify(Array.from(editorBg))));
+                gameState = 'PLAY';
+            }
+            
+            isSimulating = playing;
+            if (playing) {
+                document.getElementById('btn-play').classList.add('hidden');
+                document.getElementById('btn-pause').classList.remove('hidden');
+                document.getElementById('status-text').innerText = "Simulation running...";
+                clearSelection();
+            } else {
+                document.getElementById('btn-play').classList.remove('hidden');
+                document.getElementById('btn-pause').classList.add('hidden');
+                if (!paused) {
+                    gameState = 'EDIT';
+                    document.getElementById('status-text').innerText = "Simulation stopped. Editor mode.";
+                } else {
+                    document.getElementById('status-text').innerText = "Simulation paused.";
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK:Input Handling (Mouse & Panning) ---
+        function screenToGrid(sx, sy) {
+            return {
+                x: Math.floor(sx / camera.zoom + camera.x),
+                y: Math.floor(sy / camera.zoom + camera.y)
+            };
+        }
+
+        function updateMouseGrid(e) {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+            let g = screenToGrid(mouse.x, mouse.y);
+            mouse.gx = g.x;
+            mouse.gy = g.y;
+        }
+
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            if (gameState === 'MENU') return;
+            // Zoom towards mouse
+            let oldZoom = camera.zoom;
+            let zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+            camera.zoom *= zoomFactor;
+            camera.zoom = Math.max(10, Math.min(100, camera.zoom)); // clamp zoom
+            
+            // Adjust camera so mouse position stays same relative to grid
+            let g = screenToGrid(mouse.x, mouse.y);
+            camera.x = g.x - (mouse.x / camera.zoom);
+            camera.y = g.y - (mouse.y / camera.zoom);
+        }, {passive: true});
+
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (gameState === 'MENU' || isSimulating) return;
+            updateMouseGrid(e);
+            
+            if (e.button === 0) mouse.down = true;
+            if (e.button === 2) mouse.rightDown = true;
+
+            let inBounds = (mouse.gx >= 0 && mouse.gx < gridSize && mouse.gy >= 0 && mouse.gy < gridSize);
+
+            if (activeTool === 'build' && inBounds) {
+                handleBuildInteraction();
+            } else if (activeTool === 'select') {
+                if (e.button === 0) {
+                    if (selectState.mode === 'none') {
+                        selectState.active = true;
+                        selectState.startGx = mouse.gx;
+                        selectState.startGy = mouse.gy;
+                        selectState.endGx = mouse.gx;
+                        selectState.endGy = mouse.gy;
+                        hideSelectionMenu();
+                    } else if (selectState.mode === 'moving' || selectState.mode === 'cloning') {
+                        // Apply move/clone
+                        applySelectionAction(mouse.gx, mouse.gy);
+                    }
+                } else if (e.button === 2) {
+                    clearSelection();
+                }
+            } else if (activeTool === 'drag') {
+                let cellKey = `${mouse.gx},${mouse.gy}`;
+                if (e.button === 0 && editorCells.has(cellKey)) {
+                    dragState.active = true;
+                    dragState.startGx = mouse.gx;
+                    dragState.startGy = mouse.gy;
+                    dragState.cell = editorCells.get(cellKey);
+                    dragState.isPan = false;
+                } else if (e.button === 0) {
+                    dragState.active = true;
+                    dragState.isPan = true;
+                }
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameState === 'MENU') return;
+            let oldGx = mouse.gx;
+            let oldGy = mouse.gy;
+            
+            if (dragState.active && dragState.isPan) {
+                // Pan map based on mouse movement directly
+                camera.x -= e.movementX / camera.zoom;
+                camera.y -= e.movementY / camera.zoom;
+            }
+            
+            updateMouseGrid(e);
+
+            if (gameState === 'EDIT') {
+                if (activeTool === 'build' && (mouse.down || mouse.rightDown) && (oldGx !== mouse.gx || oldGy !== mouse.gy)) {
+                    handleBuildInteraction();
+                }
+                
+                if (activeTool === 'select' && selectState.active) {
+                    selectState.endGx = mouse.gx;
+                    selectState.endGy = mouse.gy;
+                }
+                
+                if (activeTool === 'drag' && dragState.active && !dragState.isPan && dragState.cell) {
+                    // Visual dragging (actual placement on mouse up)
+                    // Just update grid pos if empty
+                    let key = `${mouse.gx},${mouse.gy}`;
+                    if (mouse.gx >= 0 && mouse.gx < gridSize && mouse.gy >= 0 && mouse.gy < gridSize && !editorCells.has(key)) {
+                        editorCells.delete(`${dragState.cell.x},${dragState.cell.y}`);
+                        dragState.cell.x = mouse.gx;
+                        dragState.cell.y = mouse.gy;
+                        editorCells.set(key, dragState.cell);
+                    }
+                }
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button === 0) mouse.down = false;
+            if (e.button === 2) mouse.rightDown = false;
+            
+            if (activeTool === 'select' && selectState.active) {
+                selectState.active = false;
+                finalizeSelection();
+            }
+            if (activeTool === 'drag' && dragState.active) {
+                dragState.active = false;
+                dragState.cell = null;
+            }
+        });
+
+        // --- STREAMING_CHUNK:Editor Logic (Build, Select, Move) ---
+        function handleBuildInteraction() {
+            let key = `${mouse.gx},${mouse.gy}`;
+            let inBounds = (mouse.gx >= 0 && mouse.gx < gridSize && mouse.gy >= 0 && mouse.gy < gridSize);
+            if (!inBounds) return;
+
+            if (mouse.down) {
+                // Place cell
+                if (currentBuildType === 'plus') {
+                    if (!editorBg.has(key)) editorBg.set(key, { id: 'plus', x: mouse.gx, y: mouse.gy, type: 'plus', rot: 0 });
+                } else {
+                    editorCells.set(key, { id: Date.now()+Math.random(), x: mouse.gx, y: mouse.gy, type: currentBuildType, rot: currentBuildRot });
+                }
+            } else if (mouse.rightDown) {
+                // Remove cell (prioritize foreground)
+                if (editorCells.has(key)) editorCells.delete(key);
+                else if (editorBg.has(key)) editorBg.delete(key);
+            }
+        }
+
+        function finalizeSelection() {
+            let minX = Math.min(selectState.startGx, selectState.endGx);
+            let maxX = Math.max(selectState.startGx, selectState.endGx);
+            let minY = Math.min(selectState.startGy, selectState.endGy);
+            let maxY = Math.max(selectState.startGy, selectState.endGy);
+            
+            selectState.selectedCells = [];
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    let key = `${x},${y}`;
+                    if (editorCells.has(key)) {
+                        // copy data
+                        let c = editorCells.get(key);
+                        selectState.selectedCells.push({ x: c.x, y: c.y, type: c.type, rot: c.rot, dx: x - minX, dy: y - minY });
+                    }
+                }
+            }
+            
+            if (selectState.selectedCells.length > 0) {
+                selectState.hasSelection = true;
+                showSelectionMenu(maxX, maxY);
+            } else {
+                clearSelection();
+            }
+        }
+
+        function clearSelection() {
+            selectState.hasSelection = false;
+            selectState.selectedCells = [];
+            selectState.mode = 'none';
+            hideSelectionMenu();
+        }
+
+        function showSelectionMenu(gridX, gridY) {
+            let menu = document.getElementById('selection-menu');
+            let sx = (gridX + 1 - camera.x) * camera.zoom;
+            let sy = (gridY + 1 - camera.y) * camera.zoom;
+            
+            // Clamp to screen
+            sx = Math.min(width - 150, Math.max(150, sx));
+            sy = Math.min(height - 50, Math.max(50, sy));
+
+            menu.style.left = `${sx}px`;
+            menu.style.top = `${sy}px`;
+            menu.classList.remove('hidden-menu');
+            menu.classList.add('visible-menu');
+        }
+
+        function hideSelectionMenu() {
+            let menu = document.getElementById('selection-menu');
+            menu.classList.add('hidden-menu');
+            menu.classList.remove('visible-menu');
+        }
+
+        function deleteSelection() {
+            let minX = Math.min(selectState.startGx, selectState.endGx);
+            let maxX = Math.max(selectState.startGx, selectState.endGx);
+            let minY = Math.min(selectState.startGy, selectState.endGy);
+            let maxY = Math.max(selectState.startGy, selectState.endGy);
+            for (let y = minY; y <= maxY; y++) {
+                for (let x = minX; x <= maxX; x++) {
+                    editorCells.delete(`${x},${y}`);
+                }
+            }
+            clearSelection();
+        }
+
+        function applySelectionAction(targetX, targetY) {
+            if (!selectState.hasSelection) return;
+
+            let isMove = (selectState.mode === 'moving');
+            
+            // If moving, delete old ones first
+            if (isMove) {
+                selectState.selectedCells.forEach(sc => {
+                    editorCells.delete(`${sc.x},${sc.y}`);
+                });
+            }
+
+            // Place at new target
+            selectState.selectedCells.forEach(sc => {
+                let nx = targetX + sc.dx;
+                let ny = targetY + sc.dy;
+                if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize) {
+                    let newCell = { id: Date.now()+Math.random(), x: nx, y: ny, type: sc.type, rot: sc.rot };
+                    editorCells.set(`${nx},${ny}`, newCell);
+                    // update selection reference if moved
+                    if (isMove) { sc.x = nx; sc.y = ny; }
+                }
+            });
+
+            if (isMove) {
+                // Update selection bounds
+                let minX = targetX;
+                let minY = targetY;
+                let w = Math.abs(selectState.startGx - selectState.endGx);
+                let h = Math.abs(selectState.startGy - selectState.endGy);
+                selectState.startGx = minX; selectState.startGy = minY;
+                selectState.endGx = minX + w; selectState.endGy = minY + h;
+                selectState.mode = 'none';
+                showSelectionMenu(selectState.endGx, selectState.endGy);
+            } else {
+                // Cloning finishes after click
+                clearSelection();
+            }
+        }
+
+        // --- STREAMING_CHUNK:Simulation Engine & Rules ---
+        // Push Engine
+        function tryPush(startX, startY, dir, map) {
+            let dx = DIRS[dir][0];
+            let dy = DIRS[dir][1];
+            let chain = [];
+            let cx = startX;
+            let cy = startY;
+
+            while (true) {
+                let key = `${cx},${cy}`;
+                let cell = map.get(key);
+
+                if (!cell) {
+                    return { success: true, chain: chain, endAction: 'move' };
+                }
+                
+                if (cell.type === 'wall') {
+                    return { success: false };
+                }
+                if (cell.type === 'slider') {
+                    let isHoriz = (cell.rot % 2 === 0);
+                    let pushHoriz = (dir % 2 === 0);
+                    if (isHoriz !== pushHoriz) return { success: false };
+                }
+                if (cell.type === 'trash') {
+                    return { success: true, chain: chain, endAction: 'trash', endTarget: key };
+                }
+                if (cell.type === 'enemy') {
+                    return { success: true, chain: chain, endAction: 'enemy', endTarget: key };
+                }
+
+                // Pushable
+                chain.push(cell);
+                cx += dx;
+                cy += dy;
+
+                if (cx < 0 || cy < 0 || cx >= gridSize || cy >= gridSize) {
+                    return { success: false }; // Blocks at edge
+                }
+                
+                if (chain.length > gridSize) {
+                    // infinite loop safeguard
+                    return { success: false };
+                }
+            }
+        }
+
+        function executePush(pushResult, dir, map, insertCell = null) {
+            let dx = DIRS[dir][0];
+            let dy = DIRS[dir][1];
+
+            // Move backwards
+            for (let i = pushResult.chain.length - 1; i >= 0; i--) {
+                let c = pushResult.chain[i];
+                let oldKey = `${c.x},${c.y}`;
+                let nx = c.x + dx;
+                let ny = c.y + dy;
+                let newKey = `${nx},${ny}`;
+                
+                map.delete(oldKey);
+
+                if (i === pushResult.chain.length - 1) {
+                    if (pushResult.endAction === 'trash') continue;
+                    if (pushResult.endAction === 'enemy') {
+                        map.delete(pushResult.endTarget);
+                        continue; 
+                    }
+                }
+                
+                c.x = nx;
+                c.y = ny;
+                map.set(newKey, c);
+            }
+
+            if (insertCell) {
+                let nx = insertCell.x;
+                let ny = insertCell.y;
+                let key = `${nx},${ny}`;
+                
+                if (pushResult.chain.length === 0) {
+                    if (pushResult.endAction === 'trash') return;
+                    if (pushResult.endAction === 'enemy') {
+                        map.delete(pushResult.endTarget);
+                        return;
+                    }
+                }
+                map.set(key, insertCell);
+            }
+        }
+
+        function simTick() {
+            // 1. Rotators
+            let rotations = [];
+            simCells.forEach((c) => {
+                if (c.type === 'rotator_cw' || c.type === 'rotator_ccw') {
+                    const diff = c.type === 'rotator_cw' ? 1 : 3;
+                    DIRS.forEach(d => {
+                        let nx = c.x + d[0];
+                        let ny = c.y + d[1];
+                        let key = `${nx},${ny}`;
+                        if (simCells.has(key)) {
+                            rotations.push({ key, diff });
+                        }
+                    });
+                }
+            });
+            
+            rotations.forEach(r => {
+                let c = simCells.get(r.key);
+                if (c) c.rot = (c.rot + r.diff) % 4;
+            });
+
+            // 2. Generators (evaluate all, then apply to avoid mid-generation state issues)
+            // Sort to ensure deterministic order (left-to-right, top-to-bottom)
+            let gens = Array.from(simCells.values()).filter(c => c.type === 'generator');
+            gens.sort((a,b) => (a.y * gridSize + a.x) - (b.y * gridSize + b.x));
+            
+            gens.forEach(g => {
+                // Must fetch current state in map as it might have moved (though gens move later)
+                let currentG = simCells.get(`${g.x},${g.y}`); 
+                if (!currentG || currentG.type !== 'generator') return; // got destroyed
+
+                let bDir = (currentG.rot + 2) % 4;
+                let bx = currentG.x + DIRS[bDir][0];
+                let by = currentG.y + DIRS[bDir][1];
+                let bKey = `${bx},${by}`;
+                let behindCell = simCells.get(bKey);
+                
+                if (behindCell) {
+                    let fx = currentG.x + DIRS[currentG.rot][0];
+                    let fy = currentG.y + DIRS[currentG.rot][1];
+                    if (fx >= 0 && fx < gridSize && fy >= 0 && fy < gridSize) {
+                        let res = tryPush(fx, fy, currentG.rot, simCells);
+                        if (res.success) {
+                            let clone = { id: Date.now()+Math.random(), x: fx, y: fy, type: behindCell.type, rot: behindCell.rot };
+                            executePush(res, currentG.rot, simCells, clone);
+                        }
+                    }
+                }
+            });
+
+            // 3. Movers (evaluate right, down, left, up sequentially for stability)
+            for (let mDir = 0; mDir < 4; mDir++) {
+                let movers = Array.from(simCells.values()).filter(c => c.type === 'mover' && c.rot === mDir);
+                // Sort backwards relative to push direction to allow chains to move smoothly
+                if (mDir === 0) movers.sort((a,b) => b.x - a.x); // Right
+                if (mDir === 1) movers.sort((a,b) => b.y - a.y); // Down
+                if (mDir === 2) movers.sort((a,b) => a.x - b.x); // Left
+                if (mDir === 3) movers.sort((a,b) => a.y - b.y); // Up
+
+                movers.forEach(m => {
+                    let currentM = simCells.get(`${m.x},${m.y}`);
+                    if (!currentM || currentM.type !== 'mover') return;
+                    
+                    let fx = currentM.x + DIRS[currentM.rot][0];
+                    let fy = currentM.y + DIRS[currentM.rot][1];
+                    if (fx >= 0 && fx < gridSize && fy >= 0 && fy < gridSize) {
+                        let res = tryPush(currentM.x, currentM.y, currentM.rot, simCells); // push includes the mover itself
+                        if (res.success) {
+                            executePush(res, currentM.rot, simCells);
+                        }
+                    }
+                });
+            }
+        }
+
+        // --- STREAMING_CHUNK:Main Render Loop ---
+        function render() {
+            // Clear screen
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, width, height);
+
+            if (gameState === 'MENU') return;
+
+            // Handle Camera panning with WASD
+            const panSpeed = 15 / camera.zoom;
+            if (keys.w) camera.y -= panSpeed;
+            if (keys.s) camera.y += panSpeed;
+            if (keys.a) camera.x -= panSpeed;
+            if (keys.d) camera.x += panSpeed;
+
+            // Clamp camera loosely
+            camera.x = Math.max(-gridSize, Math.min(gridSize * 2, camera.x));
+            camera.y = Math.max(-gridSize, Math.min(gridSize * 2, camera.y));
+
+            // Calculate visible grid area
+            let minVisibleX = Math.floor(camera.x);
+            let maxVisibleX = Math.floor(camera.x + width / camera.zoom);
+            let minVisibleY = Math.floor(camera.y);
+            let maxVisibleY = Math.floor(camera.y + height / camera.zoom);
+            
+            // Clamp to grid
+            let startX = Math.max(0, minVisibleX);
+            let endX = Math.min(gridSize - 1, maxVisibleX);
+            let startY = Math.max(0, minVisibleY);
+            let endY = Math.min(gridSize - 1, maxVisibleY);
+
+            // Draw Grid Lines if zoom is high enough
+            if (camera.zoom > 15) {
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                for (let x = startX; x <= endX + 1; x++) {
+                    let sx = (x - camera.x) * camera.zoom;
+                    ctx.moveTo(sx, (startY - camera.y) * camera.zoom);
+                    ctx.lineTo(sx, (endY + 1 - camera.y) * camera.zoom);
+                }
+                for (let y = startY; y <= endY + 1; y++) {
+                    let sy = (y - camera.y) * camera.zoom;
+                    ctx.moveTo((startX - camera.x) * camera.zoom, sy);
+                    ctx.lineTo((endX + 1 - camera.x) * camera.zoom, sy);
+                }
+                ctx.stroke();
+            }
+
+            // Draw World Boundary
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(-camera.x * camera.zoom, -camera.y * camera.zoom, gridSize * camera.zoom, gridSize * camera.zoom);
+
+            let renderBg = isSimulating ? simBg : editorBg;
+            let renderCells = isSimulating ? simCells : editorCells;
+
+            // Draw BG Cells
+            renderBg.forEach(cell => {
+                if (cell.x >= startX && cell.x <= endX && cell.y >= startY && cell.y <= endY) {
+                    let sx = (cell.x - camera.x) * camera.zoom;
+                    let sy = (cell.y - camera.y) * camera.zoom;
+                    drawCellAsset(ctx, cell.type, cell.rot, sx, sy, camera.zoom);
+                }
+            });
+
+            // Draw FG Cells
+            renderCells.forEach(cell => {
+                if (cell.x >= startX && cell.x <= endX && cell.y >= startY && cell.y <= endY) {
+                    let sx = (cell.x - camera.x) * camera.zoom;
+                    let sy = (cell.y - camera.y) * camera.zoom;
+                    drawCellAsset(ctx, cell.type, cell.rot, sx, sy, camera.zoom);
+                }
+            });
+
+            // Draw Editor overlays
+            if (gameState === 'EDIT') {
+                // Hover highlight
+                if (mouse.gx >= 0 && mouse.gx < gridSize && mouse.gy >= 0 && mouse.gy < gridSize) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.fillRect((mouse.gx - camera.x) * camera.zoom, (mouse.gy - camera.y) * camera.zoom, camera.zoom, camera.zoom);
+                    
+                    if (activeTool === 'build' && currentBuildType !== 'plus') {
+                        // Draw placement preview
+                        ctx.globalAlpha = 0.5;
+                        let sx = (mouse.gx - camera.x) * camera.zoom;
+                        let sy = (mouse.gy - camera.y) * camera.zoom;
+                        drawCellAsset(ctx, currentBuildType, currentBuildRot, sx, sy, camera.zoom);
+                        ctx.globalAlpha = 1.0;
+                    }
+                    
+                    if (selectState.mode === 'moving' || selectState.mode === 'cloning') {
+                        // Draw preview
+                        ctx.globalAlpha = 0.5;
+                        selectState.selectedCells.forEach(sc => {
+                            let nx = mouse.gx + sc.dx;
+                            let ny = mouse.gy + sc.dy;
+                            if (nx >= 0 && nx < gridSize && ny >= 0 && ny < gridSize) {
+                                let sx = (nx - camera.x) * camera.zoom;
+                                let sy = (ny - camera.y) * camera.zoom;
+                                drawCellAsset(ctx, sc.type, sc.rot, sx, sy, camera.zoom);
+                            }
+                        });
+                        ctx.globalAlpha = 1.0;
+                    }
+                }
+
+                // Selection Box Dragging
+                if (activeTool === 'select' && selectState.active) {
+                    let x = Math.min(selectState.startGx, selectState.endGx);
+                    let y = Math.min(selectState.startGy, selectState.endGy);
+                    let w = Math.abs(selectState.startGx - selectState.endGx) + 1;
+                    let h = Math.abs(selectState.startGy - selectState.endGy) + 1;
+                    
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeRect((x - camera.x) * camera.zoom, (y - camera.y) * camera.zoom, w * camera.zoom, h * camera.zoom);
+                    ctx.setLineDash([]);
+                }
+
+                // Selected cells highlight
+                if (selectState.hasSelection && selectState.mode === 'none') {
+                    ctx.strokeStyle = '#facc15';
+                    ctx.lineWidth = 2;
+                    let x = Math.min(selectState.startGx, selectState.endGx);
+                    let y = Math.min(selectState.startGy, selectState.endGy);
+                    let w = Math.abs(selectState.startGx - selectState.endGx) + 1;
+                    let h = Math.abs(selectState.startGy - selectState.endGy) + 1;
+                    ctx.strokeRect((x - camera.x) * camera.zoom, (y - camera.y) * camera.zoom, w * camera.zoom, h * camera.zoom);
+                }
+            }
+        }
+
+        function gameLoop(time) {
+            if (isSimulating && time - lastTickTime > simTickRate) {
+                simTick();
+                lastTickTime = time;
+            }
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Init ---
+        initUI();
+
+    </script>
+</body>
+</html>
