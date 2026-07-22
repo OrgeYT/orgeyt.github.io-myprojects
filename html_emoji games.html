@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emoji Games</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #1a202c;
+            color: white;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: #2d3748;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            max-width: 95vw;
+            width: 400px;
+        }
+
+        .active-game {
+            display: flex;
+        }
+
+        .grid-ttt {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 5px;
+            background-color: #4a5568;
+            padding: 5px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .grid-c4 {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            background-color: #2b6cb0;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .grid-snake {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            gap: 1px;
+            background-color: #4a5568;
+            padding: 5px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1a202c;
+            font-size: 2rem;
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.2s;
+        }
+        
+        .grid-ttt .cell {
+            width: 80px;
+            height: 80px;
+            border-radius: 4px;
+        }
+
+        .grid-ttt .cell:hover {
+            background-color: #2d3748;
+        }
+
+        .grid-c4 .cell {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #1a202c;
+            cursor: pointer;
+        }
+
+        .grid-c4 .cell:hover {
+           opacity: 0.8;
+        }
+        
+        .grid-snake .cell {
+            width: 20px;
+            height: 20px;
+            font-size: 1rem;
+        }
+
+        .grid-tetris {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 1px;
+            background-color: #4a5568;
+            padding: 5px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .grid-tetris .cell {
+            width: 25px;
+            height: 25px;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn {
+            background-color: #4299e1;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            background-color: #3182ce;
+        }
+        
+        .btn-green {
+             background-color: #48bb78;
+        }
+        .btn-green:hover {
+             background-color: #38a169;
+        }
+
+        .controls {
+            margin-top: 1rem;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: #e2e8f0;
+        }
+        
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #cbd5e0;
+        }
+
+        .status {
+            margin-top: 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            text-align: center;
+            min-height: 1.5em;
+        }
+        
+        #message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #48bb78;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 500px) {
+            .grid-ttt .cell { width: 60px; height: 60px; font-size: 1.5rem; }
+            .grid-c4 .cell { width: 30px; height: 30px; font-size: 1.2rem; }
+            .grid-snake .cell { width: 15px; height: 15px; font-size: 0.8rem; }
+            .grid-tetris .cell { width: 20px; height: 20px; font-size: 1rem; }
+            .game-container { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Emoji Games Arcade</h1>
+    <div class="controls" id="main-menu">
+        <button class="btn" onclick="showGame('ttt')">Tic Tac Toe ❌⭕</button>
+        <button class="btn" onclick="showGame('c4')">Connect 4 🔴🟡</button>
+        <button class="btn" onclick="showGame('snake')">Snake 🐍🍎</button>
+        <button class="btn" onclick="showGame('tetris')">Tetris 🧱</button>
+    </div>
+
+    <!-- Message Box -->
+    <div id="message-box"></div>
+
+    <div id="game-ttt" class="game-container">
+        <h2>Tic Tac Toe</h2>
+        <div class="controls">
+            <button class="btn" onclick="initTTT('pvp')">Player vs Player</button>
+            <button class="btn" onclick="initTTT('cpu')">Player vs CPU</button>
+        </div>
+        <div class="status" id="ttt-status">Select mode to start</div>
+        <div class="grid-ttt" id="ttt-board"></div>
+        <div class="controls">
+            <button class="btn btn-green" onclick="copyBoard('ttt')">Copy Board 📋</button>
+            <button class="btn" onclick="showMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <div id="game-c4" class="game-container">
+        <h2>Connect 4</h2>
+        <div class="controls">
+            <button class="btn" onclick="initC4('pvp')">Player vs Player</button>
+            <button class="btn" onclick="initC4('cpu')">Player vs CPU</button>
+            <button class="btn" onclick="initC4('sandbox')">Sandbox (No Win)</button>
+        </div>
+        <div class="status" id="c4-status">Select mode to start</div>
+        <div class="grid-c4" id="c4-board"></div>
+        <div class="controls">
+             <button class="btn btn-green" onclick="copyBoard('c4')">Copy Board 📋</button>
+            <button class="btn" onclick="showMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <div id="game-snake" class="game-container">
+        <h2>Snake</h2>
+         <div class="controls">
+            <button class="btn" onclick="setSnakeMode('live')" id="btn-snake-live">Mode: Live Play</button>
+            <button class="btn" onclick="setSnakeMode('tick')" id="btn-snake-tick" style="opacity: 0.5;">Mode: Tick Move</button>
+        </div>
+        <div class="status" id="snake-status">Press arrow keys to start</div>
+        <div class="grid-snake" id="snake-board"></div>
+        
+        <!-- Touch controls for mobile -->
+        <div class="controls" style="margin-top: 20px; display: grid; grid-template-columns: 50px 50px 50px; gap: 5px;">
+            <div></div>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleSnakeInput('ArrowUp')">⬆️</button>
+            <div></div>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleSnakeInput('ArrowLeft')">⬅️</button>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleSnakeInput('ArrowDown')">⬇️</button>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleSnakeInput('ArrowRight')">➡️</button>
+        </div>
+
+        <div class="controls">
+             <button class="btn btn-green" onclick="copyBoard('snake')">Copy Board 📋</button>
+            <button class="btn" onclick="showMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <div id="game-tetris" class="game-container">
+        <h2>Tetris</h2>
+         <div class="controls">
+            <button class="btn" onclick="setTetrisMode('live')" id="btn-tetris-live">Mode: Live Play</button>
+            <button class="btn" onclick="setTetrisMode('tick')" id="btn-tetris-tick" style="opacity: 0.5;">Mode: Tick Move</button>
+        </div>
+        <div class="status" id="tetris-status">Press arrow keys to start</div>
+        <div class="grid-tetris" id="tetris-board"></div>
+        
+        <!-- Touch controls for mobile -->
+        <div class="controls" style="margin-top: 20px; display: grid; grid-template-columns: 50px 50px 50px; gap: 5px;">
+            <div></div>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleTetrisInput('ArrowUp')">🔄</button>
+            <div></div>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleTetrisInput('ArrowLeft')">⬅️</button>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleTetrisInput('ArrowDown')">⬇️</button>
+            <button class="btn" style="margin:0; padding: 10px;" onclick="handleTetrisInput('ArrowRight')">➡️</button>
+        </div>
+
+        <div class="controls">
+             <button class="btn btn-green" onclick="copyBoard('tetris')">Copy Board 📋</button>
+            <button class="btn" onclick="showMenu()">Main Menu</button>
+        </div>
+    </div>
+
+    <script>
+        function showMessage(msg, duration = 2000) {
+            const box = document.getElementById('message-box');
+            box.textContent = msg;
+            box.style.display = 'block';
+            setTimeout(() => {
+                box.style.display = 'none';
+            }, duration);
+        }
+
+        function showMenu() {
+            document.querySelectorAll('.game-container').forEach(el => el.classList.remove('active-game'));
+            document.getElementById('main-menu').style.display = 'flex';
+            
+            // Stop any running games
+            if(snakeGame.intervalId) {
+                clearInterval(snakeGame.intervalId);
+                snakeGame.intervalId = null;
+            }
+            if(Tetris.intervalId) {
+                clearInterval(Tetris.intervalId);
+                Tetris.intervalId = null;
+            }
+        }
+
+        function showGame(gameId) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.querySelectorAll('.game-container').forEach(el => el.classList.remove('active-game'));
+            document.getElementById(`game-${gameId}`).classList.add('active-game');
+            
+            if(gameId === 'ttt') initTTT('pvp');
+            if(gameId === 'c4') initC4('pvp');
+            if(gameId === 'snake') initSnake();
+            if(gameId === 'tetris') initTetris();
+        }
+
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showMessage('Board copied to clipboard!');
+            } catch (err) {
+                showMessage('Failed to copy board.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        const TTT = {
+            board: [],
+            currentPlayer: '❌',
+            mode: 'pvp',
+            active: false,
+            empty: '⬛',
+            p1: '❌',
+            p2: '⭕'
+        };
+
+        function initTTT(mode) {
+            TTT.mode = mode;
+            TTT.board = Array(9).fill(TTT.empty);
+            TTT.currentPlayer = TTT.p1;
+            TTT.active = true;
+            document.getElementById('ttt-status').innerText = `Player ${TTT.currentPlayer}'s turn`;
+            renderTTT();
+        }
+
+        function renderTTT() {
+            const container = document.getElementById('ttt-board');
+            container.innerHTML = '';
+            for (let i = 0; i < 9; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.innerText = TTT.board[i];
+                cell.onclick = () => handleTTTClick(i);
+                container.appendChild(cell);
+            }
+        }
+
+        function handleTTTClick(index) {
+            if (!TTT.active || TTT.board[index] !== TTT.empty) return;
+
+            makeMoveTTT(index, TTT.currentPlayer);
+
+            if (checkWinTTT(TTT.currentPlayer)) {
+                endGameTTT(`${TTT.currentPlayer} Wins!`);
+                return;
+            } else if (!TTT.board.includes(TTT.empty)) {
+                endGameTTT('Draw!');
+                return;
+            }
+
+            TTT.currentPlayer = TTT.currentPlayer === TTT.p1 ? TTT.p2 : TTT.p1;
+            document.getElementById('ttt-status').innerText = `Player ${TTT.currentPlayer}'s turn`;
+
+            if (TTT.mode === 'cpu' && TTT.currentPlayer === TTT.p2 && TTT.active) {
+                setTimeout(cpuMoveTTT, 500);
+            }
+        }
+
+        function makeMoveTTT(index, player) {
+            TTT.board[index] = player;
+            renderTTT();
+        }
+
+        function cpuMoveTTT() {
+            if(!TTT.active) return;
+            const emptyIndices = TTT.board.map((v, i) => v === TTT.empty ? i : null).filter(v => v !== null);
+            if (emptyIndices.length > 0) {
+                // Very basic AI: Pick random available spot
+                const randomIndex = emptyIndices[Math.floor(Math.random() * emptyIndices.length)];
+                handleTTTClick(randomIndex);
+            }
+        }
+
+        function checkWinTTT(player) {
+            const winConditions = [
+                [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+                [0, 3, 6], [1, 4, 7], [2, 5, 8], // Cols
+                [0, 4, 8], [2, 4, 6]             // Diagonals
+            ];
+            return winConditions.some(condition => {
+                return condition.every(index => TTT.board[index] === player);
+            });
+        }
+
+        function endGameTTT(msg) {
+            TTT.active = false;
+            document.getElementById('ttt-status').innerText = msg;
+        }
+
+        const C4 = {
+            rows: 6,
+            cols: 7,
+            board: [],
+            currentPlayer: '🟥',
+            mode: 'pvp',
+            active: false,
+            empty: '🟦',
+            p1: '🟥',
+            p2: '🟨'
+        };
+
+        function initC4(mode) {
+            C4.mode = mode;
+            C4.board = Array(C4.rows).fill(null).map(() => Array(C4.cols).fill(C4.empty));
+            C4.currentPlayer = C4.p1;
+            C4.active = true;
+            document.getElementById('c4-status').innerText = `Player ${C4.currentPlayer}'s turn`;
+            renderC4();
+        }
+
+        function renderC4() {
+            const container = document.getElementById('c4-board');
+            container.innerHTML = '';
+            for (let r = 0; r < C4.rows; r++) {
+                for (let c = 0; c < C4.cols; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.innerText = C4.board[r][c];
+                    cell.onclick = () => handleC4Click(c);
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function handleC4Click(col) {
+            if (!C4.active) return;
+
+            // Find lowest available row in column
+            let rowToPlace = -1;
+            for (let r = C4.rows - 1; r >= 0; r--) {
+                if (C4.board[r][col] === C4.empty) {
+                    rowToPlace = r;
+                    break;
+                }
+            }
+
+            if (rowToPlace === -1) return; // Column full
+
+            makeMoveC4(rowToPlace, col, C4.currentPlayer);
+
+            if (C4.mode !== 'sandbox' && checkWinC4(rowToPlace, col, C4.currentPlayer)) {
+                endGameC4(`${C4.currentPlayer} Wins!`);
+                return;
+            } else if (isBoardFullC4()) {
+                endGameC4(C4.mode === 'sandbox' ? 'Board Full!' : 'Draw!');
+                return;
+            }
+
+            C4.currentPlayer = C4.currentPlayer === C4.p1 ? C4.p2 : C4.p1;
+            document.getElementById('c4-status').innerText = `Player ${C4.currentPlayer}'s turn`;
+
+            if (C4.mode === 'cpu' && C4.currentPlayer === C4.p2 && C4.active) {
+                setTimeout(cpuMoveC4, 500);
+            }
+        }
+
+        function makeMoveC4(row, col, player) {
+            C4.board[row][col] = player;
+            renderC4();
+        }
+
+        function cpuMoveC4() {
+             if(!C4.active) return;
+            const validCols = [];
+            for (let c = 0; c < C4.cols; c++) {
+                if (C4.board[0][c] === C4.empty) {
+                    validCols.push(c);
+                }
+            }
+
+            if (validCols.length > 0) {
+                // Basic AI: Random valid column
+                const randomCol = validCols[Math.floor(Math.random() * validCols.length)];
+                handleC4Click(randomCol);
+            }
+        }
+
+        function checkWinC4(r, c, player) {
+            return checkDirectionC4(r, c, 1, 0, player) || // Horizontal
+                   checkDirectionC4(r, c, 0, 1, player) || // Vertical
+                   checkDirectionC4(r, c, 1, 1, player) || // Diagonal /
+                   checkDirectionC4(r, c, 1, -1, player);  // Diagonal \
+        }
+
+        function checkDirectionC4(r, c, rDir, cDir, player) {
+            let count = 0;
+            // Check forward
+            for (let i = 0; i < 4; i++) {
+                const nr = r + i * rDir;
+                const nc = c + i * cDir;
+                if (nr >= 0 && nr < C4.rows && nc >= 0 && nc < C4.cols && C4.board[nr][nc] === player) {
+                    count++;
+                } else break;
+            }
+            // Check backward
+            for (let i = 1; i < 4; i++) {
+                const nr = r - i * rDir;
+                const nc = c - i * cDir;
+                if (nr >= 0 && nr < C4.rows && nc >= 0 && nc < C4.cols && C4.board[nr][nc] === player) {
+                    count++;
+                } else break;
+            }
+            return count >= 4;
+        }
+
+        function isBoardFullC4() {
+            return C4.board[0].every(cell => cell !== C4.empty);
+        }
+
+        function endGameC4(msg) {
+            C4.active = false;
+            document.getElementById('c4-status').innerText = msg;
+        }
+
+        const snakeGame = {
+            width: 15,
+            height: 15,
+            board: [],
+            snake: [],
+            food: null,
+            dir: {x: 1, y: 0},
+            nextDir: {x: 1, y: 0},
+            mode: 'live', // 'live' or 'tick'
+            active: false,
+            intervalId: null,
+            empty: '⬛',
+            snakeBody: '🟩',
+            apple: '🍎',
+            score: 0
+        };
+
+        function setSnakeMode(mode) {
+            snakeGame.mode = mode;
+            document.getElementById('btn-snake-live').style.opacity = mode === 'live' ? '1' : '0.5';
+            document.getElementById('btn-snake-tick').style.opacity = mode === 'tick' ? '1' : '0.5';
+            
+            if(snakeGame.active) {
+               if(mode === 'live' && !snakeGame.intervalId) {
+                   snakeGame.intervalId = setInterval(gameLoopSnake, 200);
+               } else if (mode === 'tick' && snakeGame.intervalId) {
+                   clearInterval(snakeGame.intervalId);
+                   snakeGame.intervalId = null;
+               }
+            }
+            document.getElementById('snake-status').innerText = `Mode: ${mode.toUpperCase()} - Press arrow keys`;
+        }
+
+        function initSnake() {
+            snakeGame.board = Array(snakeGame.height).fill(null).map(() => Array(snakeGame.width).fill(snakeGame.empty));
+            snakeGame.snake = [{x: 7, y: 7}, {x: 6, y: 7}, {x: 5, y: 7}];
+            snakeGame.dir = {x: 1, y: 0};
+            snakeGame.nextDir = {x: 1, y: 0};
+            snakeGame.active = false;
+            snakeGame.score = 0;
+            if (snakeGame.intervalId) clearInterval(snakeGame.intervalId);
+            snakeGame.intervalId = null;
+            spawnFoodSnake();
+            updateBoardSnake();
+            renderSnake();
+            document.getElementById('snake-status').innerText = `Score: 0 | Press arrow to start`;
+        }
+
+        function spawnFoodSnake() {
+            let emptyCells = [];
+            for(let y=0; y<snakeGame.height; y++){
+                for(let x=0; x<snakeGame.width; x++){
+                    if(!snakeGame.snake.some(segment => segment.x === x && segment.y === y)){
+                        emptyCells.push({x, y});
+                    }
+                }
+            }
+            if(emptyCells.length > 0) {
+                snakeGame.food = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            }
+        }
+
+        function updateBoardSnake() {
+            for(let y=0; y<snakeGame.height; y++){
+                for(let x=0; x<snakeGame.width; x++){
+                    snakeGame.board[y][x] = snakeGame.empty;
+                }
+            }
+            if(snakeGame.food) {
+                snakeGame.board[snakeGame.food.y][snakeGame.food.x] = snakeGame.apple;
+            }
+            for(let segment of snakeGame.snake){
+                if(segment.y >= 0 && segment.y < snakeGame.height && segment.x >= 0 && segment.x < snakeGame.width){
+                    snakeGame.board[segment.y][segment.x] = snakeGame.snakeBody;
+                }
+            }
+        }
+
+        function renderSnake() {
+            const container = document.getElementById('snake-board');
+            container.innerHTML = '';
+            for (let y = 0; y < snakeGame.height; y++) {
+                for (let x = 0; x < snakeGame.width; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.innerText = snakeGame.board[y][x];
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function moveSnake() {
+            snakeGame.dir = snakeGame.nextDir;
+            const head = snakeGame.snake[0];
+            const newHead = {x: head.x + snakeGame.dir.x, y: head.y + snakeGame.dir.y};
+
+            // Check collision with walls
+            if (newHead.x < 0 || newHead.x >= snakeGame.width || newHead.y < 0 || newHead.y >= snakeGame.height) {
+                endGameSnake();
+                return;
+            }
+
+            // Check collision with self
+            if (snakeGame.snake.some(segment => segment.x === newHead.x && segment.y === newHead.y)) {
+                endGameSnake();
+                return;
+            }
+
+            snakeGame.snake.unshift(newHead);
+
+            // Check food
+            if (newHead.x === snakeGame.food.x && newHead.y === snakeGame.food.y) {
+                snakeGame.score += 10;
+                document.getElementById('snake-status').innerText = `Score: ${snakeGame.score}`;
+                spawnFoodSnake();
+            } else {
+                snakeGame.snake.pop();
+            }
+
+            updateBoardSnake();
+            renderSnake();
+        }
+
+        function gameLoopSnake() {
+            if(snakeGame.active) {
+                moveSnake();
+            }
+        }
+
+        function endGameSnake() {
+            snakeGame.active = false;
+            if (snakeGame.intervalId) clearInterval(snakeGame.intervalId);
+            document.getElementById('snake-status').innerText = `Game Over! Score: ${snakeGame.score}. Press direction to restart.`;
+        }
+
+        function handleSnakeInput(key) {
+            // Start or restart game on first input
+            if(!snakeGame.active) {
+                initSnake();
+                snakeGame.active = true;
+                if(snakeGame.mode === 'live') {
+                    snakeGame.intervalId = setInterval(gameLoopSnake, 200);
+                }
+            }
+
+            let newDir = null;
+            if (key === 'ArrowUp' && snakeGame.dir.y !== 1) newDir = {x: 0, y: -1};
+            if (key === 'ArrowDown' && snakeGame.dir.y !== -1) newDir = {x: 0, y: 1};
+            if (key === 'ArrowLeft' && snakeGame.dir.x !== 1) newDir = {x: -1, y: 0};
+            if (key === 'ArrowRight' && snakeGame.dir.x !== -1) newDir = {x: 1, y: 0};
+
+            if (newDir) {
+                snakeGame.nextDir = newDir;
+                if(snakeGame.mode === 'tick' && snakeGame.active) {
+                    moveSnake();
+                }
+            }
+        }
+
+        const Tetris = {
+            cols: 10,
+            rows: 20,
+            board: [],
+            player: { pos: {x: 0, y: 0}, matrix: null },
+            score: 0,
+            active: false,
+            mode: 'live',
+            intervalId: null,
+            colors: ['⬛', '⬜', '🟨', '🟪', '🟩', '🟥', '🟦', '🟧']
+        };
+
+        // 1=I, 2=O, 3=T, 4=S, 5=Z, 6=J, 7=L
+        const TETROMINOS = [
+            [],
+            [[1, 1, 1, 1]], 
+            [[2, 2], [2, 2]], 
+            [[0, 3, 0], [3, 3, 3]], 
+            [[0, 4, 4], [4, 4, 0]], 
+            [[5, 5, 0], [0, 5, 5]], 
+            [[6, 0, 0], [6, 6, 6]], 
+            [[0, 0, 7], [7, 7, 7]]  
+        ];
+
+        function createMatrix(w, h) {
+            const matrix = [];
+            while (h--) {
+                matrix.push(new Array(w).fill(0));
+            }
+            return matrix;
+        }
+
+        function setTetrisMode(mode) {
+            Tetris.mode = mode;
+            document.getElementById('btn-tetris-live').style.opacity = mode === 'live' ? '1' : '0.5';
+            document.getElementById('btn-tetris-tick').style.opacity = mode === 'tick' ? '1' : '0.5';
+            
+            if(Tetris.active) {
+               if(mode === 'live' && !Tetris.intervalId) {
+                   Tetris.intervalId = setInterval(gameLoopTetris, 800);
+               } else if (mode === 'tick' && Tetris.intervalId) {
+                   clearInterval(Tetris.intervalId);
+                   Tetris.intervalId = null;
+               }
+            }
+            document.getElementById('tetris-status').innerText = `Mode: ${mode.toUpperCase()} - Press arrow keys`;
+        }
+
+        function initTetris() {
+            Tetris.board = createMatrix(Tetris.cols, Tetris.rows);
+            Tetris.score = 0;
+            Tetris.active = false;
+            if (Tetris.intervalId) clearInterval(Tetris.intervalId);
+            Tetris.intervalId = null;
+            spawnTetrisPiece();
+            renderTetris();
+            document.getElementById('tetris-status').innerText = `Score: 0 | Press down/arrow to start`;
+        }
+
+        function spawnTetrisPiece() {
+            const pieces = '1234567';
+            const type = pieces[pieces.length * Math.random() | 0];
+            Tetris.player.matrix = TETROMINOS[type];
+            Tetris.player.pos.y = 0;
+            Tetris.player.pos.x = (Tetris.board[0].length / 2 | 0) - (Tetris.player.matrix[0].length / 2 | 0);
+            
+            if (collideTetris(Tetris.board, Tetris.player)) {
+                endGameTetris();
+            }
+        }
+
+        function collideTetris(board, player) {
+            const [m, o] = [player.matrix, player.pos];
+            for (let y = 0; y < m.length; ++y) {
+                for (let x = 0; x < m[y].length; ++x) {
+                    if (m[y][x] !== 0 && (board[y + o.y] && board[y + o.y][x + o.x]) !== 0) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function mergeTetris(board, player) {
+            player.matrix.forEach((row, y) => {
+                row.forEach((value, x) => {
+                    if (value !== 0) {
+                        board[y + player.pos.y][x + player.pos.x] = value;
+                    }
+                });
+            });
+        }
+
+        function rotateMatrix(matrix) {
+            return matrix[0].map((val, index) => matrix.map(row => row[index]).reverse());
+        }
+
+        function playerRotateTetris() {
+            const original = Tetris.player.matrix;
+            Tetris.player.matrix = rotateMatrix(Tetris.player.matrix);
+            // bounce back if invalid rotation
+            if (collideTetris(Tetris.board, Tetris.player)) {
+                 Tetris.player.matrix = original;
+            }
+        }
+
+        function playerMoveTetris(dir) {
+            Tetris.player.pos.x += dir;
+            if (collideTetris(Tetris.board, Tetris.player)) {
+                Tetris.player.pos.x -= dir;
+            }
+        }
+
+        function playerDropTetris() {
+            Tetris.player.pos.y++;
+            if (collideTetris(Tetris.board, Tetris.player)) {
+                Tetris.player.pos.y--;
+                mergeTetris(Tetris.board, Tetris.player);
+                clearLinesTetris();
+                if (Tetris.active) spawnTetrisPiece();
+            }
+        }
+
+        function clearLinesTetris() {
+            let linesCleared = 0;
+            outer: for (let y = Tetris.board.length - 1; y >= 0; --y) {
+                for (let x = 0; x < Tetris.board[y].length; ++x) {
+                    if (Tetris.board[y][x] === 0) {
+                        continue outer;
+                    }
+                }
+                const row = Tetris.board.splice(y, 1)[0].fill(0);
+                Tetris.board.unshift(row);
+                ++y;
+                linesCleared++;
+            }
+            if (linesCleared > 0) {
+                Tetris.score += [0, 40, 100, 300, 1200][linesCleared];
+                document.getElementById('tetris-status').innerText = `Score: ${Tetris.score}`;
+            }
+        }
+
+        function renderTetris() {
+            const container = document.getElementById('tetris-board');
+            container.innerHTML = '';
+            
+            const displayBoard = createMatrix(Tetris.cols, Tetris.rows);
+            Tetris.board.forEach((row, y) => {
+                row.forEach((val, x) => displayBoard[y][x] = val);
+            });
+            if(Tetris.active && Tetris.player.matrix) {
+                Tetris.player.matrix.forEach((row, y) => {
+                    row.forEach((value, x) => {
+                        if (value !== 0 && displayBoard[y + Tetris.player.pos.y]) {
+                            displayBoard[y + Tetris.player.pos.y][x + Tetris.player.pos.x] = value;
+                        }
+                    });
+                });
+            }
+
+            for (let y = 0; y < Tetris.rows; y++) {
+                for (let x = 0; x < Tetris.cols; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.innerText = Tetris.colors[displayBoard[y][x]];
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function gameLoopTetris() {
+            if(Tetris.active) {
+                playerDropTetris();
+                renderTetris();
+            }
+        }
+
+        function endGameTetris() {
+            Tetris.active = false;
+            if (Tetris.intervalId) clearInterval(Tetris.intervalId);
+            document.getElementById('tetris-status').innerText = `Game Over! Score: ${Tetris.score}. Press arrow to restart.`;
+        }
+
+        function handleTetrisInput(key) {
+            if(!Tetris.active) {
+                if (key === 'ArrowDown' || key === 'ArrowLeft' || key === 'ArrowRight' || key === 'ArrowUp') {
+                    initTetris();
+                    Tetris.active = true;
+                    if(Tetris.mode === 'live') {
+                        Tetris.intervalId = setInterval(gameLoopTetris, 800);
+                    }
+                    renderTetris();
+                }
+                return;
+            }
+
+            if (key === 'ArrowLeft') {
+                playerMoveTetris(-1);
+            } else if (key === 'ArrowRight') {
+                playerMoveTetris(1);
+            } else if (key === 'ArrowDown') {
+                playerDropTetris();
+            } else if (key === 'ArrowUp') {
+                playerRotateTetris();
+            }
+            renderTetris();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            // Prevent default scrolling for arrow keys
+            if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"].indexOf(e.code) > -1) {
+                e.preventDefault();
+            }
+
+            // Route to active game
+            if(document.getElementById('game-snake').classList.contains('active-game')) {
+                handleSnakeInput(e.code);
+            } else if(document.getElementById('game-tetris').classList.contains('active-game')) {
+                handleTetrisInput(e.code);
+            }
+        });
+
+        function copyBoard(gameType) {
+            let boardText = '';
+            
+            if (gameType === 'ttt') {
+                for (let i = 0; i < 9; i++) {
+                    boardText += TTT.board[i];
+                    if ((i + 1) % 3 === 0) boardText += '\n';
+                }
+                let statusText = "";
+                if (TTT.active) {
+                    statusText = `${TTT.currentPlayer === TTT.p1 ? 'X' : 'O'} turn!`;
+                } else {
+                    if (checkWinTTT(TTT.p1)) {
+                        statusText = "X wins!";
+                    } else if (checkWinTTT(TTT.p2)) {
+                        statusText = "O wins!";
+                    } else {
+                        statusText = "Draw!";
+                    }
+                }
+                boardText += statusText;
+
+            } else if (gameType === 'c4') {
+                for (let r = 0; r < C4.rows; r++) {
+                    for (let c = 0; c < C4.cols; c++) {
+                        boardText += C4.board[r][c];
+                    }
+                    boardText += '\n';
+                }
+                let statusText = "";
+                if (C4.active) {
+                    statusText = `${C4.currentPlayer} turn!`;
+                } else {
+                     if (isBoardFullC4() && !document.getElementById('c4-status').innerText.includes("Wins")) {
+                         statusText = "Draw!";
+                     } else {
+                        statusText = `${C4.currentPlayer} wins!`; 
+                     }
+                }
+                boardText += statusText;
+
+            } else if (gameType === 'snake') {
+                for(let y=0; y<snakeGame.height; y++){
+                    for(let x=0; x<snakeGame.width; x++){
+                        boardText += snakeGame.board[y][x];
+                    }
+                    boardText += '\n';
+                }
+                boardText += `Score: ${snakeGame.score}\n`;
+                boardText += `State: ${snakeGame.active ? 'Alive' : 'Dead'}`;
+            } else if (gameType === 'tetris') {
+                const displayBoard = createMatrix(Tetris.cols, Tetris.rows);
+                Tetris.board.forEach((row, y) => row.forEach((val, x) => displayBoard[y][x] = val));
+                
+                if(Tetris.active && Tetris.player.matrix) {
+                    Tetris.player.matrix.forEach((row, y) => {
+                        row.forEach((value, x) => {
+                            if (value !== 0 && displayBoard[y + Tetris.player.pos.y]) {
+                                displayBoard[y + Tetris.player.pos.y][x + Tetris.player.pos.x] = value;
+                            }
+                        });
+                    });
+                }
+                
+                for(let y=0; y<Tetris.rows; y++){
+                    for(let x=0; x<Tetris.cols; x++){
+                        boardText += Tetris.colors[displayBoard[y][x]];
+                    }
+                    boardText += '\n';
+                }
+                boardText += `Score: ${Tetris.score}\n`;
+                boardText += `State: ${Tetris.active ? 'Alive' : 'Dead'}`;
+            }
+
+            copyToClipboard(boardText.trim());
+        }
+
+        // Initialize menu on load
+        showMenu();
+
+    </script>
+</body>
+</html>
