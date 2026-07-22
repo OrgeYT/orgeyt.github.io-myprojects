@@ -406,6 +406,10 @@
                     <i class="fa-solid fa-clone"></i>
                     <span>Duplicate Frame</span>
                 </button>
+                <button onclick="openTweenModal()" class="px-2.5 py-1 text-xs bg-indigo-950/40 hover:bg-indigo-900/40 text-indigo-400 border border-indigo-900/30 rounded transition flex items-center space-x-1">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Tween Frames</span>
+                </button>
                 <button onclick="deleteFrame()" class="px-2.5 py-1 text-xs bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/30 rounded transition flex items-center space-x-1">
                     <i class="fa-solid fa-trash"></i>
                     <span>Delete Frame</span>
@@ -438,6 +442,50 @@
             <div class="flex justify-end space-x-3">
                 <button id="confirm-modal-cancel" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-lg transition">Cancel</button>
                 <button id="confirm-modal-action" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-lg transition shadow-lg shadow-rose-600/20">Proceed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tween Frames Generation Modal -->
+    <div id="tween-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-300">
+        <div class="bg-slate-900 border border-slate-800 w-[400px] rounded-2xl p-6 shadow-2xl transform scale-95 transition-all duration-300">
+            <div class="flex items-center space-x-3 text-indigo-400 mb-4">
+                <i class="fa-solid fa-wand-magic-sparkles text-2xl"></i>
+                <h3 class="text-lg font-bold text-slate-100">Tween Frames</h3>
+            </div>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">Automatically generate smooth transitions and inserted frames between two existing layouts.</p>
+
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Start Frame</label>
+                        <select id="tween-start" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase font-semibold mb-1">End Frame</label>
+                        <select id="tween-end" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"></select>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Frames to Insert</label>
+                        <input type="number" id="tween-count" min="1" max="100" value="5" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] text-slate-400 uppercase font-semibold mb-1">Easing Profile</label>
+                        <select id="tween-easing" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="linear">Linear</option>
+                            <option value="easeIn">Ease In</option>
+                            <option value="easeOut">Ease Out</option>
+                            <option value="easeInOut">Ease In-Out</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeTweenModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-lg transition">Cancel</button>
+                <button onclick="executeTween()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition shadow-lg shadow-indigo-600/20">Generate Tween</button>
             </div>
         </div>
     </div>
@@ -1518,7 +1566,7 @@
             const projectData = {
                 metadata: {
                     engine: "Stop-Frame 3D Studio",
-                    version: "2.5",
+                    version: "2.6",
                     timestamp: new Date().toISOString()
                 },
                 fps: fps,
@@ -2053,6 +2101,168 @@
             setTimeout(() => {
                 toast.className = "fixed bottom-6 right-6 z-50 transform translate-y-12 opacity-0 pointer-events-none transition-all duration-300 bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-2xl flex items-center space-x-3";
             }, 3000);
+        }
+
+        // TWEENING LOGIC AND HANDLERS 
+        function openTweenModal() {
+            if (frames.length < 2) {
+                showToast("You need at least 2 frames to create a tween.", "warning");
+                return;
+            }
+
+            const startSelect = document.getElementById('tween-start');
+            const endSelect = document.getElementById('tween-end');
+            
+            startSelect.innerHTML = '';
+            endSelect.innerHTML = '';
+
+            frames.forEach((f, i) => {
+                const opt1 = document.createElement('option');
+                opt1.value = i;
+                opt1.innerText = `Frame ${i + 1}`;
+                startSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = i;
+                opt2.innerText = `Frame ${i + 1}`;
+                endSelect.appendChild(opt2);
+            });
+
+            // Set sensible defaults for the dropdown targets
+            startSelect.value = activeFrameIndex;
+            endSelect.value = Math.min(activeFrameIndex + 1, frames.length - 1);
+
+            const modal = document.getElementById('tween-modal');
+            modal.classList.remove('pointer-events-none', 'opacity-0');
+            modal.firstElementChild.classList.remove('scale-95');
+            modal.firstElementChild.classList.add('scale-100');
+        }
+
+        function closeTweenModal() {
+            const modal = document.getElementById('tween-modal');
+            modal.classList.add('pointer-events-none', 'opacity-0');
+            modal.firstElementChild.classList.add('scale-95');
+            modal.firstElementChild.classList.remove('scale-100');
+        }
+
+        function executeTween() {
+            const startIndex = parseInt(document.getElementById('tween-start').value);
+            const endIndex = parseInt(document.getElementById('tween-end').value);
+            const count = parseInt(document.getElementById('tween-count').value);
+            const easing = document.getElementById('tween-easing').value;
+
+            if (startIndex === endIndex) {
+                showToast("Start and End frames must be different.", "warning");
+                return;
+            }
+            if (startIndex > endIndex) {
+                showToast("Start frame must be before End frame.", "warning");
+                return;
+            }
+            if (isNaN(count) || count < 1 || count > 100) {
+                showToast("Please enter a valid number of frames (1-100).", "warning");
+                return;
+            }
+
+            closeTweenModal();
+            showToast("Generating tween frames...", "info");
+
+            const frameA = frames[startIndex];
+            const frameB = frames[endIndex];
+            const newFrames = [];
+
+            for (let i = 1; i <= count; i++) {
+                let t = i / (count + 1);
+                
+                // Apply mathematical easing equations
+                if (easing === 'easeIn') t = t * t;
+                else if (easing === 'easeOut') t = t * (2 - t);
+                else if (easing === 'easeInOut') t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+                const tweenFrame = {
+                    id: nextFrameId++,
+                    cubes: {},
+                    camera: {
+                        px: lerp(frameA.camera.px, frameB.camera.px, t),
+                        py: lerp(frameA.camera.py, frameB.camera.py, t),
+                        pz: lerp(frameA.camera.pz, frameB.camera.pz, t),
+                        tx: lerp(frameA.camera.tx, frameB.camera.tx, t),
+                        ty: lerp(frameA.camera.ty, frameB.camera.ty, t),
+                        tz: lerp(frameA.camera.tz, frameB.camera.tz, t)
+                    }
+                };
+
+                // Tween matching cubes
+                Object.values(frameA.cubes).forEach(cubeA => {
+                    const cubeB = frameB.cubes[cubeA.id];
+                    if (cubeB) {
+                        // Cube exists in both bounds, create its interpolation!
+                        tweenFrame.cubes[cubeA.id] = {
+                            id: cubeA.id,
+                            color: lerpColor(cubeA.color, cubeB.color, t),
+                            px: lerp(cubeA.px, cubeB.px, t),
+                            py: lerp(cubeA.py, cubeB.py, t),
+                            pz: lerp(cubeA.pz, cubeB.pz, t),
+                            rx: lerpAngle(cubeA.rx, cubeB.rx, t),
+                            ry: lerpAngle(cubeA.ry, cubeB.ry, t),
+                            rz: lerpAngle(cubeA.rz, cubeB.rz, t),
+                            sx: lerp(cubeA.sx, cubeB.sx, t),
+                            sy: lerp(cubeA.sy, cubeB.sy, t),
+                            sz: lerp(cubeA.sz, cubeB.sz, t)
+                        };
+                    } else {
+                        // Cube only exists in Frame A (Keep it steady instead of popping out awkwardly)
+                        tweenFrame.cubes[cubeA.id] = JSON.parse(JSON.stringify(cubeA));
+                    }
+                });
+
+                // Bring in cubes that only exist in Frame B
+                Object.values(frameB.cubes).forEach(cubeB => {
+                    if (!tweenFrame.cubes[cubeB.id]) {
+                        tweenFrame.cubes[cubeB.id] = JSON.parse(JSON.stringify(cubeB));
+                    }
+                });
+
+                newFrames.push(tweenFrame);
+            }
+
+            // Splice all recently generated frames directly into the global timeline array
+            frames.splice(startIndex + 1, 0, ...newFrames);
+
+            // Navigate user towards the first newly rendered tween slot
+            selectFrame(startIndex + 1);
+            showToast(`Inserted ${count} smoothly tweened frames!`, "success");
+        }
+
+        // Mathematical Interpolation Helpers
+        function lerp(a, b, t) {
+            return a + (b - a) * t;
+        }
+
+        function lerpAngle(a, b, t) {
+            let d = (b - a) % 360;
+            // Shortest rotational path calculation wrapping bounds
+            if (d > 180) d -= 360;
+            if (d < -180) d += 360;
+            return a + d * t;
+        }
+
+        function hexToRgb(hex) {
+            const bigint = parseInt(hex.slice(1), 16);
+            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).padStart(6, '0');
+        }
+
+        function lerpColor(a, b, t) {
+            const rgbA = hexToRgb(a);
+            const rgbB = hexToRgb(b);
+            const r = Math.round(rgbA[0] + (rgbB[0] - rgbA[0]) * t);
+            const g = Math.round(rgbA[1] + (rgbB[1] - rgbA[1]) * t);
+            const b_val = Math.round(rgbA[2] + (rgbB[2] - rgbA[2]) * t);
+            return rgbToHex(r, g, b_val);
         }
 
         // Standard Frame Animation Loop
