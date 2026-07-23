@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Infinite 3D Platformer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Sky blue */
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* Let clicks pass through to canvas */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .hud-text {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            font-weight: bold;
+            font-size: 24px;
+            position: absolute;
+        }
+
+        #level-display {
+            top: 20px;
+            left: 20px;
+            font-size: 32px;
+        }
+
+        #controls-hint {
+            bottom: 20px;
+            left: 20px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        /* Menu screen styling */
+        #menu-screen {
+            background: rgba(0, 0, 0, 0.7);
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            color: white;
+            pointer-events: auto; /* Allow clicks on menu */
+            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: opacity 0.3s;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 48px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        button {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            border: none;
+            color: white;
+            padding: 15px 32px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 20px;
+            margin: 20px 2px;
+            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-layer">
+        <div id="level-display" class="hud-text">Level: 1</div>
+        <div id="controls-hint" class="hud-text">WASD: Move | Space: Jump/Walljump | Shift: Sprint</div>
+        <div id="crosshair"></div>
+
+        <div id="menu-screen">
+            <h1>Infinite Platformer</h1>
+            <p>Reach the green goal to advance.</p>
+            <p>Avoid red blocks. Checkpoints are blue. Wallrun on cyan-grid walls!</p>
+            <button id="start-btn">Click to Start</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Constants & Variables ---
+        const GRAVITY = -30;
+        const JUMP_FORCE = 15;
+        const DOUBLE_JUMP_FORCE = 12;
+        const WALK_SPEED = 10;
+        const SPRINT_SPEED = 18;
+        const PLAYER_MASS = 1; // Simplified mass
+        const TERMINAL_VELOCITY = -50;
+        const KILL_Y = -20; // Y coordinate to trigger death
+
+        let scene, camera, renderer;
+        let player, playerGroup, hitBox;
+        let platforms = [];
+        let movingPlatforms = [];
+        let hazards = [];
+        let checkpoints = [];
+        let goal;
+        
+        let currentLevel = 1;
+        let lastCheckpointPos = new THREE.Vector3(0, 5, 0); // Starting spawn point
+        
+        // Input state
+        const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+        let mouseMovement = { x: 0, y: 0 };
+        
+        // Player state
+        let velocity = new THREE.Vector3();
+        let isGrounded = false;
+        let canDoubleJump = false;
+        let cameraAngle = { x: 0, y: 0 }; // x is up/down, y is left/right
+        
+        // Wall running state
+        let isWallRunning = false;
+        let currentWallNormal = new THREE.Vector3();
+        let momentum = new THREE.Vector3();
+        
+        // Animation variables (R6 inspired)
+        let walkCycleTime = 0;
+        let isMoving = false;
+        let limbs = {}; // References to player parts for animation
+
+        let gameActive = false;
+        let clock = new THREE.Clock();
+        
+        // Character Model Data (from prompt)
+        const charData = {
+            "cube_2": { "color": "#ffab66", "px": 0, "py": 4.01, "pz": 0, "sx": 1, "sy": 1, "sz": 1 }, // head
+            "cube_3": { "color": "#ff0000", "px": 0, "py": 2.67, "pz": 0, "sx": 1.7, "sy": 1.65, "sz": 1.06 }, // torso
+            "cube_4": { "color": "#ffab66", "px": 1.32, "py": 2.66, "pz": 0, "sx": 1, "sy": 1.67, "sz": 1.02 }, // r arm
+            "cube_5": { "color": "#ffab66", "px": -1.35, "py": 2.66, "pz": 0, "sx": 1, "sy": 1.67, "sz": 1.02 }, // l arm
+            "cube_6": { "color": "#000000", "px": 0.47, "py": 0.98, "pz": 0, "sx": 1, "sy": 1.82, "sz": 1 }, // r leg
+            "cube_7": { "color": "#000000", "px": -0.44, "py": 0.98, "pz": 0, "sx": 1, "sy": 1.82, "sz": 1 }  // l leg
+        };
+
+        // DOM Elements
+        const uiLayer = document.getElementById('ui-layer');
+        const menuScreen = document.getElementById('menu-screen');
+        const startBtn = document.getElementById('start-btn');
+        const levelDisplay = document.getElementById('level-display');
+        const crosshair = document.getElementById('crosshair');
+
+        function init() {
+            // Setup scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 10, 150);
+
+            // Setup camera (3rd person)
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Setup renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Setup lights
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(50, 100, 50);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -50;
+            dirLight.shadow.camera.right = 50;
+            dirLight.shadow.camera.top = 50;
+            dirLight.shadow.camera.bottom = -50;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Create Player
+            createPlayer();
+
+            // Event Listeners
+            setupEventListeners();
+
+            // Generate first level
+            generateLevel(currentLevel);
+
+            // Start animation loop
+            animate();
+        }
+
+        function createPlayer() {
+            playerGroup = new THREE.Group();
+            scene.add(playerGroup);
+
+            // Create visual representation based on JSON
+            const playerVisual = new THREE.Group();
+            
+            // Offset to make the bottom of the feet align with 0 y-axis locally
+            // Looking at the JSON, lowest point is legs at py: 0.98, sy: 1.82 -> lowest edge is 0.98 - (1.82/2) = 0.07
+            // We want it to be roughly 0.
+            const yOffset = -0.07;
+
+            // Material creator
+            const getMat = (hex) => new THREE.MeshLambertMaterial({ color: hex });
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+
+            // Build parts
+            for (const key in charData) {
+                const part = charData[key];
+                const mesh = new THREE.Mesh(geometry, getMat(part.color));
+                mesh.scale.set(part.sx, part.sy, part.sz);
+                // Need to offset pivots for arms and legs for R6 animation
+                // Instead of moving the mesh, we wrap it in a pivot group
+                
+                const pivotGroup = new THREE.Group();
+                pivotGroup.position.set(part.px, part.py + yOffset, part.pz);
+                
+                // Adjust pivots based on part type
+                if (key === 'cube_4' || key === 'cube_5') {
+                    // Arms pivot near shoulders (top)
+                    mesh.position.y = -part.sy / 2 + 0.2; // Move mesh down relative to pivot
+                    pivotGroup.position.y += part.sy / 2 - 0.2; // Move pivot up
+                    limbs[key === 'cube_4' ? 'rightArm' : 'leftArm'] = pivotGroup;
+                } else if (key === 'cube_6' || key === 'cube_7') {
+                    // Legs pivot near hips (top)
+                    mesh.position.y = -part.sy / 2;
+                    pivotGroup.position.y += part.sy / 2;
+                    limbs[key === 'cube_6' ? 'rightLeg' : 'leftLeg'] = pivotGroup;
+                } else if (key === 'cube_2') {
+                    // Head
+                    limbs['head'] = pivotGroup;
+                } else if (key === 'cube_3') {
+                    // Torso
+                    limbs['torso'] = pivotGroup;
+                }
+
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                pivotGroup.add(mesh);
+                playerVisual.add(pivotGroup);
+            }
+            
+            playerGroup.add(playerVisual);
+
+            // Create a slightly larger, invisible hitbox for collision logic
+            // Assuming max width is around 3, height around 4.5 based on JSON
+            const hitBoxGeo = new THREE.BoxGeometry(2, 4.5, 2);
+            const hitBoxMat = new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true, visible: false });
+            hitBox = new THREE.Mesh(hitBoxGeo, hitBoxMat);
+            hitBox.position.y = 4.5 / 2; // Center hitbox based on height
+            playerGroup.add(hitBox);
+            
+            playerGroup.position.copy(lastCheckpointPos);
+        }
+
+        function clearLevel() {
+            // Remove old platforms and hazards
+            [...platforms, ...movingPlatforms, ...hazards, ...checkpoints].forEach(obj => {
+                if(obj.mesh && obj.mesh.parent) {
+                    scene.remove(obj.mesh);
+                }
+            });
+            if(goal && goal.parent) scene.remove(goal);
+
+            platforms = [];
+            movingPlatforms = [];
+            hazards = [];
+            checkpoints = [];
+        }
+
+        function createPlatform(x, y, z, w, h, d, type = 'normal', opts = {}) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            let mat;
+            let mesh;
+
+            switch(type) {
+                case 'normal':
+                    mat = new THREE.MeshLambertMaterial({ color: 0x808080 }); // Gray
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    platforms.push({ mesh, w, h, d });
+                    break;
+                case 'moving':
+                    mat = new THREE.MeshLambertMaterial({ color: 0xaaaa00 }); // Yellowish
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    movingPlatforms.push({ 
+                        mesh, w, h, d, 
+                        startPos: new THREE.Vector3(x,y,z), 
+                        endPos: opts.endPos || new THREE.Vector3(x+10, y, z),
+                        speed: opts.speed || 2,
+                        progress: 0,
+                        direction: 1
+                    });
+                    // Also add to static platforms list for basic collision, 
+                    // though dynamic collision is harder. We'll simplify.
+                    platforms.push({ mesh, w, h, d }); 
+                    break;
+                case 'hazard':
+                    mat = new THREE.MeshLambertMaterial({ color: 0xff3333 }); // Red
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.castShadow = true;
+                    hazards.push({ mesh, w, h, d });
+                    platforms.push({ mesh, w, h, d, isHazard: true }); // act as platform but kills
+                    break;
+                case 'checkpoint':
+                    mat = new THREE.MeshLambertMaterial({ color: 0x3333ff }); // Blue
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.receiveShadow = true;
+                    checkpoints.push({ mesh, w, h, d, active: true });
+                    platforms.push({ mesh, w, h, d });
+                    break;
+                case 'wall':
+                    mat = new THREE.MeshLambertMaterial({ color: 0x444455, transparent: true, opacity: 0.9 });
+                    mesh = new THREE.Mesh(geo, mat);
+                    
+                    // Add grid lines for cool effect
+                    const edges = new THREE.EdgesGeometry(geo);
+                    const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+                    mesh.add(line);
+                    
+                    mesh.receiveShadow = true;
+                    mesh.castShadow = true;
+                    platforms.push({ mesh, w, h, d, isWall: true });
+                    break;
+                case 'goal':
+                    mat = new THREE.MeshLambertMaterial({ color: 0x33ff33, emissive: 0x115511 }); // Green
+                    mesh = new THREE.Mesh(geo, mat);
+                    mesh.receiveShadow = true;
+                    goal = mesh;
+                    platforms.push({ mesh, w, h, d, isGoal: true });
+                    break;
+            }
+
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function generateLevel(levelNum) {
+            clearLevel();
+            levelDisplay.innerText = `Level: ${levelNum}`;
+
+            // Reset player to start
+            lastCheckpointPos.set(0, 5, 0);
+            respawnPlayer();
+
+            // Starting Platform
+            createPlatform(0, 0, 0, 10, 2, 10);
+
+            // Procedural generation parameters based on level
+            const numSegments = 5 + Math.floor(levelNum * 1.5);
+            let currentX = 0;
+            let currentY = 0;
+            let currentZ = -10;
+
+            const difficultyGap = Math.min(12, 5 + levelNum * 0.5); // Max jump is ~12-15
+            const platformSize = Math.max(3, 10 - levelNum * 0.5);
+
+            for (let i = 0; i < numSegments; i++) {
+                let prevX = currentX;
+                let prevY = currentY;
+                let prevZ = currentZ;
+
+                // Determine gap
+                currentZ -= (difficultyGap + Math.random() * 4);
+                currentY += (Math.random() * 6 - 2); // Vary height
+                currentX += (Math.random() * 10 - 5); // Veer left/right
+
+                // Decide platform type based on level
+                let r = Math.random();
+                let type = 'normal';
+                let opts = {};
+                let isWallRunSegment = false;
+
+                if (levelNum > 1 && r < 0.2) {
+                    type = 'moving';
+                    opts.endPos = new THREE.Vector3(currentX + (Math.random()>0.5?10:-10), currentY, currentZ);
+                    opts.speed = 1 + Math.random() * (levelNum * 0.2);
+                } else if (levelNum > 2 && r < 0.4) {
+                    type = 'hazard';
+                } else if (levelNum > 1 && r < 0.6) {
+                    isWallRunSegment = true;
+                }
+
+                if (isWallRunSegment) {
+                    // Make the gap significantly larger for the wall run
+                    currentZ -= 15;
+                    
+                    const wallSide = Math.random() > 0.5 ? 1 : -1;
+                    const wallZ = (prevZ + currentZ) / 2;
+                    const wallX = (prevX + currentX) / 2 + (wallSide * (platformSize/2 + 2));
+                    const wallY = (prevY + currentY) / 2 + 5; // Slightly elevated
+                    const wallLength = Math.abs(prevZ - currentZ) + 5; // Ensure it overlaps the gap fully
+                    
+                    // Create Wall
+                    createPlatform(wallX, wallY, wallZ, 2, 15, wallLength, 'wall');
+                    
+                    // Create Landing platform
+                    createPlatform(currentX, currentY, currentZ, platformSize, 2, platformSize, 'normal');
+                } else {
+                    // Create the platform
+                    createPlatform(currentX, currentY, currentZ, platformSize, 2, platformSize, type, opts);
+                }
+
+                // Occasionally add a checkpoint (middle of level)
+                if (i === Math.floor(numSegments / 2)) {
+                   createPlatform(currentX, currentY + 0.5, currentZ, platformSize, 2.5, platformSize, 'checkpoint');
+                }
+            }
+
+            // Create Goal platform
+            currentZ -= 15;
+            createPlatform(currentX, currentY, currentZ, 10, 2, 10, 'goal');
+            
+            // Decorate goal area
+            const goalPillar = new THREE.Mesh(
+                new THREE.CylinderGeometry(1, 1, 10, 16),
+                new THREE.MeshLambertMaterial({color: 0xffff00, transparent: true, opacity: 0.5})
+            );
+            goalPillar.position.set(currentX, currentY + 6, currentZ);
+            scene.add(goalPillar);
+            goal = goalPillar; // Reference for logic (though we use the platform base for collision)
+        }
+
+        function setupEventListeners() {
+            // Pointer Lock for Camera
+            startBtn.addEventListener('click', () => {
+                document.body.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', () => {
+                if (document.pointerLockElement === document.body) {
+                    menuScreen.style.display = 'none';
+                    crosshair.style.display = 'block';
+                    gameActive = true;
+                    clock.start();
+                } else {
+                    menuScreen.style.display = 'block';
+                    crosshair.style.display = 'none';
+                    startBtn.innerText = "Resume Game";
+                    gameActive = false;
+                    clock.stop();
+                }
+            });
+
+            // Keyboard
+            document.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (keys.hasOwnProperty(key)) keys[key] = true;
+                if (e.key === 'Shift') keys.shift = true;
+                if (e.code === 'Space') {
+                    keys.space = true;
+                    handleJump();
+                }
+            });
+
+            document.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (keys.hasOwnProperty(key)) keys[key] = false;
+                if (e.key === 'Shift') keys.shift = false;
+                if (e.code === 'Space') keys.space = false;
+            });
+
+            // Mouse Movement for Camera
+            document.addEventListener('mousemove', (e) => {
+                if (!gameActive) return;
+                
+                const sensitivity = 0.002;
+                cameraAngle.y -= e.movementX * sensitivity; // left/right (yaw)
+                cameraAngle.x -= e.movementY * sensitivity; // up/down (pitch)
+
+                // Clamp pitch to avoid flipping
+                cameraAngle.x = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, cameraAngle.x));
+            });
+
+            // Window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        function handleJump() {
+            if (!gameActive) return;
+            
+            if (isWallRunning) {
+                // Wall jump
+                velocity.y = JUMP_FORCE * 1.1; // Slightly higher
+                momentum.x = currentWallNormal.x * 30; // Strong push away from wall
+                momentum.z = currentWallNormal.z * 30;
+                
+                isWallRunning = false;
+                isGrounded = false;
+                canDoubleJump = true; // Refresh double jump
+                applySquashStretch(0.8, 1.3, 0.8);
+            } else if (isGrounded) {
+                velocity.y = JUMP_FORCE;
+                isGrounded = false;
+                canDoubleJump = true;
+                applySquashStretch(0.8, 1.3, 0.8); // Stretch up
+            } else if (canDoubleJump) {
+                velocity.y = DOUBLE_JUMP_FORCE;
+                canDoubleJump = false;
+                // Add a little spin to double jump visually
+                applySquashStretch(0.9, 1.2, 0.9);
+            }
+        }
+
+        function applySquashStretch(sx, sy, sz) {
+            // Apply scale to the visual group only, not the hitbox
+            const visualGroup = playerGroup.children[0];
+            visualGroup.scale.set(sx, sy, sz);
+        }
+
+        function updateSquashStretch(dt) {
+            const visualGroup = playerGroup.children[0];
+            // Smoothly return to normal scale (1,1,1)
+            const speed = 10 * dt;
+            visualGroup.scale.x += (1 - visualGroup.scale.x) * speed;
+            visualGroup.scale.y += (1 - visualGroup.scale.y) * speed;
+            visualGroup.scale.z += (1 - visualGroup.scale.z) * speed;
+        }
+
+        function respawnPlayer() {
+            playerGroup.position.copy(lastCheckpointPos);
+            velocity.set(0, 0, 0);
+            momentum.set(0, 0, 0);
+            cameraAngle = { x: 0, y: 0 };
+            isWallRunning = false;
+        }
+
+        function updatePlayer(dt) {
+            // --- MOVEMENT ---
+            isWallRunning = false;
+            
+            const speed = keys.shift ? SPRINT_SPEED : WALK_SPEED;
+            const moveDir = new THREE.Vector3(0, 0, 0);
+
+            // Calculate movement vectors based on camera facing (ignoring pitch)
+            const forward = new THREE.Vector3(Math.sin(cameraAngle.y), 0, Math.cos(cameraAngle.y)).normalize();
+            const right = new THREE.Vector3(-Math.cos(cameraAngle.y), 0, Math.sin(cameraAngle.y)).normalize();
+
+            if (keys.w) moveDir.add(forward);
+            if (keys.s) moveDir.sub(forward);
+            if (keys.a) moveDir.sub(right);
+            if (keys.d) moveDir.add(right);
+
+            if (moveDir.lengthSq() > 0) {
+                moveDir.normalize();
+                isMoving = true;
+                
+                // Rotate player model to face movement direction
+                const targetRotation = Math.atan2(moveDir.x, moveDir.z);
+                const visualGroup = playerGroup.children[0];
+                
+                // Smooth rotation
+                let currentRot = visualGroup.rotation.y;
+                // Deal with atan2 wrap around
+                if (Math.abs(currentRot - targetRotation) > Math.PI) {
+                    if (currentRot > targetRotation) currentRot -= Math.PI * 2;
+                    else currentRot += Math.PI * 2;
+                }
+                visualGroup.rotation.y = currentRot + (targetRotation - currentRot) * 10 * dt;
+                
+            } else {
+                isMoving = false;
+            }
+
+            // Apply momentum decay
+            const decay = Math.exp(-5 * dt);
+            momentum.x *= decay;
+            momentum.z *= decay;
+
+            // Apply horizontal velocity + momentum
+            velocity.x = moveDir.x * speed + momentum.x;
+            velocity.z = moveDir.z * speed + momentum.z;
+
+            // Apply Gravity
+            if (!isGrounded) {
+                velocity.y += GRAVITY * dt;
+                if (velocity.y < TERMINAL_VELOCITY) velocity.y = TERMINAL_VELOCITY;
+            }
+
+            // Potential next position
+            const nextPos = playerGroup.position.clone();
+            nextPos.x += velocity.x * dt;
+            nextPos.y += velocity.y * dt;
+            nextPos.z += velocity.z * dt;
+
+            // --- COLLISION DETECTION (AABB) ---
+            isGrounded = false;
+            
+            // Hitbox dimensions
+            const pW = 2 / 2; // half width (approx from scale 2)
+            const pD = 2 / 2; // half depth
+            const pH = 4.5;   // total height
+            
+            // Simplified collision: Check mostly floor for platformer
+            for (let plat of platforms) {
+                const platMesh = plat.mesh;
+                const pw = plat.w / 2;
+                const ph = plat.h / 2;
+                const pd = plat.d / 2;
+                const p = platMesh.position;
+
+                // Simple AABB check
+                const overlapX = (nextPos.x + pW > p.x - pw) && (nextPos.x - pW < p.x + pw);
+                const overlapZ = (nextPos.z + pD > p.z - pd) && (nextPos.z - pD < p.z + pd);
+                
+                if (overlapX && overlapZ) {
+                    // Check Y overlap
+                    // Falling onto top
+                    if (playerGroup.position.y >= p.y + ph && nextPos.y <= p.y + ph) {
+                        nextPos.y = p.y + ph;
+                        velocity.y = 0;
+                        isGrounded = true;
+                        canDoubleJump = false;
+                        
+                        // Special platform logic
+                        if (plat.isHazard) {
+                            respawnPlayer();
+                            return; // Stop update for this frame
+                        }
+                        if (plat.isGoal) {
+                            currentLevel++;
+                            generateLevel(currentLevel);
+                            return;
+                        }
+                        // Checkpoints
+                        const cpIndex = checkpoints.findIndex(c => c.mesh === plat.mesh);
+                        if (cpIndex !== -1 && checkpoints[cpIndex].active) {
+                            checkpoints[cpIndex].active = false;
+                            plat.mesh.material.color.setHex(0x00ff00); // Turn green
+                            lastCheckpointPos.copy(plat.mesh.position);
+                            lastCheckpointPos.y += plat.h/2; // spawn on top
+                        }
+
+                        // If it's a moving platform, stick to it (simplified)
+                        const mp = movingPlatforms.find(m => m.mesh === plat.mesh);
+                        if (mp) {
+                            // Calculate delta movement of platform
+                            // (Handled below in moving platforms update, we just let player ride it for now)
+                            // A more robust way is to add platform velocity to player pos, but for simplicity:
+                            // The platform moves, next frame collision handles resting on top.
+                            // To prevent sliding off, we need to add platform delta to player pos.
+                        }
+                    }
+                    // Hitting bottom (head bump)
+                    else if (playerGroup.position.y + pH <= p.y - ph && nextPos.y + pH >= p.y - ph) {
+                        nextPos.y = p.y - ph - pH;
+                        velocity.y = -2; // Bounce down slightly
+                    }
+                    // Side collision (very simplified, wall sliding)
+                    else if (playerGroup.position.y < p.y + ph && playerGroup.position.y + pH > p.y - ph) {
+                       // Push out based on closest edge
+                       const dx1 = (p.x - pw) - (nextPos.x + pW);
+                       const dx2 = (p.x + pw) - (nextPos.x - pW);
+                       const dz1 = (p.z - pd) - (nextPos.z + pD);
+                       const dz2 = (p.z + pd) - (nextPos.z - pD);
+                       
+                       const min = Math.min(Math.abs(dx1), Math.abs(dx2), Math.abs(dz1), Math.abs(dz2));
+                       
+                       if(min === Math.abs(dx1)) { nextPos.x = p.x - pw - pW; currentWallNormal.set(-1, 0, 0); }
+                       else if(min === Math.abs(dx2)) { nextPos.x = p.x + pw + pW; currentWallNormal.set(1, 0, 0); }
+                       else if(min === Math.abs(dz1)) { nextPos.z = p.z - pd - pD; currentWallNormal.set(0, 0, -1); }
+                       else if(min === Math.abs(dz2)) { nextPos.z = p.z + pd + pD; currentWallNormal.set(0, 0, 1); }
+                       
+                       // Wall running logic
+                       if (plat.isWall && !isGrounded && velocity.y < 0) {
+                           isWallRunning = true;
+                           velocity.y = -5; // Slide down slowly
+                           nextPos.y = playerGroup.position.y + velocity.y * dt; // Correct nextPos for new velocity
+                       }
+                    }
+                }
+            }
+
+            // Apply finalized position
+            playerGroup.position.copy(nextPos);
+            
+            // Wall run visual tilt
+            let targetTilt = 0;
+            if (isWallRunning) {
+                // Determine left or right tilt based on wall normal relative to camera
+                const rightVector = new THREE.Vector3(-Math.cos(cameraAngle.y), 0, Math.sin(cameraAngle.y)).normalize();
+                const side = rightVector.dot(currentWallNormal);
+                targetTilt = side > 0 ? -0.3 : 0.3; 
+            }
+            const visualGroup = playerGroup.children[0];
+            visualGroup.rotation.z += (targetTilt - visualGroup.rotation.z) * 10 * dt;
+            
+            // Death plane
+            if (playerGroup.position.y < KILL_Y) {
+                respawnPlayer();
+            }
+
+            // Squash/Stretch recovery
+            updateSquashStretch(dt);
+            
+            // --- ANIMATION (Roblox R6 style) ---
+            if (isGrounded && isMoving) {
+                // Walking animation (sin waves)
+                const animSpeed = keys.shift ? 15 : 10;
+                walkCycleTime += dt * animSpeed;
+                
+                const swing = Math.sin(walkCycleTime);
+                const swingAmp = 1.0; // max angle in radians
+                
+                if(limbs.rightArm) limbs.rightArm.rotation.x = -swing * swingAmp;
+                if(limbs.leftArm) limbs.leftArm.rotation.x = swing * swingAmp;
+                if(limbs.rightLeg) limbs.rightLeg.rotation.x = swing * swingAmp;
+                if(limbs.leftLeg) limbs.leftLeg.rotation.x = -swing * swingAmp;
+                
+                // Slight torso bob
+                if(limbs.torso) limbs.torso.rotation.y = swing * 0.1;
+                
+            } else if (!isGrounded) {
+                // Jumping pose
+                walkCycleTime = 0; // reset
+                // Arms up, legs split slightly
+                if(limbs.rightArm) limbs.rightArm.rotation.x = -Math.PI; // straight up
+                if(limbs.leftArm) limbs.leftArm.rotation.x = -Math.PI;
+                if(limbs.rightLeg) limbs.rightLeg.rotation.x = 0.5;
+                if(limbs.leftLeg) limbs.leftLeg.rotation.x = -0.2;
+                if(limbs.torso) limbs.torso.rotation.y = 0;
+            } else {
+                // Idle pose
+                walkCycleTime = 0;
+                // Smoothly return to 0
+                const returnSpeed = 10 * dt;
+                ['rightArm', 'leftArm', 'rightLeg', 'leftLeg'].forEach(part => {
+                    if(limbs[part]) {
+                        limbs[part].rotation.x += (0 - limbs[part].rotation.x) * returnSpeed;
+                    }
+                });
+                if(limbs.torso) limbs.torso.rotation.y += (0 - limbs.torso.rotation.y) * returnSpeed;
+            }
+        }
+
+        function updateCamera() {
+            // 3rd Person Camera logic
+            const camDistance = 10;
+            const camHeightOffset = 3;
+            
+            // Calculate camera position relative to player using spherical coordinates
+            const cx = playerGroup.position.x - camDistance * Math.sin(cameraAngle.y) * Math.cos(cameraAngle.x);
+            const cy = playerGroup.position.y + camHeightOffset - camDistance * Math.sin(cameraAngle.x);
+            const cz = playerGroup.position.z - camDistance * Math.cos(cameraAngle.y) * Math.cos(cameraAngle.x);
+            
+            // Basic camera collision with environment (prevent clipping through floors)
+            // Just a simple raycast downwards from intended cam pos
+            let finalCy = cy;
+            if(finalCy < 0.5) finalCy = 0.5; // Minimum height above 0 (hacky fix for low angles)
+
+            camera.position.set(cx, finalCy, cz);
+            
+            // Look at player (specifically head area)
+            const lookTarget = playerGroup.position.clone();
+            lookTarget.y += 3; 
+            camera.lookAt(lookTarget);
+        }
+
+        function updateEnvironment(dt) {
+            // Moving Platforms
+            movingPlatforms.forEach(mp => {
+                // Ping-pong movement
+                const distance = mp.startPos.distanceTo(mp.endPos);
+                mp.progress += mp.direction * mp.speed * dt;
+                
+                if (mp.progress >= distance) {
+                    mp.progress = distance;
+                    mp.direction = -1;
+                } else if (mp.progress <= 0) {
+                    mp.progress = 0;
+                    mp.direction = 1;
+                }
+                
+                const ratio = mp.progress / distance;
+                const nextPos = new THREE.Vector3().lerpVectors(mp.startPos, mp.endPos, ratio);
+                
+                // Calculate delta to move player if they are on it
+                const delta = new THREE.Vector3().subVectors(nextPos, mp.mesh.position);
+                mp.mesh.position.copy(nextPos);
+
+                // Check if player is on this platform (rough check)
+                const p = mp.mesh.position;
+                const pw = mp.w/2;
+                const pd = mp.d/2;
+                const ph = mp.h/2;
+                
+                // If grounded and within XZ bounds and just above platform Y
+                if(isGrounded && 
+                   playerGroup.position.x > p.x - pw && playerGroup.position.x < p.x + pw &&
+                   playerGroup.position.z > p.z - pd && playerGroup.position.z < p.z + pd &&
+                   Math.abs(playerGroup.position.y - (p.y + ph)) < 0.5) {
+                    
+                    playerGroup.position.add(delta);
+                }
+            });
+
+            // Rotate goal marker
+            if(goal) {
+                goal.rotation.y += 2 * dt;
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = clock.getDelta();
+
+            if (gameActive) {
+                updatePlayer(dt);
+                updateEnvironment(dt);
+                updateCamera();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // Initialize game when window loads
+        window.onload = init;
+
+    </script>
+</body>
+</html>
