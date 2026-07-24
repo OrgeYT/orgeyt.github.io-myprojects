@@ -54,6 +54,12 @@
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
             transform: scale(1.02);
         }
+        /* Dragging highlight states for timeline cards */
+        .timeline-card.drag-over {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 18px rgba(99, 102, 241, 0.6);
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body class="h-screen w-screen overflow-hidden flex flex-col text-slate-100">
@@ -149,7 +155,7 @@
                     </h3>
                     
                     <!-- Selection Toolbar for fast interactions -->
-                    <div class="grid grid-cols-3 gap-1.5 mb-3">
+                    <div class="grid grid-cols-2 gap-1.5 mb-1.5">
                         <button id="btn-toggle-multiselect" onclick="toggleMultiSelectMode()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition">
                             <i id="icon-toggle-multiselect" class="fa-solid fa-square"></i>
                             <span id="lbl-toggle-multiselect">Multi-Select</span>
@@ -158,9 +164,15 @@
                             <i class="fa-solid fa-list-check text-indigo-400"></i>
                             <span>Select All</span>
                         </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1.5 mb-3">
+                        <button onclick="duplicateSelectedCubes()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-indigo-400 hover:text-indigo-300 rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition" title="Duplicate selected blocks (Shift+D)">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Duplicate Block</span>
+                        </button>
                         <button onclick="clearSelection()" class="py-1.5 px-1 text-[9px] font-semibold bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-800 flex items-center justify-center space-x-1 transition">
                             <i class="fa-solid fa-xmark text-rose-400"></i>
-                            <span>Clear</span>
+                            <span>Clear Selection</span>
                         </button>
                     </div>
 
@@ -179,9 +191,15 @@
                             <i class="fa-solid fa-sliders"></i>
                             <span id="properties-title">Cube Properties</span>
                         </h3>
-                        <button onclick="deleteSelectedCubes()" class="text-xs text-rose-500 hover:text-rose-400 flex items-center space-x-1 transition" title="Delete Selection">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="duplicateSelectedCubes()" class="text-xs text-indigo-400 hover:text-indigo-300 flex items-center space-x-1 transition" title="Duplicate Selection (Shift+D)">
+                                <i class="fa-solid fa-copy"></i>
+                                <span class="text-[10px] font-medium">Duplicate</span>
+                            </button>
+                            <button onclick="deleteSelectedCubes()" class="text-xs text-rose-500 hover:text-rose-400 flex items-center space-x-1 transition" title="Delete Selection">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Multi-Select Descriptive Panel -->
@@ -375,10 +393,10 @@
                 <div class="absolute bottom-4 left-4 z-10 glassmorphism p-3 rounded-xl max-w-xs pointer-events-none">
                     <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Shortcuts & Help</h4>
                     <ul class="text-[10px] space-y-1 text-slate-300">
+                        <li class="flex justify-between"><span>Duplicate Blocks:</span> <span class="font-mono text-indigo-400">[Shift + D]</span></li>
+                        <li class="flex justify-between"><span>Move Frames:</span> <span class="font-mono text-emerald-400">Drag cards on timeline</span></li>
                         <li class="flex justify-between"><span>Multi-Selection:</span> <span class="font-mono text-blue-400">[Shift + Click] cubes</span></li>
                         <li class="flex justify-between"><span>Gizmo Shortcuts:</span> <span class="font-mono text-amber-400">[W] Move, [E] Rot, [R] Scale, [Q] Hide</span></li>
-                        <li class="flex justify-between"><span>Click empty stage:</span> <span class="font-mono text-slate-400">Deselect all</span></li>
-                        <li class="flex justify-between"><span>Orbit view:</span> <span class="font-mono text-blue-400">Left Drag (Free Cam)</span></li>
                     </ul>
                 </div>
 
@@ -395,6 +413,7 @@
             <div class="flex items-center space-x-4">
                 <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Timeline / Frames</span>
                 <span id="active-frame-lbl" class="text-xs font-semibold text-blue-400">Frame 1 of 1</span>
+                <span class="text-[10px] text-slate-500 italic"><i class="fa-solid fa-up-down-left-right text-[8px] mr-1"></i>Drag frame cards to reorder</span>
             </div>
             
             <div class="flex items-center space-x-2">
@@ -484,7 +503,7 @@
             </div>
 
             <div class="flex justify-end space-x-3">
-                <button onclick="closeTweenModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-lg transition">Cancel</button>
+                <button onclick="closeTweenModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-750 text-slate-300 font-medium text-xs rounded-lg transition">Cancel</button>
                 <button onclick="executeTween()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition shadow-lg shadow-indigo-600/20">Generate Tween</button>
             </div>
         </div>
@@ -503,6 +522,9 @@
         let nextCubeId = 1;
         let nextFrameId = 1;
         let isMultiSelectMode = false; // Toggle flag for touchscreen/sidebar multi selection
+
+        // Timeline Drag and Drop State
+        let draggedFrameIndex = null;
 
         // Global Camera Sync Options
         let syncCameraToAll = false;
@@ -733,7 +755,7 @@
             }
         }
 
-        // Setup Keyboard Shortcuts for ultra-fast transforming
+        // Setup Keyboard Shortcuts for ultra-fast transforming and duplicating
         function setupKeyboardShortcuts() {
             window.addEventListener('keydown', (e) => {
                 // If focus is inside input boxes, ignore hotkeys
@@ -749,6 +771,9 @@
                     setGizmoMode('scale');
                 } else if (key === 'q') {
                     setGizmoMode('none');
+                } else if ((e.shiftKey && key === 'd') || (e.ctrlKey && key === 'd')) {
+                    e.preventDefault();
+                    duplicateSelectedCubes();
                 }
             });
         }
@@ -776,6 +801,47 @@
                 sx: 1.0, sy: 1.0, sz: 1.0
             };
             return id;
+        }
+
+        // DUPLICATE BLOCKS FUNCTIONALITY: Duplicates currently selected block(s) on active frame
+        function duplicateSelectedCubes() {
+            if (selectedCubeIds.length === 0) {
+                showToast("Select one or more blocks to duplicate!", "warning");
+                return;
+            }
+
+            const frame = frames[activeFrameIndex];
+            const newSelectedIds = [];
+
+            selectedCubeIds.forEach(id => {
+                const sourceCube = frame.cubes[id];
+                if (!sourceCube) return;
+
+                const newId = 'cube_' + nextCubeId++;
+                // Slight offset position so duplicated blocks don't hide directly inside originals
+                frame.cubes[newId] = {
+                    id: newId,
+                    color: sourceCube.color,
+                    px: parseFloat((sourceCube.px + 0.5).toFixed(2)),
+                    py: sourceCube.py,
+                    pz: parseFloat((sourceCube.pz + 0.5).toFixed(2)),
+                    rx: sourceCube.rx,
+                    ry: sourceCube.ry,
+                    rz: sourceCube.rz,
+                    sx: sourceCube.sx,
+                    sy: sourceCube.sy,
+                    sz: sourceCube.sz
+                };
+                newSelectedIds.push(newId);
+            });
+
+            // Update scene and select the newly duplicated cubes instantly
+            applyFrameToScene(activeFrameIndex);
+            selectCubes(newSelectedIds);
+            renderTimeline();
+            updateUIState();
+
+            showToast(`Duplicated ${newSelectedIds.length} block${newSelectedIds.length > 1 ? 's' : ''}!`, "success");
         }
 
         // Detaches and disbands the multi-select group container, returning meshes back to scene root
@@ -1258,17 +1324,6 @@
             }
         }
 
-        // Interactive toggle helper for the onion skins
-        function toggleOnionSkin(checked) {
-            onionSkinEnabled = checked;
-            updateOnionSkin();
-            if (checked) {
-                showToast("Onion Skinning enabled", "info");
-            } else {
-                showToast("Onion Skinning disabled", "info");
-            }
-        }
-
         // Helper selection utilities
         function selectAllCubes() {
             const frame = frames[activeFrameIndex];
@@ -1631,15 +1686,73 @@
             event.target.value = ''; // Reset input target
         }
 
-        // Drawing and appending items on Bottom Storyboard Panel
+        // Drawing and appending items on Bottom Storyboard Panel with HTML5 Drag & Drop reordering
         function renderTimeline() {
             const container = document.getElementById('timeline-container');
             container.innerHTML = '';
 
             frames.forEach((frame, idx) => {
                 const frameCard = document.createElement('div');
-                frameCard.className = `timeline-card shrink-0 w-28 bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden cursor-pointer flex flex-col justify-between transition relative ${idx === activeFrameIndex ? 'active' : ''}`;
+                frameCard.setAttribute('draggable', 'true');
+                frameCard.dataset.index = idx;
+                frameCard.className = `timeline-card shrink-0 w-28 bg-slate-900 border-2 border-slate-800 rounded-xl overflow-hidden cursor-grab active:cursor-grabbing flex flex-col justify-between transition relative select-none ${idx === activeFrameIndex ? 'active' : ''}`;
+                
                 frameCard.onclick = () => selectFrame(idx);
+
+                // HTML5 Drag and Drop event listeners for dragging frames on time bar
+                frameCard.addEventListener('dragstart', (e) => {
+                    draggedFrameIndex = idx;
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', idx);
+                    frameCard.classList.add('opacity-40', 'border-blue-400');
+                });
+
+                frameCard.addEventListener('dragend', () => {
+                    draggedFrameIndex = null;
+                    document.querySelectorAll('.timeline-card').forEach(card => {
+                        card.classList.remove('opacity-40', 'border-blue-400', 'drag-over');
+                    });
+                });
+
+                frameCard.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                });
+
+                frameCard.addEventListener('dragenter', (e) => {
+                    e.preventDefault();
+                    if (draggedFrameIndex !== null && draggedFrameIndex !== idx) {
+                        frameCard.classList.add('drag-over');
+                    }
+                });
+
+                frameCard.addEventListener('dragleave', () => {
+                    frameCard.classList.remove('drag-over');
+                });
+
+                frameCard.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    frameCard.classList.remove('drag-over');
+
+                    if (draggedFrameIndex !== null && draggedFrameIndex !== idx) {
+                        const targetIdx = idx;
+                        const activeFrameObj = frames[activeFrameIndex];
+
+                        // Reorder frames array
+                        const [movedFrame] = frames.splice(draggedFrameIndex, 1);
+                        frames.splice(targetIdx, 0, movedFrame);
+
+                        // Preserve active frame selection tracking
+                        activeFrameIndex = frames.indexOf(activeFrameObj);
+                        if (activeFrameIndex === -1) activeFrameIndex = targetIdx;
+
+                        renderTimeline();
+                        applyFrameToScene(activeFrameIndex);
+                        updateUIState();
+                        showToast(`Moved Frame #${draggedFrameIndex + 1} to Position #${targetIdx + 1}`, "info");
+                    }
+                });
 
                 // Miniature Thumbnail box
                 const thumbDiv = document.createElement('div');
@@ -1648,12 +1761,19 @@
                 // Draw live elements internally
                 const thumbImg = document.createElement('img');
                 thumbImg.id = `thumb-${idx}`;
-                thumbImg.className = "object-contain w-full h-full";
+                thumbImg.className = "object-contain w-full h-full pointer-events-none";
                 
                 // Fetch cached thumbnail dynamically
                 thumbImg.src = captureFrameThumbnail(idx);
                 
+                // Drag handle indicator
+                const dragHandle = document.createElement('div');
+                dragHandle.className = "absolute top-1 right-1 text-[9px] text-slate-500 bg-slate-900/80 px-1 py-0.5 rounded opacity-60 hover:opacity-100";
+                dragHandle.innerHTML = `<i class="fa-solid fa-grip-vertical"></i>`;
+                dragHandle.title = "Drag to reorder frame";
+
                 thumbDiv.appendChild(thumbImg);
+                thumbDiv.appendChild(dragHandle);
 
                 // Card Footer
                 const footerDiv = document.createElement('div');
@@ -1733,8 +1853,22 @@
                 titleGroup.appendChild(dot);
                 titleGroup.appendChild(title);
 
+                const actionGroup = document.createElement('div');
+                actionGroup.className = "flex items-center space-x-1";
+
+                const dupBtn = document.createElement('button');
+                dupBtn.className = "text-slate-500 hover:text-indigo-400 p-0.5 transition";
+                dupBtn.title = "Duplicate block";
+                dupBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    selectCubes([cube.id]);
+                    duplicateSelectedCubes();
+                };
+                dupBtn.innerHTML = `<i class="fa-solid fa-copy text-[10px]"></i>`;
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = "text-slate-500 hover:text-rose-400 p-0.5 transition";
+                deleteBtn.title = "Delete block";
                 deleteBtn.onclick = (e) => {
                     e.stopPropagation();
                     selectCubes([cube.id]);
@@ -1742,8 +1876,11 @@
                 };
                 deleteBtn.innerHTML = `<i class="fa-solid fa-xmark text-[10px]"></i>`;
 
+                actionGroup.appendChild(dupBtn);
+                actionGroup.appendChild(deleteBtn);
+
                 item.appendChild(titleGroup);
-                item.appendChild(deleteBtn);
+                item.appendChild(actionGroup);
                 listContainer.appendChild(item);
             });
         }
@@ -2018,7 +2155,7 @@
 
         // Elegant custom Modal Confirmation dialog trigger
         function requestResetScene() {
-            showCustomConfirm("Are you sure you want to clear your stage? This completely resets all storyboard steps and your directory camera layout.", () => {
+            showCustomConfirm("Are you sure you want to clear your stage? This completely resets all storyboard steps and your director camera layout.", () => {
                 frames = [];
                 activeFrameIndex = 0;
                 selectedCubeIds = [];
@@ -2072,6 +2209,15 @@
             freeCamera.updateProjectionMatrix();
 
             renderer.setSize(width, height);
+        }
+
+        // Continuous render animation frame handler
+        function animate() {
+            requestAnimationFrame(animate);
+            if (controls) controls.update();
+            if (renderer && scene && activeCamera) {
+                renderer.render(scene, activeCamera);
+            }
         }
 
         // Notification Engine
@@ -2200,23 +2346,23 @@
                         tweenFrame.cubes[cubeA.id] = {
                             id: cubeA.id,
                             color: lerpColor(cubeA.color, cubeB.color, t),
-                            px: lerp(cubeA.px, cubeB.px, t),
-                            py: lerp(cubeA.py, cubeB.py, t),
-                            pz: lerp(cubeA.pz, cubeB.pz, t),
-                            rx: lerpAngle(cubeA.rx, cubeB.rx, t),
-                            ry: lerpAngle(cubeA.ry, cubeB.ry, t),
-                            rz: lerpAngle(cubeA.rz, cubeB.rz, t),
-                            sx: lerp(cubeA.sx, cubeB.sx, t),
-                            sy: lerp(cubeA.sy, cubeB.sy, t),
-                            sz: lerp(cubeA.sz, cubeB.sz, t)
+                            px: parseFloat(lerp(cubeA.px, cubeB.px, t).toFixed(2)),
+                            py: parseFloat(lerp(cubeA.py, cubeB.py, t).toFixed(2)),
+                            pz: parseFloat(lerp(cubeA.pz, cubeB.pz, t).toFixed(2)),
+                            rx: Math.round(lerp(cubeA.rx, cubeB.rx, t)),
+                            ry: Math.round(lerp(cubeA.ry, cubeB.ry, t)),
+                            rz: Math.round(lerp(cubeA.rz, cubeB.rz, t)),
+                            sx: parseFloat(lerp(cubeA.sx, cubeB.sx, t).toFixed(2)),
+                            sy: parseFloat(lerp(cubeA.sy, cubeB.sy, t).toFixed(2)),
+                            sz: parseFloat(lerp(cubeA.sz, cubeB.sz, t).toFixed(2))
                         };
                     } else {
-                        // Cube only exists in Frame A (Keep it steady instead of popping out awkwardly)
+                        // If cube exists only in frame A, copy it
                         tweenFrame.cubes[cubeA.id] = JSON.parse(JSON.stringify(cubeA));
                     }
                 });
 
-                // Bring in cubes that only exist in Frame B
+                // Handle cubes that exist in frame B but not frame A
                 Object.values(frameB.cubes).forEach(cubeB => {
                     if (!tweenFrame.cubes[cubeB.id]) {
                         tweenFrame.cubes[cubeB.id] = JSON.parse(JSON.stringify(cubeB));
@@ -2226,95 +2372,24 @@
                 newFrames.push(tweenFrame);
             }
 
-            // Splice all recently generated frames directly into the global timeline array
+            // Insert newFrames between startIndex and endIndex
             frames.splice(startIndex + 1, 0, ...newFrames);
 
-            // Navigate user towards the first newly rendered tween slot
+            renderTimeline();
             selectFrame(startIndex + 1);
-            showToast(`Inserted ${count} smoothly tweened frames!`, "success");
+            showToast(`Successfully inserted ${count} tween frame(s)!`, "success");
         }
 
-        // Mathematical Interpolation Helpers
-        function lerp(a, b, t) {
-            return a + (b - a) * t;
+        // Helper math functions for lerp and color interpolation
+        function lerp(start, end, amt) {
+            return (1 - amt) * start + amt * end;
         }
 
-        function lerpAngle(a, b, t) {
-            let d = (b - a) % 360;
-            // Shortest rotational path calculation wrapping bounds
-            if (d > 180) d -= 360;
-            if (d < -180) d += 360;
-            return a + d * t;
-        }
-
-        function hexToRgb(hex) {
-            const bigint = parseInt(hex.slice(1), 16);
-            return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
-        }
-
-        function rgbToHex(r, g, b) {
-            return "#" + (1 << 24 | r << 16 | g << 8 | b).toString(16).slice(1).padStart(6, '0');
-        }
-
-        function lerpColor(a, b, t) {
-            const rgbA = hexToRgb(a);
-            const rgbB = hexToRgb(b);
-            const r = Math.round(rgbA[0] + (rgbB[0] - rgbA[0]) * t);
-            const g = Math.round(rgbA[1] + (rgbB[1] - rgbA[1]) * t);
-            const b_val = Math.round(rgbA[2] + (rgbB[2] - rgbA[2]) * t);
-            return rgbToHex(r, g, b_val);
-        }
-
-        // Standard Frame Animation Loop
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // Update user navigation controls state
-            controls.update();
-
-            // Continuously synchronize animated cameras
-            if (cameraMode === 'main') {
-                const frame = frames[activeFrameIndex];
-                if (frame) {
-                    const px = mainCamera.position.x;
-                    const py = mainCamera.position.y;
-                    const pz = mainCamera.position.z;
-                    
-                    const tx = controls.target.x;
-                    const ty = controls.target.y;
-                    const tz = controls.target.z;
-
-                    if (syncCameraToAll) {
-                        // Replicate camera coordinates recursively across every single frame structure
-                        frames.forEach(f => {
-                            f.camera.px = px;
-                            f.camera.py = py;
-                            f.camera.pz = pz;
-                            f.camera.tx = tx;
-                            f.camera.ty = ty;
-                            f.camera.tz = tz;
-                        });
-                    } else {
-                        // Cache camera movements when navigating around in main mode to keep the animation frames synced!
-                        frame.camera.px = px;
-                        frame.camera.py = py;
-                        frame.camera.pz = pz;
-                        
-                        frame.camera.tx = tx;
-                        frame.camera.ty = ty;
-                        frame.camera.tz = tz;
-                    }
-                }
-            } else {
-                // Free camera mode allows checking out Director Camera representation
-                if (mainCameraHelper) {
-                    mainCameraHelper.position.copy(mainCamera.position);
-                    mainCameraHelper.rotation.copy(mainCamera.rotation);
-                }
-            }
-
-            // Perform core Render updates
-            renderer.render(scene, activeCamera);
+        function lerpColor(colorA, colorB, amt) {
+            const cA = new THREE.Color(colorA);
+            const cB = new THREE.Color(colorB);
+            cA.lerp(cB, amt);
+            return "#" + cA.getHexString();
         }
     </script>
 </body>
