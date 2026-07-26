@@ -126,7 +126,7 @@ const projects = [
     "makeyourownai", "midisinger", "art", "svgtopng", "beastbrawl", { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" }, "cubecare", "pixelartcreator", "shapemaker",
     "beatcatch", "beatcatchautocharter", "buddiner", { name: "dont look at this. look away. NO", path: "balls.txt" }, "faviconplatformer", "hp", "nyancatlostinspace", "nyancatlostinspaceairemakebygemini",
     "cursordeath", "bfdiragdollplayground", { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" }, { name: "Minimal Snake", path: "minimal snake/index.html" }, "3ddonut", "oscilloscope", { name: "Bad apple dodge", path: "https://bad-apple-dodge--orgeyt.on.websim.com/" },
-    "climber", "chess10025", "cmmmplus", "AI remake of cmmm", { name: "Ball game :)", path: "https://rolling-skybound--orgeyt.on.websim.com/" }, "emoji games", { name: "3D FNF chart loader", path: "https://3d-fnf-chart-loader--orgeyt.on.websim.com/" }
+    "climber", "chess10025", "cmmmplus", "AI remake of cmmm", { name: "Ball game :)", path: "https://rolling-skybound--orgeyt.on.websim.com/" }, "emoji games", { name: "3D FNF chart loader", path: "https://3d-fnf-chart-loader--orgeyt.on.websim.com/" },
     "infplatformer"
 ];
 
