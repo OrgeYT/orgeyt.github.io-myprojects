@@ -219,7 +219,8 @@ const projects = [
     { name: "3D FNF chart loader", path: "https://3d-fnf-chart-loader--orgeyt.on.websim.com/" },
     "infplatformer",
     { name: "Beat to Pitch MIDI Generator", path: "https://beat-to-pitch-midi-generator--orgeyt.on.websim.com/" },
-    { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" }
+    { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" },
+    { name: "My OCs list", path: "my OCs.txt" }
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
