@@ -221,7 +221,8 @@ const projects = [
     { name: "Beat to Pitch MIDI Generator", path: "https://beat-to-pitch-midi-generator--orgeyt.on.websim.com/" },
     { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" },
     { name: "My OCs list", path: "my OCs.txt" },
-    { name: "FNF Chart Playground Turbowarp", path: "https://turbowarp.org/1364891540/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop" } // DAAAMN THATS A LONG URL
+    { name: "FNF Chart Playground Turbowarp", path: "https://turbowarp.org/1364891540/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop" }, // DAAAMN THATS A LONG URL
+    "classic mobile game"
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
