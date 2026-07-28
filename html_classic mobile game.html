@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cube Runner Math 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;700&display=swap');
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Fallback Sky blue */
+            font-family: 'Roboto', sans-serif;
+            touch-action: none; /* Prevent default touch actions like scrolling */
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        #three-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+            display: block;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+        }
+
+        .hidden { display: none !important; }
+
+        .title-text {
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            color: #1e3a8a;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+            text-shadow: 2px 2px 0px white, -2px -2px 0px white, 2px -2px 0px white, -2px 2px 0px white;
+        }
+
+        .joke-text {
+            color: #ef4444;
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            padding: 0 20px;
+            animation: pulse 1s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            max-height: 40vh;
+            overflow-y: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .level-btn {
+            background-color: #e5e7eb;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            padding: 15px 0;
+            font-weight: bold;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .level-btn:hover { background-color: #d1d5db; }
+        .level-btn.unlocked { background-color: #3b82f6; color: white; border-color: #2563eb; }
+        .level-btn.unlocked:hover { background-color: #2563eb; transform: scale(1.05); }
+        .level-btn.current { background-color: #f59e0b; color: white; border-color: #d97706; animation: bounce 1.5s infinite; }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-3px); }
+        }
+
+        .hud {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-family: 'Press Start 2P', cursive;
+            color: #ffffff;
+            z-index: 50;
+            text-shadow: 2px 2px 0px #1e3a8a, -1px -1px 0px #1e3a8a, 1px -1px 0px #1e3a8a, -1px 1px 0px #1e3a8a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .hud button {
+            pointer-events: auto;
+            text-shadow: none;
+            font-family: 'Roboto', sans-serif;
+            font-weight: bold;
+        }
+
+        .btn-large {
+            background-color: #22c55e;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px 40px;
+            border-radius: 9999px;
+            border: 4px solid #16a34a;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s, background-color 0.2s;
+            margin-top: 20px;
+            font-family: 'Press Start 2P', cursive;
+        }
+        .btn-large:active { transform: scale(0.95); }
+        .btn-large:hover { background-color: #16a34a; }
+
+        #btn-menu {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 0.8rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- 3D Canvas -->
+        <canvas id="three-canvas"></canvas>
+
+        <!-- HUD -->
+        <div id="hud" class="hud hidden">
+            <div>LVL:<span id="hud-level">1</span></div>
+            <button id="btn-pause" class="text-sm bg-gray-800 text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-700 transition border-2 border-gray-600 shadow-md">PAUSE (P)</button>
+        </div>
+
+        <!-- Title Screen -->
+        <div id="title-screen" class="screen">
+            <h1 class="title-text text-3xl md:text-5xl">CUBE RUNNER<br><span class="text-xl md:text-3xl text-blue-500">MATH 3D</span></h1>
+            <p class="joke-text">Only 2 × 10⁻¹⁰⁰⁰⁰⁰⁰⁰⁰⁰ will totally pass!!!!! TRY NOW!</p>
+            
+            <div class="w-full flex flex-col items-center mb-4 gap-3">
+                <button id="btn-start" class="btn-large w-3/4 max-w-xs">PLAY</button>
+                
+                <!-- Big Number Mode Toggle Option -->
+                <label class="flex items-center gap-2 bg-purple-100 hover:bg-purple-200 border-2 border-purple-500 px-4 py-2 rounded-xl cursor-pointer transition shadow-md">
+                    <input type="checkbox" id="chk-bignum" class="w-5 h-5 accent-purple-600 cursor-pointer">
+                    <span class="font-bold text-purple-900 text-sm md:text-base">🔥 BIG NUMBER MODE (× & ÷ only)</span>
+                </label>
+
+                <!-- More Lanes Toggle Option -->
+                <label class="flex items-center gap-2 bg-blue-100 hover:bg-blue-200 border-2 border-blue-500 px-4 py-2 rounded-xl cursor-pointer transition shadow-md">
+                    <input type="checkbox" id="chk-morelanes" class="w-5 h-5 accent-blue-600 cursor-pointer">
+                    <span class="font-bold text-blue-900 text-sm md:text-base">🛣️ MORE LANES (6)</span>
+                </label>
+
+                <!-- Botplay Toggle Option -->
+                <label class="flex items-center gap-2 bg-green-100 hover:bg-green-200 border-2 border-green-500 px-4 py-2 rounded-xl cursor-pointer transition shadow-md">
+                    <input type="checkbox" id="chk-botplay" class="w-5 h-5 accent-green-600 cursor-pointer">
+                    <span class="font-bold text-green-900 text-sm md:text-base">🤖 BOTPLAY (Auto Play)</span>
+                </label>
+            </div>
+
+            <h2 class="text-xl font-bold mb-2 text-gray-700">Select Level</h2>
+            <div id="level-container" class="level-grid">
+                <!-- Levels generated by JS -->
+            </div>
+        </div>
+
+        <!-- End Screen (Win/Lose) -->
+        <div id="end-screen" class="screen hidden">
+            <h1 id="end-title" class="title-text text-4xl">LEVEL FAILED</h1>
+            <p id="end-message" class="text-xl mb-6 text-gray-800 font-bold">Your number was too low.</p>
+            <div class="bg-white p-6 rounded-xl shadow-lg text-center mb-8 border-4 border-gray-200">
+                <p class="text-lg font-bold mb-2">Final Value: <span id="final-value-display" class="text-blue-600 text-2xl">0</span></p>
+                <p class="text-lg font-bold">Target Value: <span id="target-value-display" class="text-yellow-600 text-2xl">0</span></p>
+            </div>
+            
+            <button id="btn-next" class="btn-large mb-4">NEXT LEVEL</button>
+            <button id="btn-retry" class="btn-large bg-blue-500 hover:bg-blue-600 border-blue-600 mb-4">RETRY</button>
+            <button id="btn-menu" class="px-6 py-4 bg-gray-300 hover:bg-gray-400 rounded-full font-bold text-gray-700 transition mt-2 border-4 border-gray-400">MAIN MENU</button>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="pause-screen" class="screen hidden">
+            <h1 class="title-text text-4xl mb-8 text-white" style="text-shadow: 3px 3px 0px #374151, -2px -2px 0px #374151, 2px -2px 0px #374151, -2px 2px 0px #374151;">PAUSED</h1>
+            <button id="btn-resume" class="btn-large mb-4">RESUME</button>
+            <button id="btn-menu-pause" class="px-6 py-4 bg-gray-300 hover:bg-gray-400 rounded-full font-bold text-gray-700 transition mt-2 border-4 border-gray-400">MAIN MENU</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Constants & Configuration
+        const TOTAL_LEVELS = 1000;
+        let LANES = [-4.5, 0, 4.5]; // 3D X-coordinates for lanes
+        const PLAYER_Z = 0; // Z position of the player
+        const COLORS = {
+            player: '#3b82f6',
+            green: '#22c55e',
+            red: '#ef4444',
+            golden: '#f59e0b',
+            ground: '#ffffff',
+            sky: 0x87CEEB
+        };
+        
+        // State
+        let gameState = {
+            currentLevel: 1,
+            unlockedLevels: 1,
+            playerValue: 0,
+            currentLane: 1, // Will be updated dynamically
+            targetX: 0,     // For smooth lerping
+            isPlaying: false,
+            isPaused: false,
+            isBigNumberMode: false, // Big Number Mode flag
+            isMoreLanesMode: false, // More Lanes flag
+            isBotPlayMode: false, // Auto-play bot flag
+            speed: 1, // Base speed multiplier
+            wallsData: [], // Logical wall data
+            activeWalls: [], // 3D Mesh references
+            particles: [], // Active particle meshes
+            activeLines: [], // Dynamic lane lines
+            maxPossibleValue: 0,
+            targetValue: 0,
+            distanceTravelled: 0
+        };
+
+        // DOM Elements
+        const screens = {
+            title: document.getElementById('title-screen'),
+            end: document.getElementById('end-screen'),
+            pause: document.getElementById('pause-screen')
+        };
+        const elements = {
+            hud: document.getElementById('hud'),
+            hudLevel: document.getElementById('hud-level'),
+            levelContainer: document.getElementById('level-container'),
+            endTitle: document.getElementById('end-title'),
+            endMessage: document.getElementById('end-message'),
+            finalValue: document.getElementById('final-value-display'),
+            targetValue: document.getElementById('target-value-display'),
+            container: document.getElementById('game-container')
+        };
+        const buttons = {
+            start: document.getElementById('btn-start'),
+            next: document.getElementById('btn-next'),
+            retry: document.getElementById('btn-retry'),
+            menu: document.getElementById('btn-menu'),
+            pause: document.getElementById('btn-pause'),
+            resume: document.getElementById('btn-resume'),
+            menuPause: document.getElementById('btn-menu-pause')
+        };
+
+        // Three.js Globals
+        let scene, camera, renderer, clock;
+        let playerMesh, groundMesh;
+        let wallGeometry, goldenWallGeometry3, goldenWallGeometry6;
+        
+        function init() {
+            loadProgress();
+            generateLevelGrid();
+            setupEventListeners();
+            initThreeJS();
+            showScreen('title');
+        }
+
+        function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
+            
+            // Scene & Camera
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(COLORS.sky);
+            scene.fog = new THREE.Fog(COLORS.sky, 30, 150); // Adds depth
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
+            camera.position.set(0, 6, 12); // Slightly above and behind the player
+            camera.lookAt(0, 0, -20);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Geometries
+            wallGeometry = new THREE.BoxGeometry(3.5, 3.5, 1);
+            goldenWallGeometry3 = new THREE.BoxGeometry(14, 4, 2); // 3 Lanes
+            goldenWallGeometry6 = new THREE.BoxGeometry(28, 4, 2); // 6 Lanes
+
+            // Player Setup
+            const playerGeom = new THREE.BoxGeometry(2, 2, 2);
+            playerMesh = new THREE.Mesh(playerGeom, createTextMaterial("0", COLORS.player));
+            playerMesh.position.set(LANES[1], 1, PLAYER_Z);
+            scene.add(playerMesh);
+
+            // Ground (White and Gray Checkerboard)
+            const canvasChecker = document.createElement('canvas');
+            canvasChecker.width = 512;
+            canvasChecker.height = 512;
+            const ctxChecker = canvasChecker.getContext('2d');
+            ctxChecker.fillStyle = '#ffffff';
+            ctxChecker.fillRect(0, 0, 512, 512);
+            ctxChecker.fillStyle = '#b0b0b0'; 
+            ctxChecker.fillRect(0, 0, 256, 256);
+            ctxChecker.fillRect(256, 256, 256, 256);
+            
+            const checkerTexture = new THREE.CanvasTexture(canvasChecker);
+            checkerTexture.wrapS = THREE.RepeatWrapping;
+            checkerTexture.wrapT = THREE.RepeatWrapping;
+            // Scale so lanes map smoothly to grid blocks
+            checkerTexture.repeat.set(1000 / 9, 1000 / 9);
+
+            const groundMat = new THREE.MeshStandardMaterial({ map: checkerTexture, roughness: 0.8 });
+            groundMesh = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), groundMat);
+            groundMesh.rotation.x = -Math.PI / 2;
+            groundMesh.position.y = 0;
+            scene.add(groundMesh);
+
+            clock = new THREE.Clock();
+            
+            // Handle window resize
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Start render loop
+            animate();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Formatter for large values (scientific notation / standard abbreviations)
+        function formatNumberDisplay(val) {
+            if (typeof val !== 'number' || isNaN(val)) return '0';
+            if (Math.abs(val) >= 1e9) {
+                return val.toExponential(2).replace('+', '');
+            } else if (Math.abs(val) >= 1e6) {
+                return (val / 1e6).toFixed(1) + 'M';
+            } else if (Math.abs(val) >= 100000) {
+                return (val / 1000).toFixed(0) + 'k';
+            }
+            return val.toString();
+        }
+
+        function createTextMaterial(text, bgColor, isGolden = false) {
+            const canvas = document.createElement('canvas');
+            canvas.width = isGolden ? 512 : 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Border
+            ctx.strokeStyle = isGolden ? '#ffffff' : '#000000';
+            ctx.lineWidth = 15;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            // Text
+            ctx.fillStyle = '#ffffff';
+            // Scale font size based on text length to fit
+            let fontSize = isGolden ? 80 : 120;
+            if (text.length > 3 && !isGolden) fontSize = 80;
+            if (text.length > 5 && !isGolden) fontSize = 55;
+            if (text.length > 8 && !isGolden) fontSize = 42;
+            
+            ctx.font = `bold ${fontSize}px Roboto, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Draw shadow
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowOffsetX = 3;
+            ctx.shadowOffsetY = 3;
+            ctx.shadowBlur = 4;
+            
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            return new THREE.MeshStandardMaterial({ map: texture, roughness: 0.4 });
+        }
+
+        function updatePlayerVisual() {
+            const newMat = createTextMaterial(formatNumberDisplay(gameState.playerValue), COLORS.player);
+            if (playerMesh.material) playerMesh.material.dispose();
+            if (playerMesh.material.map) playerMesh.material.map.dispose();
+            playerMesh.material = newMat;
+        }
+
+        function loadProgress() {
+            const saved = localStorage.getItem('cubeRunner3DProgress');
+            if (saved) {
+                gameState.unlockedLevels = Math.min(TOTAL_LEVELS, parseInt(saved));
+                gameState.currentLevel = gameState.unlockedLevels;
+            }
+        }
+
+        function saveProgress() {
+            localStorage.setItem('cubeRunner3DProgress', gameState.unlockedLevels);
+        }
+
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            if(screens[screenName]) screens[screenName].classList.remove('hidden');
+            
+            if (screenName === 'game') {
+                elements.hud.classList.remove('hidden');
+            } else {
+                elements.hud.classList.add('hidden');
+            }
+
+            if(screenName === 'title') {
+                generateLevelGrid(); 
+            }
+        }
+
+        function generateLevelGrid() {
+            elements.levelContainer.innerHTML = '';
+            for (let i = 1; i <= TOTAL_LEVELS; i++) {
+                const btn = document.createElement('button');
+                const isCurrent = (i === gameState.currentLevel);
+                const isUnlocked = (i <= gameState.unlockedLevels);
+                
+                btn.className = `level-btn ${isUnlocked ? 'unlocked' : ''} ${isCurrent ? 'current' : ''}`;
+                btn.textContent = i;
+                
+                // Allow skipping to any level directly
+                btn.onclick = () => {
+                    gameState.currentLevel = i;
+                    generateLevelGrid();
+                };
+                
+                elements.levelContainer.appendChild(btn);
+            }
+        }
+
+        function setupEventListeners() {
+            buttons.start.addEventListener('click', startGame);
+            buttons.retry.addEventListener('click', startGame);
+            buttons.next.addEventListener('click', () => {
+                if(gameState.currentLevel < TOTAL_LEVELS) {
+                    gameState.currentLevel++;
+                    startGame();
+                } else {
+                    showScreen('title');
+                }
+            });
+            buttons.menu.addEventListener('click', () => showScreen('title'));
+            buttons.pause.addEventListener('click', togglePause);
+            buttons.resume.addEventListener('click', togglePause);
+            buttons.menuPause.addEventListener('click', () => {
+                gameState.isPaused = false;
+                showScreen('title');
+            });
+
+            // Big Number mode toggle
+            const chkBigNum = document.getElementById('chk-bignum');
+            if (chkBigNum) {
+                chkBigNum.addEventListener('change', (e) => {
+                    gameState.isBigNumberMode = e.target.checked;
+                });
+            }
+
+            // More Lanes mode toggle
+            const chkMoreLanes = document.getElementById('chk-morelanes');
+            if (chkMoreLanes) {
+                chkMoreLanes.addEventListener('change', (e) => {
+                    gameState.isMoreLanesMode = e.target.checked;
+                });
+            }
+
+            // Botplay mode toggle
+            const chkBotplay = document.getElementById('chk-botplay');
+            if (chkBotplay) {
+                chkBotplay.addEventListener('change', (e) => {
+                    gameState.isBotPlayMode = e.target.checked;
+                });
+            }
+
+            // Pointer interactions mapped to 3D lanes
+            elements.container.addEventListener('mousemove', handlePointerMove);
+            elements.container.addEventListener('touchmove', handlePointerMove, {passive: false});
+            elements.container.addEventListener('touchstart', handlePointerMove, {passive: false});
+
+            // PC Keyboard controls
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        function togglePause() {
+            if (!gameState.isPlaying) return;
+            gameState.isPaused = !gameState.isPaused;
+            if (gameState.isPaused) {
+                screens.pause.classList.remove('hidden');
+                clock.stop();
+            } else {
+                screens.pause.classList.add('hidden');
+                clock.start();
+            }
+        }
+
+        function handleKeyDown(e) {
+            if (!gameState.isPlaying) return;
+
+            if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
+                togglePause();
+                return;
+            }
+
+            if (gameState.isPaused) return;
+
+            if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+                gameState.currentLane = Math.max(0, gameState.currentLane - 1);
+                gameState.targetX = LANES[gameState.currentLane];
+            } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+                gameState.currentLane = Math.min(LANES.length - 1, gameState.currentLane + 1);
+                gameState.targetX = LANES[gameState.currentLane];
+            }
+        }
+
+        function handlePointerMove(e) {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+            
+            if(e.type === 'touchmove' || e.type === 'touchstart') {
+                e.preventDefault();
+            }
+
+            let clientX = (e.touches && e.touches.length > 0) ? e.touches[0].clientX : e.clientX;
+            const percentage = clientX / window.innerWidth;
+
+            let newLane = Math.floor(percentage * LANES.length);
+            newLane = Math.max(0, Math.min(LANES.length - 1, newLane));
+
+            if (newLane !== gameState.currentLane) {
+                gameState.currentLane = newLane;
+                gameState.targetX = LANES[gameState.currentLane];
+            }
+        }
+
+        function generateLevelData(levelNum) {
+            const numSegments = 10 + Math.floor(levelNum * 0.8);
+            gameState.speed = 15 + (levelNum * 0.5); // 3D units per second
+            
+            // In Big Number mode start with a base multiplier number
+            gameState.playerValue = gameState.isBigNumberMode ? 2 : (Math.floor(levelNum * 1.5) || 1); 
+            
+            let currentSimulated = gameState.playerValue;
+            const walls = [];
+            let currentZ = -40; // Start spawning away from player
+
+            // Walls get closer each level, down to a minimum spacing of 15 units
+            const zSpacing = Math.max(15, 40 - (levelNum * 0.4));
+
+            for (let i = 0; i < numSegments; i++) {
+                let config = [];
+                let numWalls = Math.floor(Math.random() * LANES.length) + 1; 
+                let availableLanes = [...Array(LANES.length).keys()];
+
+                for(let w = 0; w < numWalls; w++) {
+                    const randIndex = Math.floor(Math.random() * availableLanes.length);
+                    const lane = availableLanes.splice(randIndex, 1)[0];
+                    const forcePositive = (w === numWalls - 1 && numWalls === LANES.length);
+                    config.push(createWallLogic(levelNum, lane, forcePositive));
+                }
+
+                let maxSimForSegment = config.length === LANES.length ? -Infinity : currentSimulated;
+
+                config.forEach(w => {
+                    w.z = currentZ;
+                    walls.push(w);
+
+                    // Simulate best path to set accurate golden target wall
+                    let outcome = currentSimulated;
+                    if (w.op === '+') outcome += w.value;
+                    else if (w.op === '-') outcome -= w.value;
+                    else if (w.op === '*') outcome *= w.value;
+                    else if (w.op === '/') outcome = Math.trunc(outcome / w.value);
+                    else if (w.op === '÷-') outcome = Math.trunc(outcome / -w.value);
+                    else if (w.op === '×-') outcome = Math.trunc(outcome * -w.value);
+
+                    if (outcome > maxSimForSegment) {
+                        maxSimForSegment = outcome;
+                    }
+                });
+
+                currentSimulated = maxSimForSegment;
+                currentZ -= zSpacing; 
+            }
+
+            gameState.maxPossibleValue = currentSimulated;
+
+            // Target Wall
+            const difficultyRatio = 0.4 + (levelNum / TOTAL_LEVELS) * 0.5;
+            gameState.targetValue = Math.floor(gameState.maxPossibleValue * difficultyRatio);
+            if(gameState.targetValue <= gameState.playerValue) {
+                 gameState.targetValue = gameState.isBigNumberMode ? gameState.playerValue * 2 : gameState.playerValue + 5;
+            }
+
+            walls.push({
+                type: 'golden',
+                op: 'target',
+                value: gameState.targetValue,
+                z: currentZ,
+                lane: Math.floor(LANES.length / 2), // Visual center
+                id: `wall-golden`
+            });
+
+            return walls;
+        }
+
+        function getRandomLane() { return Math.floor(Math.random() * LANES.length); }
+
+        function createWallLogic(level, lane, forcePositive = false) {
+            const allowMultDiv = level >= 2 || gameState.isBigNumberMode;
+            const allowNegOp = level >= 5; // Introduce negative multipliers/dividers in later levels
+            let op;
+
+            if (gameState.isBigNumberMode) {
+                // Big Number Mode strictly uses Multiplication (*) and Division (/)
+                if (forcePositive) {
+                    op = '*';
+                } else {
+                    const rand = Math.random();
+                    if (rand < 0.6) op = '*';
+                    else if (rand < 0.8) op = '/';
+                    else if (allowNegOp && rand < 0.9) op = '×-';
+                    else if (allowNegOp) op = '÷-';
+                    else op = '/';
+                }
+            } else if (forcePositive) {
+                op = (allowMultDiv && Math.random() < 0.35) ? '*' : '+';
+            } else {
+                const rand = Math.random();
+                if (allowMultDiv) {
+                    if (rand < 0.3) op = '+';
+                    else if (rand < 0.5) op = '-';
+                    else if (rand < 0.7) op = '*';
+                    else if (rand < 0.85) op = '/';
+                    else if (allowNegOp && rand < 0.92) op = '×-';
+                    else if (allowNegOp) op = '÷-';
+                    else op = '/';
+                } else {
+                    op = rand < 0.5 ? '+' : '-';
+                }
+            }
+
+            let value;
+            if (gameState.isBigNumberMode) {
+                if (op === '*' || op === '×-') {
+                    const factors = [2, 3, 4, 5, 10, 100];
+                    value = factors[Math.floor(Math.random() * Math.min(factors.length, 2 + Math.floor(level / 10)))];
+                } else {
+                    const divFactors = [2, 3, 5, 10];
+                    value = divFactors[Math.floor(Math.random() * divFactors.length)];
+                }
+            } else if (op === '*' || op === '/' || op === '×-' || op === '÷-') {
+                // Keep factors reasonable (x2 - x5)
+                const maxFactor = Math.min(5, 2 + Math.floor(level / 15));
+                value = Math.floor(Math.random() * (maxFactor - 1)) + 2;
+            } else {
+                value = Math.floor(Math.random() * (level * 2 + 5)) + 1;
+            }
+
+            const isPositive = (op === '+' || op === '*'); // ×- and ÷- are considered 'red' (negative/trick)
+            return {
+                op: op,
+                type: isPositive ? 'green' : 'red',
+                value: value,
+                lane: lane,
+                id: `wall-${Math.random().toString(36).substr(2, 9)}`
+            };
+        }
+
+        function setupLanes() {
+            if (gameState.isMoreLanesMode) {
+                LANES = [-11.25, -6.75, -2.25, 2.25, 6.75, 11.25];
+                camera.position.set(0, 10, 22);
+            } else {
+                LANES = [-4.5, 0, 4.5];
+                camera.position.set(0, 6, 12);
+            }
+            
+            // Recreate lane lines
+            gameState.activeLines.forEach(l => scene.remove(l));
+            gameState.activeLines = [];
+            
+            const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true });
+            const lineGeom = new THREE.PlaneGeometry(0.2, 400);
+            
+            for (let i = 0; i < LANES.length - 1; i++) {
+                const lineX = (LANES[i] + LANES[i+1]) / 2;
+                const line = new THREE.Mesh(lineGeom, lineMat);
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(lineX, 0.01, 0);
+                scene.add(line);
+                gameState.activeLines.push(line);
+            }
+        }
+
+        function startGame() {
+            gameState.isPlaying = true;
+            gameState.distanceTravelled = 0;
+            
+            setupLanes();
+            gameState.currentLane = Math.floor(LANES.length / 2);
+            gameState.targetX = LANES[gameState.currentLane];
+            playerMesh.position.x = LANES[gameState.currentLane]; // Reset immediately
+            
+            elements.hudLevel.textContent = gameState.currentLevel;
+            
+            // Cleanup 3D scene
+            cleanupScene();
+
+            // Generate Logic
+            gameState.wallsData = generateLevelData(gameState.currentLevel);
+            updatePlayerVisual();
+            
+            // Build 3D Walls based on data
+            build3DWalls();
+            
+            showScreen('game');
+            clock.start();
+        }
+
+        function cleanupScene() {
+            gameState.activeWalls.forEach(w => {
+                scene.remove(w.mesh);
+                if(w.mesh.material.map) w.mesh.material.map.dispose();
+                w.mesh.material.dispose();
+            });
+            gameState.activeWalls = [];
+            
+            gameState.particles.forEach(p => {
+                scene.remove(p.mesh);
+                p.mesh.material.dispose();
+            });
+            gameState.particles = [];
+        }
+
+        function build3DWalls() {
+            gameState.wallsData.forEach(wData => {
+                let mesh;
+                if (wData.type === 'golden') {
+                    const geom = gameState.isMoreLanesMode ? goldenWallGeometry6 : goldenWallGeometry3;
+                    const mat = createTextMaterial(`TARGET: ${formatNumberDisplay(wData.value)}`, COLORS.golden, true);
+                    mesh = new THREE.Mesh(geom, mat);
+                    mesh.position.set(0, 2, wData.z);
+                } else {
+                    let strVal = "";
+                    if (wData.op === '+') strVal = `+${formatNumberDisplay(wData.value)}`;
+                    else if (wData.op === '-') strVal = `-${formatNumberDisplay(wData.value)}`;
+                    else if (wData.op === '*') strVal = `×${formatNumberDisplay(wData.value)}`;
+                    else if (wData.op === '/') strVal = `÷${formatNumberDisplay(wData.value)}`;
+                    else if (wData.op === '÷-') strVal = `÷-${formatNumberDisplay(wData.value)}`;
+                    else if (wData.op === '×-') strVal = `×-${formatNumberDisplay(wData.value)}`;
+                    else strVal = wData.value > 0 ? `+${formatNumberDisplay(wData.value)}` : `${formatNumberDisplay(wData.value)}`;
+
+                    const mat = createTextMaterial(strVal, wData.type === 'green' ? COLORS.green : COLORS.red);
+                    mesh = new THREE.Mesh(wallGeometry, mat);
+                    mesh.position.set(LANES[wData.lane], 1.75, wData.z);
+                }
+                
+                scene.add(mesh);
+                gameState.activeWalls.push({
+                    mesh: mesh,
+                    data: wData,
+                    hit: false
+                });
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (gameState.isPaused) return; // Skip logic when paused
+
+            const dt = clock.getDelta();
+
+            if (gameState.isPlaying) {
+                if (gameState.isBotPlayMode) {
+                    // Check if we are currently passing through a wall to avoid swerving mid-wall
+                    let isPassingWall = gameState.activeWalls.some(w => !w.hit && w.data.type !== 'golden' && w.mesh.position.z > -1.5 && w.mesh.position.z < 2);
+                    
+                    if (!isPassingWall) {
+                        let maxZ = -Infinity;
+                        // Find the closest upcoming row of walls
+                        for (let i = 0; i < gameState.activeWalls.length; i++) {
+                            const w = gameState.activeWalls[i];
+                            if (!w.hit && w.data.type !== 'golden' && w.mesh.position.z <= -1.5) {
+                                if (w.mesh.position.z > maxZ) {
+                                    maxZ = w.mesh.position.z;
+                                }
+                            }
+                        }
+
+                        if (maxZ !== -Infinity) {
+                            let nextRow = gameState.activeWalls.filter(w => !w.hit && w.data.type !== 'golden' && Math.abs(w.mesh.position.z - maxZ) < 2);
+                            
+                            let bestLane = 0;
+                            let bestOutcome = -Infinity;
+                            
+                            // Simulate all lanes to find the highest value outcome
+                            for (let l = 0; l < LANES.length; l++) {
+                                let outcome = gameState.playerValue;
+                                let wallInLane = nextRow.find(w => w.data.lane === l);
+                                
+                                if (wallInLane) {
+                                    let op = wallInLane.data.op;
+                                    let val = wallInLane.data.value;
+                                    if (op === '+') outcome += val;
+                                    else if (op === '-') outcome -= val;
+                                    else if (op === '*') outcome *= val;
+                                    else if (op === '/') outcome = Math.trunc(outcome / val);
+                                    else if (op === '÷-') outcome = Math.trunc(outcome / -val);
+                                    else if (op === '×-') outcome = Math.trunc(outcome * -val);
+                                }
+                                
+                                if (outcome > bestOutcome) {
+                                    bestOutcome = outcome;
+                                    bestLane = l;
+                                }
+                            }
+
+                            if (gameState.currentLane !== bestLane) {
+                                gameState.currentLane = bestLane;
+                                gameState.targetX = LANES[bestLane];
+                            }
+                        } else {
+                            // No regular walls left, just center the player for the golden wall
+                            let centerLane = Math.floor(LANES.length / 2);
+                            if (gameState.currentLane !== centerLane) {
+                                gameState.currentLane = centerLane;
+                                gameState.targetX = LANES[centerLane];
+                            }
+                        }
+                    }
+                }
+
+                // Smooth player lateral movement - Faster
+                playerMesh.position.x += (gameState.targetX - playerMesh.position.x) * 45 * dt;
+                
+                // Tilt player slightly when moving laterally
+                playerMesh.rotation.z = (playerMesh.position.x - gameState.targetX) * 0.15;
+
+                // Move walls forward
+                const moveAmount = gameState.speed * dt;
+                gameState.distanceTravelled += moveAmount;
+
+                // Scroll the checkerboard floor
+                if (groundMesh && groundMesh.material.map) {
+                    // 9 units is exactly 1 texture repeat loop.
+                    groundMesh.material.map.offset.y = (gameState.distanceTravelled / 9) % 1;
+                }
+
+                for (let i = 0; i < gameState.activeWalls.length; i++) {
+                    const wallObj = gameState.activeWalls[i];
+                    if (wallObj.hit) continue;
+
+                    wallObj.mesh.position.z += moveAmount;
+
+                    // Collision Detection (Simple Z-axis overlap)
+                    // Player is at Z=0, thickness is 2 (Z ranges -1 to 1)
+                    // Wall thickness is roughly 1
+                    if (wallObj.mesh.position.z > -1 && wallObj.mesh.position.z < 2) {
+                        
+                        if (wallObj.data.type === 'golden') {
+                            handleCollision(wallObj);
+                        } else {
+                            // Check lane alignment for normal walls
+                            // Distance between centers should be small
+                            if (Math.abs(playerMesh.position.x - LANES[wallObj.data.lane]) < 1.5) {
+                                handleCollision(wallObj);
+                            }
+                        }
+                    } else if (wallObj.mesh.position.z > 5) {
+                        // Missed it completely
+                        wallObj.hit = true;
+                        wallObj.mesh.visible = false;
+                        
+                        // Delete mesh and dispose materials as they pass us
+                        scene.remove(wallObj.mesh);
+                        if(wallObj.mesh.material.map) wallObj.mesh.material.map.dispose();
+                        wallObj.mesh.material.dispose();
+                    }
+                }
+
+                updateParticles(dt);
+            }
+
+            // Always render scene
+            renderer.render(scene, camera);
+        }
+
+        function handleCollision(wallObj) {
+            wallObj.hit = true;
+            wallObj.mesh.visible = false; // Hide immediately
+
+            if (wallObj.data.type === 'golden') {
+                if (gameState.playerValue >= wallObj.data.value) {
+                    spawnParticles(wallObj.mesh.position, COLORS.golden, 40);
+                    endGame(true);
+                } else {
+                    spawnParticles(playerMesh.position, COLORS.player, 20); // Player explodes
+                    endGame(false, "Your number was too low!");
+                }
+            } else {
+                // Normal wall - apply math operation
+                if (wallObj.data.op === '+') gameState.playerValue += wallObj.data.value;
+                else if (wallObj.data.op === '-') gameState.playerValue -= wallObj.data.value;
+                else if (wallObj.data.op === '*') gameState.playerValue *= wallObj.data.value;
+                else if (wallObj.data.op === '/') gameState.playerValue = Math.trunc(gameState.playerValue / wallObj.data.value);
+                else if (wallObj.data.op === '÷-') gameState.playerValue = Math.trunc(gameState.playerValue / -wallObj.data.value);
+                else if (wallObj.data.op === '×-') gameState.playerValue = Math.trunc(gameState.playerValue * -wallObj.data.value);
+                else gameState.playerValue += wallObj.data.value;
+
+                updatePlayerVisual();
+                
+                const color = wallObj.data.type === 'green' ? COLORS.green : COLORS.red;
+                spawnParticles(wallObj.mesh.position, color, 15);
+
+                // Add slight vertical bounce to player on collect
+                playerMesh.position.y = 2;
+                let bounceId = setInterval(()=>{
+                    playerMesh.position.y -= 0.1;
+                    if(playerMesh.position.y <= 1) {
+                        playerMesh.position.y = 1;
+                        clearInterval(bounceId);
+                    }
+                }, 16);
+                
+                // Allow negative numbers so players can utilize trick minus-divide and minus-multiply walls!
+            }
+        }
+
+        function spawnParticles(position, colorHex, count) {
+            const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+            const geom = new THREE.BoxGeometry(0.4, 0.4, 0.4);
+
+            for (let i = 0; i < count; i++) {
+                const mesh = new THREE.Mesh(geom, mat);
+                mesh.position.copy(position);
+                
+                // Random velocities
+                const vx = (Math.random() - 0.5) * 15;
+                const vy = (Math.random() * 10) + 5; // Upwards
+                const vz = (Math.random() - 0.5) * 15;
+
+                scene.add(mesh);
+                gameState.particles.push({
+                    mesh: mesh,
+                    velocity: new THREE.Vector3(vx, vy, vz),
+                    life: 1.0 // 1 second lifetime
+                });
+            }
+        }
+
+        function updateParticles(dt) {
+            for (let i = gameState.particles.length - 1; i >= 0; i--) {
+                const p = gameState.particles[i];
+                p.life -= dt;
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    gameState.particles.splice(i, 1);
+                } else {
+                    p.mesh.position.addScaledVector(p.velocity, dt);
+                    p.velocity.y -= 20 * dt; // Gravity
+                    p.mesh.rotation.x += dt * 5;
+                    p.mesh.rotation.y += dt * 5;
+                    // Shrink
+                    const scale = p.life;
+                    p.mesh.scale.set(scale, scale, scale);
+                }
+            }
+        }
+
+        function endGame(isWin, reason = "") {
+            gameState.isPlaying = false;
+            
+            setTimeout(() => {
+                showScreen('end');
+                
+                elements.finalValue.textContent = formatNumberDisplay(gameState.playerValue);
+                elements.targetValue.textContent = formatNumberDisplay(gameState.targetValue);
+                
+                if (isWin) {
+                    elements.endTitle.textContent = "LEVEL CLEARED!";
+                    elements.endTitle.className = "title-text text-4xl text-green-600";
+                    elements.endMessage.textContent = "You busted through!";
+                    
+                    buttons.next.classList.remove('hidden');
+                    buttons.retry.classList.add('hidden');
+                    
+                    if (gameState.currentLevel === gameState.unlockedLevels) {
+                        gameState.unlockedLevels = Math.min(TOTAL_LEVELS, gameState.unlockedLevels + 1);
+                        saveProgress();
+                    }
+                    
+                    if (gameState.currentLevel === TOTAL_LEVELS) {
+                        elements.endMessage.textContent = "YOU BEAT THE ENTIRE GAME!";
+                        buttons.next.classList.add('hidden');
+                    }
+                    
+                    if (gameState.isBotPlayMode && gameState.currentLevel < TOTAL_LEVELS) {
+                        setTimeout(() => buttons.next.click(), 1000);
+                    }
+                } else {
+                    elements.endTitle.textContent = "LEVEL FAILED";
+                    elements.endTitle.className = "title-text text-4xl text-red-600";
+                    elements.endMessage.textContent = reason;
+                    
+                    buttons.next.classList.add('hidden');
+                    buttons.retry.classList.remove('hidden');
+                    
+                    if (gameState.isBotPlayMode) {
+                        setTimeout(() => buttons.retry.click(), 1000);
+                    }
+                }
+            }, 600); // Small delay to watch the explosion
+        }
+
+        // Boot
+        window.onload = () => {
+            init();
+        };
+
+    </script>
+</body>
+</html>
