@@ -25,9 +25,10 @@
             <button id="favorite-btn" class="toggle-btn">Favorite Project</button>
             <button id="friends-website-btn" class="toggle-btn">Friend's Website</button>
             <button id="achievements-btn" class="toggle-btn">Achievements</button>
-            <button id="open-gallery-btn" class="toggle-btn">Gallery</button>
+            <button id="open-gallery-btn" class="toggle-btn">Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
             <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
             <button id="downloads-btn" class="toggle-btn">Downloads</button>
+            <button id="effects-btn" class="toggle-btn">Effects</button>
             <!-- Removed the inline grid-column style below -->
             <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
         </div>
@@ -71,6 +72,19 @@
                 <button class="modal-btn" data-set-theme="minisoon-light">Mini Soon Light</button>
                 <button class="modal-btn" data-set-theme="bnoob">Cooking with Bnoob</button>
                 <button class="modal-btn" data-set-theme="suns brightness">burn your eyes with this one</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="effects-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-effects-btn" class="close-btn">&times;</span>
+            <h3>Project Effects</h3>
+            <div class="setting-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button class="modal-btn fx-btn" data-effect="rainbow">Rainbow</button>
+                <button class="modal-btn fx-btn" data-effect="pixel">Pixel</button>
+                <button class="modal-btn fx-btn" data-effect="bw">B&W</button>
+                <button class="modal-btn fx-btn" data-effect="invert">Invert</button>
             </div>
         </div>
     </div>
