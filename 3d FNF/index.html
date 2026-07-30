@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>3D FNF chart loader Prototype</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+        #game-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+        #pause-modal {
+            display: none;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+        }
+        #pause-modal.active {
+            display: flex;
+        }
+        #title-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #judgment-display {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.5);
+            font-size: 4.5rem;
+            font-weight: 900;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 15;
+            text-shadow: 0px 5px 15px rgba(0,0,0,0.8);
+            font-style: italic;
+        }
+        .pop-anim {
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes popIn {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
+
+        .keybind-input {
+            width: 50px;
+            text-align: center;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="title-screen" class="pointer-events-auto">
+        <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-xl mb-8">3D FNF chart loader</h1>
+        
+        <div class="bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700 w-full max-w-md flex flex-col gap-6">
+            <button id="btn-play-random" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded text-xl transition-all shadow-lg hover:shadow-purple-500/50">
+                Play Random Chart
+            </button>
+            
+            <div class="border-t border-gray-700 pt-6">
+                <h2 class="text-xl font-bold mb-4 text-blue-300">Load Psych Engine Chart</h2>
+                
+                <div class="flex flex-col gap-4">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Chart JSON (.json)</label>
+                        <input type="file" id="upload-chart" accept=".json" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-1">Audio Files (Up to 3 - Inst/Voices)</label>
+                        <input type="file" id="upload-audio" accept="audio/*" multiple class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="block text-sm text-gray-400 mb-1">Mod ZIP (Pick mod .zip with structure ZIP/data & ZIP/songs)</label>
+                        <input type="file" id="upload-mod" accept=".zip" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
+                        <p id="mod-info" class="text-xs text-gray-400 mt-1">No mod loaded</p>
+                    </div>
+
+                    <button id="btn-play-custom" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded text-xl transition-all shadow-lg mt-2 opacity-50 cursor-not-allowed" disabled>
+                        Play Custom Chart
+                    </button>
+                </div>
+            </div>
+
+            <div class="border-t border-gray-700 pt-6">
+                <h2 class="text-xl font-bold mb-3 text-green-300">Settings</h2>
+                <div class="flex flex-col gap-3">
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-gray-300">Botplay</label>
+                        <input type="checkbox" id="title-botplay" />
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-gray-300">Scroll Direction</label>
+                        <select id="title-scroll-dir" class="bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                            <option value="up">Up (Standard)</option>
+                            <option value="down">Down</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm text-gray-300">Scroll Speed ×</label>
+                        <input type="number" id="title-scroll-mult" class="bg-gray-800 border border-gray-600 rounded p-2 text-white w-24" min="0.25" max="4" step="0.05" value="1">
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2">
+                        <div class="flex flex-col items-center">
+                            <label class="text-xs text-purple-400 mb-1">Left</label>
+                            <input type="text" id="title-bind-0" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-purple-500" value="A" maxlength="1">
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <label class="text-xs text-blue-400 mb-1">Down</label>
+                            <input type="text" id="title-bind-1" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" value="S" maxlength="1">
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <label class="text-xs text-green-400 mb-1">Up</label>
+                            <input type="text" id="title-bind-2" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-green-500" value="K" maxlength="1">
+                        </div>
+                        <div class="flex flex-col items-center">
+                            <label class="text-xs text-red-400 mb-1">Right</label>
+                            <input type="text" id="title-bind-3" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-red-500" value="L" maxlength="1">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-3 mt-2">
+                        <button id="title-apply-settings" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors">Apply Settings</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="judgment-display">Sick!</div>
+
+    <div id="game-container"></div>
+
+    <div id="ui-layer" class="p-4">
+        <div class="flex justify-between items-start pointer-events-auto">
+            <div>
+                <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-md">3D FNF chart loader</h1>
+                <p class="text-gray-400 text-sm">Press Space to Start</p>
+            </div>
+            <button id="btn-pause" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded border border-gray-600 transition-colors shadow-lg">
+                ⏸ Pause
+            </button>
+        </div>
+
+        <div class="flex justify-between items-end mb-4 px-10 gap-6">
+            <div id="score-display" class="text-2xl font-mono font-bold text-blue-300 drop-shadow-md">Score: 0</div>
+            <div id="combo-display" class="text-2xl font-mono font-bold text-yellow-300 drop-shadow-md">Combo: 0</div>
+            <div id="misses-display" class="text-2xl font-mono font-bold text-red-400 drop-shadow-md">Misses: 0</div>
+            <div id="accuracy-display" class="text-2xl font-mono font-bold text-green-300 drop-shadow-md">Accuracy: 100%</div>
+        </div>
+    </div>
+
+    <div id="pause-modal" class="fixed inset-0 z-50 items-center justify-center pointer-events-auto">
+        <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 w-96 shadow-2xl flex flex-col gap-4">
+            <h2 class="text-3xl font-bold mb-2 text-center text-white border-b border-gray-700 pb-4">Paused</h2>
+            
+            <div class="flex flex-col gap-3 mb-4">
+                <button id="btn-resume" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">▶ Resume</button>
+                <button id="btn-restart" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">↺ Restart Song</button>
+                <button id="btn-exit" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">✖ Title Screen</button>
+            </div>
+
+            <div class="border-t border-gray-700 pt-4">
+                <h3 class="text-lg font-semibold mb-2">Keybinds</h3>
+                <div class="flex justify-between gap-2">
+                    <div class="flex flex-col items-center">
+                        <label class="text-xs text-purple-400 mb-1">Left</label>
+                        <input type="text" id="bind-0" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-purple-500" value="A" maxlength="1">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <label class="text-xs text-blue-400 mb-1">Down</label>
+                        <input type="text" id="bind-1" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" value="S" maxlength="1">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <label class="text-xs text-green-400 mb-1">Up</label>
+                        <input type="text" id="bind-2" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-green-500" value="K" maxlength="1">
+                    </div>
+                    <div class="flex flex-col items-center">
+                        <label class="text-xs text-red-400 mb-1">Right</label>
+                        <input type="text" id="bind-3" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-red-500" value="L" maxlength="1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <h3 class="text-lg font-semibold mb-2">Gameplay</h3>
+                <div class="flex items-center justify-between">
+                    <span>Scroll Direction</span>
+                    <select id="scroll-dir" class="bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none">
+                        <option value="up">Up (Standard)</option>
+                        <option value="down">Down</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 mt-2">
+                <button id="btn-save-settings" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors">Apply Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error modal (shown when uncaught errors occur) -->
+    <div id="error-modal" class="fixed inset-0 z-60 items-center justify-center pointer-events-auto" style="display:none;">
+      <div class="bg-red-900 border border-red-700 rounded-lg p-6 w-11/12 max-w-2xl shadow-2xl flex flex-col gap-4">
+        <h2 class="text-2xl font-bold mb-2 text-center text-white border-b border-red-700 pb-2">Unexpected Error</h2>
+        <div id="error-message" class="text-sm text-white bg-red-800/30 p-3 rounded max-h-56 overflow-auto" style="white-space:pre-wrap;"></div>
+        <div class="flex justify-end gap-3 mt-2">
+          <button id="btn-error-reload" class="bg-white text-red-700 font-bold py-2 px-4 rounded">Reload</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JSZip for mod zip reading -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+    <script type="module" src="./main.js"></script>
+    <script>
+      // wire the reload button to refresh the page
+      document.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'btn-error-reload') {
+          location.reload();
+        }
+      });
+    </script>
+</body>
+</html>
