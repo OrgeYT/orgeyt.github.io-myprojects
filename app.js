@@ -489,57 +489,43 @@ effectsBtn.addEventListener('click', () => effectsModal.classList.remove('hidden
 closeEffectsBtn.addEventListener('click', () => effectsModal.classList.add('hidden'));
 
 const fxBtns = document.querySelectorAll('.fx-btn');
+
 fxBtns.forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const fx = e.target.dataset.effect;
-        runnerFrame.classList.toggle(`fx-${fx}`);
-        e.target.classList.toggle('active-fx');
-        
-        // Button style to visually show it's active
-        if (e.target.classList.contains('active-fx')) {
-            e.target.style.backgroundColor = 'var(--accent-solid)';
-        } else {
-            e.target.style.backgroundColor = 'var(--btn-primary)';
-        }
+  btn.addEventListener('click', (e) => {
+    const fx = e.target.dataset.effect;
+    const isActive = e.target.classList.toggle('active-fx');
 
-        // --- NEW PIXEL EFFECT FIX (Grid Overlay) ---
-        if (fx === 'pixel') {
-            // Revert any scaling from the old trick to fix the zoom issue
-            runnerFrame.style.width = '100%';
-            runnerFrame.style.height = '100%';
-            runnerFrame.style.transform = 'none';
+    // Visual feedback on the button
+    e.target.style.backgroundColor = isActive
+      ? 'var(--accent-solid)'
+      : 'var(--btn-primary)';
 
-            let overlay = document.getElementById('pixel-overlay');
-            
-            // Create a pixel-grid overlay the first time it's clicked
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'pixel-overlay';
-                overlay.style.position = 'absolute';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.pointerEvents = 'none'; // Crucial: lets you still click the game!
-                overlay.style.zIndex = '5';
-                
-                // Creates a retro dot-matrix/scanline overlay
-                overlay.style.backgroundImage = `
-                    repeating-linear-gradient(transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px), 
-                    repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)
-                `;
-                
-                document.querySelector('.main-content').appendChild(overlay);
-            }
-            
-            // Show or hide the overlay based on the button state
-            if (e.target.classList.contains('active-fx')) {
-                overlay.style.display = 'block';
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
-    });
+    // Toggle the effect class on the frame
+    runnerFrame.classList.toggle(`fx-${fx}`, isActive);
+
+    // ── Pixel effect ──────────────────────────────────────────
+    if (fx === 'pixel') {
+      if (isActive) {
+        // Down-scale → up-scale with nearest-neighbour sampling
+        runnerFrame.style.setProperty('--pixel-scale', '0.25'); // try 0.2–0.4
+        runnerFrame.style.width  = 'calc(100% / var(--pixel-scale))';
+        runnerFrame.style.height = 'calc(100% / var(--pixel-scale))';
+        runnerFrame.style.transform = 'scale(var(--pixel-scale))';
+        runnerFrame.style.transformOrigin = '0 0';
+        runnerFrame.style.imageRendering = 'pixelated';
+        // Fallback for older Firefox
+        runnerFrame.style.imageRendering = 'crisp-edges';
+      } else {
+        // Clean restore
+        runnerFrame.style.removeProperty('--pixel-scale');
+        runnerFrame.style.width = '';
+        runnerFrame.style.height = '';
+        runnerFrame.style.transform = '';
+        runnerFrame.style.transformOrigin = '';
+        runnerFrame.style.imageRendering = '';
+      }
+    }
+  });
 });
 
 // Downloads Modal Logic
