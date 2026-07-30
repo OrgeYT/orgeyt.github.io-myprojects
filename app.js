@@ -216,7 +216,7 @@ const projects = [
     "AI remake of cmmm",
     { name: "Ball game :)", path: "https://rolling-skybound--orgeyt.on.websim.com/" },
     "emoji games",
-    { name: "3D FNF chart loader", path: "https://3d-fnf-chart-loader--orgeyt.on.websim.com/" },
+    { name: "3D FNF chart loader", path: "3d FNF" },
     "infplatformer",
     { name: "Beat to Pitch MIDI Generator", path: "https://beat-to-pitch-midi-generator--orgeyt.on.websim.com/" },
     { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" },
