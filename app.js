@@ -502,18 +502,41 @@ fxBtns.forEach(btn => {
             e.target.style.backgroundColor = 'var(--btn-primary)';
         }
 
-        // --- PIXEL EFFECT FIX ---
-        // Shrinks the iframe resolution and scales it back up to force pixelation
+        // --- NEW PIXEL EFFECT FIX (Grid Overlay) ---
         if (fx === 'pixel') {
+            // Revert any scaling from the old trick to fix the zoom issue
+            runnerFrame.style.width = '100%';
+            runnerFrame.style.height = '100%';
+            runnerFrame.style.transform = 'none';
+
+            let overlay = document.getElementById('pixel-overlay');
+            
+            // Create a pixel-grid overlay the first time it's clicked
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'pixel-overlay';
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.pointerEvents = 'none'; // Crucial: lets you still click the game!
+                overlay.style.zIndex = '5';
+                
+                // Creates a retro dot-matrix/scanline overlay
+                overlay.style.backgroundImage = `
+                    repeating-linear-gradient(transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px), 
+                    repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)
+                `;
+                
+                document.querySelector('.main-content').appendChild(overlay);
+            }
+            
+            // Show or hide the overlay based on the button state
             if (e.target.classList.contains('active-fx')) {
-                runnerFrame.style.width = '33.33%';      // Lower the internal resolution
-                runnerFrame.style.height = '33.33%';     
-                runnerFrame.style.transform = 'scale(3)'; // Blow it back up by 3x
-                runnerFrame.style.transformOrigin = 'top left';
+                overlay.style.display = 'block';
             } else {
-                runnerFrame.style.width = '100%';        // Reset to normal
-                runnerFrame.style.height = '100%';
-                runnerFrame.style.transform = 'none';
+                overlay.style.display = 'none';
             }
         }
     });
