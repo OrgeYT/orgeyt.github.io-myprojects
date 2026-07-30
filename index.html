@@ -1,270 +1,216 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>3D FNF chart loader Prototype</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Three.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #111;
-            color: white;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            user-select: none;
-        }
-        #game-container {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 1;
-        }
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            z-index: 10;
-            pointer-events: none;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        .pointer-events-auto {
-            pointer-events: auto;
-        }
-        #pause-modal {
-            display: none;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(5px);
-        }
-        #pause-modal.active {
-            display: flex;
-        }
-        #title-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            z-index: 50;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        #judgment-display {
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(0.5);
-            font-size: 4.5rem;
-            font-weight: 900;
-            opacity: 0;
-            pointer-events: none;
-            z-index: 15;
-            text-shadow: 0px 5px 15px rgba(0,0,0,0.8);
-            font-style: italic;
-        }
-        .pop-anim {
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes popIn {
-            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
-            30% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
-        }
-
-        .keybind-input {
-            width: 50px;
-            text-align: center;
-            text-transform: uppercase;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrgeYT's HTML Projects</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-    <div id="title-screen" class="pointer-events-auto">
-        <h1 class="text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-xl mb-8">3D FNF chart loader</h1>
+    <div class="sidebar">
+        <img id="sidebar-logo" src="Logo.png" alt="OrgeYT Logo">
         
-        <div class="bg-gray-900 p-8 rounded-xl shadow-2xl border border-gray-700 w-full max-w-md flex flex-col gap-6">
-            <button id="btn-play-random" class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded text-xl transition-all shadow-lg hover:shadow-purple-500/50">
-                Play Random Chart
-            </button>
+        <h2>My Projects</h2>
+        <p class="subtitle">Choose a project to load</p>
+
+        <div id="project-counter" style="font-size: 0.8rem; color: var(--text-accent);"></div>
+        <div id="time-counter">Time: 0s</div>
+
+<div class="sidebar-controls" id="sidebar-controls">
+            <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
+            <button id="tab-modifier-btn" class="toggle-btn">Tab Settings</button>
+            <button id="theme-settings-btn" class="toggle-btn">Theme Settings</button>
+            <button id="random-project-btn" class="toggle-btn">Random Project</button>
+            <button id="favorite-btn" class="toggle-btn">Favorite Project</button>
+            <button id="friends-website-btn" class="toggle-btn">Friend's Website</button>
+            <button id="achievements-btn" class="toggle-btn">Achievements</button>
+            <button id="open-gallery-btn" class="toggle-btn">Gallery</button>
+            <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
+            <button id="downloads-btn" class="toggle-btn">Downloads</button>
+            <!-- Removed the inline grid-column style below -->
+            <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
+        </div>
+
+        <div class="project-tabs">
+            <button class="tab-btn active" data-tab="all">All</button>
+            <button class="tab-btn" data-tab="favorites">Favorited</button>
+            <button class="tab-btn" data-tab="unfavorited">Unfavorited</button>
+        </div>
+
+        <input type="text" id="search-bar" placeholder="Search projects...">
+
+        <div id="file-list"></div>
+    </div>
+    
+    <div class="main-content">
+        <button id="open-full-btn">View Full Project</button>
+        <button id="share-btn">Share Project</button>
+        <button id="fullscreen-btn">Full Screen</button>
+        <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
+    </div>
+
+    <div id="theme-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-theme-btn" class="close-btn">&times;</span>
+            <h3>Theme Settings</h3>
+            <div class="setting-group" id="theme-buttons" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                <button class="modal-btn" data-set-theme="default">Dark Orange (Default)</button>
+                <button class="modal-btn" data-set-theme="grass-dark">Grass Dark</button>
+                <button class="modal-btn" data-set-theme="sky-dark">Sky Dark</button>
+                <button class="modal-btn" data-set-theme="fire-dark">Fire Dark</button>
+                <button class="modal-btn" data-set-theme="white">White</button>
+                <button class="modal-btn" data-set-theme="black">Black</button>
+                <button class="modal-btn" data-set-theme="flower-dark">Flower Dark</button>
+                <button class="modal-btn" data-set-theme="discord">Discord</button>
+                <button class="modal-btn" data-set-theme="ultrabox">Ultrabox</button>
+                <button class="modal-btn" data-set-theme="rainbow-dark">Rainbow Dark</button>
+                <button class="modal-btn" data-set-theme="retake">Retake</button>
+                <button class="modal-btn" data-set-theme="youtube">Youtube</button>
+                <button class="modal-btn" data-set-theme="void">Void</button>
+                <button class="modal-btn" data-set-theme="minisoon-light">Mini Soon Light</button>
+                <button class="modal-btn" data-set-theme="bnoob">Cooking with Bnoob</button>
+                <button class="modal-btn" data-set-theme="suns brightness">burn your eyes with this one</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-modal-btn" class="close-btn">&times;</span>
+            <h3>Tab Settings</h3>
             
-            <div class="border-t border-gray-700 pt-6">
-                <h2 class="text-xl font-bold mb-4 text-blue-300">Load Psych Engine Chart</h2>
-                
-                <div class="flex flex-col gap-4">
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Chart JSON (.json)</label>
-                        <input type="file" id="upload-chart" accept=".json" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-gray-400 mb-1">Audio Files (Up to 3 - Inst/Voices)</label>
-                        <input type="file" id="upload-audio" accept="audio/*" multiple class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
-                    </div>
+            <div class="setting-group">
+                <label for="tab-title-input">Tab Title:</label>
+                <input type="text" id="tab-title-input" placeholder="Enter new title...">
+                <button id="apply-title-btn" class="modal-btn">Apply Title</button>
+            </div>
 
-                    <div class="mt-2">
-                        <label class="block text-sm text-gray-400 mb-1">Mod ZIP (Pick mod .zip with structure ZIP/data & ZIP/songs)</label>
-                        <input type="file" id="upload-mod" accept=".zip" class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-gray-800 file:text-white hover:file:bg-gray-700">
-                        <p id="mod-info" class="text-xs text-gray-400 mt-1">No mod loaded</p>
-                    </div>
-
-                    <button id="btn-play-custom" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded text-xl transition-all shadow-lg mt-2 opacity-50 cursor-not-allowed" disabled>
-                        Play Custom Chart
-                    </button>
+            <div class="setting-group">
+                <label>Quick Icons:</label>
+                <div class="icon-buttons">
+                    <button class="modal-btn icon-btn" data-icon="favicon.ico">Default</button>
+                    <button class="modal-btn icon-btn" data-icon="icons/mungus.ico">Mungus</button>
+                    <button class="modal-btn icon-btn" data-icon="icons/googleclassroom.ico">Classroom</button>
+                     <button class="modal-btn icon-btn" data-icon="icons/fcr.ico">RETAKE</button>
                 </div>
             </div>
 
-            <div class="border-t border-gray-700 pt-6">
-                <h2 class="text-xl font-bold mb-3 text-green-300">Settings</h2>
-                <div class="flex flex-col gap-3">
-                    <div class="flex items-center justify-between">
-                        <label class="text-sm text-gray-300">Botplay</label>
-                        <input type="checkbox" id="title-botplay" />
-                    </div>
+            <div class="setting-group">
+                <label for="icon-url-input">Custom Icon URL:</label>
+                <input type="text" id="icon-url-input" placeholder="https://example.com/icon.ico">
+                <button id="apply-url-btn" class="modal-btn">Apply URL</button>
+            </div>
 
-                    <div class="flex items-center justify-between">
-                        <label class="text-sm text-gray-300">Scroll Direction</label>
-                        <select id="title-scroll-dir" class="bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none">
-                            <option value="up">Up (Standard)</option>
-                            <option value="down">Down</option>
-                        </select>
-                    </div>
-
-                    <div class="flex items-center justify-between">
-                        <label class="text-sm text-gray-300">Scroll Speed ×</label>
-                        <input type="number" id="title-scroll-mult" class="bg-gray-800 border border-gray-600 rounded p-2 text-white w-24" min="0.25" max="4" step="0.05" value="1">
-                    </div>
-
-                    <div class="grid grid-cols-4 gap-2">
-                        <div class="flex flex-col items-center">
-                            <label class="text-xs text-purple-400 mb-1">Left</label>
-                            <input type="text" id="title-bind-0" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-purple-500" value="A" maxlength="1">
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <label class="text-xs text-blue-400 mb-1">Down</label>
-                            <input type="text" id="title-bind-1" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" value="S" maxlength="1">
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <label class="text-xs text-green-400 mb-1">Up</label>
-                            <input type="text" id="title-bind-2" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-green-500" value="K" maxlength="1">
-                        </div>
-                        <div class="flex flex-col items-center">
-                            <label class="text-xs text-red-400 mb-1">Right</label>
-                            <input type="text" id="title-bind-3" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-red-500" value="L" maxlength="1">
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end gap-3 mt-2">
-                        <button id="title-apply-settings" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors">Apply Settings</button>
-                    </div>
-                </div>
+            <div class="setting-group">
+                <label for="icon-file-input">Upload Icon File:</label>
+                <input type="file" id="icon-file-input" accept="image/*,.ico">
             </div>
         </div>
     </div>
 
-    <div id="judgment-display">Sick!</div>
-
-    <div id="game-container"></div>
-
-    <div id="ui-layer" class="p-4">
-        <div class="flex justify-between items-start pointer-events-auto">
-            <div>
-                <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600 drop-shadow-md">3D FNF chart loader</h1>
-                <p class="text-gray-400 text-sm">Press Space to Start</p>
+    <div id="friends-modal" class="modal hidden">
+        <div class="modal-content">
+            <span id="close-friends-modal-btn" class="close-btn">&times;</span>
+            <h3>My friend's website</h3>
+            <div class="setting-group" style="text-align: center; margin-top: 10px;">
+                <p style="margin-bottom: 15px; color: var(--text-accent);">Check out my friend's website!</p>
+                <a id="fcr-link" href="https://fcr-official.github.io/RETAKE/" target="_blank" class="retake-btn">
+                    RETAKE
+                    <img src="https://fcr-official.github.io/RETAKE/favicon.ico" alt="RETAKE Icon" style="width: 16px; height: 16px; margin-left: 8px;">
+                </a>
             </div>
-            <button id="btn-pause" class="bg-gray-800 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded border border-gray-600 transition-colors shadow-lg">
-                ⏸ Pause
-            </button>
-        </div>
-
-        <div class="flex justify-between items-end mb-4 px-10 gap-6">
-            <div id="score-display" class="text-2xl font-mono font-bold text-blue-300 drop-shadow-md">Score: 0</div>
-            <div id="combo-display" class="text-2xl font-mono font-bold text-yellow-300 drop-shadow-md">Combo: 0</div>
-            <div id="misses-display" class="text-2xl font-mono font-bold text-red-400 drop-shadow-md">Misses: 0</div>
-            <div id="accuracy-display" class="text-2xl font-mono font-bold text-green-300 drop-shadow-md">Accuracy: 100%</div>
         </div>
     </div>
 
-    <div id="pause-modal" class="fixed inset-0 z-50 items-center justify-center pointer-events-auto">
-        <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 w-96 shadow-2xl flex flex-col gap-4">
-            <h2 class="text-3xl font-bold mb-2 text-center text-white border-b border-gray-700 pb-4">Paused</h2>
+    <div id="achievements-modal" class="modal hidden">
+        <div class="modal-content" style="width: 350px;">
+            <span id="close-achievements-btn" class="close-btn">&times;</span>
+            <h3>Achievements</h3>
+            <div id="achievements-list"></div>
+        </div>
+    </div>
+
+    <div id="gallery-modal" class="modal hidden">
+        <div class="modal-content gallery-modal-content">
+            <span id="close-gallery-btn" class="close-btn">&times;</span>
+            <h3>Gallery</h3>
+            <div class="gallery-carousel">
+                <button id="prev-btn" class="gallery-btn">&lt;</button>
+                <div class="gallery-content">
+                    <img id="gallery-img" src="" alt="Gallery Image">
+                    <p id="gallery-caption"></p>
+                </div>
+                <button id="next-btn" class="gallery-btn">&gt;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dev-grid-modal" class="modal hidden">
+        <div class="modal-content" style="width: 280px; text-align: center;">
+            <span id="close-dev-grid-btn" class="close-btn">&times;</span>
+            <h3>Security Verification</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 10px;">Input access pattern.</p>
+            <div id="dev-grid" class="dev-grid"></div>
+            <button id="submit-grid-btn" class="modal-btn" style="width: 100%; margin-top: 15px;">Verify</button>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="modal hidden">
+        <div class="modal-content" style="width: 420px; max-height: 85vh; overflow-y: auto;">
+            <span id="close-admin-btn" class="close-btn">&times;</span>
+            <h3 style="color: #ff5555; text-align: center;">ADMIN PANEL</h3>
             
-            <div class="flex flex-col gap-3 mb-4">
-                <button id="btn-resume" class="bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">▶ Resume</button>
-                <button id="btn-restart" class="bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">↺ Restart Song</button>
-                <button id="btn-exit" class="bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded transition-colors text-lg">✖ Title Screen</button>
+            <div class="admin-section">
+                <h4>Local Storage Configuration</h4>
+                <button id="admin-clear-ls" class="modal-btn" style="background-color: #8b0000;">Clear All Local Storage</button>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin-top: 10px;">Edit Raw JSON:</p>
+                <textarea id="admin-ls-editor" rows="6" style="width: 100%; background: #111; color: #00ff00; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;"></textarea>
+                <button id="admin-save-ls" class="modal-btn" style="width: 100%;">Save Local Storage Variables</button>
             </div>
 
-            <div class="border-t border-gray-700 pt-4">
-                <h3 class="text-lg font-semibold mb-2">Keybinds</h3>
-                <div class="flex justify-between gap-2">
-                    <div class="flex flex-col items-center">
-                        <label class="text-xs text-purple-400 mb-1">Left</label>
-                        <input type="text" id="bind-0" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-purple-500" value="A" maxlength="1">
+            <div class="admin-section">
+                <h4>Achievement Manager</h4>
+                <select id="admin-achievements-select" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-main);"></select>
+                <button id="admin-unlock-ach" class="modal-btn" style="width: 100%;">Force Unlock Achievement</button>
+            </div>
+
+            <div class="admin-section">
+                <h4>Theme Architect</h4>
+                <div id="theme-creator-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 10px;">
                     </div>
-                    <div class="flex flex-col items-center">
-                        <label class="text-xs text-blue-400 mb-1">Down</label>
-                        <input type="text" id="bind-1" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-blue-500" value="S" maxlength="1">
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <label class="text-xs text-green-400 mb-1">Up</label>
-                        <input type="text" id="bind-2" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-green-500" value="K" maxlength="1">
-                    </div>
-                    <div class="flex flex-col items-center">
-                        <label class="text-xs text-red-400 mb-1">Right</label>
-                        <input type="text" id="bind-3" class="keybind-input bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none focus:border-red-500" value="L" maxlength="1">
-                    </div>
+                <div style="display: flex; gap: 5px;">
+                    <button id="admin-preview-theme" class="modal-btn" style="flex: 1;">Preview Theme</button>
+                    <button id="admin-generate-css" class="modal-btn" style="flex: 1;">Generate CSS</button>
                 </div>
+                <textarea id="admin-css-output" rows="5" style="width: 100%; background: #111; color: #fff; margin-top: 10px; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;" readonly placeholder="CSS code will appear here..."></textarea>
             </div>
 
-            <div class="mb-2">
-                <h3 class="text-lg font-semibold mb-2">Gameplay</h3>
-                <div class="flex items-center justify-between">
-                    <span>Scroll Direction</span>
-                    <select id="scroll-dir" class="bg-gray-800 border border-gray-600 rounded p-2 text-white focus:outline-none">
-                        <option value="up">Up (Standard)</option>
-                        <option value="down">Down</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="flex justify-end gap-3 mt-2">
-                <button id="btn-save-settings" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors">Apply Settings</button>
+            <div class="admin-section">
+                <button id="admin-remove-dev" class="modal-btn" style="background-color: #ff0000; color: white; width: 100%; font-weight: bold;">DISABLE DEV MODE</button>
             </div>
         </div>
     </div>
-
-    <!-- Error modal (shown when uncaught errors occur) -->
-    <div id="error-modal" class="fixed inset-0 z-60 items-center justify-center pointer-events-auto" style="display:none;">
-      <div class="bg-red-900 border border-red-700 rounded-lg p-6 w-11/12 max-w-2xl shadow-2xl flex flex-col gap-4">
-        <h2 class="text-2xl font-bold mb-2 text-center text-white border-b border-red-700 pb-2">Unexpected Error</h2>
-        <div id="error-message" class="text-sm text-white bg-red-800/30 p-3 rounded max-h-56 overflow-auto" style="white-space:pre-wrap;"></div>
-        <div class="flex justify-end gap-3 mt-2">
-          <button id="btn-error-reload" class="bg-white text-red-700 font-bold py-2 px-4 rounded">Reload</button>
+    
+    <div id="downloads-modal" class="modal hidden">
+    <div class="modal-content">
+        <span id="close-downloads-btn" class="close-btn">&times;</span>
+        <h3>Downloadable Projects</h3>
+        <div class="setting-group">
+            <a href="download/FNFBOT to Psych.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: FNFBOT to Psych.zip</a>
+            <a href="download/vbsmaker.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: vbsmaker.zip</a>
+            <a href="https://github.com/OrgeYT/orgeyt.github.io-myprojects/releases/download/download/Kitty.window.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: Kitty window</a>
         </div>
-      </div>
+    </div>
+</div>
+
+    <div id="achievement-toast" class="hidden">
+        <div class="toast-content">
+            <strong>Achievement Unlocked!</strong><br>
+            <span id="toast-text">Name</span>
+        </div>
     </div>
 
-    <!-- JSZip for mod zip reading -->
-    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
-    <script type="module" src="./main.js"></script>
-    <script>
-      // wire the reload button to refresh the page
-      document.addEventListener('click', (e) => {
-        if (e.target && e.target.id === 'btn-error-reload') {
-          location.reload();
-        }
-      });
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
