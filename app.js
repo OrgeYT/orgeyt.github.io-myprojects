@@ -29,7 +29,6 @@ let timeSpent = parseInt(localStorage.getItem('orgeyt-time')) || 0;
 let hasChangedTheme = false;
 let hasChangedFavicon = false;
 let isInitialLoad = true;
-let viewedGalleryImages = new Set();
 
 function unlockAchievement(id) {
     if (!unlockedAchievements.includes(id)) {
@@ -481,6 +480,31 @@ runnerFrame.addEventListener('load', () => {
 // --- Modals & Options ---
 // ==========================================
 
+// Effects Modal Logic
+const effectsModal = document.getElementById('effects-modal');
+const effectsBtn = document.getElementById('effects-btn');
+const closeEffectsBtn = document.getElementById('close-effects-btn');
+
+effectsBtn.addEventListener('click', () => effectsModal.classList.remove('hidden'));
+closeEffectsBtn.addEventListener('click', () => effectsModal.classList.add('hidden'));
+
+const fxBtns = document.querySelectorAll('.fx-btn');
+fxBtns.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const fx = e.target.dataset.effect;
+        runnerFrame.classList.toggle(`fx-${fx}`);
+        e.target.classList.toggle('active-fx');
+        
+        // Button style to visually show it's active
+        if (e.target.classList.contains('active-fx')) {
+            e.target.style.backgroundColor = 'var(--accent-solid)';
+        } else {
+            e.target.style.backgroundColor = 'var(--btn-primary)';
+        }
+    });
+});
+
+
 // Downloads Modal Logic
 const downloadsModal = document.getElementById('downloads-modal');
 const downloadsBtn = document.getElementById('downloads-btn');
@@ -606,6 +630,24 @@ const originalGalleryImages = [
 
 let globalCurrentIndex = 0;
 
+// Load viewed array from local storage
+let viewedGalleryImagesArray = JSON.parse(localStorage.getItem('orgeyt-gallery-seen')) || [];
+let viewedGalleryImages = new Set(viewedGalleryImagesArray);
+
+function updateGalleryNotif() {
+    const notif = document.getElementById('gallery-notif');
+    if (!notif) return;
+    
+    const missed = originalGalleryImages.length - viewedGalleryImages.size;
+    
+    if (missed > 0) {
+        notif.textContent = missed;
+        notif.classList.remove('hidden');
+    } else {
+        notif.classList.add('hidden');
+    }
+}
+
 window.addEventListener('DOMContentLoaded', () => {
     const galleryImg = document.getElementById("gallery-img");
     const galleryCaption = document.getElementById("gallery-caption");
@@ -616,6 +658,11 @@ window.addEventListener('DOMContentLoaded', () => {
         galleryCaption.textContent = originalGalleryImages[globalCurrentIndex].caption;
         
         viewedGalleryImages.add(globalCurrentIndex);
+        
+        // Save to local storage whenever a new image is seen
+        localStorage.setItem('orgeyt-gallery-seen', JSON.stringify(Array.from(viewedGalleryImages)));
+        updateGalleryNotif(); // Update badge
+        
         if (viewedGalleryImages.size === originalGalleryImages.length) {
             unlockAchievement('gallery'); // Unlock Gallery
         }
@@ -641,6 +688,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
         
         overrideUpdateGallery(); // Track the first one on boot
+        updateGalleryNotif(); // Boot UI check
     }
 });
 
