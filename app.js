@@ -501,9 +501,23 @@ fxBtns.forEach(btn => {
         } else {
             e.target.style.backgroundColor = 'var(--btn-primary)';
         }
+
+        // --- PIXEL EFFECT FIX ---
+        // Shrinks the iframe resolution and scales it back up to force pixelation
+        if (fx === 'pixel') {
+            if (e.target.classList.contains('active-fx')) {
+                runnerFrame.style.width = '33.33%';      // Lower the internal resolution
+                runnerFrame.style.height = '33.33%';     
+                runnerFrame.style.transform = 'scale(3)'; // Blow it back up by 3x
+                runnerFrame.style.transformOrigin = 'top left';
+            } else {
+                runnerFrame.style.width = '100%';        // Reset to normal
+                runnerFrame.style.height = '100%';
+                runnerFrame.style.transform = 'none';
+            }
+        }
     });
 });
-
 
 // Downloads Modal Logic
 const downloadsModal = document.getElementById('downloads-modal');
