@@ -317,6 +317,7 @@ body.layout-down #file-list { max-height: 200px; }
     transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
     font-size: 0.85rem;
     width: 100%;
+    position: relative; /* important for notification badge */
 }
 
 .toggle-btn:hover {
@@ -325,6 +326,21 @@ body.layout-down #file-list { max-height: 200px; }
 
 .toggle-btn:active {
     transform: scale(0.98);
+}
+
+/* Notification Badge Styling */
+.notif-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: #ff0000;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    pointer-events: none;
 }
 
 /* Tabs Styling */
@@ -446,6 +462,22 @@ body.layout-down #file-list { max-height: 200px; }
     height: 100%;
     border: none;
     background-color: #fff; /* Iframe stays white to not break projects */
+    
+    /* Project Effects */
+    --fx-invert: 0%;
+    --fx-bw: 0%;
+    filter: invert(var(--fx-invert)) grayscale(var(--fx-bw));
+    transition: filter 0.3s;
+}
+
+#runner-frame.fx-invert { --fx-invert: 100%; }
+#runner-frame.fx-bw { --fx-bw: 100%; }
+#runner-frame.fx-pixel { image-rendering: pixelated; }
+#runner-frame.fx-rainbow { animation: rainbow-fx 2.5s linear infinite; }
+
+@keyframes rainbow-fx {
+    0% { filter: invert(var(--fx-invert)) grayscale(var(--fx-bw)) hue-rotate(0deg); }
+    100% { filter: invert(var(--fx-invert)) grayscale(var(--fx-bw)) hue-rotate(360deg); }
 }
 
 /* UI Control Buttons Layering */
