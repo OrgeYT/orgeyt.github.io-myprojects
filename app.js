@@ -225,7 +225,8 @@ const projects = [
     { name: "FNF Chart Playground Turbowarp", path: "scratch-1364891540" },
     "classic mobile game",
     { name: "3D game in scratch", path: "scratch-1365316275" },
-    { name: "Maze game", path: "scratch-1365697884" }
+    { name: "Maze game", path: "scratch-1365697884" },
+    "pass the bomb 3D"
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
