@@ -113,6 +113,7 @@ updateTimeDisplay();
 
 // DERTFGYHJKMJIUYTGFVHBNM<KJIHUGYTRGFHFY&YH*TFRDCFGVJBHNKJUGTTFHRDCTFGYHU
 
+// Format for Scratch projects: { name: "Project Name", path: "scratch-[PROJECT_ID]" }
 const projects = [
     "welcome",
     "fnftools",
@@ -220,9 +221,9 @@ const projects = [
     { name: "Beat to Pitch MIDI Generator", path: "https://beat-to-pitch-midi-generator--orgeyt.on.websim.com/" },
     { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" },
     { name: "My OCs list", path: "my OCs.txt" },
-    { name: "FNF Chart Playground Turbowarp", path: "https://turbowarp.org/1364891540/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop" }, // DAAAMN THATS A LONG URL
+    { name: "FNF Chart Playground Turbowarp", path: "scratch-1364891540" },
     "classic mobile game",
-    { name: "3D game in scratch", path: "https://turbowarp.org/1365316275/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop" } // DAAAMN THATS A LONG URL part 2
+    { name: "3D game in scratch", path: "scratch-1365316275" } 
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
@@ -235,7 +236,7 @@ const favoriteBtn = document.getElementById('favorite-btn');
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
 let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
-let currentProjectTab = 'all'; // For All/Favorited/Unfavorited sorting
+let currentProjectTab = 'all'; // For All/Favorited/Unfavorited/Scratch sorting
 
 // Setup Sidebar Pos logic
 const sidebarPosBtn = document.getElementById('sidebar-pos-btn');
@@ -309,6 +310,11 @@ function renderProjectList() {
         let name = typeof p === 'object' ? p.name : p;
         return favorites.includes(name.toLowerCase());
     };
+    
+    const isScratch = (p) => {
+        let path = typeof p === 'object' ? p.path : `html_${p}.html`;
+        return path.startsWith('scratch-');
+    };
 
     const welcomeProjects = projects.filter(p => isWelcome(p));
     const favoritedProjects = projects.filter(p => !isWelcome(p) && isFavorite(p));
@@ -323,6 +329,7 @@ function renderProjectList() {
         // Filter based on currently selected tab
         if (currentProjectTab === 'favorites' && !isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
+        if (currentProjectTab === 'scratch' && !isScratch(project)) return;
 
         const button = document.createElement('button');
         
@@ -345,6 +352,12 @@ function renderProjectList() {
 function loadProject(project) {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
+    
+    // Scratch URL Builder
+    if (filePath.startsWith("scratch-")) {
+        const scratchId = filePath.replace("scratch-", "");
+        filePath = `https://turbowarp.org/${scratchId}/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop`;
+    }
     
     // Achievements Logic checks
     if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
@@ -506,9 +519,12 @@ fxBtns.forEach(btn => {
         // --- NEW PIXEL EFFECT FIX (Grid Overlay) ---
         if (fx === 'pixel') {
             // Revert any scaling from the old trick to fix the zoom issue
+            // We only reset transform if glow/wavy aren't active, so be careful here
+            if(!runnerFrame.classList.contains('fx-glow') && !runnerFrame.classList.contains('fx-wavy')) {
+                runnerFrame.style.transform = 'none';
+            }
             runnerFrame.style.width = '100%';
             runnerFrame.style.height = '100%';
-            runnerFrame.style.transform = 'none';
 
             let overlay = document.getElementById('pixel-overlay');
             
