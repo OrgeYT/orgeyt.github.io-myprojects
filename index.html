@@ -29,7 +29,6 @@
             <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
             <button id="downloads-btn" class="toggle-btn">Downloads</button>
             <button id="effects-btn" class="toggle-btn">Effects</button>
-            <!-- Removed the inline grid-column style below -->
             <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
         </div>
 
@@ -37,6 +36,7 @@
             <button class="tab-btn active" data-tab="all">All</button>
             <button class="tab-btn" data-tab="favorites">Favorited</button>
             <button class="tab-btn" data-tab="unfavorited">Unfavorited</button>
+            <button class="tab-btn" data-tab="scratch">Scratch projects</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
@@ -80,11 +80,13 @@
         <div class="modal-content">
             <span id="close-effects-btn" class="close-btn">&times;</span>
             <h3>Project Effects</h3>
-            <div class="setting-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+            <div class="setting-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
                 <button class="modal-btn fx-btn" data-effect="rainbow">Rainbow</button>
                 <button class="modal-btn fx-btn" data-effect="pixel">Pixel</button>
                 <button class="modal-btn fx-btn" data-effect="bw">B&W</button>
                 <button class="modal-btn fx-btn" data-effect="invert">Invert</button>
+                <button class="modal-btn fx-btn" data-effect="wavy">Wavy</button>
+                <button class="modal-btn fx-btn" data-effect="glow">Glow</button>
             </div>
         </div>
     </div>
