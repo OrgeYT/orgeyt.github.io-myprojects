@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pass the Bomb 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Inter', sans-serif; user-select: none; }
+        #game-ui, #main-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #main-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        .btn { pointer-events: auto; transition: transform 0.1s, background-color 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; }
+        .nametag { position: absolute; color: white; font-weight: bold; font-size: 1rem; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; font-family: 'Inter', sans-serif; }
+        canvas { display: block; width: 100%; height: 100%; }
+        
+        .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); border-radius: 1rem; }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js",
+                "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="crosshair"></div>
+    <div id="nametags-container"></div>
+
+    <div id="game-ui" class="hidden flex flex-col justify-between p-4">
+        <div class="flex justify-center">
+            <div class="bg-black/50 text-white px-6 py-3 rounded-full text-3xl font-black tracking-widest border-4 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]" id="ui-timer">
+                10.0
+            </div>
+        </div>
+        <div class="flex justify-between items-end">
+            <div class="text-white/80 font-bold bg-black/40 px-4 py-2 rounded-lg" id="ui-mode-text">
+                WASD to Move | Mouse to Look | Scroll to Zoom
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="z-50">
+        <div class="glass-panel p-10 flex flex-col items-center max-w-md w-full text-white">
+            <h1 class="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 text-center uppercase" style="filter: drop-shadow(0 4px 2px rgba(0,0,0,0.5));">Pass the Bomb<br>3D</h1>
+            <p class="mb-8 font-semibold text-gray-300">Don't be left holding it!</p>
+
+            <div class="w-full space-y-5 mb-8">
+                <div>
+                    <label class="block text-sm font-bold mb-1">Number of NPCs: <span id="npc-val">5</span></label>
+                    <input type="range" id="setting-npcs" min="1" max="15" value="5" class="w-full accent-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Bomb Timer (s): <span id="timer-val">10</span></label>
+                    <input type="range" id="setting-timer" min="5" max="20" value="10" class="w-full accent-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1">Mode:</label>
+                    <div class="flex gap-2">
+                        <button id="mode-play" class="flex-1 py-2 rounded bg-red-600 font-bold border-2 border-red-400">Play</button>
+                        <button id="mode-spectate" class="flex-1 py-2 rounded bg-gray-700 font-bold border-2 border-gray-500 hover:bg-gray-600">Spectate</button>
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-start" class="btn w-full bg-gradient-to-r from-green-400 to-emerald-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg border border-green-300 uppercase tracking-wide">
+                Start Game
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over" class="hidden z-50">
+        <div class="glass-panel p-10 flex flex-col items-center max-w-md w-full text-white">
+            <h1 id="game-over-title" class="text-5xl font-black mb-4 text-center">Game Over</h1>
+            <p id="game-over-desc" class="mb-8 text-xl font-bold text-center">Winner: Red</p>
+            <button id="btn-menu" class="btn w-full bg-white text-black font-black text-xl py-3 rounded-xl shadow-lg uppercase">
+                Back to Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- Pause Menu -->
+    <div id="pause-menu" class="hidden z-50">
+        <div class="glass-panel p-10 flex flex-col items-center max-w-md w-full text-white">
+            <h1 class="text-5xl font-black mb-8 text-center uppercase tracking-widest">Paused</h1>
+            <div class="w-full space-y-4">
+                <button id="btn-resume" class="btn w-full bg-gradient-to-r from-green-400 to-emerald-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg border border-green-300 uppercase tracking-wide">
+                    Resume Game
+                </button>
+                <button id="btn-quit" class="btn w-full bg-red-600 text-white font-black text-xl py-3 rounded-xl shadow-lg border border-red-500 hover:bg-red-700 uppercase">
+                    Quit to Menu
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import * as CANNON from 'cannon-es';
+
+        const NPC_NAMES = [
+          "Liam","Olivia","Noah","Emma","Lucas","Sophia","Mason","Isabella","Ethan","Ava",
+          "Logan","Mia","Aiden","Charlotte","Elijah","Amelia","James","Harper","Benjamin","Evelyn",
+          "Daniel","Abigail","Michael","Emily","Alexander","Ella","OrgeYT","Scarlett","Henry","Grace",
+          "Jackson","Chloe","Sebastian","Lily","Jack","Aria","Levi","Zoe","Mateo","Hannah",
+          "Owen","Nora","Wyatt","Ellie","Carter","Stella","Julian","Layla","Leo","Riley",
+          "Caleb","Aurora","Nathan","Sadie","Isaac","Paisley","Anthony","Willow","Joshua","Hazel",
+          "Christopher","Nova","Andrew","Ivy","Gabriel","Naomi","Dylan","Elena","Ryan","Valerie",
+          "PixelStorm","ShadowByte","MegaCoder","FireNova","BlockBuilder","HyperNinja",
+          "CoolKid42","xX_DarkFlame_Xx","GlitchMaster","SpeedRunner99","CodeWizard",
+          "TurboPenguin","QuantumDuck","BlueScreenDude","MrButtonMasher","EpicBuilderYT",
+          "GhostPlayer","NeonSpecter","RetroGamer77","UltraBanana","MysticCube",
+          "KeyboardSmash","LagMachine","404NameNotFound","TotallyNotABot","CheeseWizard",
+          "BananaOverlord","PotatoEngine","SneakyToaster","SirYeetsALot","DuckDebugger",
+          "OrgeFan","OrgeSubscriber","OrgeClone","OrgeYT_Alt","OrgeYTReal","OrgeYTRealReal",
+          "OrgeYT_2","OrgeYTGaming","OrgeDev","OrgeBuilder","OrgeNPC","OrgeFollower",
+          "OrgeYT_Legend","OrgeYTFan99","OrgeYTOfficial","OrgeCultMember","OrgeYTClone",
+          "DarkOrgeYT","CorruptedOrge","GlitchedOrgeYT","OrgeYT_404","OrgeYT_TheSecond",
+          "OrgeYTButBetter","OrgeYTButWorse","OrgeYTFromOhio","UltraOrgeYT",
+          "Testaccount", "Noobiey_21"
+        ];
+
+        // --- Audio Setup ---
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const sounds = {
+            tick: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/countdownbomb.mp3'),
+            jump: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/freesound_community-cartoon-jump-6462.mp3'),
+            explode: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/freesound_community-medium-explosion-40472.mp3'),
+            bgm: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/Quick%2C%20Pass%20that%20bomb.mp3'),
+            land: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/freesound_community-land2-43790.mp3'),
+            win: new Audio('https://file.garden/Zj01o_oh-G9Y8APf/pass%20the%20bomb/scratchonix-victory-chime-366449.mp3')
+        };
+        sounds.bgm.loop = true;
+        sounds.bgm.volume = 0.4;
+        
+        function playSound(name) {
+            try {
+                const s = sounds[name].cloneNode();
+                s.volume = sounds[name].volume || 1;
+                s.play().catch(e => {});
+            } catch(e) {}
+        }
+
+        // --- Global Variables ---
+        let scene, camera, renderer, physicsWorld;
+        let gameState = 'menu'; // menu, playing, spectating, gameover
+        let gameMode = 'play'; // play, spectate
+        let players = [];
+        let platforms = [];
+        let debris = [];
+        let myPlayer = null;
+        
+        let bombHolder = null;
+        let bombTimer = 10;
+        let initialBombTimer = 10;
+        let globalPassCooldown = 0;
+        let bombSpawnDelay = 0;
+        let bombMesh = null;
+        let lastTickInt = 0;
+        let clock = new THREE.Clock();
+
+        const MAP_SIZE = 100;
+        const GRAVITY = -30;
+        const JUMP_FORCE = 15;
+        const MOVE_SPEED = 22; // Increased player speed
+
+        // --- Input State ---
+        const keys = { w: false, a: false, s: false, d: false, q: false, e: false, space: false };
+        let camYaw = 0;
+        let camPitch = 0;
+        let camZoom = 12;
+        let isPointerLocked = false;
+
+        function initScene() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 30, MAP_SIZE);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.body.appendChild(renderer.domElement);
+
+            // Lighting
+            const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambient);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            dirLight.position.set(20, 50, -20);
+            dirLight.castShadow = true;
+            dirLight.shadow.camera.left = -MAP_SIZE/2;
+            dirLight.shadow.camera.right = MAP_SIZE/2;
+            dirLight.shadow.camera.top = MAP_SIZE/2;
+            dirLight.shadow.camera.bottom = -MAP_SIZE/2;
+            dirLight.shadow.mapSize.width = 2048;
+            dirLight.shadow.mapSize.height = 2048;
+            scene.add(dirLight);
+
+            // Physics (Cannon for explosions)
+            physicsWorld = new CANNON.World({
+                gravity: new CANNON.Vec3(0, -20, 0)
+            });
+            const groundMat = new CANNON.Material();
+            physicsWorld.addBody(new CANNON.Body({
+                mass: 0,
+                shape: new CANNON.Plane(),
+                material: groundMat,
+                quaternion: new CANNON.Quaternion().setFromEuler(-Math.PI/2, 0, 0)
+            }));
+
+            buildMap();
+            createBomb();
+            
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createStudTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#4ade80';
+            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillStyle = '#22c55e';
+            ctx.beginPath();
+            ctx.arc(32, 32, 12, 0, Math.PI * 2);
+            ctx.fill();
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(MAP_SIZE/4, MAP_SIZE/4);
+            return tex;
+        }
+
+        function buildMap() {
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                map: createStudTexture(),
+                roughness: 0.8 
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Walls (Visual + Collision boundaries logic handles physics)
+            const wallMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3 });
+            const wGeo = new THREE.BoxGeometry(MAP_SIZE, 40, 2);
+            
+            const walls = [
+                { x: 0, z: -MAP_SIZE/2, rot: 0 },
+                { x: 0, z: MAP_SIZE/2, rot: 0 },
+                { x: -MAP_SIZE/2, z: 0, rot: Math.PI/2 },
+                { x: MAP_SIZE/2, z: 0, rot: Math.PI/2 }
+            ];
+            walls.forEach(w => {
+                const mesh = new THREE.Mesh(wGeo, wallMat);
+                mesh.position.set(w.x, 20, w.z);
+                mesh.rotation.y = w.rot;
+                scene.add(mesh);
+            });
+
+            // Random Platforms
+            const platGeo = new THREE.BoxGeometry(8, 1, 8);
+            const platMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
+            
+            for(let i=0; i<25; i++) {
+                const mesh = new THREE.Mesh(platGeo, platMat);
+                mesh.position.set(
+                    (Math.random() - 0.5) * (MAP_SIZE - 10),
+                    2 + Math.random() * 15,
+                    (Math.random() - 0.5) * (MAP_SIZE - 10)
+                );
+                mesh.receiveShadow = true;
+                mesh.castShadow = true;
+                scene.add(mesh);
+                
+                // Add to custom collision array
+                platforms.push({
+                    mesh: mesh,
+                    box: new THREE.Box3().setFromObject(mesh),
+                    topY: mesh.position.y + 0.5
+                });
+            }
+        }
+
+        function createBomb() {
+            const grp = new THREE.Group();
+            const geo = new THREE.SphereGeometry(0.6, 16, 16);
+            const mat = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 0.2 });
+            const mesh = new THREE.Mesh(geo, mat);
+            grp.add(mesh);
+
+            // Fuse
+            const fuseGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4);
+            const fuseMat = new THREE.MeshBasicMaterial({ color: 0x884400 });
+            const fuse = new THREE.Mesh(fuseGeo, fuseMat);
+            fuse.position.y = 0.7;
+            grp.add(fuse);
+            
+            // Spark
+            const sparkGeo = new THREE.SphereGeometry(0.2, 8, 8);
+            const sparkMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const spark = new THREE.Mesh(sparkGeo, sparkMat);
+            spark.position.y = 0.9;
+            grp.add(spark);
+
+            bombMesh = grp;
+        }
+
+        class Character {
+            constructor(isPlayer, id, name) {
+                this.id = id;
+                this.isPlayer = isPlayer;
+                this.name = name;
+                this.color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
+                this.position = new THREE.Vector3((Math.random()-0.5)*20, 10, (Math.random()-0.5)*20);
+                this.velocity = new THREE.Vector3(0,0,0);
+                this.isOnGround = false;
+                this.isDead = false;
+                this.jumps = 0;
+                
+                // Squash and stretch state
+                this.squash = new THREE.Vector3(1, 1, 1);
+                this.targetSquash = new THREE.Vector3(1, 1, 1);
+                
+                this.cannotPassTo = null;
+                this.cannotPassTimer = 0;
+                this.handedness = Math.random() > 0.5 ? 'left' : 'right';
+
+                // AI properties
+                this.targetPos = new THREE.Vector3();
+                this.stuckTimer = 0;
+                this.lastPos = this.position.clone();
+
+                this.buildMesh();
+            }
+
+            buildMesh() {
+                this.mesh = new THREE.Group();
+                
+                // Body
+                const bodyGeo = new THREE.BoxGeometry(2, 2, 2);
+                const bodyMat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.4 });
+                this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                this.bodyMesh.position.y = 1; // Pivot at bottom
+                this.bodyMesh.castShadow = true;
+                this.bodyMesh.receiveShadow = true;
+                this.mesh.add(this.bodyMesh);
+
+                // Eyes (Vertical Stretched Circles)
+                const eyeGeo = new THREE.SphereGeometry(0.3, 16, 16);
+                eyeGeo.scale(1, 2, 0.4);
+                const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+                this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                this.leftEye.position.set(-0.4, 1.2, 1.05);
+                this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                this.rightEye.position.set(0.4, 1.2, 1.05);
+                this.mesh.add(this.leftEye, this.rightEye);
+
+                // Floating Hands
+                const handGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                this.leftHand = new THREE.Mesh(handGeo, bodyMat);
+                this.leftHand.position.set(-1.5, 1, 0);
+                this.leftHand.castShadow = true;
+                this.rightHand = new THREE.Mesh(handGeo, bodyMat);
+                this.rightHand.position.set(1.5, 1, 0);
+                this.rightHand.castShadow = true;
+                this.mesh.add(this.leftHand, this.rightHand);
+
+                this.mesh.position.copy(this.position);
+                scene.add(this.mesh);
+
+                // Create floating nametag
+                this.nametag = document.createElement('div');
+                this.nametag.className = 'nametag';
+                this.nametag.innerText = this.name;
+                document.getElementById('nametags-container').appendChild(this.nametag);
+            }
+
+            update(dt, time) {
+                if(this.isDead) return;
+
+                // Animate hands floating
+                this.leftHand.position.y = 1 + Math.sin(time * 5 + this.id) * 0.2;
+                this.rightHand.position.y = 1 + Math.sin(time * 5 + this.id + Math.PI) * 0.2;
+
+                // Update timers
+                if(this.cannotPassTimer > 0) this.cannotPassTimer -= dt;
+
+                let wasOnGround = this.isOnGround;
+
+                // Physics (Custom AABB for tight platforming control)
+                this.prevY = this.position.y;
+                
+                // Apply Gravity
+                this.velocity.y += GRAVITY * dt;
+                
+                // Apply Movement XZ
+                this.position.x += this.velocity.x * dt;
+                this.position.z += this.velocity.z * dt;
+
+                // XZ Map Bounds
+                const limit = MAP_SIZE/2 - 1;
+                if(this.position.x < -limit) this.position.x = -limit;
+                if(this.position.x > limit) this.position.x = limit;
+                if(this.position.z < -limit) this.position.z = -limit;
+                if(this.position.z > limit) this.position.z = limit;
+
+                // Character XZ Collision
+                this.resolveCharacterCollisionXZ();
+
+                // Apply Y Movement
+                this.position.y += this.velocity.y * dt;
+                this.isOnGround = false;
+
+                // Floor Collision
+                if (this.position.y <= 0) {
+                    if(this.velocity.y < -5) playSound('land');
+                    this.position.y = 0;
+                    this.velocity.y = 0;
+                    this.isOnGround = true;
+                }
+
+                // Platform Collision (One-Way)
+                const myBox = new THREE.Box3().setFromCenterAndSize(
+                    new THREE.Vector3(this.position.x, this.position.y + 1, this.position.z),
+                    new THREE.Vector3(2, 2, 2)
+                );
+                
+                for(let p of platforms) {
+                    if(myBox.intersectsBox(p.box)) {
+                        // Check if we were previously completely above the platform top
+                        if (this.prevY >= p.topY - 0.05 && this.velocity.y <= 0) {
+                            if(this.velocity.y < -5) playSound('land');
+                            this.position.y = p.topY;
+                            this.velocity.y = 0;
+                            this.isOnGround = true;
+                        }
+                    }
+                }
+
+                // Head Hopping Collision
+                this.resolveCharacterCollisionY();
+
+                // Squash and Stretch Logic
+                if (this.isOnGround) {
+                    this.jumps = 0;
+                    if (!wasOnGround && this.velocity.y < -5) {
+                        // Landed hard, squash!
+                        this.squash.set(1.5, 0.5, 1.5);
+                    }
+                    this.targetSquash.set(1, 1, 1);
+                } else {
+                    // Falling/Jumping stretch based on velocity
+                    let stretch = Math.max(1, 1 + Math.abs(this.velocity.y) * 0.015);
+                    let sq = 1 / Math.sqrt(stretch);
+                    this.targetSquash.set(sq, stretch, sq);
+                }
+
+                // Lerp current squash towards target and apply to mesh
+                this.squash.lerp(this.targetSquash, dt * 15);
+                this.mesh.scale.copy(this.squash);
+
+                // Friction XZ
+                this.velocity.x *= 0.8;
+                this.velocity.z *= 0.8;
+
+                // Sync Mesh
+                this.mesh.position.copy(this.position);
+
+                // AI Logic
+                if(!this.isPlayer) {
+                    this.runAI(dt, time);
+
+                    // AI Stuck check (Upgraded to use double jump)
+                    if(this.position.distanceToSquared(this.lastPos) < 0.001) {
+                        this.stuckTimer += dt;
+                        if(this.stuckTimer > 0.3) { 
+                            if(this.jumps < 2) this.jump();
+                            this.stuckTimer = 0;
+                        }
+                    } else {
+                        this.stuckTimer = 0;
+                    }
+                }
+                this.lastPos.copy(this.position);
+
+                // Rotate Mesh towards velocity
+                if(Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1) {
+                    const angle = Math.atan2(this.velocity.x, this.velocity.z);
+                    this.mesh.rotation.y = angle;
+                }
+            }
+
+            resolveCharacterCollisionXZ() {
+                for(let other of players) {
+                    if(other === this || other.isDead) continue;
+                    const dx = this.position.x - other.position.x;
+                    const dz = this.position.z - other.position.z;
+                    const distSq = dx*dx + dz*dz;
+                    const dy = Math.abs(this.position.y - other.position.y);
+                    
+                    if(distSq < 4 && dy < 1.8) { // Radius 2, height diff < 1.8 means overlapping bodies
+                        const dist = Math.sqrt(distSq);
+                        if(dist === 0) continue;
+                        const push = (2 - dist) / 2;
+                        this.position.x += (dx/dist) * push;
+                        this.position.z += (dz/dist) * push;
+                    }
+                }
+            }
+
+            resolveCharacterCollisionY() {
+                for(let other of players) {
+                    if(other === this || other.isDead) continue;
+                    const dx = this.position.x - other.position.x;
+                    const dz = this.position.z - other.position.z;
+                    
+                    if(dx*dx + dz*dz < 4) {
+                        const otherTop = other.position.y + 2;
+                        if(this.prevY >= otherTop - 0.1 && this.position.y < otherTop && this.velocity.y <= 0) {
+                            this.position.y = otherTop;
+                            this.velocity.y = 0;
+                            this.isOnGround = true;
+                        }
+                    }
+                }
+            }
+
+            jump() {
+                if(this.isOnGround) {
+                    this.velocity.y = JUMP_FORCE;
+                    this.jumps = 1;
+                    playSound('jump');
+                    this.squash.set(0.6, 1.5, 0.6); // Stretch up
+                } else if (this.jumps === 1) {
+                    this.velocity.y = JUMP_FORCE;
+                    this.jumps = 2; // Double jump
+                    playSound('jump');
+                    this.squash.set(0.6, 1.5, 0.6); // Stretch up again
+                }
+            }
+
+            runAI(dt, time) {
+                let moveDir = new THREE.Vector3();
+
+                if (!bombHolder) {
+                    // --- COOLDOWN PHASE (SPREAD OUT) ---
+                    // Bots don't trust each other during cooldown, so they keep their distance
+                    let tooClose = false;
+                    for (let p of players) {
+                        if (p !== this && !p.isDead) {
+                            let distSq = this.position.distanceToSquared(p.position);
+                            if (distSq < 300) { // Spread out radius (~17 units)
+                                let awayP = new THREE.Vector3().subVectors(this.position, p.position);
+                                awayP.y = 0;
+                                moveDir.add(awayP.normalize());
+                                tooClose = true;
+                            }
+                        }
+                    }
+
+                    if (tooClose) {
+                        // Avoid Walls smartly so they don't get trapped while spreading out
+                        const wallMargin = 15;
+                        const limit = MAP_SIZE / 2;
+                        if (this.position.x < -limit + wallMargin) moveDir.x += (wallMargin - (this.position.x - -limit)) * 0.15;
+                        if (this.position.x > limit - wallMargin) moveDir.x -= (wallMargin - (limit - this.position.x)) * 0.15;
+                        if (this.position.z < -limit + wallMargin) moveDir.z += (wallMargin - (this.position.z - -limit)) * 0.15;
+                        if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
+
+                        moveDir.normalize();
+                        
+                        // Apply Movement (slightly slower than panic)
+                        this.velocity.x += moveDir.x * MOVE_SPEED * dt * 4;
+                        this.velocity.z += moveDir.z * MOVE_SPEED * dt * 4;
+                    }
+                } else {
+                    let target = null;
+                    const distToBombSq = this.position.distanceToSquared(bombHolder.position);
+                    const distToBomb = Math.sqrt(distToBombSq);
+
+                    if (bombHolder === this) {
+                        // --- BOMB HOLDER LOGIC (CHASER) ---
+                        let minDist = Infinity;
+                        for(let p of players) {
+                            if(p === this || p.isDead || this.cannotPassTo === p) continue;
+                            const dist = this.position.distanceToSquared(p.position);
+                            if(dist < minDist) {
+                                minDist = dist;
+                                target = p;
+                            }
+                        }
+                        if(target) {
+                            // Predictive aiming based on target velocity
+                            let predictedTargetPos = target.position.clone().addScaledVector(target.velocity, 0.4);
+                            moveDir.subVectors(predictedTargetPos, this.position);
+                            
+                            // Vertical logic: If target is higher, jump
+                            if (target.position.y > this.position.y + 2 && Math.random() < 0.05) {
+                                this.jump();
+                            }
+                            
+                            moveDir.y = 0;
+                            moveDir.normalize();
+                        }
+                    } else {
+                        // --- EVADER LOGIC ---
+                        const panicThreshold = 5.0; // Panic when bomb is less than 5 seconds
+                        let isPanicking = bombTimer < panicThreshold || distToBomb < 14;
+                        let isTeasing = !isPanicking && distToBomb > 15 && distToBomb < 30;
+
+                        if (isTeasing) {
+                            // Teasing behavior: Strafe side to side and jump, keeping distance
+                            moveDir.subVectors(bombHolder.position, this.position).normalize();
+                            
+                            // Rotate 90 degrees to strafe
+                            let tempX = moveDir.x;
+                            moveDir.x = -moveDir.z;
+                            moveDir.z = tempX;
+                            
+                            // Switch direction periodically based on ID and time
+                            if (Math.sin(time * 2.5 + this.id) > 0) {
+                                moveDir.negate();
+                            }
+                            
+                            // Tease jumping
+                            if (Math.random() < 0.015) this.jump();
+                            
+                        } else {
+                            // Run Away / Panic
+                            moveDir.subVectors(this.position, bombHolder.position);
+                            moveDir.y = 0;
+                            moveDir.normalize();
+
+                            // Avoid other players so they don't block each other
+                            for(let p of players) {
+                                if (p !== this && p !== bombHolder && !p.isDead) {
+                                    let pDistSq = this.position.distanceToSquared(p.position);
+                                    if (pDistSq < 64) { // 8 units radius
+                                        let awayP = new THREE.Vector3().subVectors(this.position, p.position);
+                                        awayP.y = 0;
+                                        moveDir.addScaledVector(awayP.normalize(), 0.6); // Push away
+                                    }
+                                }
+                            }
+
+                            // Avoid Walls smartly so they don't get trapped
+                            const wallMargin = 15;
+                            const limit = MAP_SIZE / 2;
+                            if (this.position.x < -limit + wallMargin) moveDir.x += (wallMargin - (this.position.x - -limit)) * 0.15;
+                            if (this.position.x > limit - wallMargin) moveDir.x -= (wallMargin - (limit - this.position.x)) * 0.15;
+                            if (this.position.z < -limit + wallMargin) moveDir.z += (wallMargin - (this.position.z - -limit)) * 0.15;
+                            if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
+
+                            moveDir.normalize();
+                        }
+                    }
+
+                    // Apply Movement
+                    this.velocity.x += moveDir.x * MOVE_SPEED * dt * 5;
+                    this.velocity.z += moveDir.z * MOVE_SPEED * dt * 5;
+                }
+
+                // --- PLATFORM / OBSTACLE AWARENESS (Smart Jumping) ---
+                let isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1;
+                
+                if (isMoving) {
+                    // Look ahead vector (where the bot will be soon)
+                    let lookAheadX = this.position.x + this.velocity.x * 0.3;
+                    let lookAheadZ = this.position.z + this.velocity.z * 0.3;
+
+                    for (let p of platforms) {
+                        let px = p.mesh.position.x;
+                        let pz = p.mesh.position.z;
+                        let dx = px - lookAheadX;
+                        let dz = pz - lookAheadZ;
+                        
+                        // If platform is right in front of us horizontally
+                        if (dx*dx + dz*dz < 25) {
+                            // If it's higher than us, but reachable, jump on it!
+                            if (p.topY > this.position.y + 0.5 && p.topY < this.position.y + 12) {
+                                if (this.isOnGround && Math.random() < 0.2) {
+                                    this.jump();
+                                } else if (this.jumps === 1 && this.velocity.y < 5 && Math.random() < 0.1) {
+                                    // Use double jump mid-air to ensure they make the ledge
+                                    this.jump();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            explode() {
+                this.isDead = true;
+                scene.remove(this.mesh);
+                if (this.nametag) this.nametag.remove();
+                playSound('explode');
+                
+                // Spawn Cannon.js Physics Debris
+                const pieces = 15;
+                for(let i=0; i<pieces; i++) {
+                    const size = 0.5 + Math.random() * 0.5;
+                    const geo = new THREE.BoxGeometry(size, size, size);
+                    const mat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.5 });
+                    const mesh = new THREE.Mesh(geo, mat);
+                    mesh.position.copy(this.position);
+                    mesh.position.y += 1 + Math.random();
+                    scene.add(mesh);
+
+                    const shape = new CANNON.Box(new CANNON.Vec3(size/2, size/2, size/2));
+                    const body = new CANNON.Body({ mass: 1, shape: shape });
+                    body.position.copy(mesh.position);
+                    body.velocity.set(
+                        (Math.random()-0.5)*30, 
+                        10 + Math.random()*20, 
+                        (Math.random()-0.5)*30
+                    );
+                    
+                    // Add random rotation spin
+                    body.angularVelocity.set((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
+
+                    physicsWorld.addBody(body);
+                    debris.push({ mesh, body, timer: 3.0 });
+                }
+            }
+        }
+
+        function startGame(npcs, mode, timer) {
+            // Reset state
+            players.forEach(p => scene.remove(p.mesh));
+            players = [];
+            debris.forEach(d => { scene.remove(d.mesh); physicsWorld.removeBody(d.body); });
+            debris = [];
+            
+            bombTimer = initialBombTimer = timer;
+            bombSpawnDelay = 0;
+            gameMode = mode;
+            gameState = 'playing';
+            
+            document.getElementById('nametags-container').innerHTML = ''; // Clear old nametags
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-ui').classList.remove('hidden');
+            document.getElementById('crosshair').style.display = 'block';
+            
+            // Create Players
+            if (gameMode === 'play') {
+                myPlayer = new Character(true, 'player', 'User');
+                players.push(myPlayer);
+            } else {
+                myPlayer = null;
+            }
+
+            for(let i=0; i<npcs; i++) {
+                const randomName = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
+                players.push(new Character(false, 'npc_'+i, randomName));
+            }
+
+            assignBombToRandom();
+
+            sounds.bgm.currentTime = 0;
+            sounds.bgm.play().catch(()=>{});
+            
+            // Request pointer lock
+            document.body.requestPointerLock();
+        }
+
+        function assignBombToRandom() {
+            if(players.length === 0) return;
+            const target = players[Math.floor(Math.random() * players.length)];
+            passBombTo(target, null);
+            bombTimer = initialBombTimer;
+            lastTickInt = Math.ceil(bombTimer);
+        }
+
+        function passBombTo(newHolder, oldHolder) {
+            bombHolder = newHolder;
+            globalPassCooldown = 0.5;
+            
+            if(oldHolder) {
+                newHolder.cannotPassTo = oldHolder;
+                newHolder.cannotPassTimer = 3.0;
+            }
+
+            // Randomize hand
+            newHolder.handedness = Math.random() > 0.5 ? 'left' : 'right';
+            
+            // Attach mesh visually to the hand
+            if(newHolder.handedness === 'left') {
+                newHolder.leftHand.add(bombMesh);
+            } else {
+                newHolder.rightHand.add(bombMesh);
+            }
+            bombMesh.position.set(0, 0, 0); // Center in hand
+        }
+
+        function checkBombPassing() {
+            if(globalPassCooldown > 0 || !bombHolder) return;
+
+            for (let i = 0; i < players.length; i++) {
+                for (let j = i + 1; j < players.length; j++) {
+                    const p1 = players[i];
+                    const p2 = players[j];
+                    
+                    // Distance check (Center to center, body size is 2, so distance 2.5 is a touch)
+                    if (p1.position.distanceTo(p2.position) < 2.5) {
+                        if (bombHolder === p1 && p1.cannotPassTo !== p2 && p1.cannotPassTimer <= 0) {
+                            passBombTo(p2, p1);
+                            return; // Only one pass per frame
+                        } else if (bombHolder === p2 && p2.cannotPassTo !== p1 && p2.cannotPassTimer <= 0) {
+                            passBombTo(p1, p2);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = true;
+            if(e.code === 'Space') keys.space = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            if(keys.hasOwnProperty(e.key.toLowerCase())) keys[e.key.toLowerCase()] = false;
+            if(e.code === 'Space') keys.space = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === document.body) {
+                if (gameMode === 'play') {
+                    // Normal yaw (left/right), inverted pitch (up/down)
+                    camYaw -= (e.movementX || 0) * 0.002;
+                    camPitch += (e.movementY || 0) * 0.002;
+                } else if (gameMode === 'spectate') {
+                    // Inverted yaw (left/right), inverted pitch (up/down)
+                    camYaw += (e.movementX || 0) * 0.002;
+                    camPitch += (e.movementY || 0) * 0.002;
+                }
+                
+                // Limit pitch
+                camPitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, camPitch));
+            }
+        });
+
+        document.addEventListener('wheel', (e) => {
+            if (document.pointerLockElement === document.body && gameMode === 'play') {
+                camZoom += e.deltaY * 0.01;
+                camZoom = Math.max(2, Math.min(30, camZoom));
+            }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === document.body;
+            if(!isPointerLocked && gameState === 'playing') {
+                gameState = 'paused';
+                document.getElementById('pause-menu').classList.remove('hidden');
+                sounds.bgm.pause();
+            } else if (isPointerLocked && gameState === 'paused') {
+                gameState = 'playing';
+                document.getElementById('pause-menu').classList.add('hidden');
+                sounds.bgm.play().catch(()=>{});
+            }
+        });
+
+        document.addEventListener('click', () => {
+            if (gameState === 'playing' && !isPointerLocked) {
+                document.body.requestPointerLock();
+            }
+        });
+
+        // UI Event Listeners
+        document.getElementById('setting-npcs').addEventListener('input', (e) => document.getElementById('npc-val').innerText = e.target.value);
+        document.getElementById('setting-timer').addEventListener('input', (e) => document.getElementById('timer-val').innerText = e.target.value);
+        
+        let selectedMode = 'play';
+        document.getElementById('mode-play').addEventListener('click', () => {
+            selectedMode = 'play';
+            document.getElementById('mode-play').className = "flex-1 py-2 rounded bg-red-600 font-bold border-2 border-red-400";
+            document.getElementById('mode-spectate').className = "flex-1 py-2 rounded bg-gray-700 font-bold border-2 border-gray-500 hover:bg-gray-600";
+        });
+        document.getElementById('mode-spectate').addEventListener('click', () => {
+            selectedMode = 'spectate';
+            document.getElementById('mode-spectate').className = "flex-1 py-2 rounded bg-red-600 font-bold border-2 border-red-400";
+            document.getElementById('mode-play').className = "flex-1 py-2 rounded bg-gray-700 font-bold border-2 border-gray-500 hover:bg-gray-600";
+        });
+
+        document.getElementById('btn-start').addEventListener('click', () => {
+            startGame(
+                parseInt(document.getElementById('setting-npcs').value),
+                selectedMode,
+                parseInt(document.getElementById('setting-timer').value)
+            );
+        });
+
+        document.getElementById('btn-menu').addEventListener('click', () => {
+            document.getElementById('game-over').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('nametags-container').innerHTML = '';
+            gameState = 'menu';
+        });
+
+        document.getElementById('btn-resume').addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
+
+        document.getElementById('btn-quit').addEventListener('click', () => {
+            document.getElementById('pause-menu').classList.add('hidden');
+            document.getElementById('game-ui').classList.add('hidden');
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('nametags-container').innerHTML = '';
+            gameState = 'menu';
+            sounds.bgm.pause();
+        });
+
+        function updatePlayerInput(dt) {
+            if(!myPlayer || myPlayer.isDead) return;
+
+            const speed = MOVE_SPEED * dt * 5;
+            
+            // Calculate forward/right vectors based on camera yaw ONLY (ignore pitch for movement)
+            const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
+            const right = new THREE.Vector3(forward.z, 0, -forward.x);
+
+            if(keys.w) { myPlayer.velocity.x -= forward.x * speed; myPlayer.velocity.z -= forward.z * speed; }
+            if(keys.s) { myPlayer.velocity.x += forward.x * speed; myPlayer.velocity.z += forward.z * speed; }
+            if(keys.a) { myPlayer.velocity.x -= right.x * speed; myPlayer.velocity.z -= right.z * speed; }
+            if(keys.d) { myPlayer.velocity.x += right.x * speed; myPlayer.velocity.z += right.z * speed; }
+            if(keys.space) myPlayer.jump();
+            keys.space = false; // Prevent auto-bunny hop slightly
+        }
+
+        function updateSpectatorCamera(dt) {
+            const speed = MOVE_SPEED * 2 * dt;
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0,1,0)).normalize();
+
+            if(keys.w) camera.position.addScaledVector(dir, speed);
+            if(keys.s) camera.position.addScaledVector(dir, -speed);
+            if(keys.a) camera.position.addScaledVector(right, -speed);
+            if(keys.d) camera.position.addScaledVector(right, speed);
+            if(keys.e) camera.position.y += speed;
+            if(keys.q) camera.position.y -= speed;
+
+            // Apply orientation
+            camera.rotation.set(0,0,0);
+            camera.rotateY(-camYaw);
+            camera.rotateX(-camPitch);
+        }
+
+        function updateCamera() {
+            if (gameMode === 'play' && myPlayer && !myPlayer.isDead) {
+                // Orbit Camera
+                const targetPos = myPlayer.position.clone();
+                targetPos.y += 1; // Look at head
+
+                camera.position.x = targetPos.x + camZoom * Math.sin(camYaw) * Math.cos(camPitch);
+                camera.position.y = targetPos.y + camZoom * Math.sin(camPitch);
+                camera.position.z = targetPos.z + camZoom * Math.cos(camYaw) * Math.cos(camPitch);
+                
+                camera.lookAt(targetPos);
+            }
+        }
+
+        function updateUI() {
+            const uiTimer = document.getElementById('ui-timer');
+
+            uiTimer.innerText = Math.max(0, bombTimer).toFixed(1);
+
+            // Update Nametags
+            players.forEach(p => {
+                if (p.isDead || !p.nametag) return;
+
+                if (p === bombHolder) {
+                    p.nametag.innerHTML = `<div style="text-align: center; color: #facc15; font-size: 1.5em; margin-bottom: 0.1rem; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000;">💣 ${Math.ceil(bombTimer)}</div><div style="text-align: center;">${p.name}</div>`;
+                    p.nametag.style.zIndex = "20";
+                } else {
+                    p.nametag.innerHTML = `<div style="text-align: center;">${p.name}</div>`;
+                    p.nametag.style.zIndex = "10";
+                }
+
+                const vec = p.position.clone();
+                vec.y += (p === bombHolder ? 3.0 : 2.2); // Render slightly higher if holding bomb
+                vec.project(camera);
+
+                if(vec.z > 1) { // Behind camera
+                    p.nametag.style.display = 'none';
+                } else {
+                    p.nametag.style.display = 'block';
+                    const x = (vec.x *  .5 + .5) * window.innerWidth;
+                    const y = (vec.y * -.5 + .5) * window.innerHeight;
+                    p.nametag.style.left = `${x}px`;
+                    p.nametag.style.top = `${y}px`;
+                    
+                    // Scale text based on distance
+                    const dist = camera.position.distanceTo(p.position);
+                    const scale = Math.max(0.4, Math.min(1.2, 25 / dist));
+                    p.nametag.style.transform = `translate(-50%, -50%) scale(${scale})`;
+                }
+            });
+        }
+
+        function checkWinCondition() {
+            if (players.length === 1) {
+                gameState = 'gameover';
+                document.exitPointerLock();
+                document.getElementById('game-ui').classList.add('hidden');
+                document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('game-over').classList.remove('hidden');
+                
+                const winner = players[0];
+                const colorHex = '#' + winner.color.getHexString();
+                const text = winner.isPlayer ? "You Win!" : `Winner: ${winner.name}`;
+                document.getElementById('game-over-desc').innerHTML = `<span style="color:${colorHex}; font-size:2rem">${text}</span>`;
+                
+                playSound('win');
+                sounds.bgm.pause();
+            } else if (players.length === 0) {
+                // Rare draw (everyone died somehow)
+                gameState = 'gameover';
+                document.exitPointerLock();
+                document.getElementById('game-over').classList.remove('hidden');
+                document.getElementById('game-over-desc').innerText = "Draw!";
+                sounds.bgm.pause();
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const dt = Math.min(clock.getDelta(), 0.1);
+            const time = clock.getElapsedTime();
+
+            if (gameState === 'playing') {
+                if (globalPassCooldown > 0) globalPassCooldown -= dt;
+
+                // Inputs
+                if (gameMode === 'play') {
+                    updatePlayerInput(dt);
+                } else if (gameMode === 'spectate') {
+                    updateSpectatorCamera(dt);
+                }
+
+                // Update players
+                players.forEach(p => p.update(dt, time));
+
+                // Interactions
+                checkBombPassing();
+
+                // Bomb Timer
+                if (bombHolder) {
+                    bombTimer -= dt;
+                    const currentTickInt = Math.ceil(bombTimer);
+                    if (currentTickInt !== lastTickInt && currentTickInt > 0) {
+                        playSound('tick');
+                        lastTickInt = currentTickInt;
+                        
+                        // Pulse animation for bomb mesh
+                        if(bombMesh) {
+                            const scale = 1 + (10 - bombTimer) * 0.05;
+                            bombMesh.scale.set(scale, scale, scale);
+                        }
+                    }
+
+                    if (bombTimer <= 0) {
+                        let explodedPlayer = bombHolder;
+                        explodedPlayer.explode();
+                        
+                        // Remove from arrays
+                        players = players.filter(p => p !== explodedPlayer);
+                        bombHolder = null;
+                        
+                        if(bombMesh) bombMesh.scale.set(1,1,1);
+                        
+                        // Instantly end game if YOU blow up
+                        if (explodedPlayer === myPlayer) {
+                            gameState = 'gameover';
+                            document.exitPointerLock();
+                            document.getElementById('game-ui').classList.add('hidden');
+                            document.getElementById('crosshair').style.display = 'none';
+                            document.getElementById('game-over').classList.remove('hidden');
+                            document.getElementById('game-over-title').innerText = "Game Over";
+                            document.getElementById('game-over-desc').innerHTML = `<span style="color:#ef4444; font-size:2rem">You blew up!</span>`;
+                            sounds.bgm.pause();
+                        } else {
+                            checkWinCondition();
+                            
+                            if (players.length > 1) {
+                                bombSpawnDelay = 3.0; // 3 second cool down before new bomb
+                            }
+                        }
+                    }
+                }
+
+                // Bomb respawn delay logic
+                if (!bombHolder && players.length > 1) {
+                    if (bombSpawnDelay > 0) {
+                        bombSpawnDelay -= dt;
+                        if (bombSpawnDelay <= 0) {
+                            assignBombToRandom();
+                        }
+                    }
+                }
+
+                // Physics simulation for debris
+                physicsWorld.step(dt);
+                
+                for (let i = debris.length - 1; i >= 0; i--) {
+                    const d = debris[i];
+                    d.mesh.position.copy(d.body.position);
+                    d.mesh.quaternion.copy(d.body.quaternion);
+                    d.timer -= dt;
+                    if (d.timer <= 0) {
+                        scene.remove(d.mesh);
+                        physicsWorld.removeBody(d.body);
+                        debris.splice(i, 1);
+                    }
+                }
+
+                updateCamera();
+                updateUI();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Initialize
+        initScene();
+        
+        // Setup default spectator view
+        camera.position.set(0, 30, 40);
+        camera.lookAt(0, 0, 0);
+        camPitch = -0.5;
+
+        animate();
+    </script>
+</body>
+</html>
