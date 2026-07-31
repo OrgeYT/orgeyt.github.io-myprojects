@@ -317,7 +317,7 @@ body.layout-down #file-list { max-height: 200px; }
     transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
     font-size: 0.85rem;
     width: 100%;
-    position: relative; /* important for notification badge */
+    position: relative;
 }
 
 .toggle-btn:hover {
@@ -348,6 +348,7 @@ body.layout-down #file-list { max-height: 200px; }
     display: flex;
     gap: 5px;
     margin-bottom: 10px;
+    flex-wrap: wrap; /* Added for the extra tab */
 }
 
 .tab-btn {
@@ -360,6 +361,7 @@ body.layout-down #file-list { max-height: 200px; }
     cursor: pointer;
     font-size: 0.75rem;
     transition: background-color 0.2s;
+    white-space: nowrap;
 }
 
 .tab-btn.active {
@@ -455,6 +457,8 @@ body.layout-down #file-list { max-height: 200px; }
     display: flex;
     background-color: #000; /* Behind iframe frame stays black */
     position: relative; 
+    align-items: center;
+    justify-content: center;
 }
 
 #runner-frame {
@@ -467,7 +471,7 @@ body.layout-down #file-list { max-height: 200px; }
     --fx-invert: 0%;
     --fx-bw: 0%;
     filter: invert(var(--fx-invert)) grayscale(var(--fx-bw));
-    transition: filter 0.3s;
+    transition: filter 0.3s, transform 0.3s, box-shadow 0.3s, border-radius 0.3s;
 }
 
 #runner-frame.fx-invert { --fx-invert: 100%; }
@@ -475,9 +479,28 @@ body.layout-down #file-list { max-height: 200px; }
 #runner-frame.fx-pixel { image-rendering: pixelated; }
 #runner-frame.fx-rainbow { animation: rainbow-fx 2.5s linear infinite; }
 
+/* NEW EFFECTS */
+#runner-frame.fx-glow {
+    box-shadow: 0 0 35px 15px var(--accent-solid);
+    transform: scale(0.95);
+    border-radius: 8px;
+}
+
+#runner-frame.fx-wavy {
+    animation: wavy-fx 3s infinite ease-in-out;
+}
+
+/* Keyframes */
 @keyframes rainbow-fx {
     0% { filter: invert(var(--fx-invert)) grayscale(var(--fx-bw)) hue-rotate(0deg); }
     100% { filter: invert(var(--fx-invert)) grayscale(var(--fx-bw)) hue-rotate(360deg); }
+}
+
+@keyframes wavy-fx {
+    0%, 100% { transform: scale(1.02) skewX(0deg) skewY(0deg) translateY(0); }
+    25% { transform: scale(1.02) skewX(1deg) skewY(1deg) translateY(4px); }
+    50% { transform: scale(1.02) skewX(-1deg) skewY(-1deg) translateY(-4px); }
+    75% { transform: scale(1.02) skewX(-2deg) skewY(1deg) translateY(2px); }
 }
 
 /* UI Control Buttons Layering */
