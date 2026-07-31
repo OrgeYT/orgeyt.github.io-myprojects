@@ -152,7 +152,7 @@ const projects = [
     { name: "DFJK Remake", path: "dfjkremake/index.html" },
     "sunset",
     { name: "Cardboard Ragdoll", path: "cardboard ragdoll/index.html" },
-    { name: "Ultimate Dodging TWO", path: "ultimatedodgingtwo.html" },
+    { name: "Ultimate Dodging TWO", path: "scratch-1331390137" },
     { name: "Notepad", path: "notepad/index.html" },
     "jumpscareprank",
     { name: "Rubix Cube", path: "rubixcube/index.html" },
@@ -178,7 +178,8 @@ const projects = [
     "wheelmaker",
     "popit",
     "sb3corrupter",
-    "polygonprinter",
+    { name: "Polygon printer 2", path: "scratch-1328269671" },
+    { name: "Polygon printer 1", path: "scratch-1288760669" },
     "jsrunner",
     "rainbowparkour",
     { name: "First version of my website", path: "may20/index.html" },
@@ -193,9 +194,9 @@ const projects = [
     "beastbrawl",
     { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" },
     "cubecare",
-    "pixelartcreator",
+    { name: "pixel art creator", path: "scratch-1350162529" },
     "shapemaker",
-    "beatcatch",
+    { name: "beat catch", path: "scratch-1350648798" },
     "beatcatchautocharter",
     "buddiner",
     { name: "dont look at this. look away. NO", path: "balls.txt" },
@@ -203,7 +204,7 @@ const projects = [
     "hp",
     "nyancatlostinspace",
     "nyancatlostinspaceairemakebygemini",
-    "cursordeath",
+    { name: "cursor death", path: "scratch-1361998604" },
     "bfdiragdollplayground",
     { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" },
     { name: "Minimal Snake", path: "minimal snake/index.html" },
@@ -223,7 +224,7 @@ const projects = [
     { name: "My OCs list", path: "my OCs.txt" },
     { name: "FNF Chart Playground Turbowarp", path: "scratch-1364891540" },
     "classic mobile game",
-    { name: "3D game in scratch", path: "scratch-1365316275" } 
+    { name: "3D game in scratch", path: "scratch-1365316275" }
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
