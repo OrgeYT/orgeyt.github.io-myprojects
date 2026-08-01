@@ -7,15 +7,21 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Inter', sans-serif; user-select: none; }
-        #game-ui, #main-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #main-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        #game-ui, #main-menu, #settings-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #main-menu:not(.hidden), #settings-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
         .btn { pointer-events: auto; transition: transform 0.1s, background-color 0.2s; }
         .btn:active { transform: scale(0.95); }
-        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; }
+        #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; pointer-events: none; z-index: 100; }
         .nametag { position: absolute; color: white; font-weight: bold; font-size: 1rem; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; font-family: 'Inter', sans-serif; }
         canvas { display: block; width: 100%; height: 100%; }
         
         .glass-panel { background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); border-radius: 1rem; }
+        
+        /* Custom scrollbar for settings */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.8); }
     </style>
     <script type="importmap">
         {
@@ -32,14 +38,11 @@
     <div id="nametags-container"></div>
 
     <div id="game-ui" class="hidden flex flex-col justify-between p-4">
-        <div class="flex justify-center">
-            <div class="bg-black/50 text-white px-6 py-3 rounded-full text-3xl font-black tracking-widest border-4 border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)]" id="ui-timer">
-                10.0
-            </div>
-        </div>
+        <!-- Floating timer was moved to nametag -->
+        <div></div> 
         <div class="flex justify-between items-end">
             <div class="text-white/80 font-bold bg-black/40 px-4 py-2 rounded-lg" id="ui-mode-text">
-                WASD to Move | Mouse to Look | Scroll to Zoom
+                WASD to Move | Mouse to Look | Scroll to Zoom | Click to Target (Spectator)
             </div>
         </div>
     </div>
@@ -50,15 +53,7 @@
             <h1 class="text-5xl font-black mb-2 text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-yellow-500 text-center uppercase" style="filter: drop-shadow(0 4px 2px rgba(0,0,0,0.5));">Pass the Bomb<br>3D</h1>
             <p class="mb-8 font-semibold text-gray-300">Don't be left holding it!</p>
 
-            <div class="w-full space-y-5 mb-8">
-                <div>
-                    <label class="block text-sm font-bold mb-1">Number of NPCs: <span id="npc-val">5</span></label>
-                    <input type="range" id="setting-npcs" min="1" max="15" value="5" class="w-full accent-red-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1">Bomb Timer (s): <span id="timer-val">10</span></label>
-                    <input type="range" id="setting-timer" min="5" max="20" value="10" class="w-full accent-red-500">
-                </div>
+            <div class="w-full space-y-4 mb-8">
                 <div>
                     <label class="block text-sm font-bold mb-1">Mode:</label>
                     <div class="flex gap-2">
@@ -66,10 +61,59 @@
                         <button id="mode-spectate" class="flex-1 py-2 rounded bg-gray-700 font-bold border-2 border-gray-500 hover:bg-gray-600">Spectate</button>
                     </div>
                 </div>
+                
+                <button id="btn-settings" class="btn w-full bg-gray-700 text-white font-bold py-3 rounded-lg border-2 border-gray-500 hover:bg-gray-600 flex items-center justify-center gap-2">
+                    ⚙️ Game Settings
+                </button>
             </div>
 
             <button id="btn-start" class="btn w-full bg-gradient-to-r from-green-400 to-emerald-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg border border-green-300 uppercase tracking-wide">
                 Start Game
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Menu -->
+    <div id="settings-menu" class="hidden z-50">
+        <div class="glass-panel p-8 flex flex-col items-center max-w-lg w-full text-white max-h-[90vh]">
+            <h1 class="text-3xl font-black mb-6 uppercase border-b-2 border-white/20 pb-2 w-full text-center">Settings</h1>
+            
+            <div class="w-full space-y-5 overflow-y-auto pr-2" style="max-h: 60vh;">
+                <div>
+                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Number of NPCs:</span> <span id="npc-val">5</span></label>
+                    <input type="range" id="setting-npcs" min="1" max="25" value="5" class="w-full accent-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Bomb Timer (s):</span> <span id="timer-val">10</span></label>
+                    <input type="range" id="setting-timer" min="5" max="20" value="10" class="w-full accent-red-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Max Jumps:</span> <span id="jumps-val">2</span></label>
+                    <input type="range" id="setting-jumps" min="1" max="5" value="2" class="w-full accent-blue-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Map Size:</span> <span id="mapsize-val">100</span></label>
+                    <input type="range" id="setting-mapsize" min="50" max="300" step="10" value="100" class="w-full accent-green-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Platforms Multiplier:</span> <span id="platmulti-val">1x</span></label>
+                    <input type="range" id="setting-platmulti" min="0" max="5" step="0.5" value="1" class="w-full accent-yellow-500">
+                </div>
+                
+                <div class="pt-4 border-t border-white/20">
+                    <label class="block text-sm font-bold mb-2">Allowed NPC Names:</label>
+                    <div class="flex gap-2 mb-2">
+                        <button id="btn-names-all" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded">Select All</button>
+                        <button id="btn-names-none" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded">Deselect All</button>
+                    </div>
+                    <div id="npc-names-list" class="grid grid-cols-2 gap-1 bg-black/30 p-2 rounded max-h-40 overflow-y-auto">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <button id="btn-settings-back" class="btn mt-6 w-full bg-white text-black font-bold text-lg py-3 rounded-xl shadow-lg">
+                Save & Back
             </button>
         </div>
     </div>
@@ -93,7 +137,7 @@
                 <button id="btn-resume" class="btn w-full bg-gradient-to-r from-green-400 to-emerald-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg border border-green-300 uppercase tracking-wide">
                     Resume Game
                 </button>
-                <button id="btn-quit" class="btn w-full bg-red-600 text-white font-black text-xl py-3 rounded-xl shadow-lg border border-red-500 hover:bg-red-700 uppercase">
+                <button id="btn-quit" class="btn w-full bg-red-600 text-white font-black text-xl py-3 rounded-xl shadow-lg border border-red-50 hover:bg-red-700 uppercase">
                     Quit to Menu
                 </button>
             </div>
@@ -148,12 +192,13 @@
         }
 
         // --- Global Variables ---
-        let scene, camera, renderer, physicsWorld;
+        let scene, camera, renderer, physicsWorld, dirLight;
         let gameState = 'menu'; // menu, playing, spectating, gameover
         let gameMode = 'play'; // play, spectate
         let players = [];
         let platforms = [];
         let debris = [];
+        let mapObjects = [];
         let myPlayer = null;
         
         let bombHolder = null;
@@ -165,10 +210,16 @@
         let lastTickInt = 0;
         let clock = new THREE.Clock();
 
-        const MAP_SIZE = 100;
+        // --- Game Settings ---
+        let MAP_SIZE = 100;
+        let platformMultiplier = 1.0;
+        let maxAllowedJumps = 2;
+        let spectateTarget = null; // Who we are currently orbiting in spectate mode
+        let raycaster = new THREE.Raycaster();
+
         const GRAVITY = -30;
         const JUMP_FORCE = 15;
-        const MOVE_SPEED = 22; // Increased player speed
+        const MOVE_SPEED = 22;
 
         // --- Input State ---
         const keys = { w: false, a: false, s: false, d: false, q: false, e: false, space: false };
@@ -180,8 +231,7 @@
         function initScene() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 30, MAP_SIZE);
-
+            
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -190,22 +240,16 @@
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
 
-            // Lighting
             const ambient = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambient);
             
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+            dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
             dirLight.position.set(20, 50, -20);
             dirLight.castShadow = true;
-            dirLight.shadow.camera.left = -MAP_SIZE/2;
-            dirLight.shadow.camera.right = MAP_SIZE/2;
-            dirLight.shadow.camera.top = MAP_SIZE/2;
-            dirLight.shadow.camera.bottom = -MAP_SIZE/2;
             dirLight.shadow.mapSize.width = 2048;
             dirLight.shadow.mapSize.height = 2048;
             scene.add(dirLight);
 
-            // Physics (Cannon for explosions)
             physicsWorld = new CANNON.World({
                 gravity: new CANNON.Vec3(0, -20, 0)
             });
@@ -219,6 +263,7 @@
 
             buildMap();
             createBomb();
+            populateNamesList();
             
             window.addEventListener('resize', onWindowResize);
         }
@@ -236,23 +281,39 @@
             const tex = new THREE.CanvasTexture(canvas);
             tex.wrapS = THREE.RepeatWrapping;
             tex.wrapT = THREE.RepeatWrapping;
-            tex.repeat.set(MAP_SIZE/4, MAP_SIZE/4);
             return tex;
         }
 
         function buildMap() {
+            // Cleanup old map objects
+            mapObjects.forEach(obj => {
+                scene.remove(obj);
+                if(obj.geometry) obj.geometry.dispose();
+                if(obj.material) {
+                    if(Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+                    else obj.material.dispose();
+                }
+            });
+            mapObjects = [];
+            platforms = [];
+
+            scene.fog = new THREE.Fog(0x87CEEB, Math.max(30, MAP_SIZE * 0.3), MAP_SIZE * 1.5);
+
             // Floor
             const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
+            const tex = createStudTexture();
+            tex.repeat.set(MAP_SIZE/4, MAP_SIZE/4);
             const floorMat = new THREE.MeshStandardMaterial({ 
-                map: createStudTexture(),
+                map: tex,
                 roughness: 0.8 
             });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
+            mapObjects.push(floor);
 
-            // Walls (Visual + Collision boundaries logic handles physics)
+            // Walls 
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3 });
             const wGeo = new THREE.BoxGeometry(MAP_SIZE, 40, 2);
             
@@ -267,30 +328,40 @@
                 mesh.position.set(w.x, 20, w.z);
                 mesh.rotation.y = w.rot;
                 scene.add(mesh);
+                mapObjects.push(mesh);
             });
 
             // Random Platforms
             const platGeo = new THREE.BoxGeometry(8, 1, 8);
             const platMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
             
-            for(let i=0; i<25; i++) {
+            const numPlatforms = Math.floor(25 * platformMultiplier * (MAP_SIZE / 100)); // Scale amount with map size
+            
+            for(let i=0; i<numPlatforms; i++) {
                 const mesh = new THREE.Mesh(platGeo, platMat);
                 mesh.position.set(
                     (Math.random() - 0.5) * (MAP_SIZE - 10),
-                    2 + Math.random() * 15,
+                    2 + Math.random() * 20,
                     (Math.random() - 0.5) * (MAP_SIZE - 10)
                 );
                 mesh.receiveShadow = true;
                 mesh.castShadow = true;
                 scene.add(mesh);
                 
-                // Add to custom collision array
                 platforms.push({
                     mesh: mesh,
                     box: new THREE.Box3().setFromObject(mesh),
                     topY: mesh.position.y + 0.5
                 });
+                mapObjects.push(mesh);
             }
+
+            // Adjust lighting shadow bounds
+            dirLight.shadow.camera.left = -MAP_SIZE/2;
+            dirLight.shadow.camera.right = MAP_SIZE/2;
+            dirLight.shadow.camera.top = MAP_SIZE/2;
+            dirLight.shadow.camera.bottom = -MAP_SIZE/2;
+            dirLight.shadow.camera.updateProjectionMatrix();
         }
 
         function createBomb() {
@@ -300,14 +371,12 @@
             const mesh = new THREE.Mesh(geo, mat);
             grp.add(mesh);
 
-            // Fuse
             const fuseGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4);
             const fuseMat = new THREE.MeshBasicMaterial({ color: 0x884400 });
             const fuse = new THREE.Mesh(fuseGeo, fuseMat);
             fuse.position.y = 0.7;
             grp.add(fuse);
             
-            // Spark
             const sparkGeo = new THREE.SphereGeometry(0.2, 8, 8);
             const sparkMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             const spark = new THREE.Mesh(sparkGeo, sparkMat);
@@ -323,13 +392,16 @@
                 this.isPlayer = isPlayer;
                 this.name = name;
                 this.color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
-                this.position = new THREE.Vector3((Math.random()-0.5)*20, 10, (Math.random()-0.5)*20);
+                
+                // Spawn randomly within map bounds safely
+                const spawnRange = (MAP_SIZE / 2) - 5;
+                this.position = new THREE.Vector3((Math.random()-0.5)*spawnRange*2, 10, (Math.random()-0.5)*spawnRange*2);
+                
                 this.velocity = new THREE.Vector3(0,0,0);
                 this.isOnGround = false;
                 this.isDead = false;
                 this.jumps = 0;
                 
-                // Squash and stretch state
                 this.squash = new THREE.Vector3(1, 1, 1);
                 this.targetSquash = new THREE.Vector3(1, 1, 1);
                 
@@ -337,7 +409,6 @@
                 this.cannotPassTimer = 0;
                 this.handedness = Math.random() > 0.5 ? 'left' : 'right';
 
-                // AI properties
                 this.targetPos = new THREE.Vector3();
                 this.stuckTimer = 0;
                 this.lastPos = this.position.clone();
@@ -348,7 +419,6 @@
             buildMesh() {
                 this.mesh = new THREE.Group();
                 
-                // Body
                 const bodyGeo = new THREE.BoxGeometry(2, 2, 2);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.4 });
                 this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
@@ -357,7 +427,6 @@
                 this.bodyMesh.receiveShadow = true;
                 this.mesh.add(this.bodyMesh);
 
-                // Eyes (Vertical Stretched Circles)
                 const eyeGeo = new THREE.SphereGeometry(0.3, 16, 16);
                 eyeGeo.scale(1, 2, 0.4);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
@@ -367,7 +436,6 @@
                 this.rightEye.position.set(0.4, 1.2, 1.05);
                 this.mesh.add(this.leftEye, this.rightEye);
 
-                // Floating Hands
                 const handGeo = new THREE.SphereGeometry(0.4, 16, 16);
                 this.leftHand = new THREE.Mesh(handGeo, bodyMat);
                 this.leftHand.position.set(-1.5, 1, 0);
@@ -380,7 +448,6 @@
                 this.mesh.position.copy(this.position);
                 scene.add(this.mesh);
 
-                // Create floating nametag
                 this.nametag = document.createElement('div');
                 this.nametag.className = 'nametag';
                 this.nametag.innerText = this.name;
@@ -390,40 +457,31 @@
             update(dt, time) {
                 if(this.isDead) return;
 
-                // Animate hands floating
                 this.leftHand.position.y = 1 + Math.sin(time * 5 + this.id) * 0.2;
                 this.rightHand.position.y = 1 + Math.sin(time * 5 + this.id + Math.PI) * 0.2;
 
-                // Update timers
                 if(this.cannotPassTimer > 0) this.cannotPassTimer -= dt;
 
                 let wasOnGround = this.isOnGround;
 
-                // Physics (Custom AABB for tight platforming control)
                 this.prevY = this.position.y;
-                
-                // Apply Gravity
                 this.velocity.y += GRAVITY * dt;
                 
-                // Apply Movement XZ
                 this.position.x += this.velocity.x * dt;
                 this.position.z += this.velocity.z * dt;
 
-                // XZ Map Bounds
+                // XZ Map Bounds (Dynamic)
                 const limit = MAP_SIZE/2 - 1;
                 if(this.position.x < -limit) this.position.x = -limit;
                 if(this.position.x > limit) this.position.x = limit;
                 if(this.position.z < -limit) this.position.z = -limit;
                 if(this.position.z > limit) this.position.z = limit;
 
-                // Character XZ Collision
                 this.resolveCharacterCollisionXZ();
 
-                // Apply Y Movement
                 this.position.y += this.velocity.y * dt;
                 this.isOnGround = false;
 
-                // Floor Collision
                 if (this.position.y <= 0) {
                     if(this.velocity.y < -5) playSound('land');
                     this.position.y = 0;
@@ -431,7 +489,6 @@
                     this.isOnGround = true;
                 }
 
-                // Platform Collision (One-Way)
                 const myBox = new THREE.Box3().setFromCenterAndSize(
                     new THREE.Vector3(this.position.x, this.position.y + 1, this.position.z),
                     new THREE.Vector3(2, 2, 2)
@@ -439,7 +496,6 @@
                 
                 for(let p of platforms) {
                     if(myBox.intersectsBox(p.box)) {
-                        // Check if we were previously completely above the platform top
                         if (this.prevY >= p.topY - 0.05 && this.velocity.y <= 0) {
                             if(this.velocity.y < -5) playSound('land');
                             this.position.y = p.topY;
@@ -449,44 +505,35 @@
                     }
                 }
 
-                // Head Hopping Collision
                 this.resolveCharacterCollisionY();
 
-                // Squash and Stretch Logic
                 if (this.isOnGround) {
                     this.jumps = 0;
                     if (!wasOnGround && this.velocity.y < -5) {
-                        // Landed hard, squash!
                         this.squash.set(1.5, 0.5, 1.5);
                     }
                     this.targetSquash.set(1, 1, 1);
                 } else {
-                    // Falling/Jumping stretch based on velocity
                     let stretch = Math.max(1, 1 + Math.abs(this.velocity.y) * 0.015);
                     let sq = 1 / Math.sqrt(stretch);
                     this.targetSquash.set(sq, stretch, sq);
                 }
 
-                // Lerp current squash towards target and apply to mesh
                 this.squash.lerp(this.targetSquash, dt * 15);
                 this.mesh.scale.copy(this.squash);
 
-                // Friction XZ
                 this.velocity.x *= 0.8;
                 this.velocity.z *= 0.8;
 
-                // Sync Mesh
                 this.mesh.position.copy(this.position);
 
-                // AI Logic
                 if(!this.isPlayer) {
                     this.runAI(dt, time);
 
-                    // AI Stuck check (Upgraded to use double jump)
                     if(this.position.distanceToSquared(this.lastPos) < 0.001) {
                         this.stuckTimer += dt;
                         if(this.stuckTimer > 0.3) { 
-                            if(this.jumps < 2) this.jump();
+                            if(this.jumps < maxAllowedJumps) this.jump();
                             this.stuckTimer = 0;
                         }
                     } else {
@@ -495,7 +542,6 @@
                 }
                 this.lastPos.copy(this.position);
 
-                // Rotate Mesh towards velocity
                 if(Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1) {
                     const angle = Math.atan2(this.velocity.x, this.velocity.z);
                     this.mesh.rotation.y = angle;
@@ -510,7 +556,7 @@
                     const distSq = dx*dx + dz*dz;
                     const dy = Math.abs(this.position.y - other.position.y);
                     
-                    if(distSq < 4 && dy < 1.8) { // Radius 2, height diff < 1.8 means overlapping bodies
+                    if(distSq < 4 && dy < 1.8) {
                         const dist = Math.sqrt(distSq);
                         if(dist === 0) continue;
                         const push = (2 - dist) / 2;
@@ -542,12 +588,12 @@
                     this.velocity.y = JUMP_FORCE;
                     this.jumps = 1;
                     playSound('jump');
-                    this.squash.set(0.6, 1.5, 0.6); // Stretch up
-                } else if (this.jumps === 1) {
+                    this.squash.set(0.6, 1.5, 0.6);
+                } else if (this.jumps < maxAllowedJumps) {
                     this.velocity.y = JUMP_FORCE;
-                    this.jumps = 2; // Double jump
+                    this.jumps++; 
                     playSound('jump');
-                    this.squash.set(0.6, 1.5, 0.6); // Stretch up again
+                    this.squash.set(0.6, 1.5, 0.6);
                 }
             }
 
@@ -555,13 +601,12 @@
                 let moveDir = new THREE.Vector3();
 
                 if (!bombHolder) {
-                    // --- COOLDOWN PHASE (SPREAD OUT) ---
-                    // Bots don't trust each other during cooldown, so they keep their distance
+                    // Pre-bomb random spread out
                     let tooClose = false;
                     for (let p of players) {
                         if (p !== this && !p.isDead) {
                             let distSq = this.position.distanceToSquared(p.position);
-                            if (distSq < 300) { // Spread out radius (~17 units)
+                            if (distSq < 300) { 
                                 let awayP = new THREE.Vector3().subVectors(this.position, p.position);
                                 awayP.y = 0;
                                 moveDir.add(awayP.normalize());
@@ -571,7 +616,6 @@
                     }
 
                     if (tooClose) {
-                        // Avoid Walls smartly so they don't get trapped while spreading out
                         const wallMargin = 15;
                         const limit = MAP_SIZE / 2;
                         if (this.position.x < -limit + wallMargin) moveDir.x += (wallMargin - (this.position.x - -limit)) * 0.15;
@@ -580,8 +624,6 @@
                         if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
 
                         moveDir.normalize();
-                        
-                        // Apply Movement (slightly slower than panic)
                         this.velocity.x += moveDir.x * MOVE_SPEED * dt * 4;
                         this.velocity.z += moveDir.z * MOVE_SPEED * dt * 4;
                     }
@@ -591,7 +633,6 @@
                     const distToBomb = Math.sqrt(distToBombSq);
 
                     if (bombHolder === this) {
-                        // --- BOMB HOLDER LOGIC (CHASER) ---
                         let minDist = Infinity;
                         for(let p of players) {
                             if(p === this || p.isDead || this.cannotPassTo === p) continue;
@@ -602,83 +643,97 @@
                             }
                         }
                         if(target) {
-                            // Predictive aiming based on target velocity
                             let predictedTargetPos = target.position.clone().addScaledVector(target.velocity, 0.4);
-                            moveDir.subVectors(predictedTargetPos, this.position);
-                            
-                            // Vertical logic: If target is higher, jump
-                            if (target.position.y > this.position.y + 2 && Math.random() < 0.05) {
-                                this.jump();
+                            let dx = predictedTargetPos.x - this.position.x;
+                            let dz = predictedTargetPos.z - this.position.z;
+                            let dy = predictedTargetPos.y - this.position.y;
+                            let distXZSq = dx*dx + dz*dz;
+
+                            if (dy > 3 && distXZSq < 35) {
+                                let bestPlatform = null;
+                                let bestScore = -Infinity;
+                                
+                                for (let p of platforms) {
+                                    let pdy = p.topY - this.position.y;
+                                    if (pdy > 1 && pdy < 11) {
+                                        let pdx = p.mesh.position.x - this.position.x;
+                                        let pdz = p.mesh.position.z - this.position.z;
+                                        let pDistSq = pdx*pdx + pdz*pdz;
+                                        
+                                        let tdx = p.mesh.position.x - predictedTargetPos.x;
+                                        let tdz = p.mesh.position.z - predictedTargetPos.z;
+                                        let tDistSq = tdx*tdx + tdz*tdz;
+
+                                        if (tDistSq > 20) { 
+                                            let score = -pDistSq + (pdy * 20);
+                                            if (score > bestScore) {
+                                                bestScore = score;
+                                                bestPlatform = p.mesh.position;
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (bestPlatform) {
+                                    moveDir.subVectors(bestPlatform, this.position);
+                                } else {
+                                    moveDir.set(-dx, 0, -dz);
+                                    if (moveDir.lengthSq() < 0.1) moveDir.set(Math.sin(time*3 + this.id), 0, Math.cos(time*3 + this.id));
+                                }
+                                if (Math.random() < 0.05) this.jump();
+                            } else {
+                                moveDir.subVectors(predictedTargetPos, this.position);
+                                if (dy > 1.5 && distXZSq < 100 && Math.random() < 0.05) this.jump();
                             }
-                            
                             moveDir.y = 0;
                             moveDir.normalize();
                         }
                     } else {
-                        // --- EVADER LOGIC ---
-                        const panicThreshold = 5.0; // Panic when bomb is less than 5 seconds
+                        const panicThreshold = 5.0;
                         let isPanicking = bombTimer < panicThreshold || distToBomb < 14;
                         let isTeasing = !isPanicking && distToBomb > 15 && distToBomb < 30;
 
                         if (isTeasing) {
-                            // Teasing behavior: Strafe side to side and jump, keeping distance
                             moveDir.subVectors(bombHolder.position, this.position).normalize();
-                            
-                            // Rotate 90 degrees to strafe
-                            let tempX = moveDir.x;
-                            moveDir.x = -moveDir.z;
-                            moveDir.z = tempX;
-                            
-                            // Switch direction periodically based on ID and time
-                            if (Math.sin(time * 2.5 + this.id) > 0) {
-                                moveDir.negate();
-                            }
-                            
-                            // Tease jumping
+                            let tempX = moveDir.x; moveDir.x = -moveDir.z; moveDir.z = tempX;
+                            if (Math.sin(time * 2.5 + this.id) > 0) moveDir.negate();
                             if (Math.random() < 0.015) this.jump();
-                            
                         } else {
-                            // Run Away / Panic
                             moveDir.subVectors(this.position, bombHolder.position);
                             moveDir.y = 0;
                             moveDir.normalize();
 
-                            // Avoid other players so they don't block each other
                             for(let p of players) {
                                 if (p !== this && p !== bombHolder && !p.isDead) {
-                                    let pDistSq = this.position.distanceToSquared(p.position);
-                                    if (pDistSq < 64) { // 8 units radius
+                                    if (this.position.distanceToSquared(p.position) < 64) {
                                         let awayP = new THREE.Vector3().subVectors(this.position, p.position);
                                         awayP.y = 0;
-                                        moveDir.addScaledVector(awayP.normalize(), 0.6); // Push away
+                                        moveDir.addScaledVector(awayP.normalize(), 0.6);
                                     }
                                 }
                             }
 
-                            // Avoid Walls smartly so they don't get trapped
                             const wallMargin = 15;
                             const limit = MAP_SIZE / 2;
                             if (this.position.x < -limit + wallMargin) moveDir.x += (wallMargin - (this.position.x - -limit)) * 0.15;
                             if (this.position.x > limit - wallMargin) moveDir.x -= (wallMargin - (limit - this.position.x)) * 0.15;
                             if (this.position.z < -limit + wallMargin) moveDir.z += (wallMargin - (this.position.z - -limit)) * 0.15;
                             if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
-
                             moveDir.normalize();
                         }
                     }
 
-                    // Apply Movement
                     this.velocity.x += moveDir.x * MOVE_SPEED * dt * 5;
                     this.velocity.z += moveDir.z * MOVE_SPEED * dt * 5;
                 }
 
-                // --- PLATFORM / OBSTACLE AWARENESS (Smart Jumping) ---
-                let isMoving = Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1;
+                let intentDir = moveDir.clone();
+                if (intentDir.lengthSq() === 0) intentDir.set(this.velocity.x, 0, this.velocity.z);
+                intentDir.normalize();
                 
-                if (isMoving) {
-                    // Look ahead vector (where the bot will be soon)
-                    let lookAheadX = this.position.x + this.velocity.x * 0.3;
-                    let lookAheadZ = this.position.z + this.velocity.z * 0.3;
+                if (intentDir.lengthSq() > 0.1) {
+                    let lookAheadX = this.position.x + intentDir.x * 3.0;
+                    let lookAheadZ = this.position.z + intentDir.z * 3.0;
 
                     for (let p of platforms) {
                         let px = p.mesh.position.x;
@@ -686,14 +741,11 @@
                         let dx = px - lookAheadX;
                         let dz = pz - lookAheadZ;
                         
-                        // If platform is right in front of us horizontally
                         if (dx*dx + dz*dz < 25) {
-                            // If it's higher than us, but reachable, jump on it!
-                            if (p.topY > this.position.y + 0.5 && p.topY < this.position.y + 12) {
+                            if (p.topY > this.position.y + 0.2 && p.topY < this.position.y + 11) {
                                 if (this.isOnGround && Math.random() < 0.2) {
                                     this.jump();
-                                } else if (this.jumps === 1 && this.velocity.y < 5 && Math.random() < 0.1) {
-                                    // Use double jump mid-air to ensure they make the ledge
+                                } else if (this.jumps < maxAllowedJumps && this.velocity.y < 3 && p.topY > this.position.y + 2 && Math.random() < 0.15) {
                                     this.jump();
                                 }
                             }
@@ -708,7 +760,8 @@
                 if (this.nametag) this.nametag.remove();
                 playSound('explode');
                 
-                // Spawn Cannon.js Physics Debris
+                if (spectateTarget === this) spectateTarget = null;
+                
                 const pieces = 15;
                 for(let i=0; i<pieces; i++) {
                     const size = 0.5 + Math.random() * 0.5;
@@ -727,34 +780,42 @@
                         10 + Math.random()*20, 
                         (Math.random()-0.5)*30
                     );
-                    
-                    // Add random rotation spin
                     body.angularVelocity.set((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
-
                     physicsWorld.addBody(body);
                     debris.push({ mesh, body, timer: 3.0 });
                 }
             }
         }
 
+        function getSelectedNames() {
+            let checked = Array.from(document.querySelectorAll('.name-checkbox:checked')).map(cb => cb.value);
+            return checked.length > 0 ? checked : [...NPC_NAMES]; // Fallback to all if none selected
+        }
+
         function startGame(npcs, mode, timer) {
-            // Reset state
             players.forEach(p => scene.remove(p.mesh));
             players = [];
             debris.forEach(d => { scene.remove(d.mesh); physicsWorld.removeBody(d.body); });
             debris = [];
             
+            // Apply settings
+            maxAllowedJumps = parseInt(document.getElementById('setting-jumps').value);
+            MAP_SIZE = parseInt(document.getElementById('setting-mapsize').value);
+            platformMultiplier = parseFloat(document.getElementById('setting-platmulti').value);
+            buildMap(); // Rebuild world based on new size/density
+
             bombTimer = initialBombTimer = timer;
             bombSpawnDelay = 0;
             gameMode = mode;
             gameState = 'playing';
+            spectateTarget = null;
             
-            document.getElementById('nametags-container').innerHTML = ''; // Clear old nametags
+            document.getElementById('nametags-container').innerHTML = '';
             document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('settings-menu').classList.add('hidden');
             document.getElementById('game-ui').classList.remove('hidden');
             document.getElementById('crosshair').style.display = 'block';
             
-            // Create Players
             if (gameMode === 'play') {
                 myPlayer = new Character(true, 'player', 'User');
                 players.push(myPlayer);
@@ -762,8 +823,9 @@
                 myPlayer = null;
             }
 
+            const availableNames = getSelectedNames();
             for(let i=0; i<npcs; i++) {
-                const randomName = NPC_NAMES[Math.floor(Math.random() * NPC_NAMES.length)];
+                const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
                 players.push(new Character(false, 'npc_'+i, randomName));
             }
 
@@ -772,7 +834,6 @@
             sounds.bgm.currentTime = 0;
             sounds.bgm.play().catch(()=>{});
             
-            // Request pointer lock
             document.body.requestPointerLock();
         }
 
@@ -787,41 +848,25 @@
         function passBombTo(newHolder, oldHolder) {
             bombHolder = newHolder;
             globalPassCooldown = 0.5;
-            
             if(oldHolder) {
                 newHolder.cannotPassTo = oldHolder;
                 newHolder.cannotPassTimer = 3.0;
             }
-
-            // Randomize hand
             newHolder.handedness = Math.random() > 0.5 ? 'left' : 'right';
-            
-            // Attach mesh visually to the hand
-            if(newHolder.handedness === 'left') {
-                newHolder.leftHand.add(bombMesh);
-            } else {
-                newHolder.rightHand.add(bombMesh);
-            }
-            bombMesh.position.set(0, 0, 0); // Center in hand
+            if(newHolder.handedness === 'left') newHolder.leftHand.add(bombMesh);
+            else newHolder.rightHand.add(bombMesh);
+            bombMesh.position.set(0, 0, 0); 
         }
 
         function checkBombPassing() {
             if(globalPassCooldown > 0 || !bombHolder) return;
-
             for (let i = 0; i < players.length; i++) {
                 for (let j = i + 1; j < players.length; j++) {
                     const p1 = players[i];
                     const p2 = players[j];
-                    
-                    // Distance check (Center to center, body size is 2, so distance 2.5 is a touch)
                     if (p1.position.distanceTo(p2.position) < 2.5) {
-                        if (bombHolder === p1 && p1.cannotPassTo !== p2 && p1.cannotPassTimer <= 0) {
-                            passBombTo(p2, p1);
-                            return; // Only one pass per frame
-                        } else if (bombHolder === p2 && p2.cannotPassTo !== p1 && p2.cannotPassTimer <= 0) {
-                            passBombTo(p1, p2);
-                            return;
-                        }
+                        if (bombHolder === p1 && p1.cannotPassTo !== p2 && p1.cannotPassTimer <= 0) { passBombTo(p2, p1); return; } 
+                        else if (bombHolder === p2 && p2.cannotPassTo !== p1 && p2.cannotPassTimer <= 0) { passBombTo(p1, p2); return; }
                     }
                 }
             }
@@ -838,23 +883,19 @@
 
         document.addEventListener('mousemove', (e) => {
             if (document.pointerLockElement === document.body) {
-                if (gameMode === 'play') {
-                    // Normal yaw (left/right), inverted pitch (up/down)
+                if (gameMode === 'play' || spectateTarget) {
                     camYaw -= (e.movementX || 0) * 0.002;
                     camPitch += (e.movementY || 0) * 0.002;
                 } else if (gameMode === 'spectate') {
-                    // Inverted yaw (left/right), inverted pitch (up/down)
                     camYaw += (e.movementX || 0) * 0.002;
                     camPitch += (e.movementY || 0) * 0.002;
                 }
-                
-                // Limit pitch
                 camPitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, camPitch));
             }
         });
 
         document.addEventListener('wheel', (e) => {
-            if (document.pointerLockElement === document.body && gameMode === 'play') {
+            if (document.pointerLockElement === document.body) {
                 camZoom += e.deltaY * 0.01;
                 camZoom = Math.max(2, Math.min(30, camZoom));
             }
@@ -873,8 +914,30 @@
             }
         });
 
-        document.addEventListener('click', () => {
-            if (gameState === 'playing' && !isPointerLocked) {
+        // Spectator Raycaster click logic
+        document.addEventListener('mousedown', (e) => {
+            if (gameState === 'playing' && isPointerLocked && e.button === 0) {
+                if (gameMode === 'spectate') {
+                    // Raycast from center of screen
+                    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+                    let hitPlayer = null;
+                    
+                    for(let p of players) {
+                        let intersects = raycaster.intersectObject(p.bodyMesh);
+                        if(intersects.length > 0) {
+                            hitPlayer = p;
+                            break;
+                        }
+                    }
+
+                    if (hitPlayer) {
+                        if (spectateTarget === hitPlayer) spectateTarget = null; // Toggle off
+                        else spectateTarget = hitPlayer; // Lock on
+                    } else {
+                        spectateTarget = null; // Clicked nothing, detach
+                    }
+                }
+            } else if (gameState === 'playing' && !isPointerLocked) {
                 document.body.requestPointerLock();
             }
         });
@@ -882,6 +945,9 @@
         // UI Event Listeners
         document.getElementById('setting-npcs').addEventListener('input', (e) => document.getElementById('npc-val').innerText = e.target.value);
         document.getElementById('setting-timer').addEventListener('input', (e) => document.getElementById('timer-val').innerText = e.target.value);
+        document.getElementById('setting-jumps').addEventListener('input', (e) => document.getElementById('jumps-val').innerText = e.target.value);
+        document.getElementById('setting-mapsize').addEventListener('input', (e) => document.getElementById('mapsize-val').innerText = e.target.value);
+        document.getElementById('setting-platmulti').addEventListener('input', (e) => document.getElementById('platmulti-val').innerText = e.target.value + 'x');
         
         let selectedMode = 'play';
         document.getElementById('mode-play').addEventListener('click', () => {
@@ -894,6 +960,32 @@
             document.getElementById('mode-spectate').className = "flex-1 py-2 rounded bg-red-600 font-bold border-2 border-red-400";
             document.getElementById('mode-play').className = "flex-1 py-2 rounded bg-gray-700 font-bold border-2 border-gray-500 hover:bg-gray-600";
         });
+
+        document.getElementById('btn-settings').addEventListener('click', () => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('settings-menu').classList.remove('hidden');
+        });
+        document.getElementById('btn-settings-back').addEventListener('click', () => {
+            document.getElementById('settings-menu').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        });
+
+        document.getElementById('btn-names-all').addEventListener('click', () => {
+            document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = true);
+        });
+        document.getElementById('btn-names-none').addEventListener('click', () => {
+            document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = false);
+        });
+
+        function populateNamesList() {
+            const container = document.getElementById('npc-names-list');
+            NPC_NAMES.forEach(name => {
+                const lbl = document.createElement('label');
+                lbl.className = "flex items-center space-x-2 text-sm select-none cursor-pointer hover:bg-white/10 p-1 rounded";
+                lbl.innerHTML = `<input type="checkbox" value="${name}" checked class="name-checkbox accent-red-500 w-4 h-4 rounded"> <span class="truncate">${name}</span>`;
+                container.appendChild(lbl);
+            });
+        }
 
         document.getElementById('btn-start').addEventListener('click', () => {
             startGame(
@@ -909,11 +1001,7 @@
             document.getElementById('nametags-container').innerHTML = '';
             gameState = 'menu';
         });
-
-        document.getElementById('btn-resume').addEventListener('click', () => {
-            document.body.requestPointerLock();
-        });
-
+        document.getElementById('btn-resume').addEventListener('click', () => document.body.requestPointerLock());
         document.getElementById('btn-quit').addEventListener('click', () => {
             document.getElementById('pause-menu').classList.add('hidden');
             document.getElementById('game-ui').classList.add('hidden');
@@ -926,10 +1014,7 @@
 
         function updatePlayerInput(dt) {
             if(!myPlayer || myPlayer.isDead) return;
-
             const speed = MOVE_SPEED * dt * 5;
-            
-            // Calculate forward/right vectors based on camera yaw ONLY (ignore pitch for movement)
             const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
             const right = new THREE.Vector3(forward.z, 0, -forward.x);
 
@@ -938,7 +1023,7 @@
             if(keys.a) { myPlayer.velocity.x -= right.x * speed; myPlayer.velocity.z -= right.z * speed; }
             if(keys.d) { myPlayer.velocity.x += right.x * speed; myPlayer.velocity.z += right.z * speed; }
             if(keys.space) myPlayer.jump();
-            keys.space = false; // Prevent auto-bunny hop slightly
+            keys.space = false;
         }
 
         function updateSpectatorCamera(dt) {
@@ -954,31 +1039,26 @@
             if(keys.e) camera.position.y += speed;
             if(keys.q) camera.position.y -= speed;
 
-            // Apply orientation
             camera.rotation.set(0,0,0);
             camera.rotateY(-camYaw);
             camera.rotateX(-camPitch);
         }
 
         function updateCamera() {
-            if (gameMode === 'play' && myPlayer && !myPlayer.isDead) {
-                // Orbit Camera
-                const targetPos = myPlayer.position.clone();
-                targetPos.y += 1; // Look at head
+            let activeTarget = (gameMode === 'play') ? myPlayer : spectateTarget;
 
+            if (activeTarget && !activeTarget.isDead) {
+                // Orbit Camera
+                const targetPos = activeTarget.position.clone();
+                targetPos.y += 1;
                 camera.position.x = targetPos.x + camZoom * Math.sin(camYaw) * Math.cos(camPitch);
                 camera.position.y = targetPos.y + camZoom * Math.sin(camPitch);
                 camera.position.z = targetPos.z + camZoom * Math.cos(camYaw) * Math.cos(camPitch);
-                
                 camera.lookAt(targetPos);
             }
         }
 
         function updateUI() {
-            const uiTimer = document.getElementById('ui-timer');
-
-            uiTimer.innerText = Math.max(0, bombTimer).toFixed(1);
-
             // Update Nametags
             players.forEach(p => {
                 if (p.isDead || !p.nametag) return;
@@ -992,10 +1072,10 @@
                 }
 
                 const vec = p.position.clone();
-                vec.y += (p === bombHolder ? 3.0 : 2.2); // Render slightly higher if holding bomb
+                vec.y += (p === bombHolder ? 3.0 : 2.2); 
                 vec.project(camera);
 
-                if(vec.z > 1) { // Behind camera
+                if(vec.z > 1) {
                     p.nametag.style.display = 'none';
                 } else {
                     p.nametag.style.display = 'block';
@@ -1004,7 +1084,6 @@
                     p.nametag.style.left = `${x}px`;
                     p.nametag.style.top = `${y}px`;
                     
-                    // Scale text based on distance
                     const dist = camera.position.distanceTo(p.position);
                     const scale = Math.max(0.4, Math.min(1.2, 25 / dist));
                     p.nametag.style.transform = `translate(-50%, -50%) scale(${scale})`;
@@ -1028,7 +1107,6 @@
                 playSound('win');
                 sounds.bgm.pause();
             } else if (players.length === 0) {
-                // Rare draw (everyone died somehow)
                 gameState = 'gameover';
                 document.exitPointerLock();
                 document.getElementById('game-over').classList.remove('hidden');
@@ -1046,28 +1124,18 @@
             if (gameState === 'playing') {
                 if (globalPassCooldown > 0) globalPassCooldown -= dt;
 
-                // Inputs
-                if (gameMode === 'play') {
-                    updatePlayerInput(dt);
-                } else if (gameMode === 'spectate') {
-                    updateSpectatorCamera(dt);
-                }
+                if (gameMode === 'play') updatePlayerInput(dt);
+                else if (gameMode === 'spectate' && !spectateTarget) updateSpectatorCamera(dt);
 
-                // Update players
                 players.forEach(p => p.update(dt, time));
-
-                // Interactions
                 checkBombPassing();
 
-                // Bomb Timer
                 if (bombHolder) {
                     bombTimer -= dt;
                     const currentTickInt = Math.ceil(bombTimer);
                     if (currentTickInt !== lastTickInt && currentTickInt > 0) {
                         playSound('tick');
                         lastTickInt = currentTickInt;
-                        
-                        // Pulse animation for bomb mesh
                         if(bombMesh) {
                             const scale = 1 + (10 - bombTimer) * 0.05;
                             bombMesh.scale.set(scale, scale, scale);
@@ -1077,14 +1145,11 @@
                     if (bombTimer <= 0) {
                         let explodedPlayer = bombHolder;
                         explodedPlayer.explode();
-                        
-                        // Remove from arrays
                         players = players.filter(p => p !== explodedPlayer);
                         bombHolder = null;
                         
                         if(bombMesh) bombMesh.scale.set(1,1,1);
                         
-                        // Instantly end game if YOU blow up
                         if (explodedPlayer === myPlayer) {
                             gameState = 'gameover';
                             document.exitPointerLock();
@@ -1096,27 +1161,19 @@
                             sounds.bgm.pause();
                         } else {
                             checkWinCondition();
-                            
-                            if (players.length > 1) {
-                                bombSpawnDelay = 3.0; // 3 second cool down before new bomb
-                            }
+                            if (players.length > 1) bombSpawnDelay = 3.0;
                         }
                     }
                 }
 
-                // Bomb respawn delay logic
                 if (!bombHolder && players.length > 1) {
                     if (bombSpawnDelay > 0) {
                         bombSpawnDelay -= dt;
-                        if (bombSpawnDelay <= 0) {
-                            assignBombToRandom();
-                        }
+                        if (bombSpawnDelay <= 0) assignBombToRandom();
                     }
                 }
 
-                // Physics simulation for debris
                 physicsWorld.step(dt);
-                
                 for (let i = debris.length - 1; i >= 0; i--) {
                     const d = debris[i];
                     d.mesh.position.copy(d.body.position);
@@ -1142,10 +1199,8 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
 
-        // Initialize
         initScene();
         
-        // Setup default spectator view
         camera.position.set(0, 30, 40);
         camera.lookAt(0, 0, 0);
         camPitch = -0.5;
