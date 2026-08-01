@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hot Potato 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Inter', sans-serif; color: white; user-select: none; }
+        #game-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; display: flex; flex-direction: column; }
+        .pointer-events-auto { pointer-events: auto; }
+        
+        /* Screens */
+        .screen { display: none; width: 100%; height: 100%; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(5px); }
+        .screen.active { display: flex; }
+        
+        /* Typography & Components */
+        h1 { font-size: 4rem; font-weight: 900; background: linear-gradient(45deg, #ff4500, #ff8c00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 0 20px rgba(255, 69, 0, 0.5); margin-bottom: 2rem; }
+        .menu-panel { background: rgba(20, 20, 20, 0.9); padding: 2rem; border-radius: 1rem; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.8); width: 100%; max-w: 400px; pointer-events: auto;}
+        
+        .btn { padding: 0.75rem 1.5rem; background: #333; border: 1px solid #555; color: white; border-radius: 0.5rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease; width: 100%; margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 1px; }
+        .btn:hover { background: #444; border-color: #777; transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+        .btn:active { transform: translateY(0); }
+        .btn-primary { background: linear-gradient(180deg, #ff3333, #aa0000); border-color: #ff5555; }
+        .btn-primary:hover { background: linear-gradient(180deg, #ff4444, #cc0000); border-color: #ff7777; box-shadow: 0 5px 20px rgba(255, 0, 0, 0.4); }
+        
+        /* Settings */
+        .setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+        .setting-label { font-size: 0.9rem; color: #ccc; }
+        .setting-control { display: flex; align-items: center; gap: 0.5rem; }
+        .num-btn { width: 30px; height: 30px; background: #222; border: 1px solid #444; color: white; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .num-btn:hover { background: #333; }
+        .num-val { width: 40px; text-align: center; font-weight: bold; }
+        
+        /* HUD */
+        #hud { display: none; flex-direction: column; width: 100%; height: 100%; justify-content: space-between; padding: 2rem; box-sizing: border-box; }
+        #hud.active { display: flex; }
+        .top-hud { display: flex; justify-content: space-between; width: 100%; }
+        
+        .timer-container { font-size: 3rem; font-weight: 900; text-align: center; color: white; text-shadow: 0 0 10px rgba(255,0,0,0.8); transition: color 0.2s; position: absolute; top: 2rem; left: 50%; transform: translateX(-50%); }
+        .timer-container.warning { color: #ff3333; animation: pulse 0.5s infinite alternate; }
+        @keyframes pulse { from { transform: translateX(-50%) scale(1); } to { transform: translateX(-50%) scale(1.1); } }
+        
+        /* QTE Display */
+        .qte-container { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1rem; background: rgba(0,0,0,0.7); padding: 1.5rem; border-radius: 1rem; border: 2px solid #555; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+        .qte-container.active { opacity: 1; }
+        .qte-prompt-text { font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem; text-align: center; }
+        .p1-prompt { color: #ff5555; }
+        .p2-prompt { color: #5555ff; }
+        
+        .qte-keys { display: flex; gap: 0.5rem; }
+        .qte-key { width: 50px; height: 50px; background: #222; border: 2px solid #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; box-shadow: 0 4px 0 #111; color: #fff; transition: all 0.1s; }
+        .qte-key.success { background: #2e8b57; border-color: #3cb371; box-shadow: 0 4px 0 #1a5e3a; color: white; }
+        .qte-key.fail { background: #b22222; border-color: #ff4500; box-shadow: 0 4px 0 #800000; color: white; animation: shake 0.3s; }
+        
+        /* Pre-Solve Side QTEs */
+        .side-qte { position: absolute; bottom: 10%; display: flex; flex-direction: column; align-items: center; gap: 1rem; background: rgba(0,0,0,0.7); padding: 1rem; border-radius: 1rem; border: 2px solid #555; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+        .side-qte.active { opacity: 1; }
+        .side-qte.left { left: 5%; }
+        .side-qte.right { right: 5%; }
+        .side-qte .qte-key { width: 40px; height: 40px; font-size: 1.2rem; }
+        .side-qte.is-ready .qte-keys { display: none; }
+        .side-qte.is-ready .qte-prompt-text { display: none; }
+        .ready-text { font-size: 2rem; font-weight: bold; color: #3cb371; display: none; text-shadow: 0 0 10px rgba(46,139,87,0.8); }
+        .side-qte.is-ready .ready-text { display: block; animation: pulseReady 1s infinite alternate; }
+        @keyframes pulseReady { from { transform: scale(1); } to { transform: scale(1.1); } }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+
+        .icon-btn { background: rgba(0,0,0,0.5); border: 1px solid #444; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; pointer-events: auto; }
+        .icon-btn:hover { background: rgba(50,50,50,0.8); }
+
+        .game-over-text { font-size: 3rem; font-weight: bold; margin-bottom: 1rem; text-align: center; }
+        .winner-text { font-size: 1.5rem; color: #aaa; margin-bottom: 2rem; }
+        
+        /* Floating text for penalties */
+        .floating-text { position: absolute; font-size: 2rem; font-weight: bold; color: #ff3333; text-shadow: 0 0 5px black; pointer-events: none; animation: floatUp 1s ease-out forwards; z-index: 20; }
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-50px) scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container"></div>
+
+<div id="ui-layer">
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+        <h1>HOT POTATO</h1>
+        <div class="menu-panel">
+            <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+            
+            <div class="setting-row mt-4">
+                <span class="setting-label">Game Mode</span>
+                <div class="setting-control">
+                    <button class="btn" style="margin:0; padding: 0.5rem;" id="mode-btn" onclick="toggleMode()">1 Player</button>
+                </div>
+            </div>
+            
+            <div class="setting-row">
+                <span class="setting-label">NPC Count</span>
+                <div class="setting-control">
+                    <button class="num-btn" onclick="adjNPC(-1)">-</button>
+                    <span class="num-val" id="npc-count-val">4</span>
+                    <button class="num-btn" onclick="adjNPC(1)">+</button>
+                </div>
+            </div>
+            
+            <div class="setting-row">
+                <span class="setting-label">Bomb Timer (s)</span>
+                <div class="setting-control">
+                    <button class="num-btn" onclick="adjTimer(-1)">-</button>
+                    <span class="num-val" id="timer-val">15</span>
+                    <button class="num-btn" onclick="adjTimer(1)">+</button>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <span class="setting-label">Spectate Mode</span>
+                <div class="setting-control">
+                    <button class="num-btn" style="width:auto; padding: 0 10px;" id="spectate-btn" onclick="toggleSpectate()">OFF</button>
+                </div>
+            </div>
+
+            <div class="setting-row">
+                <span class="setting-label">Pre-Solve Mode</span>
+                <div class="setting-control">
+                    <button class="num-btn" style="width:auto; padding: 0 10px;" id="presolve-btn" onclick="togglePreSolve()">OFF</button>
+                </div>
+            </div>
+        </div>
+        <div class="mt-8 text-gray-400 text-sm max-w-md text-center">
+            P1 Controls: Arrow Keys<br>
+            P2 Controls: WASD<br>
+            Complete the sequence quickly to pass the bomb. Mistakes reduce timer by 1s!
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="pointer-events-none">
+        <div class="top-hud">
+            <button class="icon-btn" onclick="pauseGame()">⏸</button>
+            <div id="game-timer" class="timer-container">15.0</div>
+            <div style="width:40px;"></div> <!-- Spacer -->
+        </div>
+
+        <div id="qte-ui" class="qte-container">
+            <div id="qte-prompt" class="qte-prompt-text">PRESS KEYS!</div>
+            <div id="qte-keys-container" class="qte-keys">
+                <!-- Keys injected here -->
+            </div>
+        </div>
+
+        <!-- Pre-Solve P1 -->
+        <div id="p1-qte-ui" class="side-qte left">
+            <div class="qte-prompt-text p1-prompt">P1 PREP</div>
+            <div id="p1-qte-keys-container" class="qte-keys"></div>
+            <div class="ready-text">READY!</div>
+        </div>
+        
+        <!-- Pre-Solve P2 -->
+        <div id="p2-qte-ui" class="side-qte right">
+            <div class="qte-prompt-text p2-prompt">P2 PREP</div>
+            <div id="p2-qte-keys-container" class="qte-keys"></div>
+            <div class="ready-text">READY!</div>
+        </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pause-screen" class="screen">
+        <h2 class="text-4xl font-bold mb-8">PAUSED</h2>
+        <div class="menu-panel">
+            <button class="btn btn-primary" onclick="resumeGame()">Resume</button>
+            <button class="btn" onclick="quitToMenu()">Quit to Menu</button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameover-screen" class="screen">
+        <div id="go-text" class="game-over-text">BOOM!</div>
+        <div id="winner-text" class="winner-text">Player X was eliminated!</div>
+        <div class="menu-panel">
+            <button class="btn btn-primary" onclick="startGame()">Play Again</button>
+            <button class="btn" onclick="quitToMenu()">Menu</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // --- Game State & Settings ---
+    let settings = {
+        players: 1, // 1 or 2
+        npcs: 4,
+        timerStart: 15,
+        spectate: false,
+        preSolve: false
+    };
+    
+    let gameState = {
+        isRunning: false,
+        isPaused: false,
+        isBombActive: false,
+        entities: [],
+        bombHolderIndex: -1,
+        bombTimer: 0,
+        bombBaseTimer: 0,
+        bombSpeedMultiplier: 1.0,
+        timeLastFrame: 0,
+        
+        qteActive: false,
+        qteTargetKeys: [],
+        qteCurrentStep: 0,
+        qtePlayerIndex: -1,
+        
+        preSolveStates: {
+            p1: { active: false, keys: [], step: 0, ready: false },
+            p2: { active: false, keys: [], step: 0, ready: false }
+        },
+
+        npcPassTimer: 0
+    };
+
+    // UI Elements
+    const screens = {
+        title: document.getElementById('title-screen'),
+        hud: document.getElementById('hud'),
+        pause: document.getElementById('pause-screen'),
+        gameover: document.getElementById('gameover-screen')
+    };
+    
+    const uiTimer = document.getElementById('game-timer');
+    const qteUI = document.getElementById('qte-ui');
+    const qteKeysContainer = document.getElementById('qte-keys-container');
+    const qtePrompt = document.getElementById('qte-prompt');
+
+    // Controls Maps
+    const P1_KEYS = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'];
+    const P1_DISP = ['↑', '↓', '←', '→'];
+    const P2_KEYS = ['w', 's', 'a', 'd', 'W', 'S', 'A', 'D'];
+    const P2_DISP = ['W', 'S', 'A', 'D'];
+
+    // --- Three.js Setup ---
+    const container = document.getElementById('game-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0a0a);
+    scene.fog = new THREE.Fog(0x0a0a0a, 20, 60);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(10, 20, 10);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 1024;
+    dirLight.shadow.mapSize.height = 1024;
+    scene.add(dirLight);
+    
+    // Bomb Light (attached to bomb later)
+    const bombLight = new THREE.PointLight(0xff3300, 2, 10);
+    scene.add(bombLight);
+
+    // Environment (Cylindrical Floor)
+    const floorGeo = new THREE.CylinderGeometry(20, 20, 1, 32);
+    const floorMat = new THREE.MeshStandardMaterial({ 
+        color: 0x1a1a1a, 
+        roughness: 0.8,
+        metalness: 0.2
+    });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.position.y = -0.5;
+    floor.receiveShadow = true;
+    scene.add(floor);
+
+    // Arena border
+    const borderGeo = new THREE.TorusGeometry(20, 0.5, 16, 64);
+    const borderMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.5 });
+    const border = new THREE.Mesh(borderGeo, borderMat);
+    border.rotation.x = Math.PI / 2;
+    border.position.y = 0;
+    scene.add(border);
+
+    // --- Models ---
+    const materials = {
+        p1: new THREE.MeshStandardMaterial({ color: 0xff3333, roughness: 0.4 }),
+        p2: new THREE.MeshStandardMaterial({ color: 0x3333ff, roughness: 0.4 }),
+        npc: new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.7 }),
+        eyeBlack: new THREE.MeshBasicMaterial({ color: 0x000000 }),
+        eyeWhite: new THREE.MeshBasicMaterial({ color: 0xffffff }),
+        bomb: new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8, roughness: 0.2 }),
+        fuse: new THREE.MeshBasicMaterial({ color: 0xffaa00 }),
+        charred: new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 1.0 })
+    };
+
+    function createCharacterModel(type) {
+        const group = new THREE.Group();
+        
+        // Body (Cube)
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.2, 1.2);
+        let mat = type === 'p1' ? materials.p1 : (type === 'p2' ? materials.p2 : materials.npc);
+        const body = new THREE.Mesh(bodyGeo, mat);
+        body.position.y = 0.6;
+        body.castShadow = true;
+        group.add(body);
+
+        // Hands (Balls)
+        const handGeo = new THREE.SphereGeometry(0.3, 16, 16);
+        const lHand = new THREE.Mesh(handGeo, mat);
+        lHand.position.set(-0.9, 0.6, 0);
+        lHand.castShadow = true;
+        const rHand = new THREE.Mesh(handGeo, mat);
+        rHand.position.set(0.9, 0.6, 0);
+        rHand.castShadow = true;
+        group.add(lHand, rHand);
+        group.userData.hands = { l: lHand, r: rHand };
+
+        // Eyes (Square)
+        const eyeGeo = new THREE.BoxGeometry(0.2, 0.2, 0.1);
+        const eyeMat = type === 'npc' ? materials.eyeWhite : materials.eyeBlack;
+        const lEye = new THREE.Mesh(eyeGeo, eyeMat);
+        lEye.position.set(-0.3, 0.9, 0.61);
+        const rEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rEye.position.set(0.3, 0.9, 0.61);
+        group.add(lEye, rEye);
+
+        // Mouth ('3' rotated 90 deg -> kind of an 'm' or 'w' shape, we'll approximate with shapes)
+        // A simple way is to use a small plane with a texture, but we'll use small boxes to form a shape
+        const mouthGroup = new THREE.Group();
+        const mPartGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+        const mMat = type === 'npc' ? materials.eyeWhite : materials.eyeBlack;
+        
+        // Create a 'W' shape
+        const p1 = new THREE.Mesh(mPartGeo, mMat); p1.position.set(-0.2, 0, 0);
+        const p2 = new THREE.Mesh(mPartGeo, mMat); p2.position.set(-0.1, -0.1, 0);
+        const p3 = new THREE.Mesh(mPartGeo, mMat); p3.position.set(0, 0, 0);
+        const p4 = new THREE.Mesh(mPartGeo, mMat); p4.position.set(0.1, -0.1, 0);
+        const p5 = new THREE.Mesh(mPartGeo, mMat); p5.position.set(0.2, 0, 0);
+        
+        mouthGroup.add(p1, p2, p3, p4, p5);
+        mouthGroup.position.set(0, 0.4, 0.61);
+        group.add(mouthGroup);
+
+        return group;
+    }
+
+    // The Bomb
+    const bombGroup = new THREE.Group();
+    const bombBodyGeo = new THREE.SphereGeometry(0.5, 16, 16);
+    const bombMesh = new THREE.Mesh(bombBodyGeo, materials.bomb);
+    bombMesh.castShadow = true;
+    bombGroup.add(bombMesh);
+    
+    const capGeo = new THREE.CylinderGeometry(0.15, 0.2, 0.2, 8);
+    const capMesh = new THREE.Mesh(capGeo, materials.bomb);
+    capMesh.position.y = 0.5;
+    bombGroup.add(capMesh);
+
+    const fuseGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.3);
+    const fuseMesh = new THREE.Mesh(fuseGeo, materials.fuse);
+    fuseMesh.position.set(0, 0.7, 0);
+    fuseMesh.rotation.z = Math.PI / 8;
+    bombGroup.add(fuseMesh);
+    scene.add(bombGroup);
+
+    // Sparks for fuse
+    const sparkGeo = new THREE.BufferGeometry();
+    const sparkCount = 20;
+    const sparkPositions = new Float32Array(sparkCount * 3);
+    sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPositions, 3));
+    const sparkMat = new THREE.PointsMaterial({ color: 0xffdd00, size: 0.1, transparent: true });
+    const sparks = new THREE.Points(sparkGeo, sparkMat);
+    bombGroup.add(sparks);
+
+    // --- UI Logic ---
+    function showScreen(screenName) {
+        Object.values(screens).forEach(s => s.classList.remove('active'));
+        if (screenName && screens[screenName]) {
+            screens[screenName].classList.add('active');
+        }
+    }
+
+    function toggleMode() {
+        settings.players = settings.players === 1 ? 2 : 1;
+        document.getElementById('mode-btn').innerText = settings.players + ' Player' + (settings.players > 1 ? 's' : '');
+        // If 2 players, ensure at least 2 entities total, maybe adjust NPCs
+        if (settings.players === 2 && settings.npcs < 1) {
+            settings.npcs = 1;
+            updateSettingsUI();
+        }
+    }
+
+    function adjNPC(dir) {
+        if (settings.preSolve) return; // Locked at max if pre-solve is on
+        settings.npcs += dir;
+        const minNpc = settings.players === 2 ? 0 : 1; // Need at least 2 entities total
+        if (settings.npcs < minNpc) settings.npcs = minNpc;
+        if (settings.npcs > 16) settings.npcs = 16;
+        updateSettingsUI();
+    }
+
+    function adjTimer(dir) {
+        settings.timerStart += dir * 5;
+        if (settings.timerStart < 5) settings.timerStart = 5;
+        if (settings.timerStart > 60) settings.timerStart = 60;
+        updateSettingsUI();
+    }
+
+    function toggleSpectate() {
+        settings.spectate = !settings.spectate;
+        document.getElementById('spectate-btn').innerText = settings.spectate ? 'ON' : 'OFF';
+    }
+
+    function togglePreSolve() {
+        settings.preSolve = !settings.preSolve;
+        document.getElementById('presolve-btn').innerText = settings.preSolve ? 'ON' : 'OFF';
+        if (settings.preSolve) {
+            settings.npcs = 16;
+            updateSettingsUI();
+        }
+    }
+
+    function updateSettingsUI() {
+        document.getElementById('npc-count-val').innerText = settings.npcs;
+        document.getElementById('timer-val').innerText = settings.timerStart;
+    }
+
+    // Input Handling
+    window.addEventListener('keydown', (e) => {
+        if (!gameState.isRunning || gameState.isPaused) return;
+
+        if (e.key === 'Escape') {
+            pauseGame();
+            return;
+        }
+
+        if (settings.preSolve) {
+            const isP1 = P1_KEYS.includes(e.key);
+            const isP2 = P2_KEYS.includes(e.key);
+            
+            if (isP1 && gameState.preSolveStates.p1.active) {
+                handlePreSolveInput('p1', e.key);
+            }
+            if (isP2 && gameState.preSolveStates.p2.active) {
+                handlePreSolveInput('p2', e.key);
+            }
+        } else if (gameState.qteActive) {
+            handleQTEInput(e.key);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // --- Game Logic ---
+
+    function initArena() {
+        // Clear old entities
+        gameState.entities.forEach(e => scene.remove(e.model));
+        gameState.entities = [];
+
+        let totalEntities = settings.npcs;
+        if (!settings.spectate) totalEntities += settings.players;
+        else totalEntities = settings.npcs; // If spectating, only NPCs play (or force min 2)
+        
+        if (totalEntities < 2) {
+            settings.npcs = 2 - (settings.spectate ? 0 : settings.players);
+            totalEntities = 2;
+        }
+
+        const radius = Math.max(5, totalEntities * 0.8);
+        const angleStep = (Math.PI * 2) / totalEntities;
+
+        let p1Added = false;
+        let p2Added = false;
+
+        for (let i = 0; i < totalEntities; i++) {
+            let type = 'npc';
+            let id = `NPC ${i+1}`;
+            
+            if (!settings.spectate) {
+                if (!p1Added) { type = 'p1'; id = 'Player 1'; p1Added = true; }
+                else if (settings.players === 2 && !p2Added) { type = 'p2'; id = 'Player 2'; p2Added = true; }
+            }
+
+            const model = createCharacterModel(type);
+            const angle = i * angleStep;
+            model.position.set(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+            model.lookAt(0, 0, 0); // Look at center
+
+            scene.add(model);
+            gameState.entities.push({
+                id: id,
+                type: type,
+                model: model,
+                angle: angle,
+                radius: radius,
+                isAlive: true
+            });
+        }
+        
+        // Setup Camera
+        if (settings.spectate) {
+            camera.position.set(0, radius * 1.5, radius * 2);
+            camera.lookAt(0, 0, 0);
+        } else {
+            // Position camera behind P1
+            const p1 = gameState.entities.find(e => e.type === 'p1');
+            if (p1) {
+                const camDist = radius + 8;
+                camera.position.set(
+                    Math.cos(p1.angle) * camDist,
+                    6,
+                    Math.sin(p1.angle) * camDist
+                );
+                camera.lookAt(0, 0, 0);
+            } else {
+                camera.position.set(0, 10, radius + 10);
+                camera.lookAt(0, 0, 0);
+            }
+        }
+    }
+
+    function startGame() {
+        initArena();
+        
+        gameState.bombBaseTimer = settings.timerStart;
+        gameState.bombTimer = gameState.bombBaseTimer;
+        gameState.bombSpeedMultiplier = 1.0;
+        gameState.qteActive = false;
+        gameState.isBombActive = true;
+        bombGroup.visible = true;
+        
+        // Pick random starting entity
+        gameState.bombHolderIndex = Math.floor(Math.random() * gameState.entities.length);
+        
+        updateBombPosition();
+        
+        gameState.isRunning = true;
+        gameState.isPaused = false;
+        gameState.timeLastFrame = performance.now();
+        
+        // Reset and init Pre-Solve UIs
+        document.getElementById('p1-qte-ui').classList.remove('active', 'is-ready');
+        document.getElementById('p2-qte-ui').classList.remove('active', 'is-ready');
+        if (settings.preSolve) {
+            const p1 = gameState.entities.find(e => e.type === 'p1');
+            if (p1 && p1.isAlive) initPreSolve('p1');
+            
+            const p2 = gameState.entities.find(e => e.type === 'p2');
+            if (p2 && p2.isAlive) initPreSolve('p2');
+        }
+
+        showScreen('hud');
+        qteUI.classList.remove('active');
+        
+        handleBombReceipt();
+        requestAnimationFrame(gameLoop);
+    }
+
+    function pauseGame() {
+        if (!gameState.isRunning) return;
+        gameState.isPaused = true;
+        showScreen('pause');
+    }
+
+    function resumeGame() {
+        gameState.isPaused = false;
+        gameState.timeLastFrame = performance.now();
+        showScreen('hud');
+        requestAnimationFrame(gameLoop);
+    }
+
+    function quitToMenu() {
+        gameState.isRunning = false;
+        showScreen('title');
+    }
+
+    function updateBombPosition() {
+        if (gameState.bombHolderIndex >= 0 && gameState.bombHolderIndex < gameState.entities.length) {
+            const holder = gameState.entities[gameState.bombHolderIndex];
+            // Position bomb in front of holder
+            const dirX = -Math.sin(holder.model.rotation.y); // pointing to center
+            const dirZ = -Math.cos(holder.model.rotation.y);
+            
+            bombGroup.position.set(
+                holder.model.position.x + dirX * 1.5,
+                1,
+                holder.model.position.z + dirZ * 1.5
+            );
+            bombLight.position.copy(bombGroup.position);
+            
+            // Raise hands
+            gameState.entities.forEach((e, idx) => {
+                const hands = e.model.userData.hands;
+                if (idx === gameState.bombHolderIndex) {
+                    hands.l.position.set(-0.6, 1.2, 0.8);
+                    hands.r.position.set(0.6, 1.2, 0.8);
+                } else {
+                    hands.l.position.set(-0.9, 0.6, 0);
+                    hands.r.position.set(0.9, 0.6, 0);
+                }
+            });
+        }
+    }
+
+    function handleBombReceipt() {
+        const holder = gameState.entities[gameState.bombHolderIndex];
+        
+        // Reset speed multiplier if passed successfully (handled here upon receipt)
+        // "if you pass the timer resets back to where it was if the going down fast didn't even happen"
+        // We achieve this by just resetting the multiplier to 1.0 and letting the timer continue from its current numerical value,
+        // or if meant literally, we don't restore time lost, we just stop the fast drain.
+        gameState.bombSpeedMultiplier = 1.0;
+
+        if (holder.type === 'npc') {
+            // NPC Logic
+            if (settings.preSolve) {
+                // Pass much faster in pre-solve mode (0.2s to 0.7s)
+                gameState.npcPassTimer = 0.2 + Math.random() * 0.5;
+            } else {
+                // Wait normal random time (1s to 3s)
+                gameState.npcPassTimer = 1.0 + Math.random() * 2.0;
+            }
+        } else {
+            // Player Logic
+            if (settings.preSolve) {
+                const pState = gameState.preSolveStates[holder.type];
+                if (pState.ready) {
+                    pState.ready = false;
+                    pState.active = false;
+                    document.getElementById(`${holder.type}-qte-ui`).classList.remove('is-ready');
+                    
+                    // Instantly pass if they already prepared
+                    setTimeout(() => {
+                        passBomb();
+                        if (gameState.entities.find(e => e.type === holder.type && e.isAlive)) {
+                            initPreSolve(holder.type);
+                        }
+                    }, 150);
+                } else {
+                    // They aren't ready. They must finish their pre-solve sequence while holding bomb.
+                    // Penalties apply now (handled in handlePreSolveInput).
+                }
+            } else {
+                generateQTE(holder.type);
+            }
+        }
+    }
+
+    function passBomb() {
+        qteUI.classList.remove('active');
+        gameState.qteActive = false;
+        
+        // Pass to next alive person sequentially in a circle
+        let nextIndex = gameState.bombHolderIndex;
+        do {
+            nextIndex = (nextIndex + 1) % gameState.entities.length;
+        } while (!gameState.entities[nextIndex].isAlive);
+        
+        gameState.bombHolderIndex = nextIndex;
+        updateBombPosition();
+        handleBombReceipt();
+    }
+
+    function generateQTE(playerType) {
+        gameState.qteActive = true;
+        gameState.qteCurrentStep = 0;
+        gameState.qtePlayerIndex = gameState.bombHolderIndex;
+        
+        // 4 or 6 keys
+        const numKeys = Math.random() > 0.5 ? 4 : 6;
+        gameState.qteTargetKeys = [];
+        
+        qteKeysContainer.innerHTML = '';
+        
+        qtePrompt.className = 'qte-prompt-text ' + (playerType === 'p1' ? 'p1-prompt' : 'p2-prompt');
+        qtePrompt.innerText = playerType === 'p1' ? 'P1: PRESS ARROWS!' : 'P2: PRESS WASD!';
+
+        for (let i = 0; i < numKeys; i++) {
+            let keyObj = {};
+            if (playerType === 'p1') {
+                const r = Math.floor(Math.random() * 4);
+                keyObj.expected = P1_KEYS[r];
+                keyObj.display = P1_DISP[r];
+            } else {
+                const r = Math.floor(Math.random() * 4);
+                keyObj.expected = P2_KEYS[r]; // lowercase
+                keyObj.display = P2_DISP[r];
+            }
+            gameState.qteTargetKeys.push(keyObj);
+            
+            const keyEl = document.createElement('div');
+            keyEl.className = 'qte-key';
+            keyEl.innerText = keyObj.display;
+            keyEl.id = `qte-key-${i}`;
+            qteKeysContainer.appendChild(keyEl);
+        }
+        
+        qteUI.classList.add('active');
+    }
+
+    function initPreSolve(type) {
+        const state = gameState.preSolveStates[type];
+        state.active = true;
+        state.step = 0;
+        state.ready = false;
+        state.keys = [];
+        
+        const ui = document.getElementById(`${type}-qte-ui`);
+        const container = document.getElementById(`${type}-qte-keys-container`);
+        ui.classList.remove('is-ready');
+        ui.classList.add('active');
+        container.innerHTML = '';
+        
+        // Longer sequence for pre-solve
+        const numKeys = Math.floor(Math.random() * 3) + 6; 
+        
+        for (let i = 0; i < numKeys; i++) {
+            let keyObj = {};
+            if (type === 'p1') {
+                const r = Math.floor(Math.random() * 4);
+                keyObj.expected = P1_KEYS[r];
+                keyObj.display = P1_DISP[r];
+            } else {
+                const r = Math.floor(Math.random() * 4);
+                keyObj.expected = P2_KEYS[r];
+                keyObj.display = P2_DISP[r];
+            }
+            state.keys.push(keyObj);
+            
+            const keyEl = document.createElement('div');
+            keyEl.className = 'qte-key';
+            keyEl.innerText = keyObj.display;
+            keyEl.id = `${type}-presolve-key-${i}`;
+            container.appendChild(keyEl);
+        }
+    }
+
+    function createFloatingText(text, x, y) {
+        const el = document.createElement('div');
+        el.className = 'floating-text';
+        el.innerText = text;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        document.getElementById('ui-layer').appendChild(el);
+        setTimeout(() => el.remove(), 1000);
+    }
+
+    function getScreenPosition(object) {
+        const vector = new THREE.Vector3();
+        vector.setFromMatrixPosition(object.matrixWorld);
+        vector.project(camera);
+        
+        const x = (vector.x * .5 + .5) * window.innerWidth;
+        const y = (vector.y * -.5 + .5) * window.innerHeight;
+        return {x, y};
+    }
+
+    function handlePreSolveInput(type, key) {
+        const state = gameState.preSolveStates[type];
+        if (state.ready || !state.active) return;
+        
+        const expected = state.keys[state.step].expected;
+        let matched = false;
+        if (expected.length === 1) { // WASD
+            matched = key.toLowerCase() === expected.toLowerCase();
+        } else {
+            matched = key === expected;
+        }
+        
+        const isHoldingBomb = (gameState.bombHolderIndex >= 0 && gameState.entities[gameState.bombHolderIndex].type === type);
+        
+        if (matched) {
+            const keyEl = document.getElementById(`${type}-presolve-key-${state.step}`);
+            if (keyEl) keyEl.classList.add('success');
+            state.step++;
+            
+            if (state.step >= state.keys.length) {
+                state.ready = true;
+                document.getElementById(`${type}-qte-ui`).classList.add('is-ready');
+                
+                if (isHoldingBomb) {
+                    state.active = false;
+                    setTimeout(() => {
+                        passBomb();
+                        if (gameState.entities.find(e => e.type === type && e.isAlive)) {
+                            initPreSolve(type);
+                        }
+                    }, 150);
+                }
+            }
+        } else {
+            // Wrong key
+            const keyEl = document.getElementById(`${type}-presolve-key-${state.step}`);
+            if (keyEl) {
+                keyEl.classList.add('fail');
+                setTimeout(() => keyEl.classList.remove('fail'), 300);
+            }
+            
+            if (isHoldingBomb) {
+                // Penalty
+                gameState.bombTimer -= 1.0;
+                if (gameState.bombTimer < 0) gameState.bombTimer = 0;
+                const holder = gameState.entities[gameState.bombHolderIndex];
+                const pos = getScreenPosition(holder.model);
+                createFloatingText("-1s", pos.x, pos.y - 50);
+            } else {
+                // Mistake while prepping resets progress
+                state.step = 0;
+                const keys = document.getElementById(`${type}-qte-keys-container`).children;
+                for(let i=0; i<keys.length; i++) {
+                    keys[i].classList.remove('success');
+                    keys[i].classList.remove('fail');
+                }
+            }
+        }
+    }
+
+    function handleQTEInput(key) {
+        if (gameState.qteCurrentStep >= gameState.qteTargetKeys.length) return; // Prevent extra inputs
+
+        const expected = gameState.qteTargetKeys[gameState.qteCurrentStep].expected;
+        
+        // Handle case sensitivity for P2 (w/W)
+        let matched = false;
+        if (expected.length === 1) { // WASD
+            matched = key.toLowerCase() === expected.toLowerCase();
+        } else { // Arrow keys
+            matched = key === expected;
+        }
+
+        const keyEl = document.getElementById(`qte-key-${gameState.qteCurrentStep}`);
+
+        if (matched) {
+            keyEl.classList.add('success');
+            gameState.qteCurrentStep++;
+            
+            if (gameState.qteCurrentStep >= gameState.qteTargetKeys.length) {
+                // Success! Pass bomb
+                gameState.qteActive = false; // Instantly deactivate QTE listening
+                setTimeout(passBomb, 150);
+            }
+        } else {
+            // Wrong key! Penalty
+            keyEl.classList.add('fail');
+            setTimeout(() => keyEl.classList.remove('fail'), 300);
+            
+            gameState.bombTimer -= 1.0;
+            if (gameState.bombTimer < 0) gameState.bombTimer = 0;
+            
+            const holder = gameState.entities[gameState.bombHolderIndex];
+            const pos = getScreenPosition(holder.model);
+            createFloatingText("-1s", pos.x, pos.y - 50);
+        }
+    }
+
+    function explode() {
+        gameState.isBombActive = false;
+        qteUI.classList.remove('active');
+        gameState.qteActive = false;
+        
+        // Explosion visual
+        const boomGeo = new THREE.SphereGeometry(2, 32, 32);
+        const boomMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.8 });
+        const boom = new THREE.Mesh(boomGeo, boomMat);
+        boom.position.copy(bombGroup.position);
+        scene.add(boom);
+        
+        // Hide bomb
+        bombGroup.visible = false;
+
+        // Hide pre-solve UI if they died
+        const holder = gameState.entities[gameState.bombHolderIndex];
+        if (settings.preSolve && (holder.type === 'p1' || holder.type === 'p2')) {
+            gameState.preSolveStates[holder.type].active = false;
+            document.getElementById(`${holder.type}-qte-ui`).classList.remove('active');
+        }
+        
+        // Animate explosion
+        let scale = 1;
+        
+        // Toss holder away and turn charred
+        holder.model.rotation.x = Math.PI / 2;
+        holder.model.position.y = 0.5;
+        
+        holder.model.children.forEach(c => {
+            if (c.isMesh && c.material !== materials.eyeWhite && c.material !== materials.eyeBlack) {
+                c.material = materials.charred;
+            }
+        });
+
+        const expandInterval = setInterval(() => {
+            scale += 0.5;
+            boom.scale.set(scale, scale, scale);
+            boomMat.opacity -= 0.05;
+            if (boomMat.opacity <= 0) {
+                clearInterval(expandInterval);
+                scene.remove(boom);
+                
+                holder.isAlive = false;
+                checkGameState();
+            }
+        }, 30);
+    }
+
+    function checkGameState() {
+        const aliveEntities = gameState.entities.filter(e => e.isAlive);
+        const aliveHumans = aliveEntities.filter(e => e.type === 'p1' || e.type === 'p2');
+
+        let gameOver = false;
+        let overMsg = "";
+
+        // Check Elimination limits
+        if (aliveEntities.length <= 1) {
+            gameOver = true;
+            if (aliveEntities.length === 1) {
+                overMsg = `${aliveEntities[0].id} WINS!`;
+            } else {
+                overMsg = "DRAW! Everyone exploded.";
+            }
+        } else if (!settings.spectate && aliveHumans.length === 0) {
+            // All humans are dead and we are not in spectate mode
+            gameOver = true;
+            overMsg = "All players eliminated!";
+        }
+
+        if (gameOver) {
+            showGameOver(overMsg);
+        } else {
+            startNewRound();
+        }
+    }
+
+    function startNewRound() {
+        // Pick a random alive entity to start the next bomb
+        const aliveEntities = gameState.entities.filter(e => e.isAlive);
+        const randomStarter = aliveEntities[Math.floor(Math.random() * aliveEntities.length)];
+        gameState.bombHolderIndex = gameState.entities.indexOf(randomStarter);
+
+        gameState.bombTimer = gameState.bombBaseTimer;
+        gameState.bombSpeedMultiplier = 1.0;
+        gameState.isBombActive = true;
+        bombGroup.visible = true;
+
+        if (settings.preSolve) {
+            const p1 = gameState.entities.find(e => e.type === 'p1');
+            if (p1 && p1.isAlive && !gameState.preSolveStates.p1.active) initPreSolve('p1');
+            
+            const p2 = gameState.entities.find(e => e.type === 'p2');
+            if (p2 && p2.isAlive && !gameState.preSolveStates.p2.active) initPreSolve('p2');
+        }
+
+        updateBombPosition();
+        handleBombReceipt();
+    }
+
+    function showGameOver(msg) {
+        document.getElementById('winner-text').innerText = msg;
+        showScreen('gameover');
+    }
+
+    function gameLoop(time) {
+        if (!gameState.isRunning || gameState.isPaused) return;
+
+        const dt = (time - gameState.timeLastFrame) / 1000;
+        gameState.timeLastFrame = time;
+
+        // Timer Logic
+        if (gameState.isBombActive && gameState.bombTimer > 0) {
+            
+            // "if you take long to pass the bomb the time starts going down faster"
+            // Increase speed multiplier over time if held by a player (or NPC)
+            gameState.bombSpeedMultiplier += dt * 0.05; 
+            
+            gameState.bombTimer -= dt * gameState.bombSpeedMultiplier;
+            
+            if (gameState.bombTimer <= 0) {
+                gameState.bombTimer = 0;
+                explode();
+            }
+        }
+        
+        // Update UI Timer
+        uiTimer.innerText = gameState.bombTimer.toFixed(1);
+        if (gameState.bombTimer <= 5) {
+            uiTimer.classList.add('warning');
+        } else {
+            uiTimer.classList.remove('warning');
+        }
+
+        // NPC Logic
+        if (gameState.isBombActive && gameState.bombHolderIndex >= 0 && gameState.entities[gameState.bombHolderIndex].type === 'npc' && gameState.bombTimer > 0) {
+            gameState.npcPassTimer -= dt;
+            if (gameState.npcPassTimer <= 0) {
+                passBomb();
+            }
+        }
+
+        // Animate Bomb Sparks
+        const positions = sparks.geometry.attributes.position.array;
+        for(let i=0; i<sparkCount; i++) {
+            // random movement
+            positions[i*3] = (Math.random() - 0.5) * 0.3;
+            positions[i*3+1] = 0.7 + Math.random() * 0.3;
+            positions[i*3+2] = (Math.random() - 0.5) * 0.3;
+        }
+        sparks.geometry.attributes.position.needsUpdate = true;
+        
+        // Bomb bobbing
+        if (bombGroup.visible) {
+            bombGroup.position.y = 1 + Math.sin(time * 0.01) * 0.1;
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(gameLoop);
+    }
+
+    // Initial render call to show background behind title
+    renderer.render(scene, camera);
+
+</script>
+</body>
+</html>
