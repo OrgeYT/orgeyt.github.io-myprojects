@@ -7,8 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: 'Inter', sans-serif; user-select: none; }
-        #game-ui, #main-menu, #settings-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-        #main-menu:not(.hidden), #settings-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
+        #game-ui, #main-menu, #settings-menu, #customize-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #main-menu:not(.hidden), #settings-menu:not(.hidden), #customize-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); }
         .btn { pointer-events: auto; transition: transform 0.1s, background-color 0.2s; }
         .btn:active { transform: scale(0.95); }
         #crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; background: rgba(255,255,255,0.8); border-radius: 50%; display: none; pointer-events: none; z-index: 100; }
@@ -65,6 +65,9 @@
                 <button id="btn-settings" class="btn w-full bg-gray-700 text-white font-bold py-3 rounded-lg border-2 border-gray-500 hover:bg-gray-600 flex items-center justify-center gap-2">
                     ⚙️ Game Settings
                 </button>
+                <button id="btn-customize" class="btn w-full bg-blue-600 text-white font-bold py-3 rounded-lg border-2 border-blue-400 hover:bg-blue-700 flex items-center justify-center gap-2">
+                    👕 Customize Player
+                </button>
             </div>
 
             <button id="btn-start" class="btn w-full bg-gradient-to-r from-green-400 to-emerald-600 text-white font-black text-2xl py-4 rounded-xl shadow-lg border border-green-300 uppercase tracking-wide">
@@ -75,44 +78,84 @@
 
     <!-- Settings Menu -->
     <div id="settings-menu" class="hidden z-50">
-        <div class="glass-panel p-8 flex flex-col items-center max-w-lg w-full text-white max-h-[90vh]">
-            <h1 class="text-3xl font-black mb-6 uppercase border-b-2 border-white/20 pb-2 w-full text-center">Settings</h1>
+        <div class="glass-panel p-8 flex flex-col items-center max-w-2xl w-full text-white max-h-[90vh] overflow-hidden">
+            <h1 class="text-3xl font-black mb-6 uppercase border-b-2 border-white/20 pb-2 w-full text-center">Game Settings</h1>
             
-            <div class="w-full space-y-5 overflow-y-auto pr-2" style="max-h: 60vh;">
-                <div>
-                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Number of NPCs:</span> <span id="npc-val">5</span></label>
-                    <input type="range" id="setting-npcs" min="1" max="100" value="5" class="w-full accent-red-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Bomb Timer (s):</span> <span id="timer-val">10</span></label>
-                    <input type="range" id="setting-timer" min="5" max="20" value="10" class="w-full accent-red-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Max Jumps:</span> <span id="jumps-val">2</span></label>
-                    <input type="range" id="setting-jumps" min="1" max="7" value="2" class="w-full accent-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Map Size:</span> <span id="mapsize-val">100</span></label>
-                    <input type="range" id="setting-mapsize" min="50" max="300" step="10" value="100" class="w-full accent-green-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-bold mb-1 flex justify-between"><span>Platforms Multiplier:</span> <span id="platmulti-val">1x</span></label>
-                    <input type="range" id="setting-platmulti" min="0" max="5" step="0.5" value="1" class="w-full accent-yellow-500">
-                </div>
-                
-                <div class="pt-4 border-t border-white/20">
-                    <label class="block text-sm font-bold mb-2">Allowed NPC Names:</label>
-                    <div class="flex gap-2 mb-2">
-                        <button id="btn-names-all" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded">Select All</button>
-                        <button id="btn-names-none" class="text-xs bg-white/20 hover:bg-white/30 px-2 py-1 rounded">Deselect All</button>
+            <div class="w-full flex flex-col md:flex-row gap-6 overflow-hidden h-full">
+                <div class="flex-1 space-y-4 overflow-y-auto pr-2 pb-2">
+                    <div>
+                        <label class="flex justify-between font-bold mb-1">Bots: <span id="npc-val" class="text-yellow-400">5</span></label>
+                        <input type="range" id="setting-npcs" min="0" max="100" value="5" class="w-full accent-red-500">
                     </div>
-                    <div id="npc-names-list" class="grid grid-cols-2 gap-1 bg-black/30 p-2 rounded max-h-40 overflow-y-auto">
+                    <div>
+                        <label class="flex justify-between font-bold mb-1">Bomb Timer: <span id="timer-val" class="text-yellow-400">10</span></label>
+                        <input type="range" id="setting-timer" min="5" max="20" value="10" class="w-full accent-red-500">
+                    </div>
+                    <div>
+                        <label class="flex justify-between font-bold mb-1">Max Jumps: <span id="jumps-val" class="text-yellow-400">2</span></label>
+                        <input type="range" id="setting-jumps" min="1" max="10" value="2" class="w-full accent-red-500">
+                    </div>
+                    <div>
+                        <label class="flex justify-between font-bold mb-1">Map Size: <span id="mapsize-val" class="text-yellow-400">100</span></label>
+                        <input type="range" id="setting-mapsize" min="15" max="350" step="1" value="100" class="w-full accent-red-500">
+                    </div>
+                    <div>
+                        <label class="flex justify-between font-bold mb-1">Platform Multiplier: <span id="platmulti-val" class="text-yellow-400">1x</span></label>
+                        <input type="range" id="setting-platmulti" min="0" max="3" step="0.5" value="1" class="w-full accent-red-500">
+                    </div>
+                </div>
+
+                <div class="flex-1 flex flex-col h-full min-h-[200px]">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="font-bold">Active Bot Names:</label>
+                        <div class="flex gap-2">
+                            <button id="btn-names-all" class="text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">All</button>
+                            <button id="btn-names-none" class="text-xs bg-gray-600 hover:bg-gray-500 px-2 py-1 rounded">None</button>
+                        </div>
+                    </div>
+                    <div id="npc-names-list" class="flex-1 overflow-y-auto bg-black/30 p-2 rounded border border-white/10 grid grid-cols-2 gap-1 content-start">
                         <!-- Populated by JS -->
                     </div>
                 </div>
             </div>
 
-            <button id="btn-settings-back" class="btn mt-6 w-full bg-white text-black font-bold text-lg py-3 rounded-xl shadow-lg">
+            <button id="btn-settings-back" class="btn mt-6 w-full bg-gray-700 text-white font-bold text-lg py-3 rounded-xl shadow-lg border-2 border-gray-500 hover:bg-gray-600">
+                Back to Menu
+            </button>
+        </div>
+    </div>
+
+    <!-- Customize Menu -->
+    <div id="customize-menu" class="hidden z-50">
+        <div class="glass-panel p-8 flex flex-col items-center max-w-md w-full text-white">
+            <h1 class="text-3xl font-black mb-6 uppercase border-b-2 border-white/20 pb-2 w-full text-center">Customize</h1>
+            
+            <!-- 3D Preview Container -->
+            <div id="preview-3d" class="w-48 h-48 mb-6 rounded-xl border-2 border-white/20 bg-black/40 overflow-hidden relative shadow-inner flex items-center justify-center"></div>
+
+            <div class="w-full space-y-5">
+                <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
+                    <label class="font-bold">Body Color:</label>
+                    <input type="color" id="edit-body-color" value="#22c55e" class="w-12 h-12 cursor-pointer bg-transparent border-0 rounded">
+                </div>
+                <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
+                    <label class="font-bold">Hat:</label>
+                    <select id="edit-hat" class="bg-gray-700 text-white p-2 rounded outline-none border border-gray-500 font-semibold cursor-pointer">
+                        <option value="none">None</option>
+                        <option value="santa">Santa Hat</option>
+                        <option value="cone">Traffic Cone</option>
+                        <option value="beanie">Beanie</option>
+                        <option value="bomb">Bomb Hat</option>
+                        <option value="crown">OrgeYT's Crown</option>
+                    </select>
+                </div>
+                <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
+                    <label class="font-bold text-sm">Hat Color:</label>
+                    <input type="color" id="edit-hat-color" value="#ff0000" class="w-12 h-12 cursor-pointer bg-transparent border-0 rounded opacity-30" disabled>
+                </div>
+            </div>
+
+            <button id="btn-customize-back" class="btn mt-8 w-full bg-blue-600 text-white font-bold text-lg py-3 rounded-xl shadow-lg border-2 border-blue-400 hover:bg-blue-700">
                 Save & Back
             </button>
         </div>
@@ -210,12 +253,24 @@
         let lastTickInt = 0;
         let clock = new THREE.Clock();
 
+        // --- Cinematic Intro ---
+        let introTimer = 0;
+        let introEndPanCamPos = new THREE.Vector3();
+        let introEndPanLookPos = new THREE.Vector3();
+
+        // --- Player Customization ---
+        let playerBodyColor = '#22c55e';
+        let playerHatType = 'none';
+        let playerHatColor = '#ff0000';
+
         // --- Game Settings ---
         let MAP_SIZE = 100;
         let platformMultiplier = 1.0;
         let maxAllowedJumps = 2;
         let spectateTarget = null; // Who we are currently orbiting in spectate mode
         let raycaster = new THREE.Raycaster();
+        
+        let previewScene, previewCamera, previewRenderer, previewGroup;
 
         const GRAVITY = -30;
         const JUMP_FORCE = 15;
@@ -264,8 +319,66 @@
             buildMap();
             createBomb();
             populateNamesList();
+            initPreview(); // Setup 3D preview
             
             window.addEventListener('resize', onWindowResize);
+        }
+
+        function initPreview() {
+            const container = document.getElementById('preview-3d');
+            previewScene = new THREE.Scene();
+            
+            const amb = new THREE.AmbientLight(0xffffff, 0.6);
+            previewScene.add(amb);
+            const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+            dir.position.set(5, 10, 5);
+            previewScene.add(dir);
+
+            previewCamera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+            previewCamera.position.set(0, 2, 8);
+            
+            previewRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            // Use static size to fit the container precisely 
+            previewRenderer.setSize(192, 192); 
+            container.appendChild(previewRenderer.domElement);
+
+            previewGroup = new THREE.Group();
+            previewScene.add(previewGroup);
+            updatePreview();
+        }
+
+        function updatePreview() {
+            // Clear existing preview mesh
+            while(previewGroup.children.length > 0){ 
+                previewGroup.remove(previewGroup.children[0]); 
+            }
+            
+            const bodyColor = document.getElementById('edit-body-color').value;
+            const hatType = document.getElementById('edit-hat').value;
+            const hatColor = document.getElementById('edit-hat-color').value;
+
+            const bodyMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(bodyColor), roughness: 0.4 });
+            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), bodyMat);
+            bodyMesh.position.y = 1; // Pivot at bottom
+            previewGroup.add(bodyMesh);
+
+            const eyeGeo = new THREE.SphereGeometry(0.3, 16, 16);
+            eyeGeo.scale(1, 2, 0.4);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.4, 1.2, 1.05);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.4, 1.2, 1.05);
+            previewGroup.add(leftEye, rightEye);
+
+            const myHat = buildHat(hatType, hatColor);
+            if (myHat) {
+                myHat.position.y = 1; // Sit exactly on top of the 2x2x2 body mesh
+                bodyMesh.add(myHat);
+            }
+            
+            // Re-center group for spinning
+            previewGroup.position.y = -1;
         }
 
         function createStudTexture() {
@@ -297,7 +410,7 @@
             mapObjects = [];
             platforms = [];
 
-            scene.fog = new THREE.Fog(0x87CEEB, Math.max(30, MAP_SIZE * 0.3), MAP_SIZE * 1.5);
+           // scene.fog = new THREE.Fog(0x87CEEB, Math.max(30, MAP_SIZE * 0.3), MAP_SIZE * 1.5);
 
             // Floor
             const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
@@ -386,12 +499,62 @@
             bombMesh = grp;
         }
 
+        function buildHat(type, colorHex) {
+            if (!type || type === 'none') return null;
+            const hatGroup = new THREE.Group();
+            const color = new THREE.Color(colorHex);
+            
+            if (type === 'santa') {
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.5, 16), new THREE.MeshStandardMaterial({ color: color }));
+                cone.position.y = 0.75;
+                const brim = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.2, 8, 24), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                brim.rotation.x = Math.PI / 2;
+                const ball = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                ball.position.y = 1.5;
+                hatGroup.add(cone, brim, ball);
+            } else if (type === 'cone') {
+                const base = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 1.8), new THREE.MeshStandardMaterial({ color: color }));
+                const cone = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.6, 16), new THREE.MeshStandardMaterial({ color: color }));
+                cone.position.y = 0.8;
+                const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.4, 16), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                stripe.position.y = 0.7;
+                hatGroup.add(base, cone, stripe);
+            } else if (type === 'beanie') {
+                const dome = new THREE.Mesh(new THREE.SphereGeometry(0.85, 16, 16, 0, Math.PI*2, 0, Math.PI/2), new THREE.MeshStandardMaterial({ color: color }));
+                const ball = new THREE.Mesh(new THREE.SphereGeometry(0.25, 16, 16), new THREE.MeshStandardMaterial({ color: color }));
+                ball.position.y = 0.85;
+                hatGroup.add(dome, ball);
+            } else if (type === 'bomb') {
+                const geo = new THREE.SphereGeometry(0.6, 16, 16);
+                const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 });
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.y = 0.6;
+                const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), new THREE.MeshBasicMaterial({ color: 0x884400 }));
+                fuse.position.y = 1.3;
+                const spark = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+                spark.position.y = 1.5;
+                hatGroup.add(mesh, fuse, spark);
+            } else if (type === 'crown') {
+                const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.8, 0.8, 8, 1, true), new THREE.MeshStandardMaterial({ color: color, side: THREE.DoubleSide }));
+                crown.position.y = 0.4;
+                for (let i=0; i<4; i++) {
+                    const gem = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
+                    gem.position.set(Math.cos(i*Math.PI/2)*0.9, 0.4, Math.sin(i*Math.PI/2)*0.9);
+                    hatGroup.add(gem);
+                }
+                hatGroup.add(crown);
+            }
+            return hatGroup;
+        }
+
         class Character {
-            constructor(isPlayer, id, name) {
+            constructor(isPlayer, id, name, bodyColorHex, hatType, hatColorHex) {
                 this.id = id;
                 this.isPlayer = isPlayer;
                 this.name = name;
-                this.color = new THREE.Color().setHSL(Math.random(), 0.8, 0.5);
+                this.color = new THREE.Color(bodyColorHex);
+                this.hatType = hatType;
+                this.hatColorHex = hatColorHex;
                 
                 // Spawn randomly within map bounds safely
                 const spawnRange = (MAP_SIZE / 2) - 5;
@@ -445,6 +608,12 @@
                 this.rightHand.castShadow = true;
                 this.mesh.add(this.leftHand, this.rightHand);
 
+                const myHat = buildHat(this.hatType, this.hatColorHex);
+                if (myHat) {
+                    myHat.position.y = 1; // Sit exactly on top of the body
+                    this.bodyMesh.add(myHat);
+                }
+
                 this.mesh.position.copy(this.position);
                 scene.add(this.mesh);
 
@@ -454,7 +623,7 @@
                 document.getElementById('nametags-container').appendChild(this.nametag);
             }
 
-            update(dt, time) {
+            update(dt, time, isIntro = false) {
                 if(this.isDead) return;
 
                 this.leftHand.position.y = 1 + Math.sin(time * 5 + this.id) * 0.2;
@@ -527,7 +696,7 @@
 
                 this.mesh.position.copy(this.position);
 
-                if(!this.isPlayer) {
+                if(!this.isPlayer && !isIntro) {
                     this.runAI(dt, time);
 
                     if(this.position.distanceToSquared(this.lastPos) < 0.001) {
@@ -542,9 +711,16 @@
                 }
                 this.lastPos.copy(this.position);
 
+                if(isIntro) {
+                    this.velocity.x = 0;
+                    this.velocity.z = 0;
+                }
+
                 if(Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1) {
                     const angle = Math.atan2(this.velocity.x, this.velocity.z);
                     this.mesh.rotation.y = angle;
+                } else if (isIntro) {
+                    this.mesh.rotation.y = 0; // Face forward during intro line-up
                 }
             }
 
@@ -699,26 +875,30 @@
                             if (Math.sin(time * 2.5 + this.id) > 0) moveDir.negate();
                             if (Math.random() < 0.015) this.jump();
                         } else {
-                            moveDir.subVectors(this.position, bombHolder.position);
-                            moveDir.y = 0;
-                            moveDir.normalize();
+                            let dirFromBomb = new THREE.Vector3().subVectors(this.position, bombHolder.position);
+                            dirFromBomb.y = 0;
+                            dirFromBomb.normalize();
 
-                            for(let p of players) {
-                                if (p !== this && p !== bombHolder && !p.isDead) {
-                                    if (this.position.distanceToSquared(p.position) < 64) {
-                                        let awayP = new THREE.Vector3().subVectors(this.position, p.position);
-                                        awayP.y = 0;
-                                        moveDir.addScaledVector(awayP.normalize(), 0.6);
-                                    }
-                                }
-                            }
-
+                            // Evaluate walls
                             const wallMargin = 15;
                             const limit = MAP_SIZE / 2;
-                            if (this.position.x < -limit + wallMargin) moveDir.x += (wallMargin - (this.position.x - -limit)) * 0.15;
-                            if (this.position.x > limit - wallMargin) moveDir.x -= (wallMargin - (limit - this.position.x)) * 0.15;
-                            if (this.position.z < -limit + wallMargin) moveDir.z += (wallMargin - (this.position.z - -limit)) * 0.15;
-                            if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
+                            let wallForce = new THREE.Vector3();
+                            if (this.position.x < -limit + wallMargin) wallForce.x += (wallMargin - (this.position.x - -limit)) * 0.3;
+                            if (this.position.x > limit - wallMargin) wallForce.x -= (wallMargin - (limit - this.position.x)) * 0.3;
+                            if (this.position.z < -limit + wallMargin) wallForce.z += (wallMargin - (this.position.z - -limit)) * 0.3;
+                            if (this.position.z > limit - wallMargin) wallForce.z -= (wallMargin - (limit - this.position.z)) * 0.3;
+                            
+                            // If cornered by the wall while running away, strafe!
+                            if (wallForce.lengthSq() > 0.5 && dirFromBomb.dot(wallForce) < -0.2) {
+                                let strafe = new THREE.Vector3(-dirFromBomb.z, 0, dirFromBomb.x);
+                                if (strafe.dot(this.position) > 0) strafe.negate(); // Steer towards open map center
+                                moveDir.addScaledVector(strafe, 1.5);
+                                if (Math.random() < 0.05) this.jump();
+                            } else {
+                                moveDir.copy(dirFromBomb); // Run straight away
+                            }
+                            
+                            moveDir.add(wallForce); // Apply wall avoidance
                             moveDir.normalize();
                         }
                     }
@@ -802,13 +982,17 @@
             maxAllowedJumps = parseInt(document.getElementById('setting-jumps').value);
             MAP_SIZE = parseInt(document.getElementById('setting-mapsize').value);
             platformMultiplier = parseFloat(document.getElementById('setting-platmulti').value);
-            buildMap(); // Rebuild world based on new size/density
+            buildMap(); 
 
             bombTimer = initialBombTimer = timer;
             bombSpawnDelay = 0;
             gameMode = mode;
-            gameState = 'playing';
+            gameState = 'intro';
+            introTimer = 0;
             spectateTarget = null;
+            camYaw = 0;
+            camPitch = 0.2;
+            camZoom = 12;
             
             document.getElementById('nametags-container').innerHTML = '';
             document.getElementById('main-menu').classList.add('hidden');
@@ -817,19 +1001,33 @@
             document.getElementById('crosshair').style.display = 'block';
             
             if (gameMode === 'play') {
-                myPlayer = new Character(true, 'player', 'User');
+                myPlayer = new Character(true, 'player', 'User', playerBodyColor, playerHatType, playerHatColor);
                 players.push(myPlayer);
             } else {
                 myPlayer = null;
             }
 
             const availableNames = getSelectedNames();
+            const hatTypes = ['none', 'none', 'santa', 'cone', 'beanie', 'bomb', 'crown'];
             for(let i=0; i<npcs; i++) {
                 const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
-                players.push(new Character(false, 'npc_'+i, randomName));
+                const rBody = '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString();
+                const rHat = hatTypes[Math.floor(Math.random() * hatTypes.length)];
+                const rHatColor = '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString();
+                players.push(new Character(false, 'npc_'+i, randomName, rBody, rHat, rHatColor));
             }
+            
+            if(players.length === 0) return;
 
-            assignBombToRandom();
+            // Line up players for intro sequence
+            const spacing = 3.5;
+            const startX = -(players.length * spacing) / 2;
+            players.forEach((p, i) => {
+                p.position.set(startX + i * spacing + (spacing/2), 10, 0);
+                p.velocity.set(0,0,0);
+            });
+
+            document.getElementById('ui-mode-text').innerText = "Match Starting...";
 
             sounds.bgm.currentTime = 0;
             sounds.bgm.play().catch(()=>{});
@@ -970,6 +1168,36 @@
             document.getElementById('main-menu').classList.remove('hidden');
         });
 
+        document.getElementById('btn-customize').addEventListener('click', () => {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('customize-menu').classList.remove('hidden');
+            updatePreview();
+        });
+        document.getElementById('btn-customize-back').addEventListener('click', () => {
+            playerBodyColor = document.getElementById('edit-body-color').value;
+            playerHatType = document.getElementById('edit-hat').value;
+            playerHatColor = document.getElementById('edit-hat-color').value;
+            
+            document.getElementById('customize-menu').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        });
+        document.getElementById('edit-hat').addEventListener('change', (e) => {
+            const val = e.target.value;
+            const colorPicker = document.getElementById('edit-hat-color');
+            if (val === 'none') {
+                colorPicker.disabled = true;
+                colorPicker.style.opacity = '0.3';
+            } else {
+                colorPicker.disabled = false;
+                colorPicker.style.opacity = '1';
+            }
+            updatePreview();
+        });
+        
+        // Listen for color changes for live updates
+        document.getElementById('edit-body-color').addEventListener('input', updatePreview);
+        document.getElementById('edit-hat-color').addEventListener('input', updatePreview);
+
         document.getElementById('btn-names-all').addEventListener('click', () => {
             document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = true);
         });
@@ -1058,6 +1286,58 @@
             }
         }
 
+        function updateIntroCamera(dt, introTimer) {
+            let activeTarget = (gameMode === 'play') ? myPlayer : spectateTarget;
+            if(!activeTarget && players.length > 0) activeTarget = players[0];
+            
+            if (introTimer < 3.5) {
+                // Phase 1: Orbit all players
+                const N = players.length;
+                const radius = Math.max(15, 10 + N * 1.5);
+                const angle = -Math.PI/2 + (introTimer / 3.5) * (Math.PI * 2);
+                camera.position.set(Math.sin(angle) * radius, 6 + radius*0.1, Math.cos(angle) * radius);
+                camera.lookAt(0, 2, 0);
+            } else if (introTimer < 6.5) {
+                // Phase 2: Pan across the line
+                let t = (introTimer - 3.5) / 3.0;
+                t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
+                
+                let targetIdx = t * (players.length - 1);
+                let idx1 = Math.floor(targetIdx);
+                let idx2 = Math.ceil(targetIdx);
+                let blend = targetIdx - idx1;
+                
+                let p1 = players[idx1].position;
+                let p2 = players[idx2].position;
+                
+                let lookPos = new THREE.Vector3().lerpVectors(p1, p2, blend);
+                lookPos.y += 1;
+                
+                camera.position.set(lookPos.x, lookPos.y + 3, lookPos.z + 12);
+                camera.lookAt(lookPos);
+                
+                introEndPanCamPos.copy(camera.position);
+                introEndPanLookPos.copy(lookPos);
+            } else {
+                // Phase 3: Zoom to active player and transition into standard 3rd person
+                let t = (introTimer - 6.5) / 2.0;
+                t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+                
+                const targetPos = activeTarget.position.clone();
+                targetPos.y += 1;
+                
+                const finalCamX = targetPos.x + camZoom * Math.sin(camYaw) * Math.cos(camPitch);
+                const finalCamY = targetPos.y + camZoom * Math.sin(camPitch);
+                const finalCamZ = targetPos.z + camZoom * Math.cos(camYaw) * Math.cos(camPitch);
+                const finalCamPos = new THREE.Vector3(finalCamX, finalCamY, finalCamZ);
+                
+                camera.position.lerpVectors(introEndPanCamPos, finalCamPos, t);
+                
+                let currentLookPos = new THREE.Vector3().lerpVectors(introEndPanLookPos, targetPos, t);
+                camera.lookAt(currentLookPos);
+            }
+        }
+
         function updateUI() {
             // Update Nametags
             players.forEach(p => {
@@ -1120,6 +1400,33 @@
 
             const dt = Math.min(clock.getDelta(), 0.1);
             const time = clock.getElapsedTime();
+
+            if (gameState === 'intro') {
+                introTimer += dt;
+                
+                if (gameMode === 'spectate' && !spectateTarget && players.length > 0) {
+                    spectateTarget = players[0];
+                }
+
+                // Update players physically so they fall to ground, but isIntro prevents movement AI
+                players.forEach(p => p.update(dt, time, true));
+                physicsWorld.step(dt);
+                
+                updateIntroCamera(dt, introTimer);
+                updateUI();
+
+                // Teleport to map and begin game at 8.5 seconds
+                if (introTimer >= 8.5) {
+                    gameState = 'playing';
+                    const spawnRange = (MAP_SIZE / 2) - 5;
+                    players.forEach(p => {
+                        p.position.set((Math.random()-0.5)*spawnRange*2, 10, (Math.random()-0.5)*spawnRange*2);
+                        p.velocity.set(0,0,0);
+                    });
+                    assignBombToRandom();
+                    document.getElementById('ui-mode-text').innerText = "WASD to Move | Mouse to Look | Scroll to Zoom | Click to Target (Spectator)";
+                }
+            }
 
             if (gameState === 'playing') {
                 if (globalPassCooldown > 0) globalPassCooldown -= dt;
@@ -1188,6 +1495,12 @@
 
                 updateCamera();
                 updateUI();
+            }
+            
+            // Render 3D Customization Preview when menu is open
+            if (!document.getElementById('customize-menu').classList.contains('hidden') && previewGroup) {
+                previewGroup.rotation.y += dt;
+                previewRenderer.render(previewScene, previewCamera);
             }
 
             renderer.render(scene, camera);
