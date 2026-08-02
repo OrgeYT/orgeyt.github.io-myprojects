@@ -228,7 +228,8 @@ const projects = [
     { name: "Maze game", path: "scratch-1365697884" },
     "pass the bomb 3D",
     { name: "Spider Escape", path: "scratch-1365895767" },
-    "hot potato"
+    "hot potato",
+    { name: "Percision hopper", path: "scratch-1365781683" },
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
