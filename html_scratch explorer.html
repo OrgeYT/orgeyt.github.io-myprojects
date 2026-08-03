@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch Explorer & User Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-screen flex items-center justify-center p-4 font-sans antialiased text-slate-800">
+
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 backdrop-blur-sm my-6">
+        
+        <!-- Header & Navigation -->
+        <div class="bg-slate-50 border-b border-slate-100 p-6 text-center">
+            <div class="w-16 h-16 bg-gradient-to-tr from-orange-400 to-yellow-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-orange-200 mb-3 transform -rotate-6">
+                <i class="fa-solid fa-cat text-white text-3xl transform rotate-6"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Scratch Explorer</h1>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Projects & Users</p>
+
+            <!-- Mode Switcher Tabs -->
+            <div class="flex bg-slate-200/70 p-1 rounded-xl mt-5 gap-1">
+                <button id="tabProjectsBtn" onclick="switchTab('projects')"
+                    class="flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-indigo-600 shadow-sm">
+                    <i class="fa-solid fa-gamepad mr-1.5"></i> Projects
+                </button>
+                <button id="tabUsersBtn" onclick="switchTab('users')"
+                    class="flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900">
+                    <i class="fa-solid fa-user mr-1.5"></i> Users
+                </button>
+            </div>
+        </div>
+
+        <div class="p-6">
+            
+            <!-- SECTION 1: PROJECT GENERATOR -->
+            <div id="sectionProjects" class="space-y-6">
+                <!-- Manual ID Input -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Project ID</label>
+                        <div class="flex gap-2">
+                            <input type="number" id="manualProjectId" placeholder="e.g. 1365781683" 
+                                class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none text-slate-700 font-medium">
+                            <button onclick="handleManualProjectSearch()" 
+                                class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white px-5 py-3 rounded-xl font-semibold transition shadow-md">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center py-1">
+                        <div class="flex-grow border-t border-slate-200"></div>
+                        <span class="flex-shrink-0 mx-4 text-slate-300 text-xs font-bold uppercase tracking-wider">OR</span>
+                        <div class="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <!-- Random Project Button -->
+                    <button onclick="handleRandomProject()" 
+                        class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-dice"></i>
+                        <span>Generate Random Project</span>
+                    </button>
+                </div>
+
+                <!-- Project Result Card -->
+                <div id="projectResultCard" class="hidden fade-in bg-slate-50 rounded-2xl p-4 border border-slate-100 shadow-inner">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Selected</span>
+                        <span id="displayProjectId" class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-1 rounded-md font-mono font-bold"></span>
+                    </div>
+
+                    <!-- Thumbnail -->
+                    <div class="w-full aspect-[4/3] bg-slate-200 rounded-xl overflow-hidden shadow-md relative mb-4 flex items-center justify-center">
+                        <img id="projectThumb" src="" alt="Project Thumbnail" class="w-full h-full object-cover relative z-10" 
+                            onerror="this.src='https://scratch.mit.edu/images/scratch-og.png';">
+                    </div>
+
+                    <!-- Title -->
+                    <h2 id="projectTitle" class="text-lg font-bold text-slate-800 leading-tight mb-3 text-center line-clamp-2">
+                        ???
+                    </h2>
+
+                    <!-- Author Badge / Link -->
+                    <div id="authorContainer" class="hidden flex items-center justify-center gap-2 mb-4 bg-white py-2 px-3 rounded-xl border border-slate-200/60 shadow-sm cursor-pointer hover:bg-slate-100/80 transition" onclick="inspectOwnerFromProject()">
+                        <img id="authorAvatar" src="" class="w-6 h-6 rounded-full object-cover" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/user/0_60x60.png';">
+                        <span class="text-xs font-semibold text-slate-600">Created by <strong id="authorName" class="text-indigo-600">???</strong></span>
+                        <i class="fa-solid fa-chevron-right text-xs text-slate-400 ml-auto"></i>
+                    </div>
+
+                    <!-- Turbowarp Link Button -->
+                    <a id="turbowarpLink" href="#" target="_blank" rel="noopener noreferrer"
+                        class="block w-full text-center bg-sky-500 hover:bg-sky-400 text-white font-bold py-3.5 px-4 rounded-xl transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bolt"></i>
+                        Does this project work?
+                    </a>
+                </div>
+            </div>
+
+            <!-- SECTION 2: USER GENERATOR -->
+            <div id="sectionUsers" class="hidden space-y-6">
+                <!-- Manual User Input -->
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Scratch Username</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="manualUsername" placeholder="e.g. griffpatch" 
+                                class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all outline-none text-slate-700 font-medium">
+                            <button onclick="handleManualUserSearch()" 
+                                class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white px-5 py-3 rounded-xl font-semibold transition shadow-md">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="relative flex items-center py-1">
+                        <div class="flex-grow border-t border-slate-200"></div>
+                        <span class="flex-shrink-0 mx-4 text-slate-300 text-xs font-bold uppercase tracking-wider">OR</span>
+                        <div class="flex-grow border-t border-slate-200"></div>
+                    </div>
+
+                    <!-- Random User Button -->
+                    <button id="randomUserBtn" onclick="handleRandomUser()" 
+                        class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-95 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-pink-200 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-shuffle"></i>
+                        <span id="randomUserBtnText">Generate Random User</span>
+                    </button>
+                </div>
+
+                <!-- User Result Card -->
+                <div id="userResultCard" class="hidden fade-in bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-inner space-y-4">
+                    
+                    <!-- Avatar & Primary Info Header (Name & PFP Only) -->
+                    <div class="flex items-center gap-4">
+                        <img id="userAvatar" src="" alt="User Avatar" 
+                            class="w-16 h-16 rounded-2xl object-cover shadow-md bg-white p-0.5 border border-slate-100"
+                            onerror="this.src='https://cdn2.scratch.mit.edu/get_image/user/0_90x90.png';">
+                        <div class="overflow-hidden flex-1">
+                            <div class="flex items-center gap-2">
+                                <h3 id="displayUsername" class="text-lg font-bold text-slate-800 truncate">???</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Details Button -->
+                    <button id="toggleDetailsBtn" onclick="toggleMoreDetails()"
+                        class="w-full text-xs font-bold text-slate-500 bg-slate-200/60 hover:bg-slate-200 active:scale-95 transition py-2.5 px-3 rounded-xl flex items-center justify-center gap-2">
+                        <span>Show More Details</span>
+                        <i id="toggleDetailsIcon" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
+                    </button>
+
+                    <!-- Extra Details Container (Hidden by default) -->
+                    <div id="extraUserDetails" class="hidden space-y-4 border-t border-slate-200/80 pt-4">
+                        <div class="flex items-center gap-2">
+                            <span id="scratchTeamBadge" class="hidden bg-orange-100 text-orange-600 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Scratch Team</span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                            <p id="userJoined" class="text-slate-400"><i class="fa-regular fa-calendar mr-1"></i> Joined: ???</p>
+                            <p id="userCountry" class="text-slate-500 font-medium"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ???</p>
+                        </div>
+
+                        <!-- About Me (Bio) -->
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">About Me</h4>
+                            <p id="userBio" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 max-h-28 overflow-y-auto whitespace-pre-line leading-relaxed">
+                                No bio provided.
+                            </p>
+                        </div>
+
+                        <!-- What I'm Working On (Status) -->
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">What I'm Working On</h4>
+                            <p id="userStatus" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 max-h-28 overflow-y-auto whitespace-pre-line leading-relaxed">
+                                No status provided.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Projects Button & Section -->
+                    <button id="recentProjectsBtn" onclick="toggleRecentProjects()"
+                        class="w-full text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 active:scale-95 transition py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-amber-200">
+                        <i class="fa-solid fa-folder-open text-amber-600"></i>
+                        <span>Show 3 Most Recent Projects</span>
+                        <i id="recentProjectsIcon" class="fa-solid fa-chevron-down transition-transform duration-200 ml-auto"></i>
+                    </button>
+
+                    <div id="recentProjectsContainer" class="hidden space-y-2.5 pt-1">
+                        <!-- Populated dynamically via JS -->
+                    </div>
+
+                    <!-- Link to Scratch Profile -->
+                    <a id="scratchProfileLink" href="#" target="_blank" rel="noopener noreferrer"
+                        class="block w-full text-center bg-orange-500 hover:bg-orange-400 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                        <span>Visit Scratch Profile</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements - Navigation
+        const sectionProjects = document.getElementById('sectionProjects');
+        const sectionUsers = document.getElementById('sectionUsers');
+        const tabProjectsBtn = document.getElementById('tabProjectsBtn');
+        const tabUsersBtn = document.getElementById('tabUsersBtn');
+
+        // DOM Elements - Project Section
+        const manualProjectId = document.getElementById('manualProjectId');
+        const projectResultCard = document.getElementById('projectResultCard');
+        const displayProjectId = document.getElementById('displayProjectId');
+        const projectThumb = document.getElementById('projectThumb');
+        const projectTitle = document.getElementById('projectTitle');
+        const turbowarpLink = document.getElementById('turbowarpLink');
+        const authorContainer = document.getElementById('authorContainer');
+        const authorAvatar = document.getElementById('authorAvatar');
+        const authorName = document.getElementById('authorName');
+
+        // DOM Elements - User Section
+        const manualUsername = document.getElementById('manualUsername');
+        const userResultCard = document.getElementById('userResultCard');
+        const userAvatar = document.getElementById('userAvatar');
+        const displayUsername = document.getElementById('displayUsername');
+        const scratchTeamBadge = document.getElementById('scratchTeamBadge');
+        const userJoined = document.getElementById('userJoined');
+        const userCountry = document.getElementById('userCountry');
+        const userBio = document.getElementById('userBio');
+        const userStatus = document.getElementById('userStatus');
+        const scratchProfileLink = document.getElementById('scratchProfileLink');
+        const randomUserBtnText = document.getElementById('randomUserBtnText');
+
+        const toggleDetailsBtn = document.getElementById('toggleDetailsBtn');
+        const toggleDetailsIcon = document.getElementById('toggleDetailsIcon');
+        const extraUserDetails = document.getElementById('extraUserDetails');
+        let isDetailsOpen = false;
+
+        // DOM Elements & State - Recent Projects
+        const recentProjectsBtn = document.getElementById('recentProjectsBtn');
+        const recentProjectsIcon = document.getElementById('recentProjectsIcon');
+        const recentProjectsContainer = document.getElementById('recentProjectsContainer');
+        let isRecentProjectsOpen = false;
+        let loadedRecentProjectsUser = null;
+        let activeUsername = "";
+
+        function toggleMoreDetails() {
+            isDetailsOpen = !isDetailsOpen;
+            if (isDetailsOpen) {
+                extraUserDetails.classList.remove('hidden');
+                if (toggleDetailsBtn) toggleDetailsBtn.querySelector('span').innerText = 'Hide Details';
+                if (toggleDetailsIcon) toggleDetailsIcon.classList.add('rotate-180');
+            } else {
+                extraUserDetails.classList.add('hidden');
+                if (toggleDetailsBtn) toggleDetailsBtn.querySelector('span').innerText = 'Show More Details';
+                if (toggleDetailsIcon) toggleDetailsIcon.classList.remove('rotate-180');
+            }
+        }
+
+        async function toggleRecentProjects() {
+            isRecentProjectsOpen = !isRecentProjectsOpen;
+            if (isRecentProjectsOpen) {
+                recentProjectsContainer.classList.remove('hidden');
+                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Hide Recent Projects';
+                if (recentProjectsIcon) recentProjectsIcon.classList.add('rotate-180');
+
+                if (loadedRecentProjectsUser !== activeUsername && activeUsername) {
+                    await fetchAndRenderRecentProjects(activeUsername);
+                }
+            } else {
+                recentProjectsContainer.classList.add('hidden');
+                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Show 3 Most Recent Projects';
+                if (recentProjectsIcon) recentProjectsIcon.classList.remove('rotate-180');
+            }
+        }
+
+        async function fetchScratchApi(endpoint) {
+            const targetUrl = `https://api.scratch.mit.edu/${endpoint}`;
+            const proxyUrls = [
+                `https://corsproxy.io/?https://api.scratch.mit.edu/${endpoint}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+                `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`,
+                `https://trampoline.turbowarp.org/api/${endpoint}`
+            ];
+
+            for (const proxyUrl of proxyUrls) {
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3500);
+                    const response = await fetch(proxyUrl, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data && (Array.isArray(data) || typeof data === 'object')) {
+                            return data;
+                        }
+                    }
+                } catch (e) {
+                    // Continue to next proxy
+                }
+            }
+            throw new Error("All proxy attempts failed.");
+        }
+
+        async function fetchAndRenderRecentProjects(username) {
+            recentProjectsContainer.innerHTML = `
+                <div class="p-3 text-center text-xs font-semibold text-slate-400 bg-white rounded-xl border border-slate-100">
+                    <i class="fa-solid fa-spinner animate-spin mr-1 text-amber-500"></i> Loading recent projects...
+                </div>`;
+
+            try {
+                const projects = await fetchScratchApi(`users/${encodeURIComponent(username)}/projects?limit=3&offset=0`);
+                loadedRecentProjectsUser = username;
+
+                if (!Array.isArray(projects) || projects.length === 0) {
+                    recentProjectsContainer.innerHTML = `
+                        <div class="p-3 text-center text-xs font-semibold text-slate-400 bg-white rounded-xl border border-slate-100">
+                            No recent public projects found for @${username}.
+                        </div>`;
+                    return;
+                }
+
+                recentProjectsContainer.innerHTML = '';
+                projects.slice(0, 3).forEach(project => {
+                    const projectThumbUrl = (project.images && project.images['216x163']) 
+                        ? project.images['216x163'] 
+                        : (project.image || `https://cdn2.scratch.mit.edu/get_image/project/${project.id}_216x163.png`);
+                    
+                    const projectTitle = project.title || 'Untitled';
+
+                    const projectCard = document.createElement('div');
+                    projectCard.className = "flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-sm hover:border-indigo-200 transition";
+                    projectCard.innerHTML = `
+                        <img src="${projectThumbUrl}" class="w-14 h-11 object-cover rounded-lg bg-slate-100 flex-shrink-0" onerror="this.src='https://scratch.mit.edu/images/scratch-og.png';" alt="Project Thumbnail">
+                        <div class="overflow-hidden flex-1 min-w-0">
+                            <h5 class="text-xs font-bold text-slate-800 truncate" title="${projectTitle}">${projectTitle}</h5>
+                            <p class="text-[10px] font-mono text-slate-400">#${project.id}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button onclick="inspectProjectFromUser(${project.id})" title="Inspect in App" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 p-2 rounded-lg text-xs transition">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </button>
+                            <a href="https://turbowarp.org/${project.id}" target="_blank" rel="noopener noreferrer" title="Play on TurboWarp" class="bg-sky-50 hover:bg-sky-100 text-sky-600 p-2 rounded-lg text-xs transition">
+                                <i class="fa-solid fa-bolt"></i>
+                            </a>
+                        </div>
+                    `;
+                    recentProjectsContainer.appendChild(projectCard);
+                });
+            } catch (err) {
+                recentProjectsContainer.innerHTML = `
+                    <div class="p-3 text-center text-xs font-semibold text-rose-500 bg-rose-50 rounded-xl border border-rose-100">
+                        Could not load recent projects. Please try again.
+                    </div>`;
+            }
+        }
+
+        function inspectProjectFromUser(projectId) {
+            switchTab('projects');
+            manualProjectId.value = projectId;
+            loadProject(projectId);
+        }
+
+        let currentProjectController = null;
+        let currentUserController = null;
+        let lastExtractedAuthor = null;
+
+        function switchTab(tab) {
+            if (tab === 'projects') {
+                sectionProjects.classList.remove('hidden');
+                sectionUsers.classList.add('hidden');
+                tabProjectsBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-indigo-600 shadow-sm";
+                tabUsersBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900";
+            } else {
+                sectionUsers.classList.remove('hidden');
+                sectionProjects.classList.add('hidden');
+                tabUsersBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-pink-600 shadow-sm";
+                tabProjectsBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900";
+            }
+        }
+
+        async function fetchProjectData(id) {
+            if (currentProjectController) currentProjectController.abort();
+            currentProjectController = new AbortController();
+
+            try {
+                const response = await fetch(`https://trampoline.turbowarp.org/api/projects/${id}`, {
+                    signal: currentProjectController.signal
+                });
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (err) {
+                // Ignore aborts
+            }
+            return null;
+        }
+
+        async function fetchUserData(username) {
+            if (currentUserController) currentUserController.abort();
+            currentUserController = new AbortController();
+
+            try {
+                const response = await fetch(`https://trampoline.turbowarp.org/api/users/${encodeURIComponent(username)}`, {
+                    signal: currentUserController.signal
+                });
+                if (response.ok) {
+                    return await response.json();
+                }
+            } catch (err) {
+                // Fallback attempt
+            }
+
+            try {
+                return await fetchScratchApi(`users/${encodeURIComponent(username)}`);
+            } catch (err) {
+                return null;
+            }
+        }
+
+        function loadProject(id) {
+            if (!id || isNaN(id) || id <= 0) return;
+
+            // Instant UI display
+            displayProjectId.innerText = `#${id}`;
+            projectThumb.src = `https://cdn2.scratch.mit.edu/get_image/project/${id}_216x163.png?`;
+            projectTitle.innerText = "???";
+            turbowarpLink.href = `https://turbowarp.org/${id}`;
+
+            authorContainer.classList.add('hidden');
+            lastExtractedAuthor = null;
+            projectResultCard.classList.remove('hidden');
+
+            // Asynchronously populate title and author if available
+            fetchProjectData(id).then(data => {
+                if (data) {
+                    if (data.title) {
+                        projectTitle.innerText = data.title;
+                    }
+                    if (data.author && data.author.username) {
+                        lastExtractedAuthor = data.author.username;
+                        authorName.innerText = `@${data.author.username}`;
+                        const avatarUrl = (data.author.profile && data.author.profile.images)
+                            ? data.author.profile.images['60x60']
+                            : `https://cdn2.scratch.mit.edu/get_image/user/0_60x60.png`;
+                        authorAvatar.src = avatarUrl;
+                        authorContainer.classList.remove('hidden');
+                    }
+                }
+            });
+        }
+
+        function handleManualProjectSearch() {
+            const id = manualProjectId.value.trim();
+            if (id) {
+                loadProject(id);
+            }
+        }
+
+        function handleRandomProject() {
+            const randomId = Math.floor(Math.random() * 2000000000) + 1;
+            manualProjectId.value = randomId;
+            loadProject(randomId);
+        }
+
+        function inspectOwnerFromProject() {
+            if (lastExtractedAuthor) {
+                switchTab('users');
+                manualUsername.value = lastExtractedAuthor;
+                loadUser(lastExtractedAuthor);
+            }
+        }
+
+        async function loadUser(username) {
+            if (!username) return;
+            username = username.trim();
+            activeUsername = username;
+
+            // Instant UI setup
+            displayUsername.innerText = `@${username}`;
+            userAvatar.src = `https://cdn2.scratch.mit.edu/get_image/user/0_90x90.png`;
+            scratchProfileLink.href = `https://scratch.mit.edu/users/${encodeURIComponent(username)}`;
+            scratchTeamBadge.classList.add('hidden');
+            userJoined.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Joined: ???`;
+            userCountry.innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ???`;
+            userBio.innerText = "No bio provided.";
+            userStatus.innerText = "No status provided.";
+
+            // Reset recent projects container
+            loadedRecentProjectsUser = null;
+            recentProjectsContainer.innerHTML = '';
+            if (isRecentProjectsOpen) {
+                isRecentProjectsOpen = false;
+                recentProjectsContainer.classList.add('hidden');
+                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Show 3 Most Recent Projects';
+                if (recentProjectsIcon) recentProjectsIcon.classList.remove('rotate-180');
+            }
+
+            userResultCard.classList.remove('hidden');
+
+            try {
+                const userData = await fetchUserData(username);
+                if (userData) {
+                    if (userData.username) displayUsername.innerText = `@${userData.username}`;
+
+                    if (userData.profile && userData.profile.images && userData.profile.images['90x90']) {
+                        userAvatar.src = userData.profile.images['90x90'];
+                    }
+
+                    if (userData.scratchteam) {
+                        scratchTeamBadge.classList.remove('hidden');
+                    }
+
+                    if (userData.history && userData.history.joined) {
+                        const date = new Date(userData.history.joined);
+                        userJoined.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Joined: ${date.toLocaleDateString()}`;
+                    }
+
+                    if (userData.profile && userData.profile.country) {
+                        userCountry.innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ${userData.profile.country}`;
+                    }
+
+                    if (userData.profile && userData.profile.bio) {
+                        userBio.innerText = userData.profile.bio || "No bio provided.";
+                    }
+
+                    if (userData.profile && userData.profile.status) {
+                        userStatus.innerText = userData.profile.status || "No status provided.";
+                    }
+                }
+            } catch (e) {
+                // Graceful fallback defaults remain
+            }
+        }
+
+        function handleManualUserSearch() {
+            const username = manualUsername.value.trim();
+            if (username) {
+                loadUser(username);
+            }
+        }
+
+        async function handleRandomUser() {
+            if (randomUserBtnText) randomUserBtnText.innerText = "Searching...";
+
+            const fetchRandomAuthor = async () => {
+                for (let attempt = 0; attempt < 8; attempt++) {
+                    const randomId = Math.floor(Math.random() * 1000000000) + 10000000;
+                    try {
+                        const response = await fetch(`https://trampoline.turbowarp.org/api/projects/${randomId}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data && data.author && data.author.username) {
+                                return data.author.username;
+                            }
+                        }
+                    } catch (e) {}
+                }
+                return "griffpatch"; // Fallback user
+            };
+
+            try {
+                const username = await fetchRandomAuthor();
+                manualUsername.value = username;
+                await loadUser(username);
+            } catch (e) {
+                await loadUser("griffpatch");
+            } finally {
+                if (randomUserBtnText) randomUserBtnText.innerText = "Generate Random User";
+            }
+        }
+
+        manualProjectId.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleManualProjectSearch();
+        });
+
+        manualUsername.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleManualUserSearch();
+        });
+    </script>
+</body>
+</html>
