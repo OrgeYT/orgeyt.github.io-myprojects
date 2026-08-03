@@ -38,7 +38,6 @@
     <div id="nametags-container"></div>
 
     <div id="game-ui" class="hidden flex flex-col justify-between p-4">
-        <!-- Floating timer was moved to nametag -->
         <div></div> 
         <div class="flex justify-between items-end">
             <div class="text-white/80 font-bold bg-black/40 px-4 py-2 rounded-lg" id="ui-mode-text">
@@ -103,6 +102,10 @@
                         <label class="flex justify-between font-bold mb-1">Platform Multiplier: <span id="platmulti-val" class="text-yellow-400">1x</span></label>
                         <input type="range" id="setting-platmulti" min="0" max="3" step="0.5" value="1" class="w-full accent-red-500">
                     </div>
+                    <div>
+                        <label class="flex justify-between font-bold mb-1 items-center">Roblox Styled: <span id="roblox-val" class="text-yellow-400 mr-2">Off</span></label>
+                        <input type="checkbox" id="setting-roblox" class="w-6 h-6 accent-red-500 cursor-pointer">
+                    </div>
                 </div>
 
                 <div class="flex-1 flex flex-col h-full min-h-[200px]">
@@ -130,12 +133,21 @@
         <div class="glass-panel p-8 flex flex-col items-center max-w-md w-full text-white">
             <h1 class="text-3xl font-black mb-6 uppercase border-b-2 border-white/20 pb-2 w-full text-center">Customize</h1>
             
-            <!-- 3D Preview Container -->
             <div id="preview-3d" class="w-48 h-48 mb-6 rounded-xl border-2 border-white/20 bg-black/40 overflow-hidden relative shadow-inner flex items-center justify-center"></div>
 
             <div class="w-full space-y-5">
+                <div id="roblox-colors-container" class="space-y-5 hidden">
+                    <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
+                        <label class="font-bold text-sm">Head & Arms:</label>
+                        <input type="color" id="edit-head-color" value="#ffab66" class="w-12 h-12 cursor-pointer bg-transparent border-0 rounded">
+                    </div>
+                    <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
+                        <label class="font-bold text-sm">Legs:</label>
+                        <input type="color" id="edit-leg-color" value="#000000" class="w-12 h-12 cursor-pointer bg-transparent border-0 rounded">
+                    </div>
+                </div>
                 <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
-                    <label class="font-bold">Body Color:</label>
+                    <label id="body-color-label" class="font-bold">Body Color:</label>
                     <input type="color" id="edit-body-color" value="#22c55e" class="w-12 h-12 cursor-pointer bg-transparent border-0 rounded">
                 </div>
                 <div class="flex justify-between items-center bg-black/20 p-3 rounded border border-white/10">
@@ -236,12 +248,13 @@
 
         // --- Global Variables ---
         let scene, camera, renderer, physicsWorld, dirLight;
-        let gameState = 'menu'; // menu, playing, spectating, gameover
+        let gameState = 'menu'; // menu, intro, playing, paused, gameover
         let gameMode = 'play'; // play, spectate
         let players = [];
         let platforms = [];
         let debris = [];
         let mapObjects = [];
+        let physicsBodies = [];
         let myPlayer = null;
         
         let bombHolder = null;
@@ -253,34 +266,43 @@
         let lastTickInt = 0;
         let clock = new THREE.Clock();
 
-        // --- Cinematic Intro ---
         let introTimer = 0;
         let introEndPanCamPos = new THREE.Vector3();
         let introEndPanLookPos = new THREE.Vector3();
 
-        // --- Player Customization ---
         let playerBodyColor = '#22c55e';
+        let playerHeadArmColor = '#ffab66';
+        let playerLegColor = '#000000';
         let playerHatType = 'none';
         let playerHatColor = '#ff0000';
+        let isRobloxMode = false;
 
-        // --- Game Settings ---
         let MAP_SIZE = 100;
         let platformMultiplier = 1.0;
         let maxAllowedJumps = 2;
-        let spectateTarget = null; // Who we are currently orbiting in spectate mode
+        let spectateTarget = null;
         let raycaster = new THREE.Raycaster();
         
         let previewScene, previewCamera, previewRenderer, previewGroup;
 
+        // R6 Model Data based on the reference game
+        const R6_MODEL_DATA = {
+            "head":  { "type": "head",  "color": "#ffab66", "px": 0, "py": 4.01, "pz": 0, "sx": 1, "sy": 1, "sz": 1 },
+            "torso": { "type": "torso", "color": "#ff0000", "px": 0, "py": 2.67, "pz": 0, "sx": 1.7, "sy": 1.65, "sz": 1.06 },
+            "r_arm": { "type": "arm",   "color": "#ffab66", "px": 1.32, "py": 2.66, "pz": 0, "sx": 1, "sy": 1.67, "sz": 1.02 },
+            "l_arm": { "type": "arm",   "color": "#ffab66", "px": -1.35, "py": 2.66, "pz": 0, "sx": 1, "sy": 1.67, "sz": 1.02 },
+            "r_leg": { "type": "leg",   "color": "#000000", "px": 0.47, "py": 0.98, "pz": 0, "sx": 1, "sy": 1.82, "sz": 1 },
+            "l_leg": { "type": "leg",   "color": "#000000", "px": -0.44, "py": 0.98, "pz": 0, "sx": 1, "sy": 1.82, "sz": 1 }
+        };
+
         const GRAVITY = -30;
         const JUMP_FORCE = 15;
-        const MOVE_SPEED = 22;
+        const MOVE_SPEED = 30;
 
-        // --- Input State ---
         const keys = { w: false, a: false, s: false, d: false, q: false, e: false, space: false };
         let camYaw = 0;
         let camPitch = 0;
-        let camZoom = 12;
+        let camZoom = 15;
         let isPointerLocked = false;
 
         function initScene() {
@@ -305,9 +327,7 @@
             dirLight.shadow.mapSize.height = 2048;
             scene.add(dirLight);
 
-            physicsWorld = new CANNON.World({
-                gravity: new CANNON.Vec3(0, -20, 0)
-            });
+            physicsWorld = new CANNON.World({ gravity: new CANNON.Vec3(0, -20, 0) });
             const groundMat = new CANNON.Material();
             physicsWorld.addBody(new CANNON.Body({
                 mass: 0,
@@ -319,7 +339,7 @@
             buildMap();
             createBomb();
             populateNamesList();
-            initPreview(); // Setup 3D preview
+            initPreview(); 
             
             window.addEventListener('resize', onWindowResize);
         }
@@ -338,7 +358,6 @@
             previewCamera.position.set(0, 2, 8);
             
             previewRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            // Use static size to fit the container precisely 
             previewRenderer.setSize(192, 192); 
             container.appendChild(previewRenderer.domElement);
 
@@ -348,37 +367,79 @@
         }
 
         function updatePreview() {
-            // Clear existing preview mesh
-            while(previewGroup.children.length > 0){ 
-                previewGroup.remove(previewGroup.children[0]); 
-            }
+            while(previewGroup.children.length > 0){ previewGroup.remove(previewGroup.children[0]); }
             
             const bodyColor = document.getElementById('edit-body-color').value;
+            const headArmColor = document.getElementById('edit-head-color').value;
+            const legColor = document.getElementById('edit-leg-color').value;
             const hatType = document.getElementById('edit-hat').value;
             const hatColor = document.getElementById('edit-hat-color').value;
 
             const bodyMat = new THREE.MeshStandardMaterial({ color: new THREE.Color(bodyColor), roughness: 0.4 });
-            const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), bodyMat);
-            bodyMesh.position.y = 1; // Pivot at bottom
-            previewGroup.add(bodyMesh);
-
             const eyeGeo = new THREE.SphereGeometry(0.3, 16, 16);
             eyeGeo.scale(1, 2, 0.4);
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
-            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-            leftEye.position.set(-0.4, 1.2, 1.05);
-            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-            rightEye.position.set(0.4, 1.2, 1.05);
-            previewGroup.add(leftEye, rightEye);
+            
+            let headAnchor = null;
+
+            if (isRobloxMode) {
+                const robloxGroup = new THREE.Group();
+                robloxGroup.scale.setScalar(0.75); // Scaled up
+                robloxGroup.position.y = 0; // Adjusted grounding offset
+                const yOffset = -0.07; // Grounding offset
+                
+                for (const key in R6_MODEL_DATA) {
+                    const part = R6_MODEL_DATA[key];
+                    let matColor;
+                    if (part.type === 'torso') matColor = new THREE.Color(bodyColor);
+                    else if (part.type === 'head' || part.type === 'arm') matColor = new THREE.Color(headArmColor);
+                    else if (part.type === 'leg') matColor = new THREE.Color(legColor);
+                    else matColor = new THREE.Color(part.color);
+                    
+                    const mat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.4 });
+                    const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+                    mesh.scale.set(part.sx, part.sy, part.sz);
+                    
+                    const pivot = new THREE.Group();
+                    pivot.position.set(part.px, part.py + yOffset, part.pz);
+                    
+                    if (part.type === 'arm') {
+                        mesh.position.y = -part.sy / 2 + 0.2;
+                        pivot.position.y += part.sy / 2 - 0.2;
+                    } else if (part.type === 'leg') {
+                        mesh.position.y = -part.sy / 2;
+                        pivot.position.y += part.sy / 2;
+                    } else if (part.type === 'head') {
+                        headAnchor = pivot; 
+                        // Removed eyes for the Roblox model
+                    }
+                    
+                    pivot.add(mesh);
+                    robloxGroup.add(pivot);
+                }
+                
+                previewGroup.add(robloxGroup);
+            } else {
+                const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), bodyMat);
+                bodyMesh.position.y = 1;
+                previewGroup.add(bodyMesh);
+                headAnchor = bodyMesh; // Hat goes on body
+
+                const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+                leftEye.position.set(-0.4, 1.2, 1.05);
+                const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+                rightEye.position.set(0.4, 1.2, 1.05);
+                previewGroup.add(leftEye, rightEye);
+            }
 
             const myHat = buildHat(hatType, hatColor);
             if (myHat) {
-                myHat.position.y = 1; // Sit exactly on top of the 2x2x2 body mesh
-                bodyMesh.add(myHat);
+                myHat.position.y = isRobloxMode ? 0.55 : 1; 
+                headAnchor.add(myHat);
             }
             
-            // Re-center group for spinning
-            previewGroup.position.y = -1;
+            previewGroup.scale.setScalar(1.5);
+            previewGroup.position.y = -1.5;
         }
 
         function createStudTexture() {
@@ -397,8 +458,23 @@
             return tex;
         }
 
+        function createWhiteStudTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 64, 64);
+            ctx.fillStyle = '#e5e5e5';
+            ctx.beginPath();
+            ctx.arc(32, 32, 12, 0, Math.PI * 2);
+            ctx.fill();
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
         function buildMap() {
-            // Cleanup old map objects
             mapObjects.forEach(obj => {
                 scene.remove(obj);
                 if(obj.geometry) obj.geometry.dispose();
@@ -407,26 +483,21 @@
                     else obj.material.dispose();
                 }
             });
+            physicsBodies.forEach(body => physicsWorld.removeBody(body));
             mapObjects = [];
             platforms = [];
+            physicsBodies = [];
 
-           // scene.fog = new THREE.Fog(0x87CEEB, Math.max(30, MAP_SIZE * 0.3), MAP_SIZE * 1.5);
-
-            // Floor
             const floorGeo = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE);
             const tex = createStudTexture();
             tex.repeat.set(MAP_SIZE/4, MAP_SIZE/4);
-            const floorMat = new THREE.MeshStandardMaterial({ 
-                map: tex,
-                roughness: 0.8 
-            });
+            const floorMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.8 });
             const floor = new THREE.Mesh(floorGeo, floorMat);
             floor.rotation.x = -Math.PI / 2;
             floor.receiveShadow = true;
             scene.add(floor);
             mapObjects.push(floor);
 
-            // Walls 
             const wallMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.3 });
             const wGeo = new THREE.BoxGeometry(MAP_SIZE, 40, 2);
             
@@ -444,11 +515,9 @@
                 mapObjects.push(mesh);
             });
 
-            // Random Platforms
             const platGeo = new THREE.BoxGeometry(8, 1, 8);
             const platMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.5 });
-            
-            const numPlatforms = Math.floor(25 * platformMultiplier * (MAP_SIZE / 100)); // Scale amount with map size
+            const numPlatforms = Math.floor(25 * platformMultiplier * (MAP_SIZE / 100));
             
             for(let i=0; i<numPlatforms; i++) {
                 const mesh = new THREE.Mesh(platGeo, platMat);
@@ -469,7 +538,40 @@
                 mapObjects.push(mesh);
             }
 
-            // Adjust lighting shadow bounds
+            // --- Intro Map ---
+            const introY = 1000;
+            const introGeo = new THREE.CylinderGeometry(40, 40, 2, 32);
+            
+            const introTex = createWhiteStudTexture();
+            introTex.repeat.set(20, 20);
+            const introMat = new THREE.MeshStandardMaterial({ map: introTex, roughness: 0.8 });
+            
+            const introFloor = new THREE.Mesh(introGeo, introMat);
+            introFloor.position.set(0, introY - 1, 0);
+            scene.add(introFloor);
+            mapObjects.push(introFloor);
+            
+            platforms.push({
+                mesh: introFloor,
+                box: new THREE.Box3().setFromObject(introFloor),
+                topY: introFloor.position.y + 1,
+                isIntro: true
+            });
+            
+            const ringGeo = new THREE.TorusGeometry(38, 0.5, 16, 64);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.position.set(0, introY, 0);
+            ring.rotation.x = Math.PI/2;
+            scene.add(ring);
+            mapObjects.push(ring);
+            
+            const introShape = new CANNON.Box(new CANNON.Vec3(40, 1, 40));
+            const introBody = new CANNON.Body({ mass: 0, shape: introShape });
+            introBody.position.set(0, introY - 1, 0);
+            physicsWorld.addBody(introBody);
+            physicsBodies.push(introBody);
+
             dirLight.shadow.camera.left = -MAP_SIZE/2;
             dirLight.shadow.camera.right = MAP_SIZE/2;
             dirLight.shadow.camera.top = MAP_SIZE/2;
@@ -484,15 +586,11 @@
             const mesh = new THREE.Mesh(geo, mat);
             grp.add(mesh);
 
-            const fuseGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.4);
-            const fuseMat = new THREE.MeshBasicMaterial({ color: 0x884400 });
-            const fuse = new THREE.Mesh(fuseGeo, fuseMat);
+            const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), new THREE.MeshBasicMaterial({ color: 0x884400 }));
             fuse.position.y = 0.7;
             grp.add(fuse);
             
-            const sparkGeo = new THREE.SphereGeometry(0.2, 8, 8);
-            const sparkMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-            const spark = new THREE.Mesh(sparkGeo, sparkMat);
+            const spark = new THREE.Mesh(new THREE.SphereGeometry(0.2, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
             spark.position.y = 0.9;
             grp.add(spark);
 
@@ -525,9 +623,7 @@
                 ball.position.y = 0.85;
                 hatGroup.add(dome, ball);
             } else if (type === 'bomb') {
-                const geo = new THREE.SphereGeometry(0.6, 16, 16);
-                const mat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 });
-                const mesh = new THREE.Mesh(geo, mat);
+                const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshStandardMaterial({ color: color, roughness: 0.2 }));
                 mesh.position.y = 0.6;
                 const fuse = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.4), new THREE.MeshBasicMaterial({ color: 0x884400 }));
                 fuse.position.y = 1.3;
@@ -548,15 +644,16 @@
         }
 
         class Character {
-            constructor(isPlayer, id, name, bodyColorHex, hatType, hatColorHex) {
+            constructor(isPlayer, id, name, bodyColorHex, hatType, hatColorHex, headArmColorHex = '#ffab66', legColorHex = '#000000') {
                 this.id = id;
                 this.isPlayer = isPlayer;
                 this.name = name;
                 this.color = new THREE.Color(bodyColorHex);
+                this.headArmColor = new THREE.Color(headArmColorHex);
+                this.legColor = new THREE.Color(legColorHex);
                 this.hatType = hatType;
                 this.hatColorHex = hatColorHex;
                 
-                // Spawn randomly within map bounds safely
                 const spawnRange = (MAP_SIZE / 2) - 5;
                 this.position = new THREE.Vector3((Math.random()-0.5)*spawnRange*2, 10, (Math.random()-0.5)*spawnRange*2);
                 
@@ -572,6 +669,9 @@
                 this.cannotPassTimer = 0;
                 this.handedness = Math.random() > 0.5 ? 'left' : 'right';
 
+                this.baseScale = 1.5;
+                this.animOffset = Math.random() * Math.PI * 2;
+
                 this.targetPos = new THREE.Vector3();
                 this.stuckTimer = 0;
                 this.lastPos = this.position.clone();
@@ -581,38 +681,102 @@
 
             buildMesh() {
                 this.mesh = new THREE.Group();
-                
-                const bodyGeo = new THREE.BoxGeometry(2, 2, 2);
                 const bodyMat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.4 });
-                this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-                this.bodyMesh.position.y = 1; // Pivot at bottom
-                this.bodyMesh.castShadow = true;
-                this.bodyMesh.receiveShadow = true;
-                this.mesh.add(this.bodyMesh);
-
+                
                 const eyeGeo = new THREE.SphereGeometry(0.3, 16, 16);
                 eyeGeo.scale(1, 2, 0.4);
                 const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
                 this.leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-                this.leftEye.position.set(-0.4, 1.2, 1.05);
                 this.rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-                this.rightEye.position.set(0.4, 1.2, 1.05);
-                this.mesh.add(this.leftEye, this.rightEye);
 
-                const handGeo = new THREE.SphereGeometry(0.4, 16, 16);
-                this.leftHand = new THREE.Mesh(handGeo, bodyMat);
-                this.leftHand.position.set(-1.5, 1, 0);
-                this.leftHand.castShadow = true;
-                this.rightHand = new THREE.Mesh(handGeo, bodyMat);
-                this.rightHand.position.set(1.5, 1, 0);
-                this.rightHand.castShadow = true;
-                this.mesh.add(this.leftHand, this.rightHand);
+                if (isRobloxMode) {
+                    this.robloxGroup = new THREE.Group();
+                    this.robloxGroup.scale.setScalar(0.75); // Scaled up
+                    this.robloxGroup.position.y = 0; // Adjusted grounding offset
+                    this.limbs = {};
+                    
+                    const yOffset = -0.07;
+                    
+                    for (const key in R6_MODEL_DATA) {
+                        const part = R6_MODEL_DATA[key];
+                        let matColor;
+                        if (part.type === 'torso') matColor = this.color;
+                        else if (part.type === 'head' || part.type === 'arm') matColor = this.headArmColor;
+                        else if (part.type === 'leg') matColor = this.legColor;
+                        else matColor = new THREE.Color(part.color);
+                        
+                        const mat = new THREE.MeshStandardMaterial({ color: matColor, roughness: 0.4 });
+                        const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), mat);
+                        mesh.scale.set(part.sx, part.sy, part.sz);
+                        
+                        const pivotGroup = new THREE.Group();
+                        pivotGroup.position.set(part.px, part.py + yOffset, part.pz);
+                        
+                        if (part.type === 'arm') {
+                            mesh.position.y = -part.sy / 2 + 0.2;
+                            pivotGroup.position.y += part.sy / 2 - 0.2;
+                            this.limbs[key] = pivotGroup;
+                        } else if (part.type === 'leg') {
+                            mesh.position.y = -part.sy / 2;
+                            pivotGroup.position.y += part.sy / 2;
+                            this.limbs[key] = pivotGroup;
+                        } else if (part.type === 'head') {
+                            this.headMesh = pivotGroup;
+                            // Removed eyes for the Roblox model
+                        }
 
-                const myHat = buildHat(this.hatType, this.hatColorHex);
-                if (myHat) {
-                    myHat.position.y = 1; // Sit exactly on top of the body
-                    this.bodyMesh.add(myHat);
+                        mesh.castShadow = true;
+                        mesh.receiveShadow = true;
+                        pivotGroup.add(mesh);
+                        this.robloxGroup.add(pivotGroup);
+                    }
+                    
+                    // Attach hands (for bomb passing)
+                    this.leftHand = new THREE.Group();
+                    this.leftHand.position.y = -0.8;
+                    this.limbs['l_arm'].add(this.leftHand);
+                    
+                    this.rightHand = new THREE.Group();
+                    this.rightHand.position.y = -0.8;
+                    this.limbs['r_arm'].add(this.rightHand);
+
+                    const myHat = buildHat(this.hatType, this.hatColorHex);
+                    if (myHat) {
+                        myHat.position.y = 0.55; 
+                        this.headMesh.add(myHat);
+                    }
+
+                    this.mesh.add(this.robloxGroup);
+                } else {
+                    this.bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), bodyMat);
+                    this.bodyMesh.position.y = 1; 
+                    
+                    this.leftEye.position.set(-0.4, 1.2, 1.05);
+                    this.rightEye.position.set(0.4, 1.2, 1.05);
+                    this.mesh.add(this.leftEye, this.rightEye);
+
+                    const handGeo = new THREE.SphereGeometry(0.4, 16, 16);
+                    this.leftHand = new THREE.Mesh(handGeo, bodyMat);
+                    this.leftHand.position.set(-1.5, 1, 0);
+                    this.rightHand = new THREE.Mesh(handGeo, bodyMat);
+                    this.rightHand.position.set(1.5, 1, 0);
+                    this.mesh.add(this.leftHand, this.rightHand);
+
+                    const myHat = buildHat(this.hatType, this.hatColorHex);
+                    if (myHat) {
+                        myHat.position.y = 1;
+                        this.bodyMesh.add(myHat);
+                    }
+
+                    this.mesh.add(this.bodyMesh);
                 }
+                
+                this.mesh.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
 
                 this.mesh.position.copy(this.position);
                 scene.add(this.mesh);
@@ -626,8 +790,28 @@
             update(dt, time, isIntro = false) {
                 if(this.isDead) return;
 
-                this.leftHand.position.y = 1 + Math.sin(time * 5 + this.id) * 0.2;
-                this.rightHand.position.y = 1 + Math.sin(time * 5 + this.id + Math.PI) * 0.2;
+                if (isRobloxMode && this.limbs) {
+                    if (!this.isOnGround) {
+                        this.limbs['l_arm'].rotation.x = Math.PI; 
+                        this.limbs['r_arm'].rotation.x = Math.PI;
+                        this.limbs['l_leg'].rotation.x = 0;
+                        this.limbs['r_leg'].rotation.x = 0;
+                    } else if (Math.abs(this.velocity.x) > 1 || Math.abs(this.velocity.z) > 1) {
+                        const walkCycle = Math.sin(time * 15);
+                        this.limbs['l_arm'].rotation.x = walkCycle * 0.8;
+                        this.limbs['r_arm'].rotation.x = -walkCycle * 0.8;
+                        this.limbs['l_leg'].rotation.x = -walkCycle * 0.8;
+                        this.limbs['r_leg'].rotation.x = walkCycle * 0.8;
+                    } else {
+                        this.limbs['l_arm'].rotation.x = 0;
+                        this.limbs['r_arm'].rotation.x = 0;
+                        this.limbs['l_leg'].rotation.x = 0;
+                        this.limbs['r_leg'].rotation.x = 0;
+                    }
+                } else {
+                    this.leftHand.position.y = 1 + Math.sin(time * 5 + this.animOffset) * 0.2;
+                    this.rightHand.position.y = 1 + Math.sin(time * 5 + this.animOffset + Math.PI) * 0.2;
+                }
 
                 if(this.cannotPassTimer > 0) this.cannotPassTimer -= dt;
 
@@ -639,7 +823,6 @@
                 this.position.x += this.velocity.x * dt;
                 this.position.z += this.velocity.z * dt;
 
-                // XZ Map Bounds (Dynamic)
                 const limit = MAP_SIZE/2 - 1;
                 if(this.position.x < -limit) this.position.x = -limit;
                 if(this.position.x > limit) this.position.x = limit;
@@ -659,8 +842,8 @@
                 }
 
                 const myBox = new THREE.Box3().setFromCenterAndSize(
-                    new THREE.Vector3(this.position.x, this.position.y + 1, this.position.z),
-                    new THREE.Vector3(2, 2, 2)
+                    new THREE.Vector3(this.position.x, this.position.y + 1 * this.baseScale, this.position.z),
+                    new THREE.Vector3(2 * this.baseScale, 2 * this.baseScale, 2 * this.baseScale)
                 );
                 
                 for(let p of platforms) {
@@ -670,6 +853,14 @@
                             this.position.y = p.topY;
                             this.velocity.y = 0;
                             this.isOnGround = true;
+                        } else {
+                            // Physics Edge Climbing
+                            const toCenter = new THREE.Vector2(p.mesh.position.x - this.position.x, p.mesh.position.z - this.position.z);
+                            const vel2D = new THREE.Vector2(this.velocity.x, this.velocity.z);
+                            if (vel2D.lengthSq() > 0.1 && toCenter.dot(vel2D) > 0) {
+                                this.velocity.y = 12; // Snap/Climb upwards
+                                this.isOnGround = false;
+                            }
                         }
                     }
                 }
@@ -689,7 +880,7 @@
                 }
 
                 this.squash.lerp(this.targetSquash, dt * 15);
-                this.mesh.scale.copy(this.squash);
+                this.mesh.scale.set(this.squash.x * this.baseScale, this.squash.y * this.baseScale, this.squash.z * this.baseScale);
 
                 this.velocity.x *= 0.8;
                 this.velocity.z *= 0.8;
@@ -716,15 +907,20 @@
                     this.velocity.z = 0;
                 }
 
-                if(Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1) {
+                if (this.isPlayer && !isIntro) {
+                    this.mesh.rotation.y = camYaw + Math.PI;
+                } else if(Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1) {
                     const angle = Math.atan2(this.velocity.x, this.velocity.z);
                     this.mesh.rotation.y = angle;
                 } else if (isIntro) {
-                    this.mesh.rotation.y = 0; // Face forward during intro line-up
+                    this.mesh.rotation.y = 0; 
                 }
             }
 
             resolveCharacterCollisionXZ() {
+                const collisionRad = 1.0 * this.baseScale;
+                const minDistSq = (collisionRad * 2) * (collisionRad * 2);
+
                 for(let other of players) {
                     if(other === this || other.isDead) continue;
                     const dx = this.position.x - other.position.x;
@@ -732,10 +928,10 @@
                     const distSq = dx*dx + dz*dz;
                     const dy = Math.abs(this.position.y - other.position.y);
                     
-                    if(distSq < 4 && dy < 1.8) {
+                    if(distSq < minDistSq && dy < 1.8 * this.baseScale) {
                         const dist = Math.sqrt(distSq);
                         if(dist === 0) continue;
-                        const push = (2 - dist) / 2;
+                        const push = ((collisionRad * 2) - dist) / 2;
                         this.position.x += (dx/dist) * push;
                         this.position.z += (dz/dist) * push;
                     }
@@ -743,13 +939,14 @@
             }
 
             resolveCharacterCollisionY() {
+                const collisionRad = 1.0 * this.baseScale;
                 for(let other of players) {
                     if(other === this || other.isDead) continue;
                     const dx = this.position.x - other.position.x;
                     const dz = this.position.z - other.position.z;
                     
-                    if(dx*dx + dz*dz < 4) {
-                        const otherTop = other.position.y + 2;
+                    if(dx*dx + dz*dz < (collisionRad * 2) * (collisionRad * 2)) {
+                        const otherTop = other.position.y + (2.0 * other.baseScale);
                         if(this.prevY >= otherTop - 0.1 && this.position.y < otherTop && this.velocity.y <= 0) {
                             this.position.y = otherTop;
                             this.velocity.y = 0;
@@ -777,7 +974,6 @@
                 let moveDir = new THREE.Vector3();
 
                 if (!bombHolder) {
-                    // Pre-bomb random spread out
                     let tooClose = false;
                     for (let p of players) {
                         if (p !== this && !p.isDead) {
@@ -800,6 +996,7 @@
                         if (this.position.z > limit - wallMargin) moveDir.z -= (wallMargin - (limit - this.position.z)) * 0.15;
 
                         moveDir.normalize();
+                        
                         this.velocity.x += moveDir.x * MOVE_SPEED * dt * 4;
                         this.velocity.z += moveDir.z * MOVE_SPEED * dt * 4;
                     }
@@ -854,7 +1051,7 @@
                                     moveDir.subVectors(bestPlatform, this.position);
                                 } else {
                                     moveDir.set(-dx, 0, -dz);
-                                    if (moveDir.lengthSq() < 0.1) moveDir.set(Math.sin(time*3 + this.id), 0, Math.cos(time*3 + this.id));
+                                    if (moveDir.lengthSq() < 0.1) moveDir.set(Math.sin(time*3 + this.animOffset), 0, Math.cos(time*3 + this.animOffset));
                                 }
                                 if (Math.random() < 0.05) this.jump();
                             } else {
@@ -868,18 +1065,17 @@
                         const panicThreshold = 5.0;
                         let isPanicking = bombTimer < panicThreshold || distToBomb < 14;
                         let isTeasing = !isPanicking && distToBomb > 15 && distToBomb < 30;
-
+                        
                         if (isTeasing) {
                             moveDir.subVectors(bombHolder.position, this.position).normalize();
                             let tempX = moveDir.x; moveDir.x = -moveDir.z; moveDir.z = tempX;
-                            if (Math.sin(time * 2.5 + this.id) > 0) moveDir.negate();
+                            if (Math.sin(time * 2.5 + this.animOffset) > 0) moveDir.negate();
                             if (Math.random() < 0.015) this.jump();
                         } else {
                             let dirFromBomb = new THREE.Vector3().subVectors(this.position, bombHolder.position);
                             dirFromBomb.y = 0;
                             dirFromBomb.normalize();
 
-                            // Evaluate walls
                             const wallMargin = 15;
                             const limit = MAP_SIZE / 2;
                             let wallForce = new THREE.Vector3();
@@ -888,17 +1084,16 @@
                             if (this.position.z < -limit + wallMargin) wallForce.z += (wallMargin - (this.position.z - -limit)) * 0.3;
                             if (this.position.z > limit - wallMargin) wallForce.z -= (wallMargin - (limit - this.position.z)) * 0.3;
                             
-                            // If cornered by the wall while running away, strafe!
                             if (wallForce.lengthSq() > 0.5 && dirFromBomb.dot(wallForce) < -0.2) {
                                 let strafe = new THREE.Vector3(-dirFromBomb.z, 0, dirFromBomb.x);
-                                if (strafe.dot(this.position) > 0) strafe.negate(); // Steer towards open map center
+                                if (strafe.dot(this.position) > 0) strafe.negate(); 
                                 moveDir.addScaledVector(strafe, 1.5);
                                 if (Math.random() < 0.05) this.jump();
                             } else {
-                                moveDir.copy(dirFromBomb); // Run straight away
+                                moveDir.copy(dirFromBomb); 
                             }
                             
-                            moveDir.add(wallForce); // Apply wall avoidance
+                            moveDir.add(wallForce); 
                             moveDir.normalize();
                         }
                     }
@@ -944,7 +1139,7 @@
                 
                 const pieces = 15;
                 for(let i=0; i<pieces; i++) {
-                    const size = 0.5 + Math.random() * 0.5;
+                    const size = (0.5 + Math.random() * 0.5) * this.baseScale;
                     const geo = new THREE.BoxGeometry(size, size, size);
                     const mat = new THREE.MeshStandardMaterial({ color: this.color, roughness: 0.5 });
                     const mesh = new THREE.Mesh(geo, mat);
@@ -955,11 +1150,7 @@
                     const shape = new CANNON.Box(new CANNON.Vec3(size/2, size/2, size/2));
                     const body = new CANNON.Body({ mass: 1, shape: shape });
                     body.position.copy(mesh.position);
-                    body.velocity.set(
-                        (Math.random()-0.5)*30, 
-                        10 + Math.random()*20, 
-                        (Math.random()-0.5)*30
-                    );
+                    body.velocity.set((Math.random()-0.5)*30, 10 + Math.random()*20, (Math.random()-0.5)*30);
                     body.angularVelocity.set((Math.random()-0.5)*10, (Math.random()-0.5)*10, (Math.random()-0.5)*10);
                     physicsWorld.addBody(body);
                     debris.push({ mesh, body, timer: 3.0 });
@@ -969,7 +1160,7 @@
 
         function getSelectedNames() {
             let checked = Array.from(document.querySelectorAll('.name-checkbox:checked')).map(cb => cb.value);
-            return checked.length > 0 ? checked : [...NPC_NAMES]; // Fallback to all if none selected
+            return checked.length > 0 ? checked : [...NPC_NAMES]; 
         }
 
         function startGame(npcs, mode, timer) {
@@ -978,11 +1169,15 @@
             debris.forEach(d => { scene.remove(d.mesh); physicsWorld.removeBody(d.body); });
             debris = [];
             
-            // Apply settings
             maxAllowedJumps = parseInt(document.getElementById('setting-jumps').value);
             MAP_SIZE = parseInt(document.getElementById('setting-mapsize').value);
             platformMultiplier = parseFloat(document.getElementById('setting-platmulti').value);
             buildMap(); 
+
+            // Hide platforms initially for the intro sequence
+            platforms.forEach(p => {
+                if (!p.isIntro) p.mesh.visible = false;
+            });
 
             bombTimer = initialBombTimer = timer;
             bombSpawnDelay = 0;
@@ -992,7 +1187,7 @@
             spectateTarget = null;
             camYaw = 0;
             camPitch = 0.2;
-            camZoom = 12;
+            camZoom = 15;
             
             document.getElementById('nametags-container').innerHTML = '';
             document.getElementById('main-menu').classList.add('hidden');
@@ -1001,7 +1196,7 @@
             document.getElementById('crosshair').style.display = 'block';
             
             if (gameMode === 'play') {
-                myPlayer = new Character(true, 'player', 'User', playerBodyColor, playerHatType, playerHatColor);
+                myPlayer = new Character(true, 'player', 'User', playerBodyColor, playerHatType, playerHatColor, playerHeadArmColor, playerLegColor);
                 players.push(myPlayer);
             } else {
                 myPlayer = null;
@@ -1012,18 +1207,20 @@
             for(let i=0; i<npcs; i++) {
                 const randomName = availableNames[Math.floor(Math.random() * availableNames.length)];
                 const rBody = '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString();
+                const rHeadArm = isRobloxMode ? '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString() : '#ffab66';
+                const rLegs = isRobloxMode ? '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString() : '#000000';
                 const rHat = hatTypes[Math.floor(Math.random() * hatTypes.length)];
                 const rHatColor = '#' + new THREE.Color().setHSL(Math.random(), 0.8, 0.5).getHexString();
-                players.push(new Character(false, 'npc_'+i, randomName, rBody, rHat, rHatColor));
+                players.push(new Character(false, 'npc_'+i, randomName, rBody, rHat, rHatColor, rHeadArm, rLegs));
             }
             
             if(players.length === 0) return;
 
-            // Line up players for intro sequence
             const spacing = 3.5;
             const startX = -(players.length * spacing) / 2;
+            const introY = 1000;
             players.forEach((p, i) => {
-                p.position.set(startX + i * spacing + (spacing/2), 10, 0);
+                p.position.set(startX + i * spacing + (spacing/2), introY + 10, 0);
                 p.velocity.set(0,0,0);
             });
 
@@ -1058,14 +1255,36 @@
 
         function checkBombPassing() {
             if(globalPassCooldown > 0 || !bombHolder) return;
+            
+            // Pre-calculate bomb holder's full body bounding box if in roblox mode
+            let holderBox = null;
+            if (isRobloxMode && bombHolder.robloxGroup) {
+                holderBox = new THREE.Box3().setFromObject(bombHolder.robloxGroup);
+            }
+
             for (let i = 0; i < players.length; i++) {
-                for (let j = i + 1; j < players.length; j++) {
-                    const p1 = players[i];
-                    const p2 = players[j];
-                    if (p1.position.distanceTo(p2.position) < 2.5) {
-                        if (bombHolder === p1 && p1.cannotPassTo !== p2 && p1.cannotPassTimer <= 0) { passBombTo(p2, p1); return; } 
-                        else if (bombHolder === p2 && p2.cannotPassTo !== p1 && p2.cannotPassTimer <= 0) { passBombTo(p1, p2); return; }
+                const p = players[i];
+                
+                // Skip if it's the bomb holder, dead, or on cooldown from just passing
+                if (p === bombHolder || p.isDead) continue;
+                if (bombHolder.cannotPassTo === p && bombHolder.cannotPassTimer > 0) continue;
+
+                let isCollision = false;
+
+                if (isRobloxMode && p.robloxGroup && holderBox) {
+                    // Check if ANY body part (arms, legs, head, torso) touches via Bounding Box intersection
+                    const pBox = new THREE.Box3().setFromObject(p.robloxGroup);
+                    isCollision = holderBox.intersectsBox(pBox);
+                } else {
+                    // Standard distance check for non-Roblox mode
+                    if (bombHolder.position.distanceTo(p.position) < 2.5 * (p.baseScale || 1.5)) {
+                        isCollision = true;
                     }
+                }
+
+                if (isCollision) {
+                    passBombTo(p, bombHolder);
+                    return; // Stop checking once successfully passed
                 }
             }
         }
@@ -1112,14 +1331,11 @@
             }
         });
 
-        // Spectator Raycaster click logic
         document.addEventListener('mousedown', (e) => {
             if (gameState === 'playing' && isPointerLocked && e.button === 0) {
                 if (gameMode === 'spectate') {
-                    // Raycast from center of screen
                     raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
                     let hitPlayer = null;
-                    
                     for(let p of players) {
                         let intersects = raycaster.intersectObject(p.bodyMesh);
                         if(intersects.length > 0) {
@@ -1127,12 +1343,11 @@
                             break;
                         }
                     }
-
                     if (hitPlayer) {
-                        if (spectateTarget === hitPlayer) spectateTarget = null; // Toggle off
-                        else spectateTarget = hitPlayer; // Lock on
+                        if (spectateTarget === hitPlayer) spectateTarget = null; 
+                        else spectateTarget = hitPlayer; 
                     } else {
-                        spectateTarget = null; // Clicked nothing, detach
+                        spectateTarget = null; 
                     }
                 }
             } else if (gameState === 'playing' && !isPointerLocked) {
@@ -1140,13 +1355,18 @@
             }
         });
 
-        // UI Event Listeners
         document.getElementById('setting-npcs').addEventListener('input', (e) => document.getElementById('npc-val').innerText = e.target.value);
         document.getElementById('setting-timer').addEventListener('input', (e) => document.getElementById('timer-val').innerText = e.target.value);
         document.getElementById('setting-jumps').addEventListener('input', (e) => document.getElementById('jumps-val').innerText = e.target.value);
         document.getElementById('setting-mapsize').addEventListener('input', (e) => document.getElementById('mapsize-val').innerText = e.target.value);
         document.getElementById('setting-platmulti').addEventListener('input', (e) => document.getElementById('platmulti-val').innerText = e.target.value + 'x');
         
+        document.getElementById('setting-roblox').addEventListener('change', (e) => {
+            isRobloxMode = e.target.checked;
+            document.getElementById('roblox-val').innerText = isRobloxMode ? 'On' : 'Off';
+            updatePreview();
+        });
+
         let selectedMode = 'play';
         document.getElementById('mode-play').addEventListener('click', () => {
             selectedMode = 'play';
@@ -1171,13 +1391,23 @@
         document.getElementById('btn-customize').addEventListener('click', () => {
             document.getElementById('main-menu').classList.add('hidden');
             document.getElementById('customize-menu').classList.remove('hidden');
+            
+            if (isRobloxMode) {
+                document.getElementById('roblox-colors-container').classList.remove('hidden');
+                document.getElementById('body-color-label').innerText = 'Torso Color:';
+            } else {
+                document.getElementById('roblox-colors-container').classList.add('hidden');
+                document.getElementById('body-color-label').innerText = 'Body Color:';
+            }
+            
             updatePreview();
         });
         document.getElementById('btn-customize-back').addEventListener('click', () => {
             playerBodyColor = document.getElementById('edit-body-color').value;
+            playerHeadArmColor = document.getElementById('edit-head-color').value;
+            playerLegColor = document.getElementById('edit-leg-color').value;
             playerHatType = document.getElementById('edit-hat').value;
             playerHatColor = document.getElementById('edit-hat-color').value;
-            
             document.getElementById('customize-menu').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
         });
@@ -1194,16 +1424,13 @@
             updatePreview();
         });
         
-        // Listen for color changes for live updates
         document.getElementById('edit-body-color').addEventListener('input', updatePreview);
+        document.getElementById('edit-head-color').addEventListener('input', updatePreview);
+        document.getElementById('edit-leg-color').addEventListener('input', updatePreview);
         document.getElementById('edit-hat-color').addEventListener('input', updatePreview);
 
-        document.getElementById('btn-names-all').addEventListener('click', () => {
-            document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = true);
-        });
-        document.getElementById('btn-names-none').addEventListener('click', () => {
-            document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = false);
-        });
+        document.getElementById('btn-names-all').addEventListener('click', () => document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = true));
+        document.getElementById('btn-names-none').addEventListener('click', () => document.querySelectorAll('.name-checkbox').forEach(cb => cb.checked = false));
 
         function populateNamesList() {
             const container = document.getElementById('npc-names-list');
@@ -1215,14 +1442,7 @@
             });
         }
 
-        document.getElementById('btn-start').addEventListener('click', () => {
-            startGame(
-                parseInt(document.getElementById('setting-npcs').value),
-                selectedMode,
-                parseInt(document.getElementById('setting-timer').value)
-            );
-        });
-
+        document.getElementById('btn-start').addEventListener('click', () => startGame(parseInt(document.getElementById('setting-npcs').value), selectedMode, parseInt(document.getElementById('setting-timer').value)));
         document.getElementById('btn-menu').addEventListener('click', () => {
             document.getElementById('game-over').classList.add('hidden');
             document.getElementById('main-menu').classList.remove('hidden');
@@ -1242,14 +1462,25 @@
 
         function updatePlayerInput(dt) {
             if(!myPlayer || myPlayer.isDead) return;
+            
             const speed = MOVE_SPEED * dt * 5;
+            
             const forward = new THREE.Vector3(Math.sin(camYaw), 0, Math.cos(camYaw));
             const right = new THREE.Vector3(forward.z, 0, -forward.x);
 
-            if(keys.w) { myPlayer.velocity.x -= forward.x * speed; myPlayer.velocity.z -= forward.z * speed; }
-            if(keys.s) { myPlayer.velocity.x += forward.x * speed; myPlayer.velocity.z += forward.z * speed; }
-            if(keys.a) { myPlayer.velocity.x -= right.x * speed; myPlayer.velocity.z -= right.z * speed; }
-            if(keys.d) { myPlayer.velocity.x += right.x * speed; myPlayer.velocity.z += right.z * speed; }
+            let inputDir = new THREE.Vector3(0, 0, 0);
+
+            if(keys.w) { inputDir.x -= forward.x; inputDir.z -= forward.z; }
+            if(keys.s) { inputDir.x += forward.x; inputDir.z += forward.z; }
+            if(keys.a) { inputDir.x -= right.x; inputDir.z -= right.z; }
+            if(keys.d) { inputDir.x += right.x; inputDir.z += right.z; }
+
+            if (inputDir.lengthSq() > 0) {
+                inputDir.normalize();
+                myPlayer.velocity.x += inputDir.x * speed;
+                myPlayer.velocity.z += inputDir.z * speed;
+            }
+
             if(keys.space) myPlayer.jump();
             keys.space = false;
         }
@@ -1276,9 +1507,8 @@
             let activeTarget = (gameMode === 'play') ? myPlayer : spectateTarget;
 
             if (activeTarget && !activeTarget.isDead) {
-                // Orbit Camera
                 const targetPos = activeTarget.position.clone();
-                targetPos.y += 1;
+                targetPos.y += 1 * (activeTarget.baseScale || 1.5);
                 camera.position.x = targetPos.x + camZoom * Math.sin(camYaw) * Math.cos(camPitch);
                 camera.position.y = targetPos.y + camZoom * Math.sin(camPitch);
                 camera.position.z = targetPos.z + camZoom * Math.cos(camYaw) * Math.cos(camPitch);
@@ -1290,56 +1520,33 @@
             let activeTarget = (gameMode === 'play') ? myPlayer : spectateTarget;
             if(!activeTarget && players.length > 0) activeTarget = players[0];
             
-            if (introTimer < 3.5) {
-                // Phase 1: Orbit all players
+            const INTRO_Y = 1000;
+            
+            if (introTimer < 4.0) {
                 const N = players.length;
                 const radius = Math.max(15, 10 + N * 1.5);
-                const angle = -Math.PI/2 + (introTimer / 3.5) * (Math.PI * 2);
-                camera.position.set(Math.sin(angle) * radius, 6 + radius*0.1, Math.cos(angle) * radius);
-                camera.lookAt(0, 2, 0);
-            } else if (introTimer < 6.5) {
-                // Phase 2: Pan across the line
-                let t = (introTimer - 3.5) / 3.0;
-                t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; // easeInOutQuad
-                
-                let targetIdx = t * (players.length - 1);
-                let idx1 = Math.floor(targetIdx);
-                let idx2 = Math.ceil(targetIdx);
-                let blend = targetIdx - idx1;
-                
-                let p1 = players[idx1].position;
-                let p2 = players[idx2].position;
-                
-                let lookPos = new THREE.Vector3().lerpVectors(p1, p2, blend);
-                lookPos.y += 1;
-                
-                camera.position.set(lookPos.x, lookPos.y + 3, lookPos.z + 12);
-                camera.lookAt(lookPos);
-                
-                introEndPanCamPos.copy(camera.position);
-                introEndPanLookPos.copy(lookPos);
+                const angle = -Math.PI/2 + (introTimer / 4.0) * (Math.PI * 2);
+                camera.position.set(Math.sin(angle) * radius, INTRO_Y + 6 + radius*0.1, Math.cos(angle) * radius);
+                camera.lookAt(0, INTRO_Y + 2, 0);
             } else {
-                // Phase 3: Zoom to active player and transition into standard 3rd person
-                let t = (introTimer - 6.5) / 2.0;
-                t = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; // easeInOutCubic
+                let t = (introTimer - 4.0) / 4.5;
+                t = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t; 
                 
-                const targetPos = activeTarget.position.clone();
-                targetPos.y += 1;
+                let targetIdx = players.indexOf(activeTarget);
+                if (targetIdx === -1) targetIdx = 0;
                 
-                const finalCamX = targetPos.x + camZoom * Math.sin(camYaw) * Math.cos(camPitch);
-                const finalCamY = targetPos.y + camZoom * Math.sin(camPitch);
-                const finalCamZ = targetPos.z + camZoom * Math.cos(camYaw) * Math.cos(camPitch);
-                const finalCamPos = new THREE.Vector3(finalCamX, finalCamY, finalCamZ);
+                let p1 = players[0].position.clone();
+                let p2 = activeTarget.position.clone();
                 
-                camera.position.lerpVectors(introEndPanCamPos, finalCamPos, t);
+                let lookPos = new THREE.Vector3().lerpVectors(p1, p2, t);
+                lookPos.y += 1 * (activeTarget.baseScale || 1.5);
                 
-                let currentLookPos = new THREE.Vector3().lerpVectors(introEndPanLookPos, targetPos, t);
-                camera.lookAt(currentLookPos);
+                camera.position.set(lookPos.x, lookPos.y + 3, lookPos.z + 12 - (t * 5));
+                camera.lookAt(lookPos);
             }
         }
 
         function updateUI() {
-            // Update Nametags
             players.forEach(p => {
                 if (p.isDead || !p.nametag) return;
 
@@ -1352,7 +1559,7 @@
                 }
 
                 const vec = p.position.clone();
-                vec.y += (p === bombHolder ? 3.0 : 2.2); 
+                vec.y += (p === bombHolder ? (isRobloxMode ? 3.8 : 3.0) : (isRobloxMode ? 3.0 : 2.2)) * (p.baseScale || 1.5); 
                 vec.project(camera);
 
                 if(vec.z > 1) {
@@ -1408,21 +1615,23 @@
                     spectateTarget = players[0];
                 }
 
-                // Update players physically so they fall to ground, but isIntro prevents movement AI
                 players.forEach(p => p.update(dt, time, true));
                 physicsWorld.step(dt);
                 
                 updateIntroCamera(dt, introTimer);
                 updateUI();
 
-                // Teleport to map and begin game at 8.5 seconds
                 if (introTimer >= 8.5) {
                     gameState = 'playing';
                     const spawnRange = (MAP_SIZE / 2) - 5;
                     players.forEach(p => {
+                        // Teleport into the main arena
                         p.position.set((Math.random()-0.5)*spawnRange*2, 10, (Math.random()-0.5)*spawnRange*2);
                         p.velocity.set(0,0,0);
                     });
+                    
+                    platforms.forEach(p => p.mesh.visible = true); // Unhide platforms after intro
+
                     assignBombToRandom();
                     document.getElementById('ui-mode-text').innerText = "WASD to Move | Mouse to Look | Scroll to Zoom | Click to Target (Spectator)";
                 }
@@ -1497,7 +1706,6 @@
                 updateUI();
             }
             
-            // Render 3D Customization Preview when menu is open
             if (!document.getElementById('customize-menu').classList.contains('hidden') && previewGroup) {
                 previewGroup.rotation.y += dt;
                 previewRenderer.render(previewScene, previewCamera);
