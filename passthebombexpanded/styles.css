@@ -1,0 +1,24 @@
+body { margin: 0; overflow: hidden; background-color: #7fb6dd; font-family: 'Inter', sans-serif; user-select: none; }
+#game-ui, #main-menu, #settings-menu, #customize-menu, #game-over, #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+#main-menu:not(.hidden), #settings-menu:not(.hidden), #customize-menu:not(.hidden), #game-over:not(.hidden), #pause-menu:not(.hidden) { pointer-events: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.72) 100%); backdrop-filter: blur(6px); }
+.btn { pointer-events: auto; transition: transform 0.12s, box-shadow 0.2s, filter 0.2s, background-color 0.2s; box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+.btn:hover { box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+.btn:active { transform: scale(0.95); }
+#crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; display: none; pointer-events: none; z-index: 100; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%); box-shadow: 0 0 8px rgba(0,0,0,0.4); }
+.nametag { position: absolute; color: white; font-weight: bold; font-size: 1rem; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; font-family: 'Inter', sans-serif; }
+canvas { display: block; width: 100%; height: 100%; }
+
+.glass-panel { background: linear-gradient(160deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.06) 100%); border: 1px solid rgba(255,255,255,0.22); box-shadow: 0 8px 40px 0 rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255,255,255,0.25); border-radius: 1.2rem; }
+
+.game-title { animation: titleFloat 4s ease-in-out infinite; filter: drop-shadow(0 4px 2px rgba(0,0,0,0.5)) drop-shadow(0 0 24px rgba(255,120,0,0.35)) !important; }
+@keyframes titleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+input[type="range"] { accent-color: #ef4444; cursor: pointer; }
+input[type="checkbox"] { cursor: pointer; }
+input[type="text"]:focus, select:focus { border-color: #fbbf24 !important; box-shadow: 0 0 0 3px rgba(251,191,36,0.25); }
+
+/* Custom scrollbar for settings */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.5); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.8); }
