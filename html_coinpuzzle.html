@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Coin Sequence Puzzle</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a202c; color: white; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 20px; box-sizing: border-box; }
+        
+        #controls-bottom { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 20px; pointer-events: none;}
+        #controls-bottom > * { pointer-events: auto; }
+        
+        .instructions { font-size: 1.1rem; text-align: center; color: #e2e8f0; text-shadow: 1px 1px 2px black; max-width: 600px;}
+        
+        .btn-group { display: flex; gap: 10px; }
+        button { 
+            background: linear-gradient(135deg, #3b82f6, #2563eb); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 8px; 
+            font-size: 1.1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            pointer-events: auto;
+        }
+        button:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(0,0,0,0.4); background: linear-gradient(135deg, #4f46e5, #3730a3); }
+        button:active { transform: translateY(1px); box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        button:disabled { background: #475569; color: #94a3b8; cursor: not-allowed; transform: none; box-shadow: none; }
+        
+        #message-box { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: rgba(15, 23, 42, 0.95); 
+            padding: 40px; 
+            border-radius: 16px; 
+            text-align: center; 
+            z-index: 100; 
+            display: none;
+            border: 2px solid #38bdf8;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+            pointer-events: auto;
+        }
+        #message-title { font-size: 2.5rem; font-weight: bold; margin-bottom: 15px; color: #38bdf8; }
+        #message-text { font-size: 1.2rem; margin-bottom: 25px; color: #cbd5e1;}
+        
+        #level-select-modal {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.8); z-index: 200; display: none;
+            justify-content: center; align-items: center; pointer-events: auto;
+        }
+        #level-select-content {
+            background: rgba(15, 23, 42, 0.95); padding: 30px; border-radius: 16px;
+            border: 2px solid #38bdf8; text-align: center; max-width: 90%;
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.3);
+        }
+        #level-select-title { font-size: 2rem; font-weight: bold; color: #38bdf8; margin-bottom: 20px; }
+        #level-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;
+        }
+        .level-btn {
+            width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+            padding: 0; font-size: 1.2rem;
+        }
+
+        /* UI Panels & Goal Sequence */
+        .panel { background: rgba(15, 23, 42, 0.8); padding: 15px 25px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        #top-bar { display: flex; justify-content: space-between; width: 100%; pointer-events: auto; gap: 20px; }
+        #goal-sequence { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+        .goal-coin { width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4); box-shadow: 0 4px 6px rgba(0,0,0,0.4); }
+        .goal-text { font-weight: bold; color: #38bdf8; font-size: 1.1rem; }
+
+        /* Selection visualizer */
+        #selection-overlay { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; pointer-events: none; }
+        .selection-indicator { width: 40px; height: 10px; background-color: rgba(255,255,255,0.2); border-radius: 5px; transition: background-color 0.2s;}
+        .selection-indicator.active { background-color: #38bdf8; box-shadow: 0 0 10px #38bdf8; }
+        
+        @media (max-width: 768px) {
+            #ui-layer { padding: 10px; }
+            .goal-coin { width: 20px; height: 20px; }
+            button { padding: 8px 16px; font-size: 0.9rem; }
+            .instructions { font-size: 0.9rem; }
+            #level-info { font-size: 1.2rem; }
+            #top-bar { flex-direction: column; gap: 10px;}
+            .panel { padding: 10px 15px; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="ui-layer">
+    <div id="top-bar">
+        <div class="panel" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 15px;">
+                <div id="level-info">Level 1</div>
+                <button onclick="showLevelSelect()" style="padding: 4px 12px; font-size: 0.9rem;">Levels</button>
+            </div>
+            <div class="text-sm text-gray-400">Select coins and rotate them to match the goal.</div>
+        </div>
+        
+        <div class="panel" id="goal-container">
+            <div class="goal-text">Target Sequence:</div>
+            <div id="goal-sequence"></div>
+        </div>
+    </div>
+    
+    <div id="controls-bottom">
+        <div class="panel instructions" id="instruction-text">
+            Click coins to select or deselect them.
+        </div>
+        
+        <div id="selection-overlay"></div>
+        
+        <div class="btn-group">
+            <button id="btn-clear" onclick="clearSelection()" disabled>Clear Selection</button>
+            <button id="btn-rotate" onclick="startRotation()" disabled>Rotate Group</button>
+            <button id="btn-skip" onclick="skipLevel()">Skip Level</button>
+        </div>
+    </div>
+</div>
+
+<div id="message-box">
+    <div id="message-title">Level Complete!</div>
+    <div id="message-text">Great job matching the sequence.</div>
+    <button onclick="nextLevel()" id="btn-next">Next Level</button>
+    <button onclick="restartGame()" id="btn-restart" style="display:none;">Play Again</button>
+    <div id="skip-confirm" style="display:none; margin-top: 20px;">
+        <div style="font-size: 1.2rem; color: #cbd5e1; margin-bottom: 15px;">Are you sure you want the bot to solve this?</div>
+        <button onclick="executeSkip()" style="background: linear-gradient(135deg, #ef4444, #b91c1c);">Yes, solve it</button>
+        <button onclick="cancelSkip()" style="background: #475569;">Cancel</button>
+    </div>
+</div>
+
+<div id="level-select-modal">
+    <div id="level-select-content">
+        <div id="level-select-title">Select Level</div>
+        <div id="level-grid"></div>
+        <button onclick="hideLevelSelect()" style="background: #475569;">Close</button>
+    </div>
+</div>
+
+<script>
+const COLORS = {
+    red: 0xff4444,
+    green: 0x44ff44,
+    yellow: 0xffff44,
+    blue: 0x4444ff,
+    purple: 0xaa44ff,
+    orange: 0xff9944,
+    cyan: 0x44ffff,
+    white: 0xffffff
+};
+
+const COLOR_NAMES = Object.keys(COLORS);
+
+// Define the 10 levels
+const LEVELS = [
+    {   // Level 1 (From prompt)
+        initial: ['red', 'red', 'yellow', 'green', 'green'],
+        goal: ['red', 'red', 'green', 'green', 'yellow']
+    },
+    {   // Level 2 (Simple swap)
+        initial: ['blue', 'red', 'blue', 'red'],
+        goal: ['blue', 'blue', 'red', 'red']
+    },
+    {   // Level 3 (Shift)
+        initial: ['yellow', 'yellow', 'green', 'blue', 'blue'],
+        goal: ['green', 'yellow', 'yellow', 'blue', 'blue']
+    },
+    {   // Level 4 
+        initial: ['purple', 'orange', 'purple', 'orange', 'purple'],
+        goal: ['purple', 'purple', 'purple', 'orange', 'orange']
+    },
+    {   // Level 5
+        initial: ['cyan', 'red', 'green', 'cyan', 'red', 'green'],
+        goal: ['cyan', 'cyan', 'red', 'red', 'green', 'green']
+    },
+    {   // Level 6
+        initial: ['white', 'blue', 'yellow', 'yellow', 'blue', 'white'],
+        goal: ['white', 'white', 'blue', 'blue', 'yellow', 'yellow']
+    },
+    {   // Level 7
+        initial: ['red', 'green', 'blue', 'yellow', 'purple'],
+        goal: ['purple', 'yellow', 'blue', 'green', 'red']
+    },
+    {   // Level 8
+        initial: ['orange', 'cyan', 'white', 'orange', 'cyan', 'white', 'orange'],
+        goal: ['orange', 'orange', 'orange', 'cyan', 'cyan', 'white', 'white']
+    },
+    {   // Level 9
+        initial: ['red', 'red', 'blue', 'blue', 'green', 'green', 'yellow', 'yellow'],
+        goal: ['red', 'blue', 'green', 'yellow', 'red', 'blue', 'green', 'yellow']
+    },
+    {   // Level 10 (Complex)
+        initial: ['purple', 'white', 'purple', 'white', 'cyan', 'orange', 'cyan', 'orange'],
+        goal: ['purple', 'purple', 'white', 'white', 'orange', 'orange', 'cyan', 'cyan']
+    },
+    {   // Level 11 (Mixed sequence)
+        initial: ['red', 'blue', 'green', 'yellow', 'red', 'blue', 'green'],
+        goal: ['red', 'red', 'blue', 'blue', 'green', 'green', 'yellow']
+    },
+    {   // Level 12 (Palindrome sorting)
+        initial: ['orange', 'white', 'purple', 'cyan', 'purple', 'white', 'orange'],
+        goal: ['cyan', 'white', 'white', 'orange', 'orange', 'purple', 'purple']
+    },
+    {   // Level 13 (Alternating colors)
+        initial: ['red', 'yellow', 'red', 'yellow', 'red', 'yellow', 'red'],
+        goal: ['red', 'red', 'red', 'red', 'yellow', 'yellow', 'yellow']
+    },
+    {   // Level 14 (Rainbow reverse)
+        initial: ['purple', 'blue', 'green', 'yellow', 'orange', 'red', 'white'],
+        goal: ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'white']
+    },
+    {   // Level 15 (Block shifting)
+        initial: ['white', 'white', 'white', 'blue', 'blue', 'cyan', 'cyan'],
+        goal: ['blue', 'blue', 'cyan', 'cyan', 'white', 'white', 'white']
+    },
+    {   // Level 16 (The Hardest Level - 4 overlapping reverse moves)
+        initial: ['blue', 'purple', 'red', 'green', 'yellow', 'white', 'cyan', 'orange'],
+        goal: ['red', 'orange', 'yellow', 'green', 'blue', 'purple', 'cyan', 'white']
+    }
+];
+
+let scene, camera, renderer, raycaster, mouse;
+let coins = [];
+let coinMeshes = [];
+let currentLevel = 0;
+let isAnimating = false;
+
+// Selection state
+let selectedIndices = new Set();
+let skipSequence = [];
+let isBotSolving = false;
+
+const COIN_RADIUS = 3.0;
+const COIN_THICKNESS = 1.0;
+const COIN_SPACING = 1.05; // Slightly larger than thickness to avoid z-fighting, but tight like a tower
+
+function init3D() {
+    const container = document.getElementById('canvas-container');
+    
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x222222); // Dark gray background
+    // Removed fog for a cleaner 2D look
+    
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 20;
+    camera = new THREE.OrthographicCamera( frustumSize * aspect / - 2, frustumSize * aspect / 2, frustumSize / 2, frustumSize / - 2, 0.1, 100 );
+    camera.position.set(0, 0, 20); // Look straight down the Z axis
+    camera.lookAt(0, 0, 0);
+    
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false }); // alpha false since we have bg color
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    container.appendChild(renderer.domElement);
+    
+    // Lighting - adjusted for flat look
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+    
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    dirLight.position.set(5, 5, 10);
+    scene.add(dirLight);
+
+    // Removed platform and grid helper
+    
+    raycaster = new THREE.Raycaster();
+    mouse = new THREE.Vector2();
+    
+    window.addEventListener('resize', onWindowResize);
+    
+    // Touch/Click interaction
+    renderer.domElement.addEventListener('pointerdown', onPointerDown);
+}
+
+function onWindowResize() {
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 20;
+    camera.left = - frustumSize * aspect / 2;
+    camera.right = frustumSize * aspect / 2;
+    camera.top = frustumSize / 2;
+    camera.bottom = - frustumSize / 2;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function createCoinGeometry() {
+    // Cylinder geometry: radiusTop, radiusBottom, height, radialSegments
+    const geometry = new THREE.CylinderGeometry(COIN_RADIUS, COIN_RADIUS, COIN_THICKNESS, 64);
+    // Rotate so the flat faces point left/right (along X axis) to form a horizontal stack
+    geometry.rotateZ(Math.PI / 2); 
+    // Rotate again so we see the edge, but the faces are still perpendicular to X
+    geometry.rotateX(Math.PI / 2);
+    
+    return geometry;
+}
+
+const coinGeo = createCoinGeometry();
+
+function loadLevel(levelIndex) {
+    if (levelIndex >= LEVELS.length) {
+        showEndScreen();
+        return;
+    }
+    
+    currentLevel = levelIndex;
+    const levelData = LEVELS[currentLevel];
+    
+    document.getElementById('level-info').innerText = `Level ${currentLevel + 1} of ${LEVELS.length}`;
+    
+    TWEEN.removeAll();
+    isAnimating = false;
+    
+    coinMeshes.forEach(mesh => scene.remove(mesh));
+    coinMeshes = [];
+    coins = [...levelData.initial]; // current color state
+    
+    isBotSolving = false;
+    skipSequence = [];
+    document.getElementById('btn-skip').disabled = false;
+    
+    clearSelection();
+    updateGoalUI(levelData.goal);
+    createSelectionIndicators(coins.length);
+    
+    const startX = -(coins.length - 1) * COIN_SPACING / 2;
+    
+    coins.forEach((colorName, index) => {
+        // Create a material array to color the side (curved part) and faces (flat parts) differently if needed
+        // For a cylinder: [side, top, bottom]
+        // We want the side to be the color. Let's make faces slightly darker or same.
+        const colorHex = COLORS[colorName];
+        
+        const sideMat = new THREE.MeshStandardMaterial({ 
+            color: colorHex,
+            roughness: 0.3,
+            metalness: 0.2,
+        });
+        
+        const faceMat = new THREE.MeshStandardMaterial({
+            color: colorHex,
+            roughness: 0.5,
+            metalness: 0.1
+        });
+
+        // We mapped geometry such that:
+        // Cylinder originally has faces on Y. We rotated Z by 90, so faces are on X.
+        // We rotated X by 90, so faces are still on X, but the "front" of the side changed.
+        // Material indices: 0 = side, 1 = top face, 2 = bottom face
+        
+        const mesh = new THREE.Mesh(coinGeo, [sideMat, faceMat, faceMat]);
+        
+        // Position in a line along X axis (sideways tower)
+        mesh.position.set(startX + index * COIN_SPACING, 0, 0);
+        
+        // Removed castShadow/receiveShadow as we removed the floor
+        mesh.userData = { index: index, originalColor: colorName };
+        
+        // Add a rim or detail for selection highlight (invisible by default)
+        // Since the coin is seen from the side, a bounding box outline or scaled up version works better
+        const highlightGeo = createCoinGeometry();
+        const highlightMat = new THREE.MeshBasicMaterial({ 
+            color: 0xffff00, 
+            side: THREE.BackSide, // Draw inside out to create an outline
+            transparent: true,
+            opacity: 0
+        });
+        const highlightMesh = new THREE.Mesh(highlightGeo, highlightMat);
+        highlightMesh.scale.set(1.05, 1.05, 1.05); // slightly larger
+        mesh.add(highlightMesh);
+
+        scene.add(mesh);
+        coinMeshes.push(mesh);
+    });
+    
+    // Adjust camera frustum based on number of coins
+    const totalWidth = coins.length * COIN_SPACING;
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = Math.max(15, totalWidth + 4); // Padding
+    camera.left = - frustumSize * aspect / 2;
+    camera.right = frustumSize * aspect / 2;
+    camera.top = frustumSize / 2;
+    camera.bottom = - frustumSize / 2;
+    camera.updateProjectionMatrix();
+}
+
+function updateGoalUI(goalColors) {
+    const container = document.getElementById('goal-sequence');
+    container.innerHTML = '';
+    
+    goalColors.forEach(colorName => {
+        const div = document.createElement('div');
+        div.className = 'goal-coin';
+        div.style.backgroundColor = '#' + COLORS[colorName].toString(16).padStart(6, '0');
+        container.appendChild(div);
+    });
+}
+
+function createSelectionIndicators(count) {
+    const container = document.getElementById('selection-overlay');
+    container.innerHTML = '';
+    for(let i=0; i<count; i++) {
+        const div = document.createElement('div');
+        div.className = 'selection-indicator';
+        div.id = `indicator-${i}`;
+        container.appendChild(div);
+    }
+}
+
+function updateSelectionUI() {
+    const indicators = document.querySelectorAll('.selection-indicator');
+    indicators.forEach(ind => ind.classList.remove('active'));
+    
+    coinMeshes.forEach(mesh => {
+        mesh.position.y = 0; // Reset pop up
+        mesh.children[0].material.opacity = 0; // Hide highlight
+    });
+    
+    if (selectedIndices.size > 0) {
+        selectedIndices.forEach(index => {
+            document.getElementById(`indicator-${index}`).classList.add('active');
+            
+            // Visual feedback on 3D mesh
+            if(coinMeshes[index]) {
+                // Pop up slightly
+                // coinMeshes[index].position.y = 0.5; 
+                // Show outline
+                coinMeshes[index].children[0].material.opacity = 0.6; 
+            }
+        });
+        
+        document.getElementById('btn-clear').disabled = false;
+        
+        if (selectedIndices.size >= 2) {
+            document.getElementById('btn-rotate').disabled = false;
+            document.getElementById('instruction-text').innerText = "Group selected. Press 'Rotate Group' to invert their order.";
+        } else {
+             document.getElementById('btn-rotate').disabled = true;
+             document.getElementById('instruction-text').innerText = "Select at least 2 coins to rotate.";
+        }
+    } else {
+        document.getElementById('btn-clear').disabled = true;
+        document.getElementById('btn-rotate').disabled = true;
+        document.getElementById('instruction-text').innerText = "Click coins to select or deselect them.";
+    }
+}
+
+function onPointerDown(event) {
+    if (isAnimating) return;
+    
+    // Calculate mouse position in normalized device coordinates (-1 to +1)
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    
+    raycaster.setFromCamera(mouse, camera);
+    
+    const intersects = raycaster.intersectObjects(coinMeshes);
+    
+    if (intersects.length > 0) {
+        // Find the index of the clicked coin
+        let clickedMesh = intersects[0].object;
+        // if user clicked rim, get parent
+        if(!clickedMesh.userData || clickedMesh.userData.index === undefined) {
+            clickedMesh = clickedMesh.parent;
+        }
+        
+        const index = clickedMesh.userData.index;
+        
+        handleCoinClick(index);
+    }
+}
+
+function handleCoinClick(index) {
+    if (selectedIndices.has(index)) {
+        selectedIndices.delete(index);
+    } else {
+        selectedIndices.add(index);
+    }
+    updateSelectionUI();
+}
+
+function clearSelection() {
+    if(isAnimating) return;
+    selectedIndices.clear();
+    updateSelectionUI();
+}
+
+function startRotation() {
+    if (isAnimating || selectedIndices.size < 2) return;
+    
+    isAnimating = true;
+    document.getElementById('btn-rotate').disabled = true;
+    document.getElementById('btn-clear').disabled = true;
+    
+    const groupIndices = Array.from(selectedIndices).sort((a, b) => a - b);
+    
+    // Create a temporary THREE.Group to rotate them together
+    const pivot = new THREE.Group();
+    scene.add(pivot);
+    
+    // Calculate center of the selected group
+    const firstIndex = groupIndices[0];
+    const lastIndex = groupIndices[groupIndices.length - 1];
+    const centerX = (coinMeshes[firstIndex].position.x + coinMeshes[lastIndex].position.x) / 2;
+    pivot.position.set(centerX, 0, 0);
+    
+    // Attach selected coins to pivot
+    groupIndices.forEach(index => {
+        const mesh = coinMeshes[index];
+        // Convert world position to pivot local position
+        mesh.position.x -= centerX;
+        pivot.add(mesh);
+    });
+
+    const animDuration = 1000;
+
+    // Animation 1: Move Up (in Y)
+    new TWEEN.Tween(pivot.position)
+        .to({ y: COIN_RADIUS * 1.5 }, animDuration * 0.3)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .onComplete(() => {
+            // Animation 2: Rotate 180 degrees around Y axis (swapping order horizontally)
+            // Or Z axis to keep them facing front.
+            // Rotating around Y is correct to reverse X positions.
+            new TWEEN.Tween(pivot.rotation)
+                .to({ y: Math.PI }, animDuration * 0.4)
+                .easing(TWEEN.Easing.Sinusoidal.InOut)
+                .onComplete(() => {
+                    // Animation 3: Move Down
+                    new TWEEN.Tween(pivot.position)
+                        .to({ y: 0 }, animDuration * 0.3)
+                        .easing(TWEEN.Easing.Quadratic.In)
+                        .onComplete(() => {
+                            finalizeRotation(groupIndices, pivot, centerX);
+                        })
+                        .start();
+                })
+                .start();
+        })
+        .start();
+}
+
+function finalizeRotation(groupIndices, pivot, centerX) {
+    // Reattach to scene and update logical array
+    const newColors = [...coins];
+    const newMeshes = [...coinMeshes];
+    
+    const len = groupIndices.length;
+    for (let i = 0; i < len; i++) {
+        const oldIndex = groupIndices[i];
+        const newIndex = groupIndices[len - 1 - i]; // Reverse order
+        
+        const mesh = pivot.children[0]; // Always take 0 as we remove them
+        scene.add(mesh);
+        
+        // Restore world position logic based on new index
+        const startX = -(coins.length - 1) * COIN_SPACING / 2;
+        mesh.position.set(startX + newIndex * COIN_SPACING, 0, 0);
+        
+        // Reset rotation that was applied via pivot, but keep face orientation if needed
+        // Actually, since it's a cylinder, we can just reset rotation to initial state
+        mesh.rotation.set(0, 0, 0); 
+        
+        // Update arrays
+        newColors[newIndex] = coins[oldIndex];
+        newMeshes[newIndex] = mesh;
+        mesh.userData.index = newIndex;
+    }
+    
+    scene.remove(pivot);
+    coins = newColors;
+    coinMeshes = newMeshes;
+    
+    clearSelection();
+    isAnimating = false;
+    
+    checkGoal();
+}
+
+function checkGoal() {
+    const goal = LEVELS[currentLevel].goal;
+    let isMatch = true;
+    for (let i = 0; i < coins.length; i++) {
+        if (coins[i] !== goal[i]) {
+            isMatch = false;
+            break;
+        }
+    }
+    
+    if (isMatch && !isBotSolving) {
+        setTimeout(() => {
+            showLevelComplete();
+        }, 500);
+    } else if (isBotSolving && skipSequence.length > 0) {
+        // If bot is solving and there are more steps, do the next step
+        setTimeout(() => {
+            executeNextBotStep();
+        }, 300);
+    } else if (isBotSolving && skipSequence.length === 0) {
+        // Bot finished
+        isBotSolving = false;
+        setTimeout(() => {
+            showLevelComplete();
+        }, 500);
+    }
+}
+
+function skipLevel() {
+    if (isAnimating) return;
+    const msgBox = document.getElementById('message-box');
+    document.getElementById('message-title').innerText = "Skip Level";
+    document.getElementById('message-text').innerText = "";
+    document.getElementById('btn-next').style.display = 'none';
+    document.getElementById('btn-restart').style.display = 'none';
+    document.getElementById('skip-confirm').style.display = 'block';
+    msgBox.style.display = 'block';
+}
+
+function cancelSkip() {
+    document.getElementById('message-box').style.display = 'none';
+    document.getElementById('skip-confirm').style.display = 'none';
+}
+
+function executeSkip() {
+    document.getElementById('message-box').style.display = 'none';
+    document.getElementById('skip-confirm').style.display = 'none';
+    document.getElementById('btn-skip').disabled = true;
+    
+    isBotSolving = true;
+    
+    // Find shortest path to goal using BFS
+    const startState = coins.slice();
+    const goalState = LEVELS[currentLevel].goal.slice();
+    
+    const serialize = (arr) => arr.join(',');
+    const goalStr = serialize(goalState);
+    
+    if (serialize(startState) === goalStr) {
+        isBotSolving = false;
+        showLevelComplete();
+        return;
+    }
+    
+    const queue = [{ state: startState, path: [] }];
+    const visited = new Set();
+    visited.add(serialize(startState));
+    
+    let foundPath = null;
+    let iterations = 0;
+    const maxIterations = 150000; // Increased significantly for Level 16's complexity
+    
+    while (queue.length > 0 && iterations < maxIterations) {
+        iterations++;
+        const current = queue.shift();
+        const currentState = current.state;
+        
+        if (serialize(currentState) === goalStr) {
+            foundPath = current.path;
+            break;
+        }
+        
+        // Generate all possible valid moves (subsegment reversals of length >= 2)
+        // We only allow contiguous selections for the bot to keep it manageable
+        for (let i = 0; i < currentState.length - 1; i++) {
+            for (let j = i + 1; j < currentState.length; j++) {
+                const nextState = currentState.slice();
+                const subsegment = nextState.slice(i, j + 1).reverse();
+                for(let k = 0; k < subsegment.length; k++){
+                    nextState[i + k] = subsegment[k];
+                }
+                
+                const nextStr = serialize(nextState);
+                if (!visited.has(nextStr)) {
+                    visited.add(nextStr);
+                    // store the indices involved in this move
+                    let moveIndices = [];
+                    for(let m = i; m <= j; m++) moveIndices.push(m);
+                    queue.push({ state: nextState, path: [...current.path, moveIndices] });
+                }
+            }
+        }
+    }
+    
+    if (foundPath) {
+        skipSequence = foundPath;
+        executeNextBotStep();
+    } else {
+        alert("Bot couldn't find a solution quickly enough!");
+        isBotSolving = false;
+        document.getElementById('btn-skip').disabled = false;
+    }
+}
+
+function executeNextBotStep() {
+    if (skipSequence.length === 0) {
+        checkGoal();
+        return;
+    }
+    
+    const nextMove = skipSequence.shift();
+    selectedIndices.clear();
+    nextMove.forEach(idx => selectedIndices.add(idx));
+    updateSelectionUI();
+    
+    setTimeout(() => {
+        startRotation();
+    }, 500);
+}
+
+function showLevelComplete() {
+    const msgBox = document.getElementById('message-box');
+    msgBox.style.display = 'block';
+    
+    if (currentLevel === LEVELS.length - 1) {
+        document.getElementById('message-title').innerText = "Game Complete!";
+        document.getElementById('message-text').innerText = "You have solved all the puzzles. Master of Coins!";
+        document.getElementById('btn-next').style.display = 'none';
+        document.getElementById('btn-restart').style.display = 'inline-block';
+    } else {
+        document.getElementById('message-title').innerText = "Level Complete!";
+        document.getElementById('message-text').innerText = "Great job matching the sequence.";
+        document.getElementById('btn-next').style.display = 'inline-block';
+        document.getElementById('btn-restart').style.display = 'none';
+    }
+}
+
+function nextLevel() {
+    document.getElementById('message-box').style.display = 'none';
+    loadLevel(currentLevel + 1);
+}
+
+function restartGame() {
+    document.getElementById('message-box').style.display = 'none';
+    loadLevel(0);
+}
+
+function showEndScreen() {
+    // Fallback if accessed past array
+    restartGame();
+}
+
+function initLevelSelect() {
+    const grid = document.getElementById('level-grid');
+    grid.innerHTML = '';
+    LEVELS.forEach((_, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'level-btn';
+        btn.innerText = i + 1;
+        btn.onclick = () => {
+            hideLevelSelect();
+            loadLevel(i);
+        };
+        grid.appendChild(btn);
+    });
+}
+
+function showLevelSelect() {
+    document.getElementById('level-select-modal').style.display = 'flex';
+}
+
+function hideLevelSelect() {
+    document.getElementById('level-select-modal').style.display = 'none';
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    TWEEN.update();
+    
+    // Removed idle animation for the flat tower look
+    
+    renderer.render(scene, camera);
+}
+
+window.onload = function() {
+    init3D();
+    initLevelSelect();
+    loadLevel(0);
+    animate();
+};
+
+</script>
+</body>
+</html>
