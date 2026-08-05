@@ -232,7 +232,8 @@ const projects = [
     { name: "Percision hopper", path: "scratch-1365781683" },
     "scratch explorer",
     { name: "Pass the bomb 3d expanded", path: "passthebombexpanded/index.html" },
-    { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" }
+    { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" },
+    "claudescratchtools"
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
