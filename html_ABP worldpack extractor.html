@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ABP World Pack Viewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the scrollbar in the raw data section to keep it clean */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800 font-sans selection:bg-blue-200">
+
+    <div class="max-w-5xl mx-auto px-4 py-12">
+        
+        <header class="text-center mb-10">
+            <h1 class="text-4xl font-extrabold tracking-tight text-slate-900 mb-2">ABP World Pack Viewer</h1>
+            <p class="text-slate-500">Upload a world pack file to inspect its metadata, levels, and feature image.</p>
+        </header>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-8 mb-8">
+            <div class="flex items-center justify-center w-full">
+                <label for="dropzone-file" class="flex flex-col items-center justify-center w-full h-48 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors duration-200 group">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-10 h-10 mb-3 text-slate-400 group-hover:text-blue-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="mb-2 text-sm text-slate-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
+                        <p class="text-xs text-slate-400">ABP World Pack File (.worldpack)</p>
+                    </div>
+                    <input id="dropzone-file" type="file" class="hidden" accept=".worldpack" />
+                </label>
+            </div>
+            
+            <!-- Error Message Container -->
+            <div id="error-container" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm font-medium text-center">
+            </div>
+        </div>
+
+        <div id="results-container" class="hidden opacity-0 transition-opacity duration-500 ease-in-out flex flex-col lg:flex-row gap-8">
+            
+            <!-- Left Column: Details & Levels -->
+            <div class="flex-1 space-y-8">
+                
+                <!-- Metadata Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="text-lg font-bold text-slate-800">Pack Details</h2>
+                    </div>
+                    <div class="p-6">
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-6">
+                            <div>
+                                <dt class="text-sm font-medium text-slate-500">World Pack Name</dt>
+                                <dd id="pack-name" class="mt-1 text-base font-semibold text-slate-900 capitalize">-</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-slate-500">Starting World</dt>
+                                <dd id="starting-world" class="mt-1 text-base font-semibold text-slate-900 capitalize">-</dd>
+                            </div>
+                            <div class="sm:col-span-2">
+                                <dt class="text-sm font-medium text-slate-500">GUID</dt>
+                                <dd id="pack-guid" class="mt-1 text-sm text-slate-600 font-mono bg-slate-100 p-2 rounded">-</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-slate-500">Speedrunnable</dt>
+                                <dd class="mt-1">
+                                    <span id="pack-speedrun" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">
+                                        -
+                                    </span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-slate-500">Created Timestamp</dt>
+                                <dd id="pack-timestamp" class="mt-1 text-sm text-slate-700">-</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Levels/Progression Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
+                        <h2 class="text-lg font-bold text-slate-800">World Progression (Level Data)</h2>
+                        <span id="level-count" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">0 Levels</span>
+                    </div>
+                    <div class="p-0">
+                        <ul id="progression-list" class="divide-y divide-slate-100 max-h-64 overflow-y-auto">
+                            <!-- List items will be injected here -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Image & Raw -->
+            <div class="flex-1 space-y-8">
+                
+                <!-- Feature Image Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="text-lg font-bold text-slate-800">Feature Image</h2>
+                    </div>
+                    <div class="p-6 flex justify-center bg-slate-100/50">
+                        <div id="image-container" class="relative w-full max-w-sm rounded-lg overflow-hidden border border-slate-200 shadow-inner bg-slate-200 flex items-center justify-center min-h-[200px]">
+                            <!-- Image will be injected here -->
+                            <span id="image-placeholder" class="text-slate-400 text-sm">No Image Data</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Raw JSON Preview Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                        <h2 class="text-lg font-bold text-slate-800">Raw Extracted JSON</h2>
+                    </div>
+                    <div class="p-0 bg-slate-900">
+                        <pre id="raw-json" class="p-4 text-xs text-emerald-400 font-mono overflow-auto max-h-48"></pre>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Level Preview Modal -->
+    <div id="level-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-300 p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col transform scale-95 transition-transform duration-300" id="level-modal-content">
+            
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 bg-slate-50 flex justify-between items-center rounded-t-2xl">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Level Preview
+                </h3>
+                <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 bg-slate-50">
+                <div class="mb-4">
+                    <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-1">Level Identifier (GUID)</h4>
+                    <p id="modal-level-guid" class="font-mono text-sm bg-slate-100 p-2 rounded border border-slate-200 text-slate-700"></p>
+                </div>
+
+                <div id="modal-level-details" class="hidden mb-4 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4" id="modal-details-grid">
+                        <!-- Details injected here -->
+                    </dl>
+                </div>
+
+                <div>
+                    <h4 class="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-2">Extracted Level Data</h4>
+                    <div class="bg-slate-900 rounded-xl overflow-hidden border border-slate-700">
+                        <pre id="modal-level-json" class="p-4 text-xs text-emerald-400 font-mono overflow-auto max-h-64 whitespace-pre-wrap break-all"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fileInput = document.getElementById('dropzone-file');
+            const errorContainer = document.getElementById('error-container');
+            const resultsContainer = document.getElementById('results-container');
+            
+            let transitionTimeout;
+            
+            // DOM Elements for Data Population
+            const elName = document.getElementById('pack-name');
+            const elStartingWorld = document.getElementById('starting-world');
+            const elGuid = document.getElementById('pack-guid');
+            const elSpeedrun = document.getElementById('pack-speedrun');
+            const elTimestamp = document.getElementById('pack-timestamp');
+            const elProgressionList = document.getElementById('progression-list');
+            const elLevelCount = document.getElementById('level-count');
+            const elImageContainer = document.getElementById('image-container');
+            const elImagePlaceholder = document.getElementById('image-placeholder');
+            const elRawJson = document.getElementById('raw-json');
+
+            // Modal Elements
+            const levelModal = document.getElementById('level-modal');
+            const levelModalContent = document.getElementById('level-modal-content');
+            const closeModalBtn = document.getElementById('close-modal-btn');
+            const modalLevelGuid = document.getElementById('modal-level-guid');
+            const modalLevelJson = document.getElementById('modal-level-json');
+            const modalLevelDetails = document.getElementById('modal-level-details');
+            const modalDetailsGrid = document.getElementById('modal-details-grid');
+
+            let globalParsedData = null;
+
+            closeModalBtn.addEventListener('click', closeLevelPreview);
+            levelModal.addEventListener('click', (e) => {
+                if (e.target === levelModal) closeLevelPreview();
+            });
+
+            fileInput.addEventListener('change', handleFileUpload);
+
+            function handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                hideError();
+                hideResults();
+
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    processFileContent(content);
+                };
+
+                reader.onerror = function() {
+                    showError("Failed to read the file. Please try again.");
+                };
+
+                reader.readAsText(file);
+            }
+
+            function processFileContent(content) {
+                const delimiter = "---PACK START---";
+                
+                // Check if the file has the correct delimiter
+                if (!content.includes(delimiter)) {
+                    showError("Invalid file format. Could not find '---PACK START---' marker.");
+                    return;
+                }
+
+                try {
+                    // Split the string and take everything after the delimiter
+                    const parts = content.split(delimiter);
+                    
+                    // Remove any null bytes (\0) which can sometimes pad binary/text hybrids
+                    let afterMarker = parts[1].replace(/\0/g, ''); 
+                    
+                    let depth = 0;
+                    let inString = false;
+                    let escapeNext = false;
+                    let startIndex = afterMarker.indexOf('{');
+                    
+                    if (startIndex === -1) {
+                        throw new Error("Could not find valid JSON start boundary '{' in the file.");
+                    }
+                    
+                    let endIndex = -1;
+                    
+                    // Single-pass parser to find the exact end of the root JSON object.
+                    // This safely isolates the JSON from trailing garbage without freezing the browser.
+                    for (let i = startIndex; i < afterMarker.length; i++) {
+                        const char = afterMarker[i];
+                        
+                        if (escapeNext) {
+                            escapeNext = false;
+                            continue;
+                        }
+                        
+                        if (char === '\\') {
+                            escapeNext = true;
+                            continue;
+                        }
+                        
+                        if (char === '"') {
+                            inString = !inString;
+                            continue;
+                        }
+                        
+                        if (!inString) {
+                            if (char === '{') depth++;
+                            else if (char === '}') depth--;
+                            
+                            // When depth returns to 0, we've found the matching brace for the root object
+                            if (depth === 0) {
+                                endIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (endIndex === -1) {
+                        throw new Error("Could not find the matching closing brace '}' for the JSON data.");
+                    }
+
+                    // Extract just the valid JSON and parse it
+                    const jsonString = afterMarker.substring(startIndex, endIndex + 1);
+                    const parsedData = JSON.parse(jsonString);
+                    
+                    // Display the parsed data
+                    populateUI(parsedData);
+                    
+                } catch (error) {
+                    console.error("JSON Parsing Error:", error);
+                    showError("Failed to parse the file data: " + error.message);
+                }
+            }
+
+            function populateUI(data) {
+                globalParsedData = data;
+                
+                // 1. Populate Basic Metadata
+                elName.textContent = data.worldPackName || 'N/A';
+                elStartingWorld.textContent = data.startingWorld || 'N/A';
+                elGuid.textContent = data.worldPackGUID || 'N/A';
+                
+                // Format Speedrunnable badge
+                if (data.speedrunnable === true) {
+                    elSpeedrun.textContent = 'True';
+                    elSpeedrun.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800';
+                } else if (data.speedrunnable === false) {
+                    elSpeedrun.textContent = 'False';
+                    elSpeedrun.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 text-rose-800';
+                } else {
+                    elSpeedrun.textContent = 'Unknown';
+                    elSpeedrun.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800';
+                }
+
+                // Format Timestamp
+                if (data.timestamp) {
+                    // Assuming timestamp is in seconds, convert to JS Date (milliseconds)
+                    const date = new Date(data.timestamp * 1000);
+                    elTimestamp.textContent = date.toLocaleString() + ` (${data.timestamp})`;
+                } else {
+                    elTimestamp.textContent = 'N/A';
+                }
+
+                // 2. Populate World Progression (Level Data)
+                elProgressionList.innerHTML = ''; // Clear previous
+                if (data.worldProgression && Array.isArray(data.worldProgression)) {
+                    elLevelCount.textContent = `${data.worldProgression.length} Levels`;
+                    
+                    data.worldProgression.forEach((levelGuid, index) => {
+                        // Attempt to find level data to extract a human-readable name
+                        const levelData = findLevelDataByGuid(globalParsedData, levelGuid);
+                        
+                        let displayName = null;
+                        
+                        // 1. Try to extract from the found object aggressively
+                        if (levelData) {
+                            displayName = extractNameFromObject(levelData);
+                        }
+                        
+                        // 2. Fallback: If the GUID doesn't look like a 32-char UUID hash, it might just be the folder/level name
+                        if (!displayName && levelGuid && typeof levelGuid === 'string') {
+                            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(levelGuid);
+                            if (!isUUID && levelGuid.length < 50 && levelGuid.trim() !== '') {
+                                displayName = levelGuid;
+                            }
+                        }
+                        
+                        // 3. Final Fallback: Just call it World [Index]
+                        if (!displayName) {
+                            displayName = "World " + (index + 1);
+                        }
+
+                        const li = document.createElement('li');
+                        li.className = 'px-6 py-4 flex items-center hover:bg-blue-50 transition-colors cursor-pointer group border-l-4 border-transparent hover:border-blue-500';
+                        li.onclick = () => openLevelPreview(levelGuid, index + 1);
+                        li.innerHTML = `
+                            <div class="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm mr-4 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                ${index + 1}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-slate-900 truncate flex items-center justify-between">
+                                    <span>${displayName}</span>
+                                    <span class="text-xs text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 font-semibold">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        Preview Data
+                                    </span>
+                                </p>
+                                <p class="text-xs text-slate-500 truncate font-mono mt-0.5 group-hover:text-blue-700 transition-colors">
+                                    GUID: ${levelGuid}
+                                </p>
+                            </div>
+                        `;
+                        elProgressionList.appendChild(li);
+                    });
+                } else {
+                    elLevelCount.textContent = `0 Levels`;
+                    elProgressionList.innerHTML = '<li class="px-6 py-4 text-sm text-slate-500 italic">No progression data found.</li>';
+                }
+
+                // 3. Populate Feature Image
+                // Clear previous image
+                const existingImg = elImageContainer.querySelector('img');
+                if (existingImg) existingImg.remove();
+
+                if (data.featureImage) {
+                    elImagePlaceholder.classList.add('hidden');
+                    const img = document.createElement('img');
+                    
+                    // Check if it already has the data URI prefix, if not, assume PNG/JPEG and add it
+                    let srcStr = data.featureImage;
+                    if (!srcStr.startsWith('data:image')) {
+                        // 'iVBOR' is the typical start of a base64 encoded PNG
+                        const mimeType = srcStr.startsWith('iVBOR') ? 'image/png' : 'image/jpeg';
+                        srcStr = `data:${mimeType};base64,${srcStr}`;
+                    }
+                    
+                    img.src = srcStr;
+                    img.className = 'w-full h-auto object-contain object-center';
+                    img.alt = data.worldPackName || 'Feature Image';
+                    elImageContainer.appendChild(img);
+                } else {
+                    elImagePlaceholder.classList.remove('hidden');
+                }
+
+                // 4. Populate Raw JSON
+                // Create a copy to display nicely, maybe truncate the giant image string for readability in raw view
+                const displayData = { ...data };
+                if (displayData.featureImage) {
+                    displayData.featureImage = displayData.featureImage.substring(0, 40) + "... [TRUNCATED FOR PREVIEW]";
+                }
+                elRawJson.textContent = JSON.stringify(displayData, null, 2);
+
+                // Show the results with a fade-in effect
+                showResults();
+            }
+
+            function showError(message) {
+                errorContainer.textContent = message;
+                errorContainer.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorContainer.classList.add('hidden');
+                errorContainer.textContent = '';
+            }
+
+            function showResults() {
+                clearTimeout(transitionTimeout);
+                resultsContainer.classList.remove('hidden');
+                // Small delay to allow display:block to apply before animating opacity
+                transitionTimeout = setTimeout(() => {
+                    resultsContainer.classList.remove('opacity-0');
+                    resultsContainer.classList.add('opacity-100');
+                }, 50);
+            }
+
+            function hideResults() {
+                clearTimeout(transitionTimeout);
+                resultsContainer.classList.add('opacity-0');
+                resultsContainer.classList.remove('opacity-100');
+                transitionTimeout = setTimeout(() => {
+                    resultsContainer.classList.add('hidden');
+                }, 500); // Wait for transition to finish
+            }
+
+            // Modal & Data Preview Logic
+            function openLevelPreview(guid, levelNumber) {
+                modalLevelGuid.textContent = guid;
+                modalDetailsGrid.innerHTML = '';
+                modalLevelDetails.classList.add('hidden');
+                
+                // Try to find specific data for this level in the global data
+                const levelData = findLevelDataByGuid(globalParsedData, guid);
+                
+                if (levelData && typeof levelData === 'object') {
+                    // Populate some smart details if they exist in the level data block
+                    const details = [];
+                    
+                    const extractedName = extractNameFromObject(levelData);
+                    if (extractedName) details.push({ label: 'Name', value: extractedName });
+                    
+                    // Helper to deeply find values by keys
+                    function findValueByKeys(obj, keysToFind) {
+                        for (const k in obj) {
+                            if (keysToFind.includes(k.toLowerCase()) && typeof obj[k] === 'string' && obj[k].trim() !== '') return obj[k];
+                            if (typeof obj[k] === 'object' && obj[k] !== null) {
+                                const nested = findValueByKeys(obj[k], keysToFind);
+                                if (nested) return nested;
+                            }
+                        }
+                        return null;
+                    }
+
+                    const author = findValueByKeys(levelData, ['author', 'creator', 'artist']);
+                    if (author) details.push({ label: 'Author/Creator', value: author });
+
+                    const bpm = findValueByKeys(levelData, ['bpm', 'tempo']);
+                    if (bpm) details.push({ label: 'BPM', value: bpm });
+
+                    const diff = findValueByKeys(levelData, ['difficulty', 'diff']);
+                    if (diff) details.push({ label: 'Difficulty', value: diff });
+
+                    const song = findValueByKeys(levelData, ['song', 'track', 'music']);
+                    if (song && song !== extractedName) details.push({ label: 'Song', value: song });
+                    
+                    if (details.length > 0) {
+                        details.forEach(d => {
+                            modalDetailsGrid.innerHTML += `
+                                <div>
+                                    <dt class="text-xs font-medium text-slate-500 uppercase">${d.label}</dt>
+                                    <dd class="mt-1 text-sm font-semibold text-slate-900 truncate" title="${d.value}">${d.value}</dd>
+                                </div>
+                            `;
+                        });
+                        modalLevelDetails.classList.remove('hidden');
+                    }
+                    
+                    modalLevelJson.textContent = JSON.stringify(levelData, null, 2);
+                    modalLevelJson.classList.remove('text-slate-400');
+                    modalLevelJson.classList.add('text-emerald-400');
+                } else {
+                    modalLevelJson.textContent = "// No extended data found for this specific GUID within the pack metadata.\n// The full level configurations are likely stored separately within the game files.";
+                    modalLevelJson.classList.remove('text-emerald-400');
+                    modalLevelJson.classList.add('text-slate-400');
+                }
+
+                // Show modal with animation
+                levelModal.classList.remove('hidden');
+                // trigger reflow for animation
+                void levelModal.offsetWidth;
+                levelModal.classList.remove('opacity-0');
+                levelModalContent.classList.remove('scale-95');
+            }
+
+            function closeLevelPreview() {
+                levelModal.classList.add('opacity-0');
+                levelModalContent.classList.add('scale-95');
+                setTimeout(() => {
+                    levelModal.classList.add('hidden');
+                }, 300);
+            }
+
+            // Recursive deep search to find an object associated with the level GUID
+            function findLevelDataByGuid(obj, guid, visited = new Set()) {
+                if (!obj || typeof obj !== 'object') return null;
+                if (visited.has(obj)) return null; // Prevent circular reference infinite loops
+                visited.add(obj);
+
+                // Direct match in common identifier properties
+                if (obj.guid === guid || obj.worldGUID === guid || obj.levelGuid === guid || obj.id === guid) {
+                    return obj;
+                }
+
+                // Check if it's stored in a dictionary-like object where the key is the GUID
+                if (obj[guid]) {
+                    if (typeof obj[guid] === 'object') return obj[guid];
+                    if (typeof obj[guid] === 'string') return { name: obj[guid], path: obj[guid] };
+                }
+
+                // Recursively search children
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        const result = findLevelDataByGuid(obj[key], guid, visited);
+                        if (result) return result;
+                    }
+                }
+                
+                return null;
+            }
+
+            // Aggressive search for a readable name inside an object
+            function extractNameFromObject(obj) {
+                if (!obj || typeof obj !== 'object') return null;
+                
+                // 1. Check top-level standard keys
+                const keys = ['name', 'levelname', 'worldname', 'title', 'songname', 'level_name', 'foldername', 'song'];
+                for (const k of Object.keys(obj)) {
+                    if (keys.includes(k.toLowerCase()) && typeof obj[k] === 'string' && obj[k].trim() !== '') return obj[k].trim();
+                }
+                
+                // 2. Check common metadata sub-objects (like settings.levelName)
+                const subObjects = ['settings', 'meta', 'metadata', 'info', 'levelinfo', 'leveldata'];
+                for (const subKey of Object.keys(obj)) {
+                    if (subObjects.includes(subKey.toLowerCase()) && typeof obj[subKey] === 'object' && obj[subKey] !== null) {
+                        const subObj = obj[subKey];
+                        for (const k of Object.keys(subObj)) {
+                            if (keys.includes(k.toLowerCase()) && typeof subObj[k] === 'string' && subObj[k].trim() !== '') return subObj[k].trim();
+                        }
+                    }
+                }
+                
+                // 3. Fallback deep search: Find the first string property containing "name" or "title"
+                let foundName = null;
+                function deepSearchName(node, depth = 0) {
+                    if (depth > 4 || !node || typeof node !== 'object') return;
+                    if (foundName) return;
+                    for (const [k, v] of Object.entries(node)) {
+                        if (foundName) return;
+                        const lowerK = k.toLowerCase();
+                        if ((lowerK.includes('name') || lowerK.includes('title')) && typeof v === 'string' && v.trim() !== '') {
+                            foundName = v.trim();
+                            return;
+                        }
+                        if (typeof v === 'object' && v !== null) {
+                            deepSearchName(v, depth + 1);
+                        }
+                    }
+                }
+                deepSearchName(obj);
+                return foundName;
+            }
+        });
+    </script>
+</body>
+</html>
