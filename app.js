@@ -231,7 +231,7 @@ const projects = [
     "hot potato",
     { name: "Percision hopper", path: "scratch-1365781683" },
     "scratch explorer",
-    { name: "Pass the bomb 3d expanded", path: "passthebombexpanded/index.html" },
+    { name: "Pass the bomb 3d expanded", path: "https://pass-the-bomb-3d--orgeyt.on.websim.com/?v=30" },
     { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" },
     "claudescratchtools",
     "coinpuzzle",
