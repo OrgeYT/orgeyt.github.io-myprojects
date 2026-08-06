@@ -1,592 +1,2317 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Scratch Explorer & User Generator</title>
+    <title>ScratchTools Studio</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23FFAB19'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' font-family='sans-serif'%3E%F0%9F%90%B1%3C/text%3E%3C/svg%3E">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        scratch: {
+                            orange: '#FFAB19',
+                            purple: '#855CD6',
+                            blue: '#4C97FF',
+                            green: '#5CB85C',
+                            dark: '#1e1e2e',
+                            card: '#2a2a3c',
+                            border: '#3f3f5a'
+                        }
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        sans: ['Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
     <style>
-        .fade-in { animation: fadeIn 0.3s ease-in-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #13131d;
+            color: #f3f4f6;
+        }
+        .scratch-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .glass-panel {
+            background: rgba(42, 42, 60, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .tab-btn.active {
+            background-color: #FFAB19;
+            color: #111827;
+            font-weight: 700;
+            box-shadow: 0 4px 14px 0 rgba(255, 171, 25, 0.39);
+        }
+        .stat-btn {
+            background-color: rgba(19, 19, 29, 0.6);
+            color: #9ca3af;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .stat-btn:hover {
+            color: #f3f4f6;
+            border-color: rgba(255, 171, 25, 0.4);
+        }
+        .stat-btn.active {
+            background-color: #FFAB19;
+            color: #111827;
+            font-weight: 700;
+            border-color: #FFAB19;
+            box-shadow: 0 4px 14px 0 rgba(255, 171, 25, 0.39);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e1e2e;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #3f3f5a;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #FFAB19;
+        }
+        @keyframes pulseGlow {
+            0%, 100% { opacity: 0.8; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        .winner-glow {
+            animation: pulseGlow 2s infinite ease-in-out;
+            border: 2px solid #FFAB19 !important;
+            box-shadow: 0 0 25px rgba(255, 171, 25, 0.4);
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 min-h-screen flex items-center justify-center p-4 font-sans antialiased text-slate-800">
+<body class="min-h-screen flex flex-col justify-between selection:bg-scratch-orange selection:text-black">
 
-    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 backdrop-blur-sm my-6">
-        
-        <!-- Header & Navigation -->
-        <div class="bg-slate-50 border-b border-slate-100 p-6 text-center">
-            <div class="w-16 h-16 bg-gradient-to-tr from-orange-400 to-yellow-400 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-orange-200 mb-3 transform -rotate-6">
-                <i class="fa-solid fa-cat text-white text-3xl transform rotate-6"></i>
+    <div>
+        <header class="border-b border-scratch-border bg-scratch-dark/80 backdrop-blur-md sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap justify-between items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-scratch-orange to-yellow-300 flex items-center justify-center text-gray-900 font-bold text-xl shadow-lg shadow-scratch-orange/20">
+                        <i class="fa-solid fa-cat"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold scratch-font tracking-wide text-white flex items-center gap-2">
+                            ScratchTools <span class="text-xs font-sans font-semibold bg-scratch-orange/20 text-scratch-orange px-2 py-0.5 rounded-full border border-scratch-orange/30">v2.6 Live Engine</span>
+                        </h1>
+                        <p class="text-xs text-gray-400">User ID Lookup • Project Inspector • Project Showdown • Studio Explorer</p>
+                    </div>
+                </div>
+
+                <!-- Proxy Status Indicator -->
+                <div class="flex items-center gap-2 text-xs bg-scratch-card px-3 py-1.5 rounded-lg border border-scratch-border">
+                    <span id="proxy-status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-500 animate-pulse"></span>
+                    <span class="text-gray-300 font-mono" id="proxy-status-text">Connecting...</span>
+                </div>
             </div>
-            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Scratch Explorer</h1>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1">Projects & Users</p>
+        </header>
 
-            <!-- Mode Switcher Tabs -->
-            <div class="flex bg-slate-200/70 p-1 rounded-xl mt-5 gap-1">
-                <button id="tabProjectsBtn" onclick="switchTab('projects')"
-                    class="flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-indigo-600 shadow-sm">
-                    <i class="fa-solid fa-gamepad mr-1.5"></i> Projects
-                </button>
-                <button id="tabUsersBtn" onclick="switchTab('users')"
-                    class="flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900">
-                    <i class="fa-solid fa-user mr-1.5"></i> Users
-                </button>
-            </div>
-        </div>
-
-        <div class="p-6">
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             
-            <!-- SECTION 1: PROJECT GENERATOR -->
-            <div id="sectionProjects" class="space-y-6">
-                <!-- Manual ID Input -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Project ID</label>
-                        <div class="flex gap-2">
-                            <input type="number" id="manualProjectId" placeholder="e.g. 1365781683" 
-                                class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all outline-none text-slate-700 font-medium">
-                            <button onclick="handleManualProjectSearch()" 
-                                class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white px-5 py-3 rounded-xl font-semibold transition shadow-md">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="relative flex items-center py-1">
-                        <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink-0 mx-4 text-slate-300 text-xs font-bold uppercase tracking-wider">OR</span>
-                        <div class="flex-grow border-t border-slate-200"></div>
-                    </div>
-
-                    <!-- Random Project Button -->
-                    <button onclick="handleRandomProject()" 
-                        class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 active:scale-95 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-purple-200 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-dice"></i>
-                        <span>Generate Random Project</span>
-                    </button>
-                </div>
-
-                <!-- Project Result Card -->
-                <div id="projectResultCard" class="hidden fade-in bg-slate-50 rounded-2xl p-4 border border-slate-100 shadow-inner">
-                    <div class="flex justify-between items-center mb-3">
-                        <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Project Selected</span>
-                        <span id="displayProjectId" class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-1 rounded-md font-mono font-bold"></span>
-                    </div>
-
-                    <!-- Thumbnail -->
-                    <div class="w-full aspect-[4/3] bg-slate-200 rounded-xl overflow-hidden shadow-md relative mb-4 flex items-center justify-center">
-                        <img id="projectThumb" src="" alt="Project Thumbnail" class="w-full h-full object-cover relative z-10" 
-                            onerror="this.src='https://scratch.mit.edu/images/scratch-og.png';">
-                    </div>
-
-                    <!-- Title -->
-                    <h2 id="projectTitle" class="text-lg font-bold text-slate-800 leading-tight mb-3 text-center line-clamp-2">
-                        ???
-                    </h2>
-
-                    <!-- Author Badge / Link -->
-                    <div id="authorContainer" class="hidden flex items-center justify-center gap-2 mb-4 bg-white py-2 px-3 rounded-xl border border-slate-200/60 shadow-sm cursor-pointer hover:bg-slate-100/80 transition" onclick="inspectOwnerFromProject()">
-                        <img id="authorAvatar" src="" class="w-6 h-6 rounded-full object-cover" onerror="this.src='https://cdn2.scratch.mit.edu/get_image/user/0_60x60.png';">
-                        <span class="text-xs font-semibold text-slate-600">Created by <strong id="authorName" class="text-indigo-600">???</strong></span>
-                        <i class="fa-solid fa-chevron-right text-xs text-slate-400 ml-auto"></i>
-                    </div>
-
-                    <!-- Turbowarp Link Button -->
-                    <a id="turbowarpLink" href="#" target="_blank" rel="noopener noreferrer"
-                        class="block w-full text-center bg-sky-500 hover:bg-sky-400 text-white font-bold py-3.5 px-4 rounded-xl transition shadow-lg shadow-sky-200 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-bolt"></i>
-                        Does this project work?
-                    </a>
-                </div>
+            <!-- Tab Navigation Buttons -->
+            <div class="flex flex-wrap gap-2 p-1.5 bg-scratch-card/80 rounded-2xl border border-scratch-border mb-8 max-w-3xl mx-auto">
+                <button onclick="switchTab('user-tab')" id="btn-user-tab" class="tab-btn active flex-1 py-2.5 px-4 rounded-xl text-sm transition-all duration-200 flex items-center justify-center gap-2 text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-id-badge"></i>
+                    <span>User ID Finder</span>
+                </button>
+                <button onclick="switchTab('project-tab')" id="btn-project-tab" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm transition-all duration-200 flex items-center justify-center gap-2 text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-cubes"></i>
+                    <span>Project Inspector</span>
+                </button>
+                <button onclick="switchTab('project-vs-tab')" id="btn-project-vs-tab" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm transition-all duration-200 flex items-center justify-center gap-2 text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-code-compare"></i>
+                    <span>Project VS</span>
+                </button>
+                <button onclick="switchTab('studio-tab')" id="btn-studio-tab" class="tab-btn flex-1 py-2.5 px-4 rounded-xl text-sm transition-all duration-200 flex items-center justify-center gap-2 text-gray-300 hover:text-white">
+                    <i class="fa-solid fa-layer-group"></i>
+                    <span>Studio Explorer</span>
+                </button>
             </div>
 
-            <!-- SECTION 2: USER GENERATOR -->
-            <div id="sectionUsers" class="hidden space-y-6">
-                <!-- Manual User Input -->
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Scratch Username</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="manualUsername" placeholder="e.g. griffpatch" 
-                                class="flex-1 bg-slate-100 border-0 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 focus:bg-white transition-all outline-none text-slate-700 font-medium">
-                            <button onclick="handleManualUserSearch()" 
-                                class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-white px-5 py-3 rounded-xl font-semibold transition shadow-md">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
+            <!-- Global Error Banner -->
+            <div id="error-banner" class="hidden mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3 animate-fade-in">
+                <i class="fa-solid fa-triangle-exclamation text-lg mt-0.5"></i>
+                <div class="flex-1" id="error-message">Error retrieving data.</div>
+                <button onclick="dismissError()" class="text-red-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- TAB 1: USER ID FINDER -->
+            <div id="user-tab" class="tab-content block space-y-6">
+                <!-- Search Input Box -->
+                <div class="glass-panel p-6 rounded-2xl max-w-2xl mx-auto shadow-xl">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Scratch Username</label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-at"></i>
+                            </div>
+                            <input type="text" id="user-input" value="Scratchteam" placeholder="e.g. Scratchteam" class="w-full pl-10 pr-4 py-3 bg-scratch-dark border border-scratch-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-scratch-orange focus:ring-1 focus:ring-scratch-orange transition">
                         </div>
+                        <button onclick="fetchUserData()" id="btn-fetch-user" class="px-6 py-3 bg-scratch-orange hover:bg-yellow-400 text-gray-900 font-bold rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-magnifying-glass"></i> Get Scratch ID
+                        </button>
+                        <button onclick="fetchRandomUser()" id="btn-random-user" title="Discover a random Scratch creator by picking a random project" class="px-4 py-3 bg-scratch-purple/20 hover:bg-scratch-purple/30 text-scratch-purple border border-scratch-purple/30 font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-dice"></i> Random User
+                        </button>
                     </div>
-
-                    <div class="relative flex items-center py-1">
-                        <div class="flex-grow border-t border-slate-200"></div>
-                        <span class="flex-shrink-0 mx-4 text-slate-300 text-xs font-bold uppercase tracking-wider">OR</span>
-                        <div class="flex-grow border-t border-slate-200"></div>
+                    <p id="random-user-status" class="hidden mt-2 text-xs text-gray-400 font-mono"></p>
+                    <!-- Quick Preset Buttons -->
+                    <div class="mt-3 flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+                        <span>Try preset usernames:</span>
+                        <button onclick="setAndFetchUser('Scratchteam')" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">Scratchteam</button>
+                        <button onclick="setAndFetchUser('scratch_r0bl0x')" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">scratch_r0bl0x</button>
+                        <button onclick="setAndFetchUser('griffpatch')" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">griffpatch</button>
+                        <button onclick="setAndFetchUser('ceebee')" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">ceebee</button>
                     </div>
-
-                    <!-- Random User Button -->
-                    <button id="randomUserBtn" onclick="handleRandomUser()" 
-                        class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-400 hover:to-rose-400 active:scale-95 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-pink-200 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-shuffle"></i>
-                        <span id="randomUserBtnText">Generate Random User</span>
-                    </button>
                 </div>
 
-                <!-- User Result Card -->
-                <div id="userResultCard" class="hidden fade-in bg-slate-50 rounded-2xl p-5 border border-slate-100 shadow-inner space-y-4">
-                    
-                    <!-- Avatar & Primary Info Header (Name & PFP Only) -->
-                    <div class="flex items-center gap-4">
-                        <img id="userAvatar" src="" alt="User Avatar" 
-                            class="w-16 h-16 rounded-2xl object-cover shadow-md bg-white p-0.5 border border-slate-100"
-                            onerror="this.src='https://cdn2.scratch.mit.edu/get_image/user/0_90x90.png';">
-                        <div class="overflow-hidden flex-1">
-                            <div class="flex items-center gap-2">
-                                <h3 id="displayUsername" class="text-lg font-bold text-slate-800 truncate">???</h3>
+                <!-- User Results Container -->
+                <div id="user-results" class="hidden max-w-4xl mx-auto space-y-6">
+                    <!-- Profile Overview Card -->
+                    <div class="glass-panel p-6 sm:p-8 rounded-3xl relative overflow-hidden">
+                        
+                        <div class="flex flex-wrap justify-between items-center mb-4 gap-2 border-b border-scratch-border/40 pb-3">
+                            <span id="user-data-source" class="text-xs font-mono px-2.5 py-1 bg-scratch-dark rounded-md border border-scratch-border text-green-400 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full bg-green-400"></span> Live Scratch API Data
+                            </span>
+                            <span class="text-xs text-gray-400 font-mono">api.scratch.mit.edu/users/</span>
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                            <!-- Avatar with status glow -->
+                            <div class="relative group">
+                                <img id="user-pfp-main" src="" alt="Scratch Avatar" class="w-28 h-28 rounded-2xl border-2 border-scratch-orange/50 shadow-xl object-cover bg-scratch-dark" onerror="this.onerror=null;this.src='https://placehold.co/112x112/1e1e2e/855CD6?text=?';">
+                                <a id="user-scratch-link" href="#" target="_blank" class="absolute -bottom-2 -right-2 bg-scratch-purple text-white p-2 rounded-xl text-xs hover:bg-purple-600 shadow-md transition" title="Open on Scratch Profile">
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                </a>
+                            </div>
+
+                            <!-- Primary User Info -->
+                            <div class="flex-1 text-center sm:text-left space-y-3">
+                                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-3">
+                                    <h2 id="user-display-username" class="text-2xl sm:text-3xl font-bold text-white scratch-font">---</h2>
+                                    <span id="user-st-badge" class="hidden px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/40 text-xs rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                        <i class="fa-solid fa-shield-halved"></i> Scratch Team
+                                    </span>
+                                </div>
+
+                                <!-- Highlighted Scratch ID Card -->
+                                <div class="inline-flex items-center gap-3 px-4 py-2 bg-scratch-dark/80 border border-scratch-orange/40 rounded-xl shadow-inner">
+                                    <span class="text-xs text-gray-400 font-semibold uppercase tracking-wider">Scratch User ID:</span>
+                                    <span id="user-id-val" class="text-xl font-bold font-mono text-scratch-orange">---</span>
+                                    <button onclick="copyToClipboard(document.getElementById('user-id-val').innerText)" class="text-gray-400 hover:text-white transition p-1" title="Copy Scratch ID">
+                                        <i class="fa-regular fa-copy"></i>
+                                    </button>
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-gray-300">
+                                    <span class="flex items-center gap-1.5" title="Parsed from history.joined in API response">
+                                        <i class="fa-regular fa-calendar-check text-scratch-blue"></i> Joined: 
+                                        <strong id="user-joined-date" class="text-white">---</strong>
+                                        <span id="user-joined-raw" class="text-[10px] text-gray-400 font-mono bg-scratch-dark/90 px-1.5 py-0.5 rounded border border-scratch-border/50"></span>
+                                    </span>
+                                    <span class="flex items-center gap-1.5" title="Parsed from profile.country in API response">
+                                        <i class="fa-solid fa-earth-americas text-scratch-green"></i> Country: 
+                                        <strong id="user-country" class="text-white">---</strong>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Raw JSON Data Toggle Button -->
+                        <div class="mt-6 pt-4 border-t border-scratch-border/40 flex justify-between items-center text-xs">
+                            <span class="text-gray-400">Scratch API Response Fields</span>
+                            <button onclick="toggleUserJsonViewer()" class="px-3 py-1.5 bg-scratch-dark hover:bg-scratch-border text-gray-300 rounded-lg border border-scratch-border transition flex items-center gap-1.5 font-mono">
+                                <i class="fa-solid fa-code text-scratch-orange"></i>
+                                <span id="json-toggle-btn-text">Inspect Raw JSON Payload</span>
+                            </button>
+                        </div>
+
+                        <!-- Raw JSON Inspector Box -->
+                        <div id="user-json-container" class="hidden mt-3 p-3 bg-slate-950 rounded-xl border border-scratch-border/60 text-xs font-mono text-emerald-400 overflow-x-auto max-h-56 custom-scrollbar">
+                            <pre id="user-json-raw"></pre>
+                        </div>
+
+                        <!-- Bio & About -->
+                        <div class="mt-6 pt-6 border-t border-scratch-border/60 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-scratch-dark/50 p-4 rounded-xl border border-scratch-border/40">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2"><i class="fa-solid fa-user-gear text-scratch-orange"></i> About Me / Profile Bio</h3>
+                                <p id="user-bio" class="text-sm text-gray-200 whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">No bio provided.</p>
+                            </div>
+                            <div class="bg-scratch-dark/50 p-4 rounded-xl border border-scratch-border/40">
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-2"><i class="fa-solid fa-bars-progress text-scratch-purple"></i> What I'm Working On</h3>
+                                <p id="user-status" class="text-sm text-gray-200 whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">No status provided.</p>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Toggle Details Button -->
-                    <button id="toggleDetailsBtn" onclick="toggleMoreDetails()"
-                        class="w-full text-xs font-bold text-slate-500 bg-slate-200/60 hover:bg-slate-200 active:scale-95 transition py-2.5 px-3 rounded-xl flex items-center justify-center gap-2">
-                        <span>Show More Details</span>
-                        <i id="toggleDetailsIcon" class="fa-solid fa-chevron-down transition-transform duration-200"></i>
-                    </button>
-
-                    <!-- Extra Details Container (Hidden by default) -->
-                    <div id="extraUserDetails" class="hidden space-y-4 border-t border-slate-200/80 pt-4">
-                        <div class="flex items-center gap-2">
-                            <span id="scratchTeamBadge" class="hidden bg-orange-100 text-orange-600 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Scratch Team</span>
+                    <!-- Profile Pictures Showcase Gallery -->
+                    <div class="glass-panel p-6 rounded-3xl">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-white scratch-font flex items-center gap-2">
+                                <i class="fa-solid fa-image text-scratch-orange"></i> Profile Picture Resolutions (Scratch CDN)
+                            </h3>
+                            <span class="text-xs text-gray-400 font-mono">cdn2.scratch.mit.edu</span>
                         </div>
 
-                        <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs">
-                            <p id="userJoined" class="text-slate-400"><i class="fa-regular fa-calendar mr-1"></i> Joined: ???</p>
-                            <p id="userCountry" class="text-slate-500 font-medium"><i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ???</p>
-                        </div>
-
-                        <!-- About Me (Bio) -->
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">About Me</h4>
-                            <p id="userBio" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 max-h-28 overflow-y-auto whitespace-pre-line leading-relaxed">
-                                No bio provided.
-                            </p>
-                        </div>
-
-                        <!-- What I'm Working On (Status) -->
-                        <div>
-                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">What I'm Working On</h4>
-                            <p id="userStatus" class="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200/60 max-h-28 overflow-y-auto whitespace-pre-line leading-relaxed">
-                                No status provided.
-                            </p>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                            <!-- 90x90 -->
+                            <div onclick="copyImageSrc('pfp-90')" class="bg-scratch-dark p-3 rounded-2xl border border-scratch-border/60 text-center cursor-pointer hover:border-scratch-orange transition group">
+                                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                    <img id="pfp-90" src="" alt="90x90" class="w-16 h-16 rounded-xl object-cover" onerror="this.onerror=null;this.src='https://placehold.co/90x90/1e1e2e/855CD6?text=?';">
+                                </div>
+                                <span class="text-xs font-bold block text-white">90x90</span>
+                                <span class="text-[10px] text-scratch-orange opacity-0 group-hover:opacity-100 transition">Copy Image URL</span>
+                            </div>
+                            <!-- 60x60 -->
+                            <div onclick="copyImageSrc('pfp-60')" class="bg-scratch-dark p-3 rounded-2xl border border-scratch-border/60 text-center cursor-pointer hover:border-scratch-orange transition group">
+                                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                    <img id="pfp-60" src="" alt="60x60" class="w-12 h-12 rounded-lg object-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x60/1e1e2e/855CD6?text=?';">
+                                </div>
+                                <span class="text-xs font-bold block text-white">60x60</span>
+                                <span class="text-[10px] text-scratch-orange opacity-0 group-hover:opacity-100 transition">Copy Image URL</span>
+                            </div>
+                            <!-- 55x55 -->
+                            <div onclick="copyImageSrc('pfp-55')" class="bg-scratch-dark p-3 rounded-2xl border border-scratch-border/60 text-center cursor-pointer hover:border-scratch-orange transition group">
+                                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                    <img id="pfp-55" src="" alt="55x55" class="w-11 h-11 rounded-lg object-cover" onerror="this.onerror=null;this.src='https://placehold.co/55x55/1e1e2e/855CD6?text=?';">
+                                </div>
+                                <span class="text-xs font-bold block text-white">55x55</span>
+                                <span class="text-[10px] text-scratch-orange opacity-0 group-hover:opacity-100 transition">Copy Image URL</span>
+                            </div>
+                            <!-- 50x50 -->
+                            <div onclick="copyImageSrc('pfp-50')" class="bg-scratch-dark p-3 rounded-2xl border border-scratch-border/60 text-center cursor-pointer hover:border-scratch-orange transition group">
+                                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                    <img id="pfp-50" src="" alt="50x50" class="w-10 h-10 rounded-lg object-cover" onerror="this.onerror=null;this.src='https://placehold.co/50x50/1e1e2e/855CD6?text=?';">
+                                </div>
+                                <span class="text-xs font-bold block text-white">50x50</span>
+                                <span class="text-[10px] text-scratch-orange opacity-0 group-hover:opacity-100 transition">Copy Image URL</span>
+                            </div>
+                            <!-- 32x32 -->
+                            <div onclick="copyImageSrc('pfp-32')" class="bg-scratch-dark p-3 rounded-2xl border border-scratch-border/60 text-center cursor-pointer hover:border-scratch-orange transition group">
+                                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                                    <img id="pfp-32" src="" alt="32x32" class="w-8 h-8 rounded-md object-cover" onerror="this.onerror=null;this.src='https://placehold.co/32x32/1e1e2e/855CD6?text=?';">
+                                </div>
+                                <span class="text-xs font-bold block text-white">32x32</span>
+                                <span class="text-[10px] text-scratch-orange opacity-0 group-hover:opacity-100 transition">Copy Image URL</span>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Recent Projects Button & Section -->
-                    <button id="recentProjectsBtn" onclick="toggleRecentProjects()"
-                        class="w-full text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 active:scale-95 transition py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 border border-amber-200">
-                        <i class="fa-solid fa-folder-open text-amber-600"></i>
-                        <span>Show 3 Most Recent Projects</span>
-                        <i id="recentProjectsIcon" class="fa-solid fa-chevron-down transition-transform duration-200 ml-auto"></i>
-                    </button>
-
-                    <div id="recentProjectsContainer" class="hidden space-y-2.5 pt-1">
-                        <!-- Populated dynamically via JS -->
-                    </div>
-
-                    <!-- Link to Scratch Profile -->
-                    <a id="scratchProfileLink" href="#" target="_blank" rel="noopener noreferrer"
-                        class="block w-full text-center bg-orange-500 hover:bg-orange-400 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-orange-200 flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                        <span>Visit Scratch Profile</span>
-                    </a>
                 </div>
+            </div>
+
+            <!-- TAB 2: PROJECT INSPECTOR -->
+            <div id="project-tab" class="tab-content hidden space-y-6">
+                <!-- Project ID Input Box -->
+                <div class="glass-panel p-6 rounded-2xl max-w-2xl mx-auto shadow-xl">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Scratch Project ID</label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-hashtag"></i>
+                            </div>
+                            <input type="number" id="project-input" value="10128407" placeholder="e.g. 10128407" class="w-full pl-10 pr-4 py-3 bg-scratch-dark border border-scratch-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-scratch-orange focus:ring-1 focus:ring-scratch-orange transition">
+                        </div>
+                        <button onclick="fetchProjectData()" id="btn-fetch-project" class="px-6 py-3 bg-scratch-orange hover:bg-yellow-400 text-gray-900 font-bold rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-magnifying-glass"></i> Inspect Project
+                        </button>
+                        <button onclick="randomizeProject()" id="btn-random-project" title="Grab a random Scratch project (ID 1 – 2,000,000)" class="px-4 py-3 bg-scratch-purple/20 hover:bg-scratch-purple/30 text-scratch-purple border border-scratch-purple/30 font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-dice"></i> Random
+                        </button>
+                    </div>
+                    <p id="random-project-status" class="hidden mt-2 text-xs text-gray-400 font-mono"></p>
+                    <!-- Quick Preset Buttons -->
+                    <div class="mt-3 flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+                        <span>Try preset projects:</span>
+                        <button onclick="setAndFetchProject(10128407)" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">10128407 (Paper Minecraft)</button>
+                        <button onclick="setAndFetchProject(1365781683)" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-orange transition border border-scratch-border/50 font-medium">1365781683 (Precision Hopper)</button>
+                    </div>
+                    <p class="mt-2 text-[11px] text-gray-500">Random picks a real, currently-viewable project with an ID between 1 and 2,000,000 — Scratch's earliest years. These old projects sometimes use a legacy pre-2019 file format, so some fields (like block count elsewhere in this app) may be unavailable.</p>
+                </div>
+
+                <!-- Project Results Container -->
+                <div id="project-results" class="hidden max-w-5xl mx-auto space-y-6">
+                    
+                    <!-- Unshared/Deleted Extracted Data Warning Banner -->
+                    <div id="unshared-warning" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm flex items-start gap-3 shadow-lg">
+                        <i class="fa-solid fa-triangle-exclamation mt-1 text-lg"></i>
+                        <div class="flex-1 leading-relaxed">
+                            <strong class="block mb-0.5 text-amber-300">Unshared or Deleted Project</strong>
+                            The Scratch API blocked access to this project. However, ScratchTools has forcefully extracted any lingering thumbnails from the Scratch CDN! Statistics, notes, and titles remain hidden.
+                        </div>
+                    </div>
+
+                    <!-- Main Project Banner & Details -->
+                    <div class="glass-panel p-6 sm:p-8 rounded-3xl">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                            <!-- Thumbnail & Action Overlay -->
+                            <div class="lg:col-span-5 space-y-4">
+                                <div class="relative group rounded-2xl overflow-hidden border-2 border-scratch-border bg-scratch-dark aspect-video">
+                                    <img id="proj-thumb-main" src="" alt="Project Thumbnail" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1e1e2e/4C97FF?text=No+Thumbnail+Found';">
+                                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-3 transition p-4">
+                                        <button onclick="openProjectPreview()" class="px-5 py-2.5 bg-scratch-orange hover:bg-yellow-400 text-gray-900 font-bold rounded-xl shadow-lg transition duration-200 flex items-center gap-2 transform group-hover:scale-105">
+                                            <i class="fa-solid fa-play"></i> Preview Project
+                                        </button>
+                                        <a id="proj-scratch-url" href="#" target="_blank" class="text-xs text-gray-200 hover:text-white font-semibold transition flex items-center gap-1.5">
+                                            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open on Scratch
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <button onclick="openProjectPreview()" class="py-2.5 px-3 bg-gradient-to-r from-scratch-orange to-amber-500 hover:from-yellow-400 hover:to-scratch-orange text-gray-900 border border-scratch-orange/50 rounded-xl text-center font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+                                        <i class="fa-solid fa-play"></i> Preview
+                                    </button>
+                                    <a id="turbowarp-url" href="#" target="_blank" class="py-2.5 px-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 rounded-xl text-center font-semibold transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-bolt"></i> TurboWarp
+                                    </a>
+                                    <button onclick="copyToClipboard(document.getElementById('proj-token').innerText)" class="py-2.5 px-3 bg-scratch-dark hover:bg-scratch-border text-gray-300 border border-scratch-border rounded-xl text-center font-semibold transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-key"></i> Copy Token
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Project Metadata -->
+                            <div class="lg:col-span-7 space-y-4">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                        <span id="proj-id-badge" class="px-2.5 py-0.5 bg-scratch-orange/20 text-scratch-orange border border-scratch-orange/30 text-xs rounded-full font-mono font-bold">ID: ---</span>
+                                        <span id="proj-published-badge" class="px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full font-semibold">Published</span>
+                                    </div>
+                                    <h2 id="proj-title" class="text-2xl sm:text-3xl font-bold text-white scratch-font leading-tight">---</h2>
+                                </div>
+
+                                <!-- Author Card -->
+                                <div class="flex items-center gap-3 p-3 bg-scratch-dark/80 rounded-2xl border border-scratch-border/60">
+                                    <img id="proj-author-pfp" src="" alt="Author PFP" class="w-12 h-12 rounded-xl object-cover bg-scratch-card" onerror="this.onerror=null;this.src='https://placehold.co/90x90/1e1e2e/855CD6?text=?';">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Project Creator</p>
+                                        <p id="proj-author-name" class="text-sm font-bold text-white truncate">---</p>
+                                    </div>
+                                    <button onclick="inspectAuthorProfile()" class="px-3 py-1.5 bg-scratch-purple/20 text-scratch-purple border border-scratch-purple/30 rounded-xl text-xs hover:bg-scratch-purple/30 transition font-semibold">
+                                        Inspect Creator
+                                    </button>
+                                </div>
+
+                                <!-- Statistics Badges -->
+                                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-eye text-scratch-blue text-sm mb-1"></i>
+                                        <p id="proj-views" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Views</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-heart text-red-400 text-sm mb-1"></i>
+                                        <p id="proj-loves" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Loves</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-star text-yellow-400 text-sm mb-1"></i>
+                                        <p id="proj-favorites" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Favorites</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-code-fork text-scratch-purple text-sm mb-1"></i>
+                                        <p id="proj-remixes" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Remixes</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-cubes text-green-400 text-sm mb-1"></i>
+                                        <p id="proj-blockcount" class="text-lg font-bold text-white">Loading...</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Blocks</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instructions & Description Tabs -->
+                        <div class="mt-8 pt-6 border-t border-scratch-border/60 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-scratch-dark/50 p-5 rounded-2xl border border-scratch-border/40 space-y-2">
+                                <h3 class="text-xs font-bold text-scratch-orange uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-gamepad"></i> Instructions
+                                </h3>
+                                <p id="proj-instructions" class="text-sm text-gray-200 whitespace-pre-line leading-relaxed max-h-60 overflow-y-auto custom-scrollbar">No instructions provided.</p>
+                            </div>
+                            <div class="bg-scratch-dark/50 p-5 rounded-2xl border border-scratch-border/40 space-y-2">
+                                <h3 class="text-xs font-bold text-scratch-purple uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-note-sticky"></i> Notes & Credits
+                                </h3>
+                                <p id="proj-description" class="text-sm text-gray-200 whitespace-pre-line leading-relaxed max-h-60 overflow-y-auto custom-scrollbar">No notes provided.</p>
+                            </div>
+                        </div>
+
+                        <!-- Hidden token holder for copy -->
+                        <span id="proj-token" class="hidden"></span>
+
+                        <!-- Additional Timeline Metadata -->
+                        <div class="mt-6 pt-4 border-t border-scratch-border/30 flex flex-wrap items-center justify-between gap-4 text-xs text-gray-400">
+                            <div class="flex items-center gap-4">
+                                <span>Created: <strong id="proj-created" class="text-gray-200">---</strong></span>
+                                <span>Modified: <strong id="proj-modified" class="text-gray-200">---</strong></span>
+                                <span>Shared: <strong id="proj-shared" class="text-gray-200">---</strong></span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="flex items-center gap-1"><i class="fa-solid fa-comments text-scratch-blue"></i> Comments: <strong id="proj-comments-allowed" class="text-gray-200">Yes</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Project Image Resolutions CDN Grid -->
+                    <div class="glass-panel p-6 rounded-3xl">
+                        <h3 class="text-base font-bold text-white scratch-font mb-4 flex items-center gap-2">
+                            <i class="fa-solid fa-images text-scratch-orange"></i> Project Image Asset CDN Links (May load if Unshared)
+                        </h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 text-center">
+                            <div onclick="copyImageSrc('img-282')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-282" src="" alt="282x218" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/282x218/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">282x218</span>
+                            </div>
+                            <div onclick="copyImageSrc('img-216')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-216" src="" alt="216x163" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/216x163/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">216x163</span>
+                            </div>
+                            <div onclick="copyImageSrc('img-200')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-200" src="" alt="200x200" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/200x200/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">200x200</span>
+                            </div>
+                            <div onclick="copyImageSrc('img-144')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-144" src="" alt="144x108" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/144x108/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">144x108</span>
+                            </div>
+                            <div onclick="copyImageSrc('img-135')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-135" src="" alt="135x102" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/135x102/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">135x102</span>
+                            </div>
+                            <div onclick="copyImageSrc('img-100')" class="bg-scratch-dark p-3 rounded-xl border border-scratch-border/60 hover:border-scratch-orange cursor-pointer transition">
+                                <img id="img-100" src="" alt="100x80" class="w-full h-16 object-cover rounded mb-2" onerror="this.onerror=null;this.src='https://placehold.co/100x80/1e1e2e/4C97FF?text=Hidden';">
+                                <span class="text-xs text-white font-bold block">100x80</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: PROJECT COMPARISON (WHICH PROJECT WINS) -->
+            <div id="project-vs-tab" class="tab-content hidden space-y-6">
+                <!-- Dual Project ID Input Card -->
+                <div class="glass-panel p-6 rounded-3xl max-w-3xl mx-auto shadow-xl">
+                    <h2 class="text-xl font-bold text-white scratch-font text-center mb-6 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-trophy text-scratch-orange"></i> Which Project Wins?
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
+                        <!-- VS Badge Divider -->
+                        <div class="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none z-10">
+                            <span class="w-10 h-10 rounded-full bg-scratch-orange text-gray-900 font-extrabold flex items-center justify-center text-sm shadow-lg border-2 border-scratch-dark">VS</span>
+                        </div>
+
+                        <!-- Project 1 Input -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-scratch-orange uppercase">First Project ID</label>
+                            <input type="number" id="vs-project1-input" value="10128407" placeholder="e.g. 10128407" class="w-full px-4 py-3 bg-scratch-dark border border-scratch-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-scratch-orange">
+                        </div>
+
+                        <!-- Project 2 Input -->
+                        <div class="space-y-1.5">
+                            <label class="block text-xs font-bold text-scratch-blue uppercase">Second Project ID</label>
+                            <input type="number" id="vs-project2-input" value="1365781683" placeholder="e.g. 1365781683" class="w-full px-4 py-3 bg-scratch-dark border border-scratch-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-scratch-blue">
+                        </div>
+                    </div>
+
+                    <div class="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+                        <button onclick="compareProjects()" id="btn-compare-projects" class="flex-1 sm:flex-none px-8 py-3.5 bg-gradient-to-r from-scratch-orange to-amber-500 hover:from-yellow-400 hover:to-scratch-orange text-gray-900 font-extrabold text-base rounded-xl shadow-xl transition transform hover:scale-105 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-swords"></i> Compare Projects
+                        </button>
+                        <button onclick="randomizeBothProjects()" id="btn-randomize-projects" class="flex-1 sm:flex-none px-6 py-3.5 bg-scratch-purple/20 hover:bg-scratch-purple/30 text-scratch-purple border border-scratch-purple/30 font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-dice"></i> Randomize Both
+                        </button>
+                    </div>
+                    <div id="project-vs-progress" class="hidden mt-3 text-center text-xs text-gray-400 font-mono"></div>
+                    <p class="mt-2 text-center text-[11px] text-gray-500">Randomize picks real, currently-viewable projects with IDs between 1 and 2,000,000 — Scratch's earliest years. Since those are old projects, block counts (which need the project's raw file) aren't always available.</p>
+                </div>
+
+                <!-- Comparison Results -->
+                <div id="project-vs-results" class="hidden max-w-5xl mx-auto space-y-6">
+
+                    <!-- Stat Picker -->
+                    <div class="glass-panel p-3 rounded-2xl max-w-2xl mx-auto flex flex-wrap justify-center gap-2">
+                        <button onclick="selectVsStat('views')" id="stat-btn-views" class="stat-btn active px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-eye"></i> Most Views
+                        </button>
+                        <button onclick="selectVsStat('favorites')" id="stat-btn-favorites" class="stat-btn px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-star"></i> Most Favorites
+                        </button>
+                        <button onclick="selectVsStat('remixes')" id="stat-btn-remixes" class="stat-btn px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-code-fork"></i> Most Remixes
+                        </button>
+                        <button onclick="selectVsStat('blocks')" id="stat-btn-blocks" class="stat-btn px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-shapes"></i> Most Blocks
+                        </button>
+                    </div>
+
+                    <!-- Age Comparison Strip -->
+                    <div class="glass-panel p-4 rounded-2xl max-w-3xl mx-auto flex items-center justify-center gap-3 text-center">
+                        <i class="fa-solid fa-clock-rotate-left text-scratch-blue text-lg"></i>
+                        <p id="age-comparison-text" class="text-sm text-gray-200">---</p>
+                    </div>
+
+                    <!-- Winner Banner -->
+                    <div id="project-winner-banner" class="p-6 rounded-3xl bg-gradient-to-r from-yellow-500/20 via-scratch-orange/30 to-amber-500/20 border border-scratch-orange/50 text-center shadow-2xl relative overflow-hidden">
+                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-scratch-orange/10 rounded-full blur-2xl"></div>
+                        <i class="fa-solid fa-crown text-4xl text-yellow-400 mb-2 animate-bounce"></i>
+                        <h3 id="project-winner-title" class="text-2xl sm:text-3xl font-extrabold text-white scratch-font">---</h3>
+                        <p id="project-winner-sub" class="text-sm text-gray-300 mt-1">---</p>
+                    </div>
+
+                    <!-- Side-by-Side Project Cards with Quick Preview -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                        <!-- Project 1 Card -->
+                        <div id="pvs-card1" class="glass-panel p-5 rounded-3xl transition duration-300 relative">
+                            <div class="relative rounded-2xl overflow-hidden border-2 border-scratch-border bg-scratch-dark aspect-video mb-4">
+                                <img id="pvs-thumb1" src="" alt="Project 1 Thumbnail" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1e1e2e/FFAB19?text=Hidden';">
+                                <div class="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                                    <button onclick="openProjectPreview(projectVsState.p1?.id, projectVsState.p1?.title)" title="Preview Project 1" class="w-8 h-8 rounded-lg bg-scratch-orange/90 hover:bg-scratch-orange text-gray-900 font-bold flex items-center justify-center transition shadow-md">
+                                        <i class="fa-solid fa-play text-xs"></i>
+                                    </button>
+                                    <a id="pvs-url1" href="#" target="_blank" title="Open on Scratch" class="w-8 h-8 rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition">
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                    </a>
+                                </div>
+                                <span id="pvs-age-badge1" class="hidden absolute top-2 left-2 px-2 py-0.5 bg-scratch-orange text-gray-900 text-[10px] font-bold rounded-full">OLDER</span>
+                            </div>
+                            <h4 id="pvs-title1" class="text-lg font-bold text-white scratch-font leading-tight mb-1 truncate">---</h4>
+                            <p class="text-xs text-gray-400 mb-3 truncate">by <span id="pvs-author1" class="text-gray-200 font-semibold">---</span> · <span id="pvs-id1" class="font-mono">ID ---</span></p>
+                            <div class="bg-scratch-dark/80 p-4 rounded-2xl border border-scratch-border/60 text-center mb-3">
+                                <span id="pvs-stat-label1" class="text-xs text-gray-400 uppercase font-bold tracking-wider">Views</span>
+                                <div id="pvs-stat-value1" class="text-3xl font-extrabold text-scratch-orange scratch-font my-1">0</div>
+                            </div>
+                            <p class="text-xs text-gray-400 text-center">Created: <strong id="pvs-created1" class="text-gray-200">---</strong></p>
+                        </div>
+
+                        <!-- Project 2 Card -->
+                        <div id="pvs-card2" class="glass-panel p-5 rounded-3xl transition duration-300 relative">
+                            <div class="relative rounded-2xl overflow-hidden border-2 border-scratch-border bg-scratch-dark aspect-video mb-4">
+                                <img id="pvs-thumb2" src="" alt="Project 2 Thumbnail" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1e1e2e/4C97FF?text=Hidden';">
+                                <div class="absolute top-2 right-2 flex items-center gap-1.5 z-10">
+                                    <button onclick="openProjectPreview(projectVsState.p2?.id, projectVsState.p2?.title)" title="Preview Project 2" class="w-8 h-8 rounded-lg bg-scratch-blue/90 hover:bg-scratch-blue text-gray-900 font-bold flex items-center justify-center transition shadow-md">
+                                        <i class="fa-solid fa-play text-xs"></i>
+                                    </button>
+                                    <a id="pvs-url2" href="#" target="_blank" title="Open on Scratch" class="w-8 h-8 rounded-lg bg-black/60 hover:bg-black/80 flex items-center justify-center text-white transition">
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                    </a>
+                                </div>
+                                <span id="pvs-age-badge2" class="hidden absolute top-2 left-2 px-2 py-0.5 bg-scratch-blue text-gray-900 text-[10px] font-bold rounded-full">OLDER</span>
+                            </div>
+                            <h4 id="pvs-title2" class="text-lg font-bold text-white scratch-font leading-tight mb-1 truncate">---</h4>
+                            <p class="text-xs text-gray-400 mb-3 truncate">by <span id="pvs-author2" class="text-gray-200 font-semibold">---</span> · <span id="pvs-id2" class="font-mono">ID ---</span></p>
+                            <div class="bg-scratch-dark/80 p-4 rounded-2xl border border-scratch-border/60 text-center mb-3">
+                                <span id="pvs-stat-label2" class="text-xs text-gray-400 uppercase font-bold tracking-wider">Views</span>
+                                <div id="pvs-stat-value2" class="text-3xl font-extrabold text-scratch-blue scratch-font my-1">0</div>
+                            </div>
+                            <p class="text-xs text-gray-400 text-center">Created: <strong id="pvs-created2" class="text-gray-200">---</strong></p>
+                        </div>
+
+                    </div>
+
+                    <p id="blocks-unavailable-note" class="hidden text-center text-xs text-gray-500 max-w-2xl mx-auto">Block counts or specific stats need access to raw files/data, which isn't reachable for unshared, deleted, or pre-2019 legacy format projects. Showing "N/A" where that's the case.</p>
+                </div>
+            </div>
+
+            <!-- TAB 4: STUDIO EXPLORER -->
+            <div id="studio-tab" class="tab-content hidden space-y-6">
+                <!-- Studio ID Input Box -->
+                <div class="glass-panel p-6 rounded-2xl max-w-2xl mx-auto shadow-xl">
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Scratch Studio ID</label>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <div class="relative flex-1">
+                            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                <i class="fa-solid fa-hashtag"></i>
+                            </div>
+                            <input type="number" id="studio-input" value="35867072" placeholder="e.g. 35867072" class="w-full pl-10 pr-4 py-3 bg-scratch-dark border border-scratch-border rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-scratch-green focus:ring-1 focus:ring-scratch-green transition">
+                        </div>
+                        <button onclick="fetchStudioData()" id="btn-fetch-studio" class="px-6 py-3 bg-scratch-green hover:bg-green-400 text-gray-900 font-bold rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-magnifying-glass"></i> Inspect Studio
+                        </button>
+                        <button onclick="randomizeStudio()" id="btn-random-studio" title="Discover a random Scratch studio" class="px-4 py-3 bg-scratch-purple/20 hover:bg-scratch-purple/30 text-scratch-purple border border-scratch-purple/30 font-bold rounded-xl transition duration-200 flex items-center justify-center gap-2 whitespace-nowrap">
+                            <i class="fa-solid fa-dice"></i> Random Studio
+                        </button>
+                    </div>
+                    <p id="random-studio-status" class="hidden mt-2 text-xs text-gray-400 font-mono"></p>
+                    <!-- Quick Preset Buttons -->
+                    <div class="mt-3 flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+                        <span>Try preset studios:</span>
+                        <button onclick="setAndFetchStudio(35867072)" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-green transition border border-scratch-border/50 font-medium">35867072 (OrgeYT's Studio)</button>
+                        <button onclick="setAndFetchStudio(2051391)" class="px-2.5 py-1 bg-scratch-dark hover:bg-scratch-border rounded-lg text-scratch-green transition border border-scratch-border/50 font-medium">2051391</button>
+                    </div>
+                    <p class="mt-2 text-[11px] text-gray-500">Random picks a real, currently-viewable studio with an ID between 1 and 47,000,000. Some studios come back private, empty, or removed — ScratchTools retries automatically until it finds one that loads.</p>
+                </div>
+
+                <!-- Studio Results Container -->
+                <div id="studio-results" class="hidden max-w-5xl mx-auto space-y-6">
+
+                    <!-- Unavailable Studio Warning Banner -->
+                    <div id="studio-unshared-warning" class="hidden p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 text-sm flex items-start gap-3 shadow-lg">
+                        <i class="fa-solid fa-triangle-exclamation mt-1 text-lg"></i>
+                        <div class="flex-1 leading-relaxed">
+                            <strong class="block mb-0.5 text-amber-300">Private, Deleted, or Unavailable Studio</strong>
+                            The Scratch API blocked access to this studio. ScratchTools has forcefully extracted any lingering gallery thumbnail from the Scratch CDN! Statistics, description, and the project list remain hidden.
+                        </div>
+                    </div>
+
+                    <!-- Main Studio Banner & Details -->
+                    <div class="glass-panel p-6 sm:p-8 rounded-3xl">
+                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                            <!-- Gallery Thumbnail -->
+                            <div class="lg:col-span-4 space-y-4">
+                                <div class="relative rounded-2xl overflow-hidden border-2 border-scratch-border bg-scratch-dark aspect-[17/10]">
+                                    <img id="studio-thumb-main" src="" alt="Studio Gallery Image" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/340x200/1e1e2e/5CB85C?text=No+Thumbnail';">
+                                </div>
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <a id="studio-scratch-url" href="#" target="_blank" class="py-2.5 px-3 bg-scratch-dark hover:bg-scratch-border text-gray-200 border border-scratch-border rounded-xl text-center font-semibold transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Open on Scratch
+                                    </a>
+                                    <button onclick="copyToClipboard(document.getElementById('studio-id-val').textContent)" class="py-2.5 px-3 bg-scratch-dark hover:bg-scratch-border text-gray-300 border border-scratch-border rounded-xl text-center font-semibold transition flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-copy"></i> Copy ID
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Studio Metadata -->
+                            <div class="lg:col-span-8 space-y-4">
+                                <div>
+                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                        <span id="studio-id-badge" class="px-2.5 py-0.5 bg-scratch-green/20 text-scratch-green border border-scratch-green/30 text-xs rounded-full font-mono font-bold">ID: ---</span>
+                                        <span id="studio-visibility-badge" class="px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full font-semibold">Visible</span>
+                                        <span id="studio-open-badge" class="hidden px-2.5 py-0.5 bg-scratch-blue/20 text-scratch-blue border border-scratch-blue/30 text-xs rounded-full font-semibold">Invite-only</span>
+                                    </div>
+                                    <h2 id="studio-title" class="text-2xl sm:text-3xl font-bold text-white scratch-font leading-tight">---</h2>
+                                    <span id="studio-id-val" class="hidden">---</span>
+                                </div>
+
+                                <!-- Host Card -->
+                                <div class="flex items-center gap-3 p-3 bg-scratch-dark/80 rounded-2xl border border-scratch-border/60">
+                                    <img id="studio-host-pfp" src="" alt="Host PFP" class="w-12 h-12 rounded-xl object-cover bg-scratch-card" onerror="this.onerror=null;this.src='https://placehold.co/90x90/1e1e2e/855CD6?text=?';">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Studio Host</p>
+                                        <p id="studio-host-name" class="text-sm font-bold text-white truncate">---</p>
+                                    </div>
+                                    <button onclick="inspectStudioHost()" id="btn-inspect-host" class="hidden px-3 py-1.5 bg-scratch-purple/20 text-scratch-purple border border-scratch-purple/30 rounded-xl text-xs hover:bg-scratch-purple/30 transition font-semibold">
+                                        Inspect Host
+                                    </button>
+                                </div>
+
+                                <!-- Statistics Badges -->
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-cubes text-scratch-green text-sm mb-1"></i>
+                                        <p id="studio-stat-projects" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Projects</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-users text-scratch-blue text-sm mb-1"></i>
+                                        <p id="studio-stat-followers" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Followers</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-user-shield text-scratch-purple text-sm mb-1"></i>
+                                        <p id="studio-stat-managers" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Managers</p>
+                                    </div>
+                                    <div class="p-3 bg-scratch-dark/50 rounded-xl border border-scratch-border/40 text-center">
+                                        <i class="fa-solid fa-comments text-scratch-orange text-sm mb-1"></i>
+                                        <p id="studio-stat-comments" class="text-lg font-bold text-white">0</p>
+                                        <p class="text-[10px] text-gray-400 uppercase">Comments</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mt-8 pt-6 border-t border-scratch-border/60">
+                            <div class="bg-scratch-dark/50 p-5 rounded-2xl border border-scratch-border/40 space-y-2">
+                                <h3 class="text-xs font-bold text-scratch-green uppercase tracking-wider flex items-center gap-2">
+                                    <i class="fa-solid fa-note-sticky"></i> Description
+                                </h3>
+                                <p id="studio-description" class="text-sm text-gray-200 whitespace-pre-line leading-relaxed max-h-40 overflow-y-auto custom-scrollbar">No description provided.</p>
+                            </div>
+                        </div>
+
+                        <!-- Raw JSON Data Toggle Button -->
+                        <div class="mt-6 pt-4 border-t border-scratch-border/40 flex justify-between items-center text-xs">
+                            <span class="text-gray-400">Scratch API Response Fields</span>
+                            <button onclick="toggleStudioJsonViewer()" class="px-3 py-1.5 bg-scratch-dark hover:bg-scratch-border text-gray-300 rounded-lg border border-scratch-border transition flex items-center gap-1.5 font-mono">
+                                <i class="fa-solid fa-code text-scratch-green"></i>
+                                <span id="studio-json-toggle-btn-text">Inspect Raw JSON Payload</span>
+                            </button>
+                        </div>
+                        <div id="studio-json-container" class="hidden mt-3 p-3 bg-slate-950 rounded-xl border border-scratch-border/60 text-xs font-mono text-emerald-400 overflow-x-auto max-h-56 custom-scrollbar">
+                            <pre id="studio-json-raw"></pre>
+                        </div>
+
+                        <!-- Additional Timeline Metadata -->
+                        <div class="mt-6 pt-4 border-t border-scratch-border/30 flex flex-wrap items-center justify-between gap-4 text-xs text-gray-400">
+                            <div class="flex items-center gap-4">
+                                <span>Created: <strong id="studio-created" class="text-gray-200">---</strong></span>
+                                <span>Modified: <strong id="studio-modified" class="text-gray-200">---</strong></span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="flex items-center gap-1"><i class="fa-solid fa-comments text-scratch-blue"></i> Comments: <strong id="studio-comments-allowed" class="text-gray-200">Yes</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Studio Project Gallery (TurboWarp powered) -->
+                    <div class="glass-panel p-6 rounded-3xl">
+                        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                            <h3 class="text-base font-bold text-white scratch-font flex items-center gap-2">
+                                <i class="fa-solid fa-images text-scratch-green"></i> Projects In This Studio
+                            </h3>
+                            <span id="studio-projects-count-label" class="text-xs text-gray-400 font-mono">Loaded 0 of 0</span>
+                        </div>
+
+                        <div id="studio-projects-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+
+                        <p id="studio-projects-empty" class="hidden text-center text-sm text-gray-400 py-6">This studio has no visible projects yet.</p>
+
+                        <div class="mt-5 flex justify-center">
+                            <button onclick="loadMoreStudioProjects()" id="btn-load-more-studio-projects" class="hidden px-6 py-2.5 bg-scratch-dark hover:bg-scratch-border text-gray-200 border border-scratch-border rounded-xl font-semibold transition flex items-center gap-2">
+                                <i class="fa-solid fa-arrow-down"></i> Load More Projects
+                            </button>
+                        </div>
+
+                        <p class="mt-3 text-center text-[11px] text-gray-500">Hover a project and hit play to preview it right here via the TurboWarp embed, click the bolt to open it directly in TurboWarp, or click the magnifying glass to jump to the full Project Inspector.</p>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Project TurboWarp Embed Preview Modal -->
+    <div id="preview-modal" class="fixed inset-0 z-50 hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 transition-all duration-300">
+        <div class="bg-scratch-card border border-scratch-border/80 rounded-3xl max-w-4xl w-full max-h-[95vh] flex flex-col shadow-2xl overflow-hidden relative animate-fade-in">
+            
+            <!-- Modal Header -->
+            <div class="p-4 sm:p-5 border-b border-scratch-border/60 flex items-center justify-between gap-4 bg-scratch-dark/60">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="w-9 h-9 rounded-xl bg-scratch-orange/20 text-scratch-orange border border-scratch-orange/30 flex items-center justify-center shrink-0 font-bold">
+                        <i class="fa-solid fa-gamepad"></i>
+                    </span>
+                    <div class="min-w-0">
+                        <h3 id="preview-modal-title" class="text-base sm:text-lg font-bold text-white scratch-font truncate">Project Preview</h3>
+                        <p id="preview-modal-subtitle" class="text-xs text-gray-400 font-mono truncate">Powered by TurboWarp Live Player Embed</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <a id="preview-modal-turbowarp-link" href="#" target="_blank" class="px-3 py-1.5 bg-scratch-dark hover:bg-scratch-border text-xs text-scratch-orange font-semibold rounded-xl border border-scratch-border/60 transition hidden sm:inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Open TurboWarp
+                    </a>
+                    <button onclick="closeProjectPreview()" class="w-9 h-9 bg-scratch-dark hover:bg-red-500/20 text-gray-400 hover:text-red-400 rounded-xl border border-scratch-border/60 transition flex items-center justify-center">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Embed Iframe Container (4:3 Scratch standard aspect ratio) -->
+            <div class="p-4 sm:p-6 bg-scratch-dark/90 flex-1 flex items-center justify-center overflow-auto">
+                <div class="w-full max-w-3xl aspect-[4/3] rounded-2xl overflow-hidden border-2 border-scratch-border shadow-2xl bg-black relative">
+                    <iframe id="preview-iframe" src="" class="w-full h-full border-0" allowtransparency="true" width="485" height="402" frameborder="0" scrolling="no" allowfullscreen allow="autoplay *; fullscreen *"></iframe>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-3 sm:p-4 border-t border-scratch-border/60 bg-scratch-dark/60 flex flex-wrap justify-between items-center gap-3 text-xs text-gray-400">
+                <span class="flex items-center gap-1.5"><i class="fa-solid fa-circle-info text-scratch-blue"></i> Click flag green icon to start execution inside TurboWarp player</span>
+                <button onclick="closeProjectPreview()" class="px-4 py-2 bg-scratch-dark hover:bg-scratch-border text-gray-200 rounded-xl border border-scratch-border font-semibold transition ml-auto">
+                    Close Player
+                </button>
             </div>
 
         </div>
     </div>
 
+    <!-- Toast Notification Container -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-20 opacity-0 bg-scratch-orange text-gray-900 px-5 py-3 rounded-2xl font-bold shadow-2xl transition-all duration-300 flex items-center gap-2 z-50">
+        <i class="fa-solid fa-circle-check text-lg"></i>
+        <span id="toast-message">Copied to clipboard!</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-scratch-border/50 py-6 text-center text-xs text-gray-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>ScratchTools Studio • Powered by Live Scratch API & TurboWarp Player • Not affiliated with MIT Scratch Team</p>
+        </div>
+    </footer>
+
     <script>
-        // DOM Elements - Navigation
-        const sectionProjects = document.getElementById('sectionProjects');
-        const sectionUsers = document.getElementById('sectionUsers');
-        const tabProjectsBtn = document.getElementById('tabProjectsBtn');
-        const tabUsersBtn = document.getElementById('tabUsersBtn');
-
-        // DOM Elements - Project Section
-        const manualProjectId = document.getElementById('manualProjectId');
-        const projectResultCard = document.getElementById('projectResultCard');
-        const displayProjectId = document.getElementById('displayProjectId');
-        const projectThumb = document.getElementById('projectThumb');
-        const projectTitle = document.getElementById('projectTitle');
-        const turbowarpLink = document.getElementById('turbowarpLink');
-        const authorContainer = document.getElementById('authorContainer');
-        const authorAvatar = document.getElementById('authorAvatar');
-        const authorName = document.getElementById('authorName');
-
-        // DOM Elements - User Section
-        const manualUsername = document.getElementById('manualUsername');
-        const userResultCard = document.getElementById('userResultCard');
-        const userAvatar = document.getElementById('userAvatar');
-        const displayUsername = document.getElementById('displayUsername');
-        const scratchTeamBadge = document.getElementById('scratchTeamBadge');
-        const userJoined = document.getElementById('userJoined');
-        const userCountry = document.getElementById('userCountry');
-        const userBio = document.getElementById('userBio');
-        const userStatus = document.getElementById('userStatus');
-        const scratchProfileLink = document.getElementById('scratchProfileLink');
-        const randomUserBtnText = document.getElementById('randomUserBtnText');
-
-        const toggleDetailsBtn = document.getElementById('toggleDetailsBtn');
-        const toggleDetailsIcon = document.getElementById('toggleDetailsIcon');
-        const extraUserDetails = document.getElementById('extraUserDetails');
-        let isDetailsOpen = false;
-
-        // DOM Elements & State - Recent Projects
-        const recentProjectsBtn = document.getElementById('recentProjectsBtn');
-        const recentProjectsIcon = document.getElementById('recentProjectsIcon');
-        const recentProjectsContainer = document.getElementById('recentProjectsContainer');
-        let isRecentProjectsOpen = false;
-        let loadedRecentProjectsUser = null;
-        let activeUsername = "";
-
-        function toggleMoreDetails() {
-            isDetailsOpen = !isDetailsOpen;
-            if (isDetailsOpen) {
-                extraUserDetails.classList.remove('hidden');
-                if (toggleDetailsBtn) toggleDetailsBtn.querySelector('span').innerText = 'Hide Details';
-                if (toggleDetailsIcon) toggleDetailsIcon.classList.add('rotate-180');
-            } else {
-                extraUserDetails.classList.add('hidden');
-                if (toggleDetailsBtn) toggleDetailsBtn.querySelector('span').innerText = 'Show More Details';
-                if (toggleDetailsIcon) toggleDetailsIcon.classList.remove('rotate-180');
-            }
-        }
-
-        async function toggleRecentProjects() {
-            isRecentProjectsOpen = !isRecentProjectsOpen;
-            if (isRecentProjectsOpen) {
-                recentProjectsContainer.classList.remove('hidden');
-                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Hide Recent Projects';
-                if (recentProjectsIcon) recentProjectsIcon.classList.add('rotate-180');
-
-                if (loadedRecentProjectsUser !== activeUsername && activeUsername) {
-                    await fetchAndRenderRecentProjects(activeUsername);
+        // Cleaned & Authentic Fallback Data (only used if all CORS proxies fail or offline)
+        const MOCK_USER_DATA = {
+            "Scratchteam": {
+                "id": 125,
+                "username": "Scratchteam",
+                "scratchteam": true,
+                "history": { "joined": "2007-03-05T00:00:00.000Z" },
+                "profile": {
+                    "id": 125,
+                    "images": {
+                        "90x90": "https://cdn2.scratch.mit.edu/get_image/user/125_90x90.png?v=",
+                        "60x60": "https://cdn2.scratch.mit.edu/get_image/user/125_60x60.png?v=",
+                        "55x55": "https://cdn2.scratch.mit.edu/get_image/user/125_55x55.png?v=",
+                        "50x50": "https://cdn2.scratch.mit.edu/get_image/user/125_50x50.png?v=",
+                        "32x32": "https://cdn2.scratch.mit.edu/get_image/user/125_32x32.png?v="
+                    },
+                    "status": "Designing new ways for you to play, code, and create with Scratch!",
+                    "bio": "The Scratch Team develops and runs Scratch. Welcome to our official community profile!",
+                    "country": "United States"
                 }
-            } else {
-                recentProjectsContainer.classList.add('hidden');
-                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Show 3 Most Recent Projects';
-                if (recentProjectsIcon) recentProjectsIcon.classList.remove('rotate-180');
+            },
+            "scratch_r0bl0x": {
+                "id": 107566283,
+                "username": "scratch_r0bl0x",
+                "scratchteam": false,
+                "history": { "joined": "2023-01-20T13:00:34.000Z" },
+                "profile": {
+                    "id": 106558519,
+                    "images": {
+                        "90x90": "https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=",
+                        "60x60": "https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=",
+                        "55x55": "https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=",
+                        "50x50": "https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=",
+                        "32x32": "https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="
+                    },
+                    "status": "Working on new Scratch projects and games!",
+                    "bio": "I make fun games and animations on Scratch.",
+                    "country": "Canada"
+                }
+            },
+            "griffpatch": {
+                "id": 294632,
+                "username": "griffpatch",
+                "scratchteam": false,
+                "history": { "joined": "2012-04-26T18:05:01.000Z" },
+                "profile": {
+                    "id": 294632,
+                    "images": {
+                        "90x90": "https://cdn2.scratch.mit.edu/get_image/user/294632_90x90.png?v=",
+                        "60x60": "https://cdn2.scratch.mit.edu/get_image/user/294632_60x60.png?v=",
+                        "55x55": "https://cdn2.scratch.mit.edu/get_image/user/294632_55x55.png?v=",
+                        "50x50": "https://cdn2.scratch.mit.edu/get_image/user/294632_50x50.png?v=",
+                        "32x32": "https://cdn2.scratch.mit.edu/get_image/user/294632_32x32.png?v="
+                    },
+                    "status": "Making Scratch Tutorials on YouTube!",
+                    "bio": "Hi there! I love coding online multiplayer games and tutorials on YouTube.",
+                    "country": "United Kingdom"
+                }
             }
+        };
+
+        const MOCK_PROJECT_DATA = {
+            10128407: {
+                "id": 10128407,
+                "title": "Paper Minecraft",
+                "description": "Inspired by Minecraft! All code by griffpatch.",
+                "instructions": "Use WASD or Arrow keys to move and jump.",
+                "visibility": "visible",
+                "public": true,
+                "comments_allowed": true,
+                "is_published": true,
+                "author": {
+                    "id": 294632,
+                    "username": "griffpatch",
+                    "scratchteam": false,
+                    "history": { "joined": "2012-04-26T18:05:01.000Z" },
+                    "profile": {
+                        "images": { "90x90": "https://cdn2.scratch.mit.edu/get_image/user/294632_90x90.png?v=" }
+                    }
+                },
+                "image": "https://cdn2.scratch.mit.edu/get_image/project/10128407_480x360.png",
+                "images": {
+                    "282x218": "https://cdn2.scratch.mit.edu/get_image/project/10128407_282x218.png",
+                    "216x163": "https://cdn2.scratch.mit.edu/get_image/project/10128407_216x163.png",
+                    "200x200": "https://cdn2.scratch.mit.edu/get_image/project/10128407_200x200.png",
+                    "144x108": "https://cdn2.scratch.mit.edu/get_image/project/10128407_144x108.png",
+                    "135x102": "https://cdn2.scratch.mit.edu/get_image/project/10128407_135x102.png",
+                    "100x80": "https://cdn2.scratch.mit.edu/get_image/project/10128407_100x80.png"
+                },
+                "history": {
+                    "created": "2013-05-15T12:00:00.000Z",
+                    "modified": "2024-01-10T12:00:00.000Z",
+                    "shared": "2013-05-15T12:00:00.000Z"
+                },
+                "stats": { "views": 52400000, "loves": 1280000, "favorites": 1150000, "remixes": 312000 },
+                "project_token": "griffpatch_paper_minecraft_token"
+            }
+        };
+
+        const MOCK_STUDIO_DATA = {
+            35867072: {
+                "id": 35867072,
+                "title": "OrgeYT's Studio",
+                "host": 107566283,
+                "description": "Just a list of our projects",
+                "visibility": "visible",
+                "public": true,
+                "open_to_all": false,
+                "comments_allowed": true,
+                "image": "https://cdn2.scratch.mit.edu/get_image/gallery/35867072_170x100.png",
+                "history": {
+                    "created": "2024-11-03T22:03:37.000Z",
+                    "modified": "2024-11-03T22:04:16.000Z"
+                },
+                "stats": {
+                    "comments": 0,
+                    "followers": 2,
+                    "managers": 1,
+                    "projects": 52
+                }
+            }
+        };
+
+        const MOCK_STUDIO_PROJECTS = {
+            35867072: [{"id":1365781683,"title":"Precision Hopper","image":"https://cdn2.scratch.mit.edu/get_image/project/1365781683_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1350648798,"title":"Beat Catch","image":"https://cdn2.scratch.mit.edu/get_image/project/1350648798_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1350162529,"title":"Pixel art creator","image":"https://cdn2.scratch.mit.edu/get_image/project/1350162529_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1334075216,"title":"Code with OrgeYT! (Remix Chain)","image":"https://cdn2.scratch.mit.edu/get_image/project/1334075216_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1333226909,"title":"Arrownese translator","image":"https://cdn2.scratch.mit.edu/get_image/project/1333226909_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1331390137,"title":"Ultimate dodging TWO","image":"https://cdn2.scratch.mit.edu/get_image/project/1331390137_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1307105163,"title":"Planet Character Creator","image":"https://cdn2.scratch.mit.edu/get_image/project/1307105163_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1299578354,"title":"Breath Sumo 息相撲","image":"https://cdn2.scratch.mit.edu/get_image/project/1299578354_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1298964476,"title":"Flappy bird!","image":"https://cdn2.scratch.mit.edu/get_image/project/1298964476_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1298724816,"title":"Gravity flipper platformer","image":"https://cdn2.scratch.mit.edu/get_image/project/1298724816_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1296541027,"title":"Kawairun 2 Remake","image":"https://cdn2.scratch.mit.edu/get_image/project/1296541027_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1271861569,"title":"Beat Up the Platformer","image":"https://cdn2.scratch.mit.edu/get_image/project/1271861569_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1270555449,"title":"Red light Green light Simulation!","image":"https://cdn2.scratch.mit.edu/get_image/project/1270555449_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1267433670,"title":"Interactive Purple Cube","image":"https://cdn2.scratch.mit.edu/get_image/project/1267433670_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1090778610,"title":"AR Scorpii WITH MODIFICATIONS ","image":"https://cdn2.scratch.mit.edu/get_image/project/1090778610_480x360.png","creator_id":128262800,"username":"TheFlyingCar123","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/128262800_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/128262800_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/128262800_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/128262800_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/128262800_32x32.png?v="},"actor_id":128262800,"creator_membership_avatar_badge":1},{"id":1090862733,"title":"My Intro/Outro","image":"https://cdn2.scratch.mit.edu/get_image/project/1090862733_480x360.png","creator_id":128262800,"username":"TheFlyingCar123","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/128262800_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/128262800_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/128262800_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/128262800_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/128262800_32x32.png?v="},"actor_id":128262800,"creator_membership_avatar_badge":1},{"id":1051506540,"title":"OrgeYT Platformer","image":"https://cdn2.scratch.mit.edu/get_image/project/1051506540_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1055644508,"title":"Button","image":"https://cdn2.scratch.mit.edu/get_image/project/1055644508_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1057619121,"title":"Orge with and without voice effect","image":"https://cdn2.scratch.mit.edu/get_image/project/1057619121_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1},{"id":1059287663,"title":"cool","image":"https://cdn2.scratch.mit.edu/get_image/project/1059287663_480x360.png","creator_id":107566283,"username":"scratch_r0bl0x","avatar":{"90x90":"https://cdn2.scratch.mit.edu/get_image/user/107566283_90x90.png?v=","60x60":"https://cdn2.scratch.mit.edu/get_image/user/107566283_60x60.png?v=","55x55":"https://cdn2.scratch.mit.edu/get_image/user/107566283_55x55.png?v=","50x50":"https://cdn2.scratch.mit.edu/get_image/user/107566283_50x50.png?v=","32x32":"https://cdn2.scratch.mit.edu/get_image/user/107566283_32x32.png?v="},"actor_id":107566283,"creator_membership_avatar_badge":1}]
+        };
+
+        let isUsingFallbackData = false;
+        let preferredProxyIndex = 0;
+        let activeProjectData = null;
+
+        function fetchWithTimeout(url, timeoutMs = 9000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
         }
 
-        async function fetchScratchApi(endpoint) {
+        /**
+         * Multi-Proxy API Reader: Iterates through CORS proxies to retrieve real Scratch API data.
+         */
+        async function fetchScratchAPI(endpoint) {
             const targetUrl = `https://api.scratch.mit.edu/${endpoint}`;
-            const proxyUrls = [
-                `https://corsproxy.io/?https://api.scratch.mit.edu/${endpoint}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(targetUrl)}`,
-                `https://trampoline.turbowarp.org/api/${endpoint}`
+
+            const proxyConfigs = [
+                {
+                    name: "Direct Scratch API",
+                    authoritative: true, // talks to api.scratch.mit.edu directly -- a 404 here is real
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(targetUrl);
+                        if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        return await res.json();
+                    }
+                },
+                {
+                    name: "TurboWarp Trampoline",
+                    // NOT authoritative: trampoline is a purpose-built proxy that only implements
+                    // a handful of routes needed for running projects (see TurboWarp/trampoline).
+                    // It can 404 simply because it doesn't support a given route (e.g. /studios/...)
+                    // even when the underlying Scratch resource exists, so we must not treat that
+                    // as proof the resource is missing -- just move on to the next proxy.
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(`https://trampoline.turbowarp.org/api/${endpoint}`);
+                        if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        return await res.json();
+                    }
+                },
+                {
+                    name: "AllOrigins Raw Proxy",
+                    authoritative: true, // generic pass-through proxy -- faithfully relays the real response
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+                        if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        return await res.json();
+                    }
+                },
+                {
+                    name: "CodeTabs Proxy",
+                    authoritative: true, // generic pass-through proxy -- faithfully relays the real response
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
+                        if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        return await res.json();
+                    }
+                },
+                {
+                    name: "CORS.lol Proxy",
+                    authoritative: true, // generic pass-through proxy -- faithfully relays the real response
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(`https://api.cors.lol/?url=${encodeURIComponent(targetUrl)}`);
+                        if (res.status === 404) throw new Error("404_NOT_FOUND");
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        return await res.json();
+                    }
+                },
+                {
+                    name: "AllOrigins JSON Engine",
+                    authoritative: true, // generic pass-through proxy -- faithfully relays the real response
+                    fetch: async () => {
+                        const res = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
+                        if (!res.ok) throw new Error(`HTTP_${res.status}`);
+                        const wrapper = await res.json();
+                        if (wrapper.status && wrapper.status.http_code === 404) throw new Error("404_NOT_FOUND");
+                        if (!wrapper.contents) throw new Error("EMPTY_PAYLOAD");
+                        return JSON.parse(wrapper.contents);
+                    }
+                }
             ];
 
-            for (const proxyUrl of proxyUrls) {
-                try {
-                    const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 3500);
-                    const response = await fetch(proxyUrl, { signal: controller.signal });
-                    clearTimeout(timeoutId);
+            let lastErr = null;
+            const orderedIndices = proxyConfigs.map((_, i) => (i + preferredProxyIndex) % proxyConfigs.length);
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data && (Array.isArray(data) || typeof data === 'object')) {
-                            return data;
-                        }
+            for (const idx of orderedIndices) {
+                const proxy = proxyConfigs[idx];
+                try {
+                    const data = await proxy.fetch();
+                    if (data !== undefined && data !== null) {
+                        isUsingFallbackData = false;
+                        preferredProxyIndex = idx;
+                        updateProxyStatus(`Connected (${proxy.name})`, true);
+                        return data;
                     }
-                } catch (e) {
-                    // Continue to next proxy
+                } catch (err) {
+                    // Only trust a 404 as "this resource genuinely doesn't exist" when it came from
+                    // a proxy that faithfully relays the real Scratch API response. A 404 from a
+                    // route-limited proxy (like Trampoline) just means try the next one.
+                    if (err.message === "404_NOT_FOUND" && proxy.authoritative) {
+                        throw new Error("404_NOT_FOUND");
+                    }
+                    lastErr = err;
                 }
             }
-            throw new Error("All proxy attempts failed.");
+
+            console.warn("All proxies unreachable. Checking local cache for:", endpoint, lastErr);
+            isUsingFallbackData = true;
+            updateProxyStatus("Offline Fallback Mode", false);
+
+            const path = endpoint.split("?")[0];
+            const segments = path.split("/").filter(Boolean);
+            const userKeyMatch = segments[0] === "users"
+                ? Object.keys(MOCK_USER_DATA).find(k => k.toLowerCase() === (segments[1] || "").toLowerCase())
+                : null;
+
+            if (segments[0] === "users" && segments.length === 2) {
+                if (userKeyMatch) return MOCK_USER_DATA[userKeyMatch];
+            } else if (segments[0] === "projects" && segments.length === 2) {
+                const pid = segments[1];
+                if (MOCK_PROJECT_DATA[pid]) return MOCK_PROJECT_DATA[pid];
+            } else if (segments[0] === "studios" && segments.length === 2) {
+                const sid = segments[1];
+                if (MOCK_STUDIO_DATA[sid]) return MOCK_STUDIO_DATA[sid];
+            } else if (segments[0] === "studios" && segments.length === 3 && segments[2] === "projects") {
+                const sid = segments[1];
+                if (MOCK_STUDIO_PROJECTS[sid]) return MOCK_STUDIO_PROJECTS[sid];
+            }
+
+            throw new Error(`Unable to fetch /${endpoint} from Scratch API proxies.`);
         }
 
-        async function fetchAndRenderRecentProjects(username) {
-            recentProjectsContainer.innerHTML = `
-                <div class="p-3 text-center text-xs font-semibold text-slate-400 bg-white rounded-xl border border-slate-100">
-                    <i class="fa-solid fa-spinner animate-spin mr-1 text-amber-500"></i> Loading recent projects...
-                </div>`;
+        async function safeFetchProject(id) {
+            try {
+                const data = await fetchScratchAPI(`projects/${encodeURIComponent(id)}`);
+                if (!data || !data.id) throw new Error("Invalid payload");
+                return data;
+            } catch (err) {
+                if (err.message && err.message.includes("404")) {
+                    return {
+                        id: id,
+                        title: "Hidden (Unshared/Deleted)",
+                        is_published: false,
+                        author: { username: "Unknown", profile: { images: {} } },
+                        stats: { views: null, loves: null, favorites: null, remixes: null },
+                        history: { created: null, modified: null, shared: null },
+                        instructions: "This project is unshared or deleted. Data is hidden.",
+                        description: "This project is unshared or deleted. Notes and credits are hidden.",
+                        comments_allowed: false,
+                        _isUnsharedFallback: true
+                    };
+                }
+                throw err;
+            }
+        }
+
+        function updateProxyStatus(text, isOnline) {
+            const dot = document.getElementById('proxy-status-dot');
+            const txt = document.getElementById('proxy-status-text');
+            if (txt) txt.innerText = text;
+            if (dot) {
+                dot.className = isOnline 
+                    ? "w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" 
+                    : "w-2.5 h-2.5 rounded-full bg-amber-500";
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            const targetTab = document.getElementById(tabId);
+            const targetBtn = document.getElementById(`btn-${tabId}`);
+            if (targetTab) targetTab.classList.remove('hidden');
+            if (targetBtn) targetBtn.classList.add('active');
+            dismissError();
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            const txt = document.getElementById('error-message');
+            if (txt) txt.innerText = msg;
+            if (banner) banner.classList.remove('hidden');
+        }
+
+        function dismissError() {
+            const banner = document.getElementById('error-banner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        async function copyToClipboard(text) {
+            if (!text) {
+                showToast("Nothing to copy yet.");
+                return;
+            }
 
             try {
-                const projects = await fetchScratchApi(`users/${encodeURIComponent(username)}/projects?limit=3&offset=0`);
-                loadedRecentProjectsUser = username;
-
-                if (!Array.isArray(projects) || projects.length === 0) {
-                    recentProjectsContainer.innerHTML = `
-                        <div class="p-3 text-center text-xs font-semibold text-slate-400 bg-white rounded-xl border border-slate-100">
-                            No recent public projects found for @${username}.
-                        </div>`;
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    showToast("Copied to clipboard!");
                     return;
                 }
-
-                recentProjectsContainer.innerHTML = '';
-                projects.slice(0, 3).forEach(project => {
-                    const projectThumbUrl = (project.images && project.images['216x163']) 
-                        ? project.images['216x163'] 
-                        : (project.image || `https://cdn2.scratch.mit.edu/get_image/project/${project.id}_216x163.png`);
-                    
-                    const projectTitle = project.title || 'Untitled';
-
-                    const projectCard = document.createElement('div');
-                    projectCard.className = "flex items-center gap-3 bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-sm hover:border-indigo-200 transition";
-                    projectCard.innerHTML = `
-                        <img src="${projectThumbUrl}" class="w-14 h-11 object-cover rounded-lg bg-slate-100 flex-shrink-0" onerror="this.src='https://scratch.mit.edu/images/scratch-og.png';" alt="Project Thumbnail">
-                        <div class="overflow-hidden flex-1 min-w-0">
-                            <h5 class="text-xs font-bold text-slate-800 truncate" title="${projectTitle}">${projectTitle}</h5>
-                            <p class="text-[10px] font-mono text-slate-400">#${project.id}</p>
-                        </div>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            <button onclick="inspectProjectFromUser(${project.id})" title="Inspect in App" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 p-2 rounded-lg text-xs transition">
-                                <i class="fa-solid fa-magnifying-glass"></i>
-                            </button>
-                            <a href="https://turbowarp.org/${project.id}" target="_blank" rel="noopener noreferrer" title="Play on TurboWarp" class="bg-sky-50 hover:bg-sky-100 text-sky-600 p-2 rounded-lg text-xs transition">
-                                <i class="fa-solid fa-bolt"></i>
-                            </a>
-                        </div>
-                    `;
-                    recentProjectsContainer.appendChild(projectCard);
-                });
-            } catch (err) {
-                recentProjectsContainer.innerHTML = `
-                    <div class="p-3 text-center text-xs font-semibold text-rose-500 bg-rose-50 rounded-xl border border-rose-100">
-                        Could not load recent projects. Please try again.
-                    </div>`;
-            }
-        }
-
-        function inspectProjectFromUser(projectId) {
-            switchTab('projects');
-            manualProjectId.value = projectId;
-            loadProject(projectId);
-        }
-
-        let currentProjectController = null;
-        let currentUserController = null;
-        let lastExtractedAuthor = null;
-
-        function switchTab(tab) {
-            if (tab === 'projects') {
-                sectionProjects.classList.remove('hidden');
-                sectionUsers.classList.add('hidden');
-                tabProjectsBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-indigo-600 shadow-sm";
-                tabUsersBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900";
-            } else {
-                sectionUsers.classList.remove('hidden');
-                sectionProjects.classList.add('hidden');
-                tabUsersBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 bg-white text-pink-600 shadow-sm";
-                tabProjectsBtn.className = "flex-1 py-2 px-3 rounded-lg font-bold text-sm transition-all duration-200 text-slate-600 hover:text-slate-900";
-            }
-        }
-
-        async function fetchProjectData(id) {
-            if (currentProjectController) currentProjectController.abort();
-            currentProjectController = new AbortController();
+            } catch (e) {}
 
             try {
-                const response = await fetch(`https://trampoline.turbowarp.org/api/projects/${id}`, {
-                    signal: currentProjectController.signal
-                });
-                if (response.ok) {
-                    return await response.json();
+                const temp = document.createElement('textarea');
+                temp.value = text;
+                temp.style.position = 'fixed';
+                temp.style.opacity = '0';
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                showToast("Copied to clipboard!");
+            } catch (e) {
+                showToast("Couldn't copy — please copy manually.");
+            }
+        }
+
+        function copyImageSrc(imgId) {
+            const img = document.getElementById(imgId);
+            if (img && img.getAttribute('src') && img.src && img.src !== window.location.href) {
+                copyToClipboard(img.src);
+            } else {
+                showToast("No image loaded yet.");
+            }
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str === undefined || str === null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        function escapeHtmlAttr(str) {
+            return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            if (msgEl) msgEl.innerText = msg;
+            if (toast) {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            try {
+                const d = new Date(dateStr);
+                if (isNaN(d)) return 'N/A';
+                return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+            } catch (e) {
+                return 'N/A';
+            }
+        }
+
+        /**
+         * Project Preview Modal logic (embeds https://turbowarp.org/ID/embed)
+         */
+        function openProjectPreview(targetId = null, targetTitle = null) {
+            const pid = targetId || activeProjectData?.id || document.getElementById('project-input').value.trim();
+            const ptitle = targetTitle || activeProjectData?.title || `Project #${pid}`;
+
+            if (!pid) {
+                showError("No project ID selected to preview.");
+                return;
+            }
+
+            const modal = document.getElementById('preview-modal');
+            const iframe = document.getElementById('preview-iframe');
+            const titleEl = document.getElementById('preview-modal-title');
+            const subtitleEl = document.getElementById('preview-modal-subtitle');
+            const tbLink = document.getElementById('preview-modal-turbowarp-link');
+
+            // TurboWarp Embed URL format
+            const embedUrl = `https://turbowarp.org/${encodeURIComponent(pid)}/embed`;
+
+            titleEl.innerText = ptitle;
+            subtitleEl.innerText = `Project ID: ${pid} • https://turbowarp.org/${pid}/embed`;
+            if (tbLink) tbLink.href = `https://turbowarp.org/${pid}`;
+
+            iframe.src = embedUrl;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeProjectPreview() {
+            const modal = document.getElementById('preview-modal');
+            const iframe = document.getElementById('preview-iframe');
+            
+            // Clear iframe src to stop audio/game loop completely
+            iframe.src = '';
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+
+        // Keyboard handler for Escape key to close modal
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeProjectPreview();
+            }
+        });
+
+        async function fetchUserData() {
+            dismissError();
+            let rawUsername = document.getElementById('user-input').value.trim();
+            if (!rawUsername) {
+                showError("Please enter a valid Scratch username.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-fetch-user');
+            if (btn) {
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Fetching...`;
+                btn.disabled = true;
+            }
+
+            try {
+                let data;
+                try {
+                    data = await fetchScratchAPI(`users/${encodeURIComponent(rawUsername)}`);
+                } catch (err) {
+                    if (err.message && err.message.includes("404")) {
+                        const variants = new Set([
+                            rawUsername.charAt(0).toUpperCase() + rawUsername.slice(1),
+                            rawUsername.toLowerCase()
+                        ]);
+                        variants.delete(rawUsername);
+
+                        let found = null;
+                        for (const variant of variants) {
+                            try {
+                                found = await fetchScratchAPI(`users/${encodeURIComponent(variant)}`);
+                                break;
+                            } catch (innerErr) {}
+                        }
+                        if (found) {
+                            data = found;
+                        } else {
+                            throw err;
+                        }
+                    } else {
+                        throw err;
+                    }
                 }
+                
+                if (!data || !data.id) {
+                    throw new Error(`Could not find Scratch user "${rawUsername}". Please verify spelling.`);
+                }
+
+                renderUserData(data);
+                const resultsContainer = document.getElementById('user-results');
+                if (resultsContainer) resultsContainer.classList.remove('hidden');
             } catch (err) {
-                // Ignore aborts
+                showError(err.message === "404_NOT_FOUND" ? "User not found or deleted." : (err.message || "Failed to find Scratch user."));
+                const resultsContainer = document.getElementById('user-results');
+                if (resultsContainer) resultsContainer.classList.add('hidden');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Get Scratch ID`;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function setAndFetchUser(username) {
+            document.getElementById('user-input').value = username;
+            fetchUserData();
+        }
+
+        async function fetchRandomUser() {
+            dismissError();
+            const btn = document.getElementById('btn-random-user');
+            const statusEl = document.getElementById('random-user-status');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Random`; }
+            if (statusEl) { statusEl.classList.remove('hidden'); statusEl.textContent = 'Generating random project ID to find its creator...'; }
+
+            try {
+                const project = await findRandomValidProject([], (attempt, total) => {
+                    if (statusEl && attempt > 1) statusEl.textContent = `Searching random project IDs (attempt ${attempt}/${total})...`;
+                });
+                
+                const creator = project?.author?.username;
+                if (!creator || creator === 'Unknown') {
+                    throw new Error("Found a random project, but creator information was unavailable.");
+                }
+
+                if (statusEl) statusEl.textContent = `Found creator "@${creator}" from project #${project.id.toLocaleString()} ("${project.title || 'Untitled'}"). Fetching Scratch ID...`;
+                document.getElementById('user-input').value = creator;
+                await fetchUserData();
+            } catch (err) {
+                showError(err.message || 'Failed to find a random user.');
+                if (statusEl) statusEl.classList.add('hidden');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-dice"></i> Random User`; }
+            }
+        }
+
+        function renderUserData(data) {
+            const userId = data.id;
+            document.getElementById('user-display-username').innerText = data.username || 'Unknown';
+            document.getElementById('user-id-val').innerText = userId;
+            
+            const badgeSource = document.getElementById('user-data-source');
+            if (badgeSource) {
+                if (isUsingFallbackData) {
+                    badgeSource.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> Cached Fallback Data`;
+                    badgeSource.className = "text-xs font-mono px-2.5 py-1 bg-scratch-dark rounded-md border border-scratch-border text-amber-400 flex items-center gap-1.5";
+                } else {
+                    badgeSource.innerHTML = `<span class="w-2 h-2 rounded-full bg-green-400"></span> Live Scratch API Data`;
+                    badgeSource.className = "text-xs font-mono px-2.5 py-1 bg-scratch-dark rounded-md border border-scratch-border text-green-400 flex items-center gap-1.5";
+                }
+            }
+
+            const stBadge = document.getElementById('user-st-badge');
+            if (stBadge) {
+                if (data.scratchteam === true) {
+                    stBadge.classList.remove('hidden');
+                } else {
+                    stBadge.classList.add('hidden');
+                }
+            }
+
+            const joinedRaw = data.history?.joined || data.joined || null;
+            document.getElementById('user-joined-date').innerText = joinedRaw ? formatDate(joinedRaw) : 'N/A';
+            document.getElementById('user-joined-raw').innerText = joinedRaw ? `${joinedRaw}` : '';
+
+            const countryVal = data.profile?.country || data.country || 'Not specified';
+            document.getElementById('user-country').innerText = countryVal;
+
+            document.getElementById('user-scratch-link').href = `https://scratch.mit.edu/users/${data.username}/`;
+            document.getElementById('user-bio').innerText = data.profile?.bio || 'No bio provided.';
+            document.getElementById('user-status').innerText = data.profile?.status || 'No status provided.';
+            document.getElementById('user-json-raw').innerText = JSON.stringify(data, null, 2);
+
+            const sizes = [90, 60, 55, 50, 32];
+            sizes.forEach(s => {
+                const pfpUrl = data.profile?.images?.[`${s}x${s}`] || `https://cdn2.scratch.mit.edu/get_image/user/${userId}_${s}x${s}.png?v=`;
+                const imgEl = document.getElementById(`pfp-${s}`);
+                if (imgEl) imgEl.src = pfpUrl;
+            });
+
+            const mainPfp = document.getElementById('user-pfp-main');
+            if (mainPfp) mainPfp.src = `https://cdn2.scratch.mit.edu/get_image/user/${userId}_90x90.png?v=`;
+        }
+
+        function toggleUserJsonViewer() {
+            const container = document.getElementById('user-json-container');
+            const btnText = document.getElementById('json-toggle-btn-text');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (btnText) btnText.innerText = 'Hide Raw JSON';
+            } else {
+                container.classList.add('hidden');
+                if (btnText) btnText.innerText = 'Inspect Raw JSON Payload';
+            }
+        }
+
+        async function fetchProjectData() {
+            dismissError();
+            const projInput = document.getElementById('project-input').value.trim();
+            if (!projInput) {
+                showError("Please enter a valid Scratch Project ID.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-fetch-project');
+            if (btn) {
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Inspecting...`;
+                btn.disabled = true;
+            }
+
+            try {
+                const data = await safeFetchProject(projInput);
+                activeProjectData = data;
+                renderProjectData(data);
+                const resultsContainer = document.getElementById('project-results');
+                if (resultsContainer) resultsContainer.classList.remove('hidden');
+            } catch (err) {
+                showError(err.message || "Failed to inspect project.");
+                const resultsContainer = document.getElementById('project-results');
+                if (resultsContainer) resultsContainer.classList.add('hidden');
+            } finally {
+                if (btn) {
+                    btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Inspect Project`;
+                    btn.disabled = false;
+                }
+            }
+        }
+
+        function setAndFetchProject(pid) {
+            document.getElementById('project-input').value = pid;
+            fetchProjectData();
+        }
+
+        function renderProjectData(data) {
+            const pid = data.id;
+            
+            const unsharedWarning = document.getElementById('unshared-warning');
+            if (data._isUnsharedFallback) {
+                if (unsharedWarning) unsharedWarning.classList.remove('hidden');
+            } else {
+                if (unsharedWarning) unsharedWarning.classList.add('hidden');
+            }
+
+            document.getElementById('proj-id-badge').innerText = `ID: ${pid}`;
+            document.getElementById('proj-title').innerText = data.title || 'Untitled Project';
+
+            const publishedBadge = document.getElementById('proj-published-badge');
+            if (publishedBadge) {
+                if (data.is_published === false) {
+                    publishedBadge.innerText = 'Unshared';
+                    publishedBadge.className = "px-2.5 py-0.5 bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs rounded-full font-semibold";
+                } else {
+                    publishedBadge.innerText = 'Published';
+                    publishedBadge.className = "px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full font-semibold";
+                }
+            }
+
+            const author = data.author || {};
+            const authorName = author.username || 'Unknown User';
+            document.getElementById('proj-author-name').innerText = authorName;
+
+            const authorPfp = author.profile?.images?.['90x90'] || (author.id ? `https://cdn2.scratch.mit.edu/get_image/user/${author.id}_90x90.png?v=` : '');
+            if(authorPfp) document.getElementById('proj-author-pfp').src = authorPfp;
+
+            const thumbUrl = data.image || `https://cdn2.scratch.mit.edu/get_image/project/${pid}_480x360.png`;
+            document.getElementById('proj-thumb-main').src = thumbUrl;
+
+            document.getElementById('proj-scratch-url').href = `https://scratch.mit.edu/projects/${pid}/`;
+            document.getElementById('turbowarp-url').href = `https://turbowarp.org/${pid}`;
+            const tokenEl = document.getElementById('proj-token');
+            tokenEl.innerText = data.project_token || '';
+
+            document.getElementById('proj-instructions').innerText = data.instructions || 'No instructions provided.';
+            document.getElementById('proj-description').innerText = data.description || 'No notes/credits provided.';
+
+            const stats = data.stats || {};
+            const getStatText = (val) => val === null || val === undefined ? 'Hidden' : val.toLocaleString();
+            
+            document.getElementById('proj-views').innerText = getStatText(stats.views);
+            document.getElementById('proj-loves').innerText = getStatText(stats.loves);
+            document.getElementById('proj-favorites').innerText = getStatText(stats.favorites);
+            document.getElementById('proj-remixes').innerText = getStatText(stats.remixes);
+
+            const history = data.history || {};
+            document.getElementById('proj-created').innerText = formatDate(history.created);
+            document.getElementById('proj-modified').innerText = formatDate(history.modified);
+            document.getElementById('proj-shared').innerText = formatDate(history.shared);
+            document.getElementById('proj-comments-allowed').innerText = data.comments_allowed ? 'Allowed' : 'Disabled';
+
+            const resMap = {
+                'img-282': '282x218',
+                'img-216': '216x163',
+                'img-200': '200x200',
+                'img-144': '144x108',
+                'img-135': '135x102',
+                'img-100': '100x80'
+            };
+
+            Object.keys(resMap).forEach(imgId => {
+                const key = resMap[imgId];
+                const src = data.images?.[key] || `https://cdn2.scratch.mit.edu/get_image/project/${pid}_${key}.png`;
+                const imgEl = document.getElementById(imgId);
+                if (imgEl) imgEl.src = src;
+            });
+
+            const blockEl = document.getElementById('proj-blockcount');
+            if (blockEl) {
+                if (data._isUnsharedFallback) {
+                    blockEl.innerText = 'Hidden';
+                } else {
+                    blockEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+                    getBlockCount(pid, data.project_token)
+                        .then(count => blockEl.innerText = count.toLocaleString())
+                        .catch(() => blockEl.innerText = 'N/A');
+                }
+            }
+        }
+
+        const RANDOM_PROJECT_MAX_ID = 2000000;
+
+        function getRandomProjectId() {
+            return Math.floor(Math.random() * RANDOM_PROJECT_MAX_ID) + 1;
+        }
+
+        async function findRandomProjectBatch(excludeIds, batchSize) {
+            const tried = new Set(excludeIds);
+            const ids = [];
+            while (ids.length < batchSize) {
+                const id = getRandomProjectId();
+                if (!tried.has(id)) {
+                    tried.add(id);
+                    ids.push(id);
+                }
+            }
+            const results = await Promise.allSettled(ids.map(id => fetchScratchAPI(`projects/${id}`)));
+            for (const r of results) {
+                if (r.status === 'fulfilled' && r.value && r.value.id) return r.value;
             }
             return null;
         }
 
-        async function fetchUserData(username) {
-            if (currentUserController) currentUserController.abort();
-            currentUserController = new AbortController();
+        async function findRandomValidProject(excludeIds = [], onAttempt) {
+            const rounds = 3;
+            const batchSize = 6;
+            for (let round = 0; round < rounds; round++) {
+                if (onAttempt) onAttempt(round + 1, rounds);
+                const found = await findRandomProjectBatch(excludeIds, batchSize);
+                if (found) return found;
+            }
+            throw new Error("Couldn't find a viewable random project after several tries. Please try again.");
+        }
+
+        async function randomizeProject() {
+            dismissError();
+            const btn = document.getElementById('btn-random-project');
+            const statusEl = document.getElementById('random-project-status');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Random`; }
+            if (statusEl) { statusEl.classList.remove('hidden'); statusEl.textContent = 'Drawing a random project ID (1–2,000,000)...'; }
 
             try {
-                const response = await fetch(`https://trampoline.turbowarp.org/api/users/${encodeURIComponent(username)}`, {
-                    signal: currentUserController.signal
+                const data = await findRandomValidProject([], (attempt, total) => {
+                    if (statusEl && attempt > 1) statusEl.textContent = `Still looking (attempt ${attempt}/${total})...`;
                 });
-                if (response.ok) {
-                    return await response.json();
-                }
+                activeProjectData = data;
+                document.getElementById('project-input').value = data.id;
+                renderProjectData(data);
+                document.getElementById('project-results').classList.remove('hidden');
+                if (statusEl) statusEl.textContent = `Found project #${data.id.toLocaleString()} — created ${formatDate(data.history?.created)}.`;
             } catch (err) {
-                // Fallback attempt
+                showError(err.message || 'Failed to find a random project.');
+                if (statusEl) statusEl.classList.add('hidden');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-dice"></i> Random`; }
             }
+        }
+
+        function inspectAuthorProfile() {
+            const authorName = document.getElementById('proj-author-name').innerText;
+            if (authorName && authorName !== '---' && authorName !== 'Unknown') {
+                switchTab('user-tab');
+                setAndFetchUser(authorName);
+            }
+        }
+
+        /**
+         * ===================== STUDIO EXPLORER =====================
+         * Inspect a studio via /studios/<id>, then page through its
+         * project list via /studios/<id>/projects (max 40 per request).
+         * Every project card links out through TurboWarp (preview embed,
+         * direct TurboWarp link) so studio browsing stays consistent
+         * with the Project Inspector / Project VS tabs.
+         */
+
+        let studioExplorerState = {
+            studio: null,
+            projects: [],
+            offset: 0,
+            limit: 40,
+            totalKnown: null,
+            loadingMore: false,
+            hostUsername: null
+        };
+
+        async function safeFetchStudio(id) {
+            try {
+                const data = await fetchScratchAPI(`studios/${encodeURIComponent(id)}`);
+                if (!data || !data.id) throw new Error("Invalid payload");
+                return data;
+            } catch (err) {
+                if (err.message && err.message.includes("404")) {
+                    return {
+                        id: Number(id) || id,
+                        title: "Hidden (Private/Deleted Studio)",
+                        host: null,
+                        description: "",
+                        visibility: "unknown",
+                        public: null,
+                        open_to_all: null,
+                        comments_allowed: false,
+                        image: `https://cdn2.scratch.mit.edu/get_image/gallery/${id}_170x100.png`,
+                        history: { created: null, modified: null },
+                        stats: { comments: null, followers: null, managers: null, projects: null },
+                        _isUnsharedFallback: true
+                    };
+                }
+                throw err;
+            }
+        }
+
+        async function fetchStudioData() {
+            dismissError();
+            const studioInput = document.getElementById('studio-input').value.trim();
+            if (!studioInput) {
+                showError("Please enter a valid Scratch Studio ID.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-fetch-studio');
+            if (btn) { btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Inspecting...`; btn.disabled = true; }
 
             try {
-                return await fetchScratchApi(`users/${encodeURIComponent(username)}`);
+                const data = await safeFetchStudio(studioInput);
+                await applyStudioResult(data);
             } catch (err) {
-                return null;
+                showError(err.message || "Failed to inspect studio.");
+                document.getElementById('studio-results').classList.add('hidden');
+            } finally {
+                if (btn) { btn.innerHTML = `<i class="fa-solid fa-magnifying-glass"></i> Inspect Studio`; btn.disabled = false; }
             }
         }
 
-        function loadProject(id) {
-            if (!id || isNaN(id) || id <= 0) return;
-
-            // Instant UI display
-            displayProjectId.innerText = `#${id}`;
-            projectThumb.src = `https://cdn2.scratch.mit.edu/get_image/project/${id}_216x163.png?`;
-            projectTitle.innerText = "???";
-            turbowarpLink.href = `https://turbowarp.org/${id}`;
-
-            authorContainer.classList.add('hidden');
-            lastExtractedAuthor = null;
-            projectResultCard.classList.remove('hidden');
-
-            // Asynchronously populate title and author if available
-            fetchProjectData(id).then(data => {
-                if (data) {
-                    if (data.title) {
-                        projectTitle.innerText = data.title;
-                    }
-                    if (data.author && data.author.username) {
-                        lastExtractedAuthor = data.author.username;
-                        authorName.innerText = `@${data.author.username}`;
-                        const avatarUrl = (data.author.profile && data.author.profile.images)
-                            ? data.author.profile.images['60x60']
-                            : `https://cdn2.scratch.mit.edu/get_image/user/0_60x60.png`;
-                        authorAvatar.src = avatarUrl;
-                        authorContainer.classList.remove('hidden');
-                    }
-                }
-            });
+        function setAndFetchStudio(sid) {
+            document.getElementById('studio-input').value = sid;
+            fetchStudioData();
         }
 
-        function handleManualProjectSearch() {
-            const id = manualProjectId.value.trim();
-            if (id) {
-                loadProject(id);
-            }
-        }
-
-        function handleRandomProject() {
-            const randomId = Math.floor(Math.random() * 2000000000) + 1;
-            manualProjectId.value = randomId;
-            loadProject(randomId);
-        }
-
-        function inspectOwnerFromProject() {
-            if (lastExtractedAuthor) {
-                switchTab('users');
-                manualUsername.value = lastExtractedAuthor;
-                loadUser(lastExtractedAuthor);
-            }
-        }
-
-        async function loadUser(username) {
-            if (!username) return;
-            username = username.trim();
-            activeUsername = username;
-
-            // Instant UI setup
-            displayUsername.innerText = `@${username}`;
-            userAvatar.src = `https://cdn2.scratch.mit.edu/get_image/user/0_90x90.png`;
-            scratchProfileLink.href = `https://scratch.mit.edu/users/${encodeURIComponent(username)}`;
-            scratchTeamBadge.classList.add('hidden');
-            userJoined.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Joined: ???`;
-            userCountry.innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ???`;
-            userBio.innerText = "No bio provided.";
-            userStatus.innerText = "No status provided.";
-
-            // Reset recent projects container
-            loadedRecentProjectsUser = null;
-            recentProjectsContainer.innerHTML = '';
-            if (isRecentProjectsOpen) {
-                isRecentProjectsOpen = false;
-                recentProjectsContainer.classList.add('hidden');
-                if (recentProjectsBtn) recentProjectsBtn.querySelector('span').innerText = 'Show 3 Most Recent Projects';
-                if (recentProjectsIcon) recentProjectsIcon.classList.remove('rotate-180');
-            }
-
-            userResultCard.classList.remove('hidden');
-
-            try {
-                const userData = await fetchUserData(username);
-                if (userData) {
-                    if (userData.username) displayUsername.innerText = `@${userData.username}`;
-
-                    if (userData.profile && userData.profile.images && userData.profile.images['90x90']) {
-                        userAvatar.src = userData.profile.images['90x90'];
-                    }
-
-                    if (userData.scratchteam) {
-                        scratchTeamBadge.classList.remove('hidden');
-                    }
-
-                    if (userData.history && userData.history.joined) {
-                        const date = new Date(userData.history.joined);
-                        userJoined.innerHTML = `<i class="fa-regular fa-calendar mr-1"></i> Joined: ${date.toLocaleDateString()}`;
-                    }
-
-                    if (userData.profile && userData.profile.country) {
-                        userCountry.innerHTML = `<i class="fa-solid fa-location-dot mr-1 text-slate-400"></i> ${userData.profile.country}`;
-                    }
-
-                    if (userData.profile && userData.profile.bio) {
-                        userBio.innerText = userData.profile.bio || "No bio provided.";
-                    }
-
-                    if (userData.profile && userData.profile.status) {
-                        userStatus.innerText = userData.profile.status || "No status provided.";
-                    }
-                }
-            } catch (e) {
-                // Graceful fallback defaults remain
-            }
-        }
-
-        function handleManualUserSearch() {
-            const username = manualUsername.value.trim();
-            if (username) {
-                loadUser(username);
-            }
-        }
-
-        async function handleRandomUser() {
-            if (randomUserBtnText) randomUserBtnText.innerText = "Searching...";
-
-            const fetchRandomAuthor = async () => {
-                for (let attempt = 0; attempt < 8; attempt++) {
-                    const randomId = Math.floor(Math.random() * 1000000000) + 10000000;
-                    try {
-                        const response = await fetch(`https://trampoline.turbowarp.org/api/projects/${randomId}`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data && data.author && data.author.username) {
-                                return data.author.username;
-                            }
-                        }
-                    } catch (e) {}
-                }
-                return "griffpatch"; // Fallback user
+        async function applyStudioResult(data) {
+            studioExplorerState = {
+                studio: data,
+                projects: [],
+                offset: 0,
+                limit: 40,
+                totalKnown: data.stats?.projects ?? null,
+                loadingMore: false,
+                hostUsername: null
             };
 
-            try {
-                const username = await fetchRandomAuthor();
-                manualUsername.value = username;
-                await loadUser(username);
-            } catch (e) {
-                await loadUser("griffpatch");
-            } finally {
-                if (randomUserBtnText) randomUserBtnText.innerText = "Generate Random User";
+            renderStudioData(data);
+            document.getElementById('studio-results').classList.remove('hidden');
+
+            const grid = document.getElementById('studio-projects-grid');
+            if (grid) grid.innerHTML = '';
+            document.getElementById('btn-load-more-studio-projects').classList.add('hidden');
+            document.getElementById('studio-projects-empty').classList.add('hidden');
+            updateStudioProjectsCountLabel();
+
+            if (!data._isUnsharedFallback) {
+                await loadMoreStudioProjects();
+            } else {
+                const emptyMsg = document.getElementById('studio-projects-empty');
+                emptyMsg.classList.remove('hidden');
+                emptyMsg.textContent = "Project list is hidden for private, deleted, or unavailable studios.";
             }
         }
 
-        manualProjectId.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleManualProjectSearch();
+        function renderStudioData(data) {
+            const sid = data.id;
+
+            const warningBanner = document.getElementById('studio-unshared-warning');
+            if (data._isUnsharedFallback) {
+                warningBanner.classList.remove('hidden');
+            } else {
+                warningBanner.classList.add('hidden');
+            }
+
+            document.getElementById('studio-id-badge').textContent = `ID: ${sid}`;
+            document.getElementById('studio-id-val').textContent = sid;
+            document.getElementById('studio-title').textContent = data.title || 'Untitled Studio';
+
+            const visBadge = document.getElementById('studio-visibility-badge');
+            if (data._isUnsharedFallback) {
+                visBadge.textContent = 'Unknown';
+                visBadge.className = "px-2.5 py-0.5 bg-gray-500/20 text-gray-300 border border-gray-500/30 text-xs rounded-full font-semibold";
+            } else if (data.visibility === 'visible' || data.public === true) {
+                visBadge.textContent = 'Visible';
+                visBadge.className = "px-2.5 py-0.5 bg-green-500/20 text-green-400 border border-green-500/30 text-xs rounded-full font-semibold";
+            } else {
+                visBadge.textContent = data.visibility || 'Hidden';
+                visBadge.className = "px-2.5 py-0.5 bg-amber-500/20 text-amber-400 border border-amber-500/30 text-xs rounded-full font-semibold";
+            }
+
+            const openBadge = document.getElementById('studio-open-badge');
+            if (data.open_to_all === true) {
+                openBadge.textContent = 'Open to All';
+                openBadge.classList.remove('hidden');
+            } else if (data.open_to_all === false) {
+                openBadge.textContent = 'Invite-only';
+                openBadge.classList.remove('hidden');
+            } else {
+                openBadge.classList.add('hidden');
+            }
+
+            document.getElementById('studio-scratch-url').href = `https://scratch.mit.edu/studios/${sid}/`;
+            const thumbUrl = data.image || `https://cdn2.scratch.mit.edu/get_image/gallery/${sid}_170x100.png`;
+            document.getElementById('studio-thumb-main').src = thumbUrl;
+
+            document.getElementById('studio-description').textContent = data.description || 'No description provided.';
+            document.getElementById('studio-json-raw').textContent = JSON.stringify(data, null, 2);
+
+            const stats = data.stats || {};
+            const getStatText = (val) => val === null || val === undefined ? '---' : val.toLocaleString();
+            document.getElementById('studio-stat-projects').textContent = getStatText(stats.projects);
+            document.getElementById('studio-stat-followers').textContent = getStatText(stats.followers);
+            document.getElementById('studio-stat-managers').textContent = getStatText(stats.managers);
+            document.getElementById('studio-stat-comments').textContent = getStatText(stats.comments);
+
+            const history = data.history || {};
+            document.getElementById('studio-created').textContent = formatDate(history.created);
+            document.getElementById('studio-modified').textContent = formatDate(history.modified);
+            document.getElementById('studio-comments-allowed').textContent = data.comments_allowed ? 'Allowed' : 'Disabled';
+
+            // The studio endpoint only gives a numeric host user ID, not a username.
+            // We try to resolve it once the project list loads (see tryResolveStudioHost).
+            const hostNameEl = document.getElementById('studio-host-name');
+            const hostPfpEl = document.getElementById('studio-host-pfp');
+            const inspectBtn = document.getElementById('btn-inspect-host');
+            inspectBtn.classList.add('hidden');
+            if (data.host) {
+                hostNameEl.textContent = `User ID ${data.host}`;
+                hostPfpEl.src = `https://cdn2.scratch.mit.edu/get_image/user/${data.host}_90x90.png?v=`;
+            } else {
+                hostNameEl.textContent = 'Unknown';
+                hostPfpEl.removeAttribute('src');
+            }
+        }
+
+        function tryResolveStudioHost() {
+            const studio = studioExplorerState.studio;
+            if (!studio || !studio.host || studioExplorerState.hostUsername) return;
+            const match = studioExplorerState.projects.find(p => p.creator_id === studio.host);
+            if (match && match.username) {
+                studioExplorerState.hostUsername = match.username;
+                document.getElementById('studio-host-name').textContent = `@${match.username}`;
+                const avatarUrl = match.avatar?.['90x90'] || `https://cdn2.scratch.mit.edu/get_image/user/${studio.host}_90x90.png?v=`;
+                document.getElementById('studio-host-pfp').src = avatarUrl;
+                document.getElementById('btn-inspect-host').classList.remove('hidden');
+            }
+        }
+
+        function inspectStudioHost() {
+            const username = studioExplorerState.hostUsername;
+            if (username) {
+                switchTab('user-tab');
+                setAndFetchUser(username);
+            }
+        }
+
+        function toggleStudioJsonViewer() {
+            const container = document.getElementById('studio-json-container');
+            const btnText = document.getElementById('studio-json-toggle-btn-text');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                if (btnText) btnText.textContent = 'Hide Raw JSON';
+            } else {
+                container.classList.add('hidden');
+                if (btnText) btnText.textContent = 'Inspect Raw JSON Payload';
+            }
+        }
+
+        function updateStudioProjectsCountLabel() {
+            const label = document.getElementById('studio-projects-count-label');
+            if (!label) return;
+            const loaded = studioExplorerState.projects.length;
+            const total = studioExplorerState.totalKnown;
+            label.textContent = (total !== null && total !== undefined) ? `Loaded ${loaded} of ${total}` : `Loaded ${loaded}`;
+        }
+
+        function buildStudioProjectCard(proj) {
+            const pid = proj.id;
+            const title = escapeHtmlAttr(proj.title || 'Untitled');
+            const creator = escapeHtmlAttr(proj.username || 'Unknown');
+            const thumb = proj.image || `https://cdn2.scratch.mit.edu/get_image/project/${pid}_480x360.png`;
+            const avatar = proj.avatar?.['32x32'] || (proj.creator_id ? `https://cdn2.scratch.mit.edu/get_image/user/${proj.creator_id}_32x32.png?v=` : '');
+            return `
+                <div class="bg-scratch-dark rounded-2xl border border-scratch-border/60 overflow-hidden hover:border-scratch-green transition group" data-pid="${pid}" data-title="${title}">
+                    <div class="relative aspect-video bg-scratch-card">
+                        <img src="${thumb}" alt="${title}" loading="lazy" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/480x360/1e1e2e/5CB85C?text=Hidden';">
+                        <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition">
+                            <button type="button" class="studio-proj-preview-btn w-9 h-9 rounded-lg bg-scratch-green/90 hover:bg-scratch-green text-gray-900 font-bold flex items-center justify-center transition shadow-md" title="Preview via TurboWarp">
+                                <i class="fa-solid fa-play text-xs"></i>
+                            </button>
+                            <a href="https://turbowarp.org/${pid}" target="_blank" title="Open in TurboWarp" class="w-9 h-9 rounded-lg bg-red-500/80 hover:bg-red-500 text-white flex items-center justify-center transition shadow-md">
+                                <i class="fa-solid fa-bolt text-xs"></i>
+                            </a>
+                            <button type="button" class="studio-proj-inspect-btn w-9 h-9 rounded-lg bg-scratch-orange/90 hover:bg-scratch-orange text-gray-900 flex items-center justify-center transition shadow-md" title="Open in Project Inspector">
+                                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-bold text-white truncate" title="${title}">${title}</p>
+                        <div class="flex items-center gap-1.5 mt-1.5 min-w-0">
+                            <img src="${avatar}" class="w-4 h-4 rounded object-cover bg-scratch-card" onerror="this.style.visibility='hidden'">
+                            <span class="text-[11px] text-gray-400 truncate">${creator}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function appendStudioProjectCards(items) {
+            const grid = document.getElementById('studio-projects-grid');
+            if (!grid || !items.length) return;
+            grid.insertAdjacentHTML('beforeend', items.map(buildStudioProjectCard).join(''));
+        }
+
+        async function loadMoreStudioProjects() {
+            const studio = studioExplorerState.studio;
+            if (!studio || studio._isUnsharedFallback || studioExplorerState.loadingMore) return;
+            studioExplorerState.loadingMore = true;
+
+            const loadMoreBtn = document.getElementById('btn-load-more-studio-projects');
+            if (loadMoreBtn) { loadMoreBtn.disabled = true; loadMoreBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Loading...`; }
+
+            try {
+                const sid = studio.id;
+                const offset = studioExplorerState.offset;
+                const limit = studioExplorerState.limit;
+                const batch = await fetchScratchAPI(`studios/${encodeURIComponent(sid)}/projects?limit=${limit}&offset=${offset}`);
+                const items = Array.isArray(batch) ? batch : [];
+
+                studioExplorerState.projects.push(...items);
+                studioExplorerState.offset += items.length;
+                appendStudioProjectCards(items);
+                tryResolveStudioHost();
+                updateStudioProjectsCountLabel();
+
+                const total = studioExplorerState.totalKnown;
+                const hasMore = items.length === limit && (total === null || total === undefined || studioExplorerState.offset < total);
+                if (loadMoreBtn) loadMoreBtn.classList.toggle('hidden', !hasMore);
+
+                const emptyMsg = document.getElementById('studio-projects-empty');
+                if (studioExplorerState.projects.length === 0) {
+                    emptyMsg.classList.remove('hidden');
+                    emptyMsg.textContent = 'This studio has no visible projects yet.';
+                } else {
+                    emptyMsg.classList.add('hidden');
+                }
+            } catch (err) {
+                showToast("Couldn't load more projects for this studio.");
+            } finally {
+                studioExplorerState.loadingMore = false;
+                if (loadMoreBtn) { loadMoreBtn.disabled = false; loadMoreBtn.innerHTML = `<i class="fa-solid fa-arrow-down"></i> Load More Projects`; }
+            }
+        }
+
+        // Event delegation for dynamically-injected studio project cards
+        document.getElementById('studio-projects-grid')?.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-pid]');
+            if (!card) return;
+            const pid = card.dataset.pid;
+            const title = card.dataset.title;
+
+            if (e.target.closest('.studio-proj-preview-btn')) {
+                e.preventDefault();
+                openProjectPreview(pid, title);
+            } else if (e.target.closest('.studio-proj-inspect-btn')) {
+                e.preventDefault();
+                switchTab('project-tab');
+                setAndFetchProject(pid);
+            }
         });
 
-        manualUsername.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') handleManualUserSearch();
-        });
+        const RANDOM_STUDIO_MAX_ID = 47000000;
+
+        function getRandomStudioId() {
+            return Math.floor(Math.random() * RANDOM_STUDIO_MAX_ID) + 1;
+        }
+
+        async function findRandomStudioBatch(excludeIds, batchSize) {
+            const tried = new Set(excludeIds);
+            const ids = [];
+            while (ids.length < batchSize) {
+                const id = getRandomStudioId();
+                if (!tried.has(id)) {
+                    tried.add(id);
+                    ids.push(id);
+                }
+            }
+            const results = await Promise.allSettled(ids.map(id => fetchScratchAPI(`studios/${id}`)));
+            for (const r of results) {
+                if (r.status === 'fulfilled' && r.value && r.value.id && r.value.title) return r.value;
+            }
+            return null;
+        }
+
+        async function findRandomValidStudio(excludeIds = [], onAttempt) {
+            const rounds = 4;
+            const batchSize = 6;
+            for (let round = 0; round < rounds; round++) {
+                if (onAttempt) onAttempt(round + 1, rounds);
+                const found = await findRandomStudioBatch(excludeIds, batchSize);
+                if (found) return found;
+            }
+            throw new Error("Couldn't find a viewable random studio after several tries. Please try again.");
+        }
+
+        async function randomizeStudio() {
+            dismissError();
+            const btn = document.getElementById('btn-random-studio');
+            const statusEl = document.getElementById('random-studio-status');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Random`; }
+            if (statusEl) { statusEl.classList.remove('hidden'); statusEl.textContent = 'Drawing a random studio ID (1–47,000,000)...'; }
+
+            try {
+                const data = await findRandomValidStudio([], (attempt, total) => {
+                    if (statusEl && attempt > 1) statusEl.textContent = `Still looking (attempt ${attempt}/${total})...`;
+                });
+                document.getElementById('studio-input').value = data.id;
+                await applyStudioResult(data);
+                if (statusEl) statusEl.textContent = `Found studio #${data.id.toLocaleString()} — "${data.title}".`;
+            } catch (err) {
+                showError(err.message || 'Failed to find a random studio.');
+                if (statusEl) statusEl.classList.add('hidden');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-dice"></i> Random Studio`; }
+            }
+        }
+
+        async function fetchProjectRawText(projectId, token) {
+            const directUrl = `https://projects.scratch.mit.edu/${encodeURIComponent(projectId)}${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+            try {
+                const res = await fetchWithTimeout(directUrl, 15000);
+                if (res.ok) return await res.text();
+                throw new Error(`HTTP_${res.status}`);
+            } catch (directErr) {
+                const proxyBuilders = [
+                    (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+                    (u) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
+                    (u) => `https://api.cors.lol/?url=${encodeURIComponent(u)}`
+                ];
+                for (const build of proxyBuilders) {
+                    try {
+                        const res = await fetchWithTimeout(build(directUrl), 15000);
+                        if (res.ok) return await res.text();
+                    } catch (proxyErr) {}
+                }
+                throw directErr;
+            }
+        }
+
+        async function getBlockCount(projectId, token) {
+            const text = await fetchProjectRawText(projectId, token);
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                throw new Error('UNSUPPORTED_FORMAT');
+            }
+            if (!json || !Array.isArray(json.targets)) {
+                throw new Error('UNSUPPORTED_FORMAT');
+            }
+            let total = 0;
+            for (const target of json.targets) {
+                if (target && target.blocks && typeof target.blocks === 'object') {
+                    total += Object.keys(target.blocks).length;
+                }
+            }
+            return total;
+        }
+
+        const PROJECT_STAT_META = {
+            views: { label: 'Views' },
+            favorites: { label: 'Favorites' },
+            remixes: { label: 'Remixes' },
+            blocks: { label: 'Blocks' }
+        };
+
+        function getProjectStatValue(stat, data) {
+            if (stat === 'views') return data.stats?.views ?? null;
+            if (stat === 'favorites') return data.stats?.favorites ?? null;
+            if (stat === 'remixes') return data.stats?.remixes ?? null;
+            return null;
+        }
+
+        let projectVsState = {
+            p1: null, p2: null,
+            blocks1: null, blocks2: null,
+            blocksErr1: null, blocksErr2: null,
+            currentStat: 'views'
+        };
+
+        async function compareProjects() {
+            dismissError();
+            const id1 = document.getElementById('vs-project1-input').value.trim();
+            const id2 = document.getElementById('vs-project2-input').value.trim();
+            if (!id1 || !id2) {
+                showError("Please enter both project IDs.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-compare-projects');
+            const progressEl = document.getElementById('project-vs-progress');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Comparing...`; }
+            if (progressEl) { progressEl.classList.remove('hidden'); progressEl.textContent = 'Fetching project data...'; }
+
+            try {
+                const [data1, data2] = await Promise.all([
+                    safeFetchProject(id1),
+                    safeFetchProject(id2)
+                ]);
+                await runProjectComparison(data1, data2);
+            } catch (err) {
+                showError(err.message || "Failed to compare projects.");
+                document.getElementById('project-vs-results').classList.add('hidden');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-swords"></i> Compare Projects`; }
+                if (progressEl) progressEl.classList.add('hidden');
+            }
+        }
+
+        async function randomizeBothProjects() {
+            dismissError();
+            const btn = document.getElementById('btn-randomize-projects');
+            const progressEl = document.getElementById('project-vs-progress');
+            if (btn) { btn.disabled = true; btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Randomizing...`; }
+            if (progressEl) { progressEl.classList.remove('hidden'); progressEl.textContent = 'Drawing two random project IDs (1–2,000,000)...'; }
+
+            try {
+                const data1 = await findRandomValidProject([], (attempt, total) => {
+                    if (progressEl && attempt > 1) progressEl.textContent = `Still looking for project #1 (attempt ${attempt}/${total})...`;
+                });
+                if (progressEl) progressEl.textContent = 'Got project #1 — drawing project #2...';
+                const data2 = await findRandomValidProject([data1.id], (attempt, total) => {
+                    if (progressEl && attempt > 1) progressEl.textContent = `Still looking for project #2 (attempt ${attempt}/${total})...`;
+                });
+
+                document.getElementById('vs-project1-input').value = data1.id;
+                document.getElementById('vs-project2-input').value = data2.id;
+                await runProjectComparison(data1, data2);
+            } catch (err) {
+                showError(err.message || "Failed to find two random projects.");
+                document.getElementById('project-vs-results').classList.add('hidden');
+            } finally {
+                if (btn) { btn.disabled = false; btn.innerHTML = `<i class="fa-solid fa-dice"></i> Randomize Both`; }
+                if (progressEl) progressEl.classList.add('hidden');
+            }
+        }
+
+        async function runProjectComparison(data1, data2) {
+            if (!data1?.id || !data2?.id) {
+                throw new Error("Couldn't load one of those projects.");
+            }
+            projectVsState = {
+                p1: data1, p2: data2,
+                blocks1: null, blocks2: null,
+                blocksErr1: null, blocksErr2: null,
+                currentStat: projectVsState.currentStat || 'views'
+            };
+
+            document.querySelectorAll('.stat-btn').forEach(el => el.classList.remove('active'));
+            const activeBtn = document.getElementById(`stat-btn-${projectVsState.currentStat}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            renderProjectVsCards();
+            renderAgeComparison();
+            document.getElementById('project-vs-results').classList.remove('hidden');
+            await updateStatDisplay();
+        }
+
+        function renderProjectVsCards() {
+            const fill = (suffix, data) => {
+                const pid = data.id;
+                document.getElementById(`pvs-title${suffix}`).innerText = data.title || 'Untitled Project';
+                document.getElementById(`pvs-author${suffix}`).innerText = data.author?.username || 'Unknown';
+                document.getElementById(`pvs-id${suffix}`).innerText = `ID ${pid}`;
+                document.getElementById(`pvs-thumb${suffix}`).src = data.image || `https://cdn2.scratch.mit.edu/get_image/project/${pid}_480x360.png`;
+                document.getElementById(`pvs-url${suffix}`).href = `https://scratch.mit.edu/projects/${pid}/`;
+                document.getElementById(`pvs-created${suffix}`).innerText = formatDate(data.history?.created);
+            };
+            fill('1', projectVsState.p1);
+            fill('2', projectVsState.p2);
+        }
+
+        function renderAgeComparison() {
+            const d1 = projectVsState.p1, d2 = projectVsState.p2;
+            const textEl = document.getElementById('age-comparison-text');
+            const badge1 = document.getElementById('pvs-age-badge1');
+            const badge2 = document.getElementById('pvs-age-badge2');
+            badge1.classList.add('hidden');
+            badge2.classList.add('hidden');
+
+            const t1 = d1.history?.created ? new Date(d1.history.created).getTime() : NaN;
+            const t2 = d2.history?.created ? new Date(d2.history.created).getTime() : NaN;
+
+            if (isNaN(t1) || isNaN(t2)) {
+                textEl.innerText = "Couldn't compare creation dates for one of these projects.";
+                return;
+            }
+
+            if (t1 === t2) {
+                textEl.innerText = `Both projects were created on the same day (${formatDate(d1.history.created)}).`;
+                return;
+            }
+
+            const diffDays = Math.abs(Math.round((t1 - t2) / (1000 * 60 * 60 * 24)));
+            const years = Math.floor(diffDays / 365.25);
+            const days = Math.round(diffDays - years * 365.25);
+            const agePhrase = years > 0
+                ? `${years} year${years !== 1 ? 's' : ''}${days > 0 ? ` and ${days} day${days !== 1 ? 's' : ''}` : ''} older`
+                : `${diffDays} day${diffDays !== 1 ? 's' : ''} older`;
+
+            const older = t1 < t2 ? { data: d1, badge: badge1, color: 'text-scratch-orange' } : { data: d2, badge: badge2, color: 'text-scratch-blue' };
+            const newer = t1 < t2 ? d2 : d1;
+
+            textEl.innerHTML = `<strong class="${older.color}">${escapeHtml(older.data.title || 'This project')}</strong> is ${agePhrase} (created ${formatDate(older.data.history.created)} vs ${formatDate(newer.history.created)}).`;
+            older.badge.classList.remove('hidden');
+        }
+
+        async function selectVsStat(stat) {
+            projectVsState.currentStat = stat;
+            document.querySelectorAll('.stat-btn').forEach(el => el.classList.remove('active'));
+            const activeBtn = document.getElementById(`stat-btn-${stat}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            await updateStatDisplay();
+        }
+
+        async function ensureBlockCountsLoaded() {
+            const tasks = [];
+            if (projectVsState.blocks1 === null && projectVsState.blocksErr1 === null) {
+                if (projectVsState.p1._isUnsharedFallback) {
+                    projectVsState.blocksErr1 = true;
+                } else {
+                    tasks.push(
+                        getBlockCount(projectVsState.p1.id, projectVsState.p1.project_token)
+                            .then(count => { projectVsState.blocks1 = count; })
+                            .catch(() => { projectVsState.blocksErr1 = true; })
+                    );
+                }
+            }
+            if (projectVsState.blocks2 === null && projectVsState.blocksErr2 === null) {
+                if (projectVsState.p2._isUnsharedFallback) {
+                    projectVsState.blocksErr2 = true;
+                } else {
+                    tasks.push(
+                        getBlockCount(projectVsState.p2.id, projectVsState.p2.project_token)
+                            .then(count => { projectVsState.blocks2 = count; })
+                            .catch(() => { projectVsState.blocksErr2 = true; })
+                    );
+                }
+            }
+            if (tasks.length) await Promise.all(tasks);
+        }
+
+        async function updateStatDisplay() {
+            const stat = projectVsState.currentStat;
+            const d1 = projectVsState.p1, d2 = projectVsState.p2;
+            if (!d1 || !d2) return;
+
+            const label1 = document.getElementById('pvs-stat-label1');
+            const label2 = document.getElementById('pvs-stat-label2');
+            const value1El = document.getElementById('pvs-stat-value1');
+            const value2El = document.getElementById('pvs-stat-value2');
+            const card1 = document.getElementById('pvs-card1');
+            const card2 = document.getElementById('pvs-card2');
+            const winnerTitle = document.getElementById('project-winner-title');
+            const winnerSub = document.getElementById('project-winner-sub');
+            const blocksNote = document.getElementById('blocks-unavailable-note');
+
+            card1.classList.remove('winner-glow');
+            card2.classList.remove('winner-glow');
+            blocksNote.classList.add('hidden');
+            label1.innerText = PROJECT_STAT_META[stat].label;
+            label2.innerText = PROJECT_STAT_META[stat].label;
+
+            if (stat === 'blocks') {
+                value1El.innerHTML = projectVsState.blocks1 !== null ? projectVsState.blocks1.toLocaleString() : `<i class="fa-solid fa-spinner fa-spin text-xl"></i>`;
+                value2El.innerHTML = projectVsState.blocks2 !== null ? projectVsState.blocks2.toLocaleString() : `<i class="fa-solid fa-spinner fa-spin text-xl"></i>`;
+                winnerTitle.innerText = 'Counting blocks...';
+                winnerSub.innerText = "Downloading and parsing each project's raw data — this can take a moment.";
+
+                await ensureBlockCountsLoaded();
+                if (projectVsState.currentStat !== 'blocks') return;
+            }
+
+            const val1 = stat === 'blocks' ? projectVsState.blocks1 : getProjectStatValue(stat, d1);
+            const val2 = stat === 'blocks' ? projectVsState.blocks2 : getProjectStatValue(stat, d2);
+            
+            const unavailable1 = val1 === null || val1 === undefined;
+            const unavailable2 = val2 === null || val2 === undefined;
+
+            value1El.innerText = unavailable1 ? 'N/A' : val1.toLocaleString();
+            value2El.innerText = unavailable2 ? 'N/A' : val2.toLocaleString();
+            if (unavailable1 || unavailable2) blocksNote.classList.remove('hidden');
+
+            const statLabel = PROJECT_STAT_META[stat].label.toLowerCase();
+            const title1 = escapeHtml(d1.title || 'Project 1');
+            const title2 = escapeHtml(d2.title || 'Project 2');
+
+            if (unavailable1 && unavailable2) {
+                winnerTitle.innerText = "Can't Compare";
+                winnerSub.innerText = `Data isn't available for either project (likely unshared, deleted, or pre-2019).`;
+            } else if (unavailable1) {
+                card2.classList.add('winner-glow');
+                winnerTitle.innerHTML = `<span class="text-scratch-blue">${title2}</span> Wins by Default!`;
+                winnerSub.innerText = `Data for the other project isn't available, so ${d2.title || 'this project'} takes it with ${val2.toLocaleString()} ${statLabel}.`;
+            } else if (unavailable2) {
+                card1.classList.add('winner-glow');
+                winnerTitle.innerHTML = `<span class="text-scratch-orange">${title1}</span> Wins by Default!`;
+                winnerSub.innerText = `Data for the other project isn't available, so ${d1.title || 'this project'} takes it with ${val1.toLocaleString()} ${statLabel}.`;
+            } else if (val1 > val2) {
+                card1.classList.add('winner-glow');
+                winnerTitle.innerHTML = `<span class="text-scratch-orange">${title1}</span> Has More ${PROJECT_STAT_META[stat].label}!`;
+                winnerSub.innerText = `${d1.title || 'This project'} leads with ${val1.toLocaleString()} ${statLabel} vs ${val2.toLocaleString()}.`;
+            } else if (val2 > val1) {
+                card2.classList.add('winner-glow');
+                winnerTitle.innerHTML = `<span class="text-scratch-blue">${title2}</span> Has More ${PROJECT_STAT_META[stat].label}!`;
+                winnerSub.innerText = `${d2.title || 'This project'} leads with ${val2.toLocaleString()} ${statLabel} vs ${val1.toLocaleString()}.`;
+            } else {
+                winnerTitle.innerText = "It's a Tie!";
+                winnerSub.innerText = `Both projects have ${val1.toLocaleString()} ${statLabel}.`;
+            }
+        }
+
+        window.onload = function() {
+            fetchUserData();
+        };
     </script>
 </body>
 </html>
