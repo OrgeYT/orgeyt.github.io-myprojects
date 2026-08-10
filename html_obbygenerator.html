@@ -119,6 +119,148 @@
             transition: opacity 0.2s;
             pointer-events: none;
         }
+
+        /* Emote Menu Styles */
+        #emote-menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 500px;
+            max-height: 70vh;
+            background: rgba(20, 20, 30, 0.92);
+            border: 3px solid #FFD700;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            color: white;
+            display: none;
+            flex-direction: column;
+            pointer-events: auto;
+            backdrop-filter: blur(8px);
+            z-index: 20;
+        }
+
+        .emote-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+            padding-bottom: 8px;
+        }
+
+        .emote-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        .emote-close-btn {
+            background: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .emote-search {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #555;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+
+        .emote-search:focus {
+            outline: none;
+            border-color: #FFD700;
+        }
+
+        .emote-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 8px;
+            overflow-y: auto;
+            max-height: 45vh;
+            padding-right: 4px;
+        }
+
+        .emote-grid::-webkit-scrollbar {
+            width: 8px;
+        }
+        .emote-grid::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+        .emote-grid::-webkit-scrollbar-thumb {
+            background: #FFD700;
+            border-radius: 4px;
+        }
+
+        .emote-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 6px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .emote-card:hover {
+            background: rgba(255, 215, 0, 0.25);
+            border-color: #FFD700;
+            transform: translateY(-2px);
+        }
+
+        .emote-card.active {
+            background: #FFD700;
+            color: #111;
+            border-color: #fff;
+        }
+
+        #emote-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+            background: rgba(0,0,0,0.4);
+            padding: 6px 14px;
+            border-radius: 20px;
+        }
+
+        /* Win Screen */
+        #win-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            backdrop-filter: blur(6px);
+            z-index: 30;
+        }
     </style>
     
     <!-- Import Three.js via ES Modules -->
@@ -137,22 +279,39 @@
     
     <div id="ui-layer">
         <div id="hud">
-            <div class="hud-text" id="stage-counter">Stage: 1 / 10</div>
+            <div class="hud-text" id="stage-counter">Stage: 1 / 15</div>
+            <div id="emote-hint">Press <b>[Q]</b> for Dances</div>
         </div>
         <div id="crosshair"></div>
     </div>
     
     <div id="damage-overlay"></div>
 
+    <div id="emote-menu">
+        <div class="emote-header">
+            <span class="emote-title">🕺 Emotes & Dances</span>
+            <button class="emote-close-btn" id="emote-close">✕ Close</button>
+        </div>
+        <input type="text" id="emote-search-input" class="emote-search" placeholder="Search dance emotes..." />
+        <div class="emote-grid" id="emote-grid"></div>
+    </div>
+
     <div id="overlay">
         <div class="title">OBBY GENERATOR</div>
         <div class="instructions">
             WASD - Move<br>
             Space - Jump<br>
+            Q - Emote List<br>
             Mouse - Look Around<br><br>
             <i>Avoid the Red Bricks! Touch the Green Pads to Checkpoint.</i>
         </div>
         <button class="btn" id="play-btn">Click to Play</button>
+    </div>
+
+    <div id="win-screen">
+        <div class="title" style="color: #FFD700;">YOU WIN!</div>
+        <div class="instructions" style="color: white; font-size: 1.5rem;">You completed all stages!</div>
+        <button class="btn" id="restart-btn" style="background: linear-gradient(180deg, #FFD700 0%, #FF8C00 100%); border-color: #B8860B; box-shadow: 0 6px 0 #B8860B, 0 10px 10px rgba(0,0,0,0.3); color: black;">Play Again</button>
     </div>
 
     <script type="module">
@@ -194,6 +353,7 @@
         let collidables = []; // Standard solid boxes
         let killBricks = [];  // Lava/red boxes
         let checkpoints = []; // Safe zones
+        let winPads = [];     // End game pads
         
         const playerHalfExtents = new THREE.Vector3(1, 2.5, 1); // Player size: 2x5x2
         const playerBox = new THREE.Box3();
@@ -213,6 +373,7 @@
         let currentStage = 1;
         let totalStages = 15;
         let isPlaying = false;
+        let hasWon = false;
 
         // Camera positioning logic
         let yaw = 0;
@@ -221,15 +382,125 @@
         // Inputs
         const keys = { w: false, a: false, s: false, d: false, space: false };
 
-        // --- Animation Variables ---
+        // --- Sound Engine (Web Audio API) ---
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playJumpSound() {
+            if (!audioCtx) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            const now = audioCtx.currentTime;
+            osc.frequency.setValueAtTime(150, now);
+            osc.frequency.exponentialRampToValueAtTime(450, now + 0.15);
+            gain.gain.setValueAtTime(0.3, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.15);
+        }
+
+        function playOofSound() {
+            if (!audioCtx) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(360, now);
+            osc.frequency.linearRampToValueAtTime(220, now + 0.18);
+            osc.frequency.linearRampToValueAtTime(120, now + 0.35);
+            
+            gain.gain.setValueAtTime(0.5, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        }
+
+        function playCheckpointSound() {
+            if (!audioCtx) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const notes = [523.25, 659.25, 783.99, 1046.50];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+                gain.gain.setValueAtTime(0.2, now + idx * 0.06);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + idx * 0.06);
+                osc.stop(now + idx * 0.06 + 0.25);
+            });
+        }
+
+        function playClickSound() {
+            if (!audioCtx) return;
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sine';
+            const now = audioCtx.currentTime;
+            osc.frequency.setValueAtTime(800, now);
+            osc.frequency.exponentialRampToValueAtTime(200, now + 0.05);
+            gain.gain.setValueAtTime(0.2, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now);
+            osc.stop(now + 0.05);
+        }
+
+        function playVictorySound() {
+            if (!audioCtx) return;
+            initAudio();
+            const now = audioCtx.currentTime;
+            const notes = [440, 554.37, 659.25, 880];
+            notes.forEach((freq, idx) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'triangle';
+                let startTime = now + idx * 0.15;
+                let duration = (idx === notes.length - 1) ? 0.6 : 0.15;
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0.3, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + duration);
+            });
+        }
+
+        // --- Animation & Emote Variables ---
         let mixer = null;
         const animationActions = {};
         let activeAction = null;
 
+        let noobDanceClips = [];
+        let activeDanceAction = null;
+        let isDancing = false;
+        let isEmoteMenuOpen = false;
+
         function fadeToAction(name, duration = 0.15) {
-            if (!mixer) return;
+            if (!mixer || isDancing) return;
             const nextAction = animationActions[name];
-            // Use 'idle' as a fallback if a specific animation is missing
             const actionToPlay = nextAction || animationActions['idle']; 
             
             if (!actionToPlay || activeAction === actionToPlay) return;
@@ -243,26 +514,96 @@
             activeAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(duration).play();
         }
 
-        // --- STREAMING_CHUNK:Loading the player model... ---
+        function stopDance() {
+            if (!isDancing) return;
+            isDancing = false;
+            if (activeDanceAction) {
+                activeDanceAction.fadeOut(0.15);
+                activeDanceAction = null;
+            }
+            if (activeAction) {
+                activeAction.reset().fadeIn(0.15).play();
+            }
+            document.querySelectorAll('.emote-card').forEach(c => c.classList.remove('active'));
+        }
+
+        function populateEmoteMenu(clips) {
+            const emoteGrid = document.getElementById('emote-grid');
+            emoteGrid.innerHTML = '';
+
+            if (!clips || clips.length === 0) {
+                emoteGrid.innerHTML = '<div style="grid-column: 1/-1; text-align:center;">No dances found.</div>';
+                return;
+            }
+
+            clips.forEach((clip, index) => {
+                let rawName = clip.name || `Dance ${index + 1}`;
+                let cleanName = rawName.replace(/^armature\|/i, '').replace(/_/g, ' ');
+                cleanName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+
+                const card = document.createElement('div');
+                card.className = 'emote-card';
+                card.innerText = cleanName;
+                card.title = cleanName;
+
+                card.addEventListener('click', () => {
+                    playEmote(clip, card);
+                });
+
+                emoteGrid.appendChild(card);
+            });
+        }
+
+        function playEmote(clip, cardElement) {
+            if (!mixer || !characterMesh) return;
+            playClickSound();
+
+            const validNodes = new Set();
+            characterMesh.traverse((child) => { validNodes.add(child.name); });
+
+            const clonedClip = clip.clone();
+            clonedClip.tracks = clonedClip.tracks.filter((track) => {
+                const nodeName = track.name.split('.')[0];
+                return validNodes.has(nodeName);
+            });
+
+            if (activeAction) {
+                activeAction.fadeOut(0.2);
+            }
+            if (activeDanceAction) {
+                activeDanceAction.fadeOut(0.2);
+            }
+
+            const danceAction = mixer.clipAction(clonedClip);
+            danceAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(0.2).play();
+
+            activeDanceAction = danceAction;
+            isDancing = true;
+
+            document.querySelectorAll('.emote-card').forEach(c => c.classList.remove('active'));
+            if (cardElement) cardElement.classList.add('active');
+
+            closeEmoteMenu();
+            document.body.requestPointerLock();
+        }
+
+        // --- STREAMING_CHUNK:Loading the player model & dance animations... ---
         let characterMesh = null;
         const fallbackGeo = new THREE.BoxGeometry(2, 5, 2);
         const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x0055ff });
         const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
         fallbackMesh.castShadow = true;
-        fallbackMesh.position.y = 0; // Center is halfway up
+        fallbackMesh.position.y = 0;
         
-        // Add Loading Text Sprite to fallback mesh
         const textCanvas = document.createElement('canvas');
         textCanvas.width = 512;
         textCanvas.height = 128;
         const textCtx = textCanvas.getContext('2d');
-        textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent
+        textCtx.fillStyle = 'rgba(0, 0, 0, 0)';
         textCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
         textCtx.font = 'bold 28px sans-serif';
         textCtx.fillStyle = 'white';
         textCtx.textAlign = 'center';
-        
-        // Add a subtle drop shadow for readability against the sky
         textCtx.shadowColor = "black";
         textCtx.shadowBlur = 4;
         textCtx.shadowOffsetX = 2;
@@ -274,8 +615,8 @@
         const textTexture = new THREE.CanvasTexture(textCanvas);
         const textMaterial = new THREE.SpriteMaterial({ map: textTexture });
         const textSprite = new THREE.Sprite(textMaterial);
-        textSprite.scale.set(8, 2, 1); // Size of the sprite
-        textSprite.position.y = 4; // Position above the blue box
+        textSprite.scale.set(8, 2, 1);
+        textSprite.position.y = 4;
         fallbackMesh.add(textSprite);
 
         playerGroup.add(fallbackMesh);
@@ -286,8 +627,8 @@
             'https://file.garden/Zj01o_oh-G9Y8APf/Peak%20noob%20fixed.glb',
             (gltf) => {
                 characterMesh = gltf.scene;
+                noobDanceClips = gltf.animations || [];
                 
-                // Enable shadows
                 characterMesh.traverse((child) => {
                     if (child.isMesh) {
                         child.castShadow = true;
@@ -295,48 +636,41 @@
                     }
                 });
                 
-                // Scale character to fit the 5-unit tall collision box roughly
-                // Typical models need significant scaling
                 const bbox = new THREE.Box3().setFromObject(characterMesh);
                 const size = bbox.getSize(new THREE.Vector3());
                 const targetHeight = 5;
                 const scale = targetHeight / size.y;
                 characterMesh.scale.set(scale, scale, scale);
                 
-                // Offset so bottom is at feet (-2.5 from center)
                 characterMesh.position.y = -playerHalfExtents.y;
-                characterMesh.rotation.y = -Math.PI / 2; // Initial rotation reversed
+                characterMesh.rotation.y = -Math.PI / 2;
                 
-                // Replace fallback
                 playerGroup.remove(fallbackMesh);
                 playerGroup.add(characterMesh);
                 console.log("Player model loaded successfully!");
 
-                // Load second GLB (clark.glb) just to extract animations
+                populateEmoteMenu(noobDanceClips);
+
+                // Load second GLB (clark.glb) for locomotion animations
                 loader.load(
                     'https://file.garden/Zj01o_oh-G9Y8APf/clark.glb',
                     (gltfAnim) => {
                         const anims = gltfAnim.animations;
                         if (anims && anims.length > 0) {
-                            // Collect all valid bone/node names from the Noob model
                             const validNodes = new Set();
                             characterMesh.traverse((child) => {
                                 validNodes.add(child.name);
                             });
 
-                            // Apply the animations to the Noob characterMesh
                             mixer = new THREE.AnimationMixer(characterMesh);
                             
                             anims.forEach((clip) => {
-                                // FILTER FIX: Remove tracks for bones that don't exist in the Noob model
-                                // This stops the THREE.PropertyBinding console errors.
                                 clip.tracks = clip.tracks.filter((track) => {
                                     const nodeName = track.name.split('.')[0];
                                     return validNodes.has(nodeName);
                                 });
 
                                 const name = clip.name.toLowerCase();
-                                // We only care about idle and run from this file
                                 if (name.includes('idle')) {
                                     animationActions.idle = mixer.clipAction(clip);
                                 } else if (name.includes('run')) {
@@ -344,7 +678,6 @@
                                 }
                             });
 
-                            // Start playing idle immediately
                             if (animationActions.idle) {
                                 activeAction = animationActions.idle;
                                 activeAction.play();
@@ -548,7 +881,10 @@
                     currentZ -= 20; // Advance Z by the length of a checkpoint
                 } else {
                     // Final win pad
-                    addSolid(30, 1, 30, 0xffd700, 0, 0, currentZ - 15); // Gold pad
+                    const mesh = createBox(30, 1, 30, 0xffd700, 0, 0, currentZ - 15); // Gold pad
+                    const box = new THREE.Box3().setFromObject(mesh);
+                    winPads.push({ mesh, box });
+                    collidables.push({ mesh, box });
                 }
             }
         }
@@ -563,8 +899,64 @@
         const hud = document.getElementById('hud');
         const crosshair = document.getElementById('crosshair');
         const damageOverlay = document.getElementById('damage-overlay');
+        const winScreen = document.getElementById('win-screen');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const emoteMenu = document.getElementById('emote-menu');
+        const emoteCloseBtn = document.getElementById('emote-close');
+        const emoteSearchInput = document.getElementById('emote-search-input');
+
+        function openEmoteMenu() {
+            if (!isPlaying) return;
+            isEmoteMenuOpen = true;
+            emoteMenu.style.display = 'flex';
+            document.exitPointerLock();
+            playClickSound();
+        }
+
+        function closeEmoteMenu() {
+            isEmoteMenuOpen = false;
+            emoteMenu.style.display = 'none';
+        }
+
+        emoteCloseBtn.addEventListener('click', () => {
+            closeEmoteMenu();
+            document.body.requestPointerLock();
+        });
+
+        emoteSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.emote-card');
+            cards.forEach(card => {
+                const text = card.innerText.toLowerCase();
+                card.style.display = text.includes(searchTerm) ? 'block' : 'none';
+            });
+        });
 
         playBtn.addEventListener('click', () => {
+            initAudio();
+            playClickSound();
+            document.body.requestPointerLock();
+        });
+
+        restartBtn.addEventListener('click', () => {
+            initAudio();
+            playClickSound();
+            hasWon = false;
+            
+            // Reset player progress
+            playerGroup.position.copy(checkpoints[0].spawnPos);
+            velocity.set(0, 0, 0);
+            updatePlayerBox();
+            
+            checkpoints.forEach((cp, idx) => {
+                cp.active = idx === 0;
+                cp.mesh.material.color.setHex(idx === 0 ? 0x00ff00 : 0x005500);
+            });
+            spawnPoint.copy(checkpoints[0].spawnPos);
+            document.getElementById('stage-counter').innerText = `Stage: 1 / ${totalStages}`;
+            
+            winScreen.style.display = 'none';
             document.body.requestPointerLock();
         });
 
@@ -572,27 +964,41 @@
             if (document.pointerLockElement === document.body) {
                 isPlaying = true;
                 overlay.style.display = 'none';
+                winScreen.style.display = 'none';
                 hud.style.display = 'block';
                 crosshair.style.display = 'block';
+                closeEmoteMenu();
             } else {
-                isPlaying = false;
-                overlay.style.display = 'flex';
-                hud.style.display = 'none';
-                crosshair.style.display = 'none';
+                if (!isEmoteMenuOpen && !hasWon) {
+                    isPlaying = false;
+                    overlay.style.display = 'flex';
+                    hud.style.display = 'none';
+                    crosshair.style.display = 'none';
+                }
             }
         });
 
         document.addEventListener('mousemove', (e) => {
             if (isPlaying) {
-                // Mouse sensitivity
                 yaw -= e.movementX * 0.003;
                 pitch -= e.movementY * 0.003;
-                // Clamp pitch so we don't flip upside down
                 pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
             }
         });
 
         document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyQ' && isPlaying && !e.repeat) {
+                if (isEmoteMenuOpen) {
+                    closeEmoteMenu();
+                    document.body.requestPointerLock();
+                } else {
+                    openEmoteMenu();
+                }
+                return;
+            }
+
+            if (document.activeElement === emoteSearchInput) return;
+
             switch(e.code) {
                 case 'KeyW': keys.w = true; break;
                 case 'KeyA': keys.a = true; break;
@@ -603,6 +1009,7 @@
         });
 
         document.addEventListener('keyup', (e) => {
+            if (document.activeElement === emoteSearchInput) return;
             switch(e.code) {
                 case 'KeyW': keys.w = false; break;
                 case 'KeyA': keys.a = false; break;
@@ -621,17 +1028,17 @@
         // --- STREAMING_CHUNK:Physics Engine & Collision Logic... ---
         
         function updatePlayerBox() {
-            // Keep box centered exactly on player pos
             playerBox.min.copy(playerGroup.position).sub(playerHalfExtents);
             playerBox.max.copy(playerGroup.position).add(playerHalfExtents);
         }
 
         function die() {
-            // Flash screen red
+            playOofSound();
+            stopDance();
+
             damageOverlay.style.opacity = '1';
             setTimeout(() => { damageOverlay.style.opacity = '0'; }, 300);
 
-            // Reset
             playerGroup.position.copy(spawnPoint);
             velocity.set(0, 0, 0);
             updatePlayerBox();
@@ -640,30 +1047,29 @@
         function gameLoop() {
             requestAnimationFrame(gameLoop);
 
-            const dt = Math.min(clock.getDelta(), 0.05); // Cap DT to prevent clipping on lag
+            const dt = Math.min(clock.getDelta(), 0.05);
 
             if (isPlaying) {
-                // 1. Calculate input direction relative to camera yaw
                 moveDirection.set(0, 0, 0);
                 if (keys.w) moveDirection.z -= 1;
                 if (keys.s) moveDirection.z += 1;
                 if (keys.a) moveDirection.x -= 1;
                 if (keys.d) moveDirection.x += 1;
-                
+
+                if (isDancing && (moveDirection.lengthSq() > 0 || keys.space)) {
+                    stopDance();
+                }
+
                 if (moveDirection.lengthSq() > 0) {
                     moveDirection.normalize();
-                    // Rotate input vector by yaw (Y axis)
                     moveDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
                     
-                    // Rotate character model to face movement direction smoothly
                     if (characterMesh) {
-                        const targetAngle = Math.atan2(moveDirection.x, moveDirection.z) - (Math.PI / 2); // Reversed offset
+                        const targetAngle = Math.atan2(moveDirection.x, moveDirection.z) - (Math.PI / 2);
                         let angleDiff = targetAngle - characterMesh.rotation.y;
-                        // Normalize difference to -PI to PI
                         angleDiff = (angleDiff + Math.PI * 3) % (Math.PI * 2) - Math.PI;
                         characterMesh.rotation.y += angleDiff * 15 * dt;
                     } else {
-                        // Fallback mesh rotation
                         const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
                         let angleDiff = targetAngle - fallbackMesh.rotation.y;
                         angleDiff = (angleDiff + Math.PI * 3) % (Math.PI * 2) - Math.PI;
@@ -671,32 +1077,28 @@
                     }
                 }
 
-                // Instant ground movement like Roblox
                 velocity.x = moveDirection.x * MOVE_SPEED;
                 velocity.z = moveDirection.z * MOVE_SPEED;
 
-                // Jump logic
                 if (keys.space && isGrounded) {
                     velocity.y = JUMP_SPEED;
                     isGrounded = false;
+                    playJumpSound();
                 }
 
-                // Apply Gravity
                 velocity.y -= GRAVITY * dt;
 
                 // --- AXIS-BY-AXIS COLLISION RESOLUTION ---
-                
-                // Y-Axis
                 playerGroup.position.y += velocity.y * dt;
                 updatePlayerBox();
                 isGrounded = false;
                 
                 for (let obj of collidables) {
                     if (playerBox.intersectsBox(obj.box)) {
-                        if (velocity.y < 0) { // Falling down onto surface
+                        if (velocity.y < 0) {
                             playerGroup.position.y = obj.box.max.y + playerHalfExtents.y + 0.001;
                             isGrounded = true;
-                        } else if (velocity.y > 0) { // Jumping up into ceiling
+                        } else if (velocity.y > 0) {
                             playerGroup.position.y = obj.box.min.y - playerHalfExtents.y - 0.001;
                         }
                         velocity.y = 0;
@@ -704,7 +1106,6 @@
                     }
                 }
 
-                // X-Axis
                 playerGroup.position.x += velocity.x * dt;
                 updatePlayerBox();
                 
@@ -719,7 +1120,6 @@
                     }
                 }
 
-                // Z-Axis
                 playerGroup.position.z += velocity.z * dt;
                 updatePlayerBox();
                 
@@ -735,39 +1135,53 @@
                 }
 
                 // --- INTERACTION CHECKS ---
-                
-                // 1. Kill bricks
+                const triggerBox = playerBox.clone().expandByScalar(0.05);
+
                 for (let kb of killBricks) {
-                    if (playerBox.intersectsBox(kb.box)) {
+                    if (triggerBox.intersectsBox(kb.box)) {
                         die();
                         break;
                     }
                 }
 
-                // 2. Void death
                 if (playerGroup.position.y < -30) {
                     die();
                 }
 
-                // 3. Checkpoints
                 for (let i = 0; i < checkpoints.length; i++) {
-                    let cp = checkpoints[i];
-                    if (!cp.active && playerBox.intersectsBox(cp.box)) {
-                        cp.active = true;
-                        cp.mesh.material.color.setHex(0x00ff00); // Bright green active state
-                        spawnPoint.copy(cp.spawnPos);
+                let cp = checkpoints[i];
+                if (!cp.active && triggerBox.intersectsBox(cp.box)) {
+                    cp.active = true;
+                    cp.mesh.material.color.setHex(0x00ff00);
+                    spawnPoint.copy(cp.spawnPos);
+                    playCheckpointSound();
+                    
+                    let newStage = Math.min(i + 1, totalStages);
+                    document.getElementById('stage-counter').innerText = `Stage: ${newStage} / ${totalStages}`;
+                }
+            }
+
+            if (!hasWon) {
+                for (let wp of winPads) {
+                    if (triggerBox.intersectsBox(wp.box)) {
+                        hasWon = true;
+                        isPlaying = false;
+                        stopDance();
+                        velocity.set(0, 0, 0);
+                        playVictorySound();
                         
-                        // Stage counter logic (approximate)
-                        let newStage = Math.min(i + 1, totalStages);
-                        document.getElementById('stage-counter').innerText = `Stage: ${newStage} / ${totalStages}`;
+                        document.exitPointerLock();
+                        hud.style.display = 'none';
+                        crosshair.style.display = 'none';
+                        winScreen.style.display = 'flex';
+                        break;
                     }
                 }
-            } // End isPlaying logic
+            }
+        }
 
-            // Animation State Update
-            if (isPlaying) {
+        if (isPlaying && !isDancing) {
                 let targetAnim = 'idle';
-                // Ignore jumping/falling, only switch to run if moving
                 if (moveDirection.lengthSq() > 0) {
                     targetAnim = 'run';
                 }
@@ -778,17 +1192,12 @@
                 mixer.update(dt);
             }
 
-            // --- CAMERA UPDATES ---
-            
-            // Calculate orbital camera position
             const cameraDist = 16;
             const camOffset = new THREE.Vector3(0, 0, cameraDist);
             
-            // Apply pitch (X axis) and yaw (Y axis) rotations
             camOffset.applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
             camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
             
-            // Follow player position, slightly elevated to look at head/torso
             const lookTarget = playerGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0));
             camera.position.copy(lookTarget).add(camOffset);
             camera.lookAt(lookTarget);
@@ -796,7 +1205,6 @@
             renderer.render(scene, camera);
         }
 
-        // Start the loop!
         gameLoop();
     </script>
 </body>
