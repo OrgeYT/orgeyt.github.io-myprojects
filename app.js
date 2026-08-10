@@ -235,7 +235,8 @@ const projects = [
     { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" },
     "claudescratchtools",
     "coinpuzzle",
-    "ABP worldpack extractor"
+    "ABP worldpack extractor",
+    "obbygenerator"
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
