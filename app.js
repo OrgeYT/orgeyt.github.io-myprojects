@@ -236,7 +236,8 @@ const projects = [
     "claudescratchtools",
     "coinpuzzle",
     "ABP worldpack extractor",
-    "obbygenerator"
+    "obbygenerator",
+    "noobmaker"
 ];
 // rip fnfbot. you can download it somewhere else on the site now.
 
