@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Noob Maker - Texture & Animation Studio</title>
+    <!-- Tailwind CSS for modern responsive layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Three.js OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Three.js GLTFLoader -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <!-- Three.js GLTFExporter -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/exporters/GLTFExporter.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0b0f19;
+            color: #f3f4f6;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #111827;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+
+        /* Canvas pattern grid background for texture editor */
+        .checkerboard-bg {
+            background-color: #1a202c;
+            background-image: 
+                linear-gradient(45deg, #2d3748 25%, transparent 25%),
+                linear-gradient(-45deg, #2d3748 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #2d3748 75%),
+                linear-gradient(-45deg, transparent 75%, #2d3748 75%);
+            background-size: 16px 16px;
+            background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+        }
+
+        /* Glassmorphism panels */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Tool button active styles */
+        .tool-btn.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+            border-color: #60a5fa;
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Loading spinner animation */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.7); }
+        }
+        .glow-effect {
+            animation: pulseGlow 2.5s infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden">
+
+    <!-- INITIAL LOADING SCREEN OVERLAY -->
+    <div id="loading-screen" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gray-950 transition-opacity duration-500">
+        <div class="relative flex flex-col items-center max-w-md w-full p-8 rounded-2xl glass-panel text-center shadow-2xl">
+            <!-- Animated Logo Icon -->
+            <div class="w-20 h-20 mb-6 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-3xl shadow-lg glow-effect">
+                <i class="fa-solid font-bold fa-cube animate-bounce"></i>
+            </div>
+            
+            <h1 class="text-2xl font-bold tracking-tight text-white mb-2">3D Noob Studio</h1>
+            <p id="loading-status" class="text-sm text-gray-400 mb-6">Downloading 3D Noob Model...</p>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden p-0.5 border border-gray-700 mb-4">
+                <div id="loading-bar" class="bg-gradient-to-r from-blue-500 to-indigo-500 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div id="loading-percentage" class="text-xs font-mono text-blue-400">0%</div>
+
+            <!-- Error container (hidden by default) -->
+            <div id="loading-error" class="hidden mt-4 p-3 bg-red-900/40 border border-red-500/50 rounded-lg text-red-200 text-xs text-left">
+                <p id="error-message" class="font-semibold mb-1">Failed to load GLB model.</p>
+                <button id="retry-btn" class="mt-2 px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-medium transition-colors">
+                    Retry / Load Preset Template
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESET CONFIRMATION MODAL -->
+    <div id="reset-confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm hidden transition-all duration-200">
+        <div class="glass-panel max-w-sm w-full p-6 rounded-2xl shadow-2xl border border-gray-800 text-center relative">
+            <div class="w-12 h-12 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4 border border-red-500/30">
+                <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Reset Both Textures?</h3>
+            <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                Are you sure you want to reset <span class="text-gray-200 font-semibold">Back Side</span> and <span class="text-gray-200 font-semibold">Front Side</span> textures to default? This action cannot be undone.
+            </p>
+            <div class="flex items-center space-x-3">
+                <button id="modal-cancel-btn" class="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-semibold rounded-xl border border-gray-700 transition-colors">
+                    Cancel
+                </button>
+                <button id="modal-confirm-btn" class="flex-1 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-xl shadow-lg shadow-red-900/40 transition-all">
+                    Yes, Reset All
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="h-16 border-b border-gray-800 bg-gray-900/90 px-4 flex items-center justify-between z-20 shrink-0">
+        <!-- App Title & Badge -->
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-md">
+                <i class="fa-solid fa-cube"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base text-white leading-none">3D Noob Maker</h1>
+                <span class="text-xs text-blue-400 font-medium">Texture & Rig Studio</span>
+            </div>
+        </div>
+
+        <!-- Animation Playback Controls -->
+        <div class="flex items-center space-x-3 bg-gray-950/70 border border-gray-800 px-3 py-1.5 rounded-xl">
+            <span class="text-xs font-medium text-gray-400 flex items-center">
+                <i class="fa-solid fa-person-running mr-1.5 text-blue-400"></i> Animation:
+            </span>
+            
+            <!-- Animation Selector Dropdown -->
+            <select id="anim-select" class="bg-gray-800 text-white text-xs rounded-lg px-2.5 py-1 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="A-Pose">A-Pose (Default Pose)</option>
+            </select>
+
+            <!-- Play / Pause Button -->
+            <button id="anim-play-btn" title="Toggle Animation Play/Pause" class="w-7 h-7 bg-blue-600 hover:bg-blue-500 text-white rounded-lg flex items-center justify-center text-xs transition-colors">
+                <i class="fa-solid fa-play"></i>
+            </button>
+        </div>
+
+        <!-- Global Action Buttons -->
+        <div class="flex items-center space-x-2">
+            <!-- Reset Camera Button -->
+            <button id="reset-cam-btn" title="Reset Camera View" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg border border-gray-700 transition-colors flex items-center">
+                <i class="fa-solid fa-video mr-1.5"></i> Reset View
+            </button>
+            
+            <!-- Export GLB Button -->
+            <button id="export-glb-btn" class="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-bold rounded-lg shadow-md transition-all flex items-center">
+                <i class="fa-solid fa-file-export mr-2"></i> Export GLB
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN APPLICATION WORKSPACE -->
+    <div class="flex-1 flex overflow-hidden relative">
+
+        <!-- LEFT/CENTER: 3D VIEWPORT CANVAS -->
+        <div class="flex-1 relative bg-gradient-to-b from-gray-950 via-gray-900 to-gray-950">
+            <!-- Three.js Canvas Container -->
+            <div id="viewport-container" class="w-full h-full"></div>
+
+            <!-- Floating Viewport Controls -->
+            <div class="absolute bottom-4 left-4 z-10 flex items-center space-x-2 bg-gray-900/80 backdrop-blur border border-gray-800 p-1.5 rounded-xl">
+                <button id="toggle-grid-btn" title="Toggle Floor Grid" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 rounded-lg border border-gray-700 flex items-center">
+                    <i class="fa-solid fa-border-all mr-1.5"></i> Grid
+                </button>
+                <button id="toggle-wireframe-btn" title="Toggle Model Wireframe" class="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-xs text-gray-300 rounded-lg border border-gray-700 flex items-center">
+                    <i class="fa-solid fa-vector-square mr-1.5"></i> Wireframe
+                </button>
+            </div>
+
+            <!-- Viewport Helper Overlay text -->
+            <div class="absolute top-4 left-4 z-10 pointer-events-none text-xs text-gray-500 bg-gray-950/60 px-3 py-1.5 rounded-lg border border-gray-800/80">
+                <i class="fa-solid fa-hand-pointer mr-1 text-blue-400"></i> Left Click + Drag to rotate | Right Click to pan | Scroll to zoom
+            </div>
+        </div>
+
+        <!-- RIGHT: TEXTURE EDITOR SIDE PANEL -->
+        <aside class="w-full md:w-[420px] lg:w-[460px] bg-gray-900 border-l border-gray-800 flex flex-col z-10 shrink-0 h-full">
+            
+            <!-- Texture Slot Selection Tabs -->
+            <div class="p-3 bg-gray-950 border-b border-gray-800 flex items-center justify-between">
+                <div class="flex space-x-1 bg-gray-900 p-1 rounded-xl border border-gray-800 flex-1">
+                    <button id="tab-tex-1" class="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white transition-all flex items-center justify-center">
+                        <i class="fa-solid fa-image mr-1.5"></i> Back Side
+                    </button>
+                    <button id="tab-tex-2" class="flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all flex items-center justify-center">
+                        <i class="fa-solid fa-image mr-1.5"></i> Front Side
+                    </button>
+                </div>
+            </div>
+
+            <!-- DRAWING TOOLBAR & CONTROLS -->
+            <div class="p-3 border-b border-gray-800 bg-gray-900/90 flex flex-col space-y-3">
+                
+                <!-- Tools Row: Pen, Eraser, Fill Bucket -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-1.5">
+                        <button id="tool-pen" title="Pen Tool" class="tool-btn active w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 flex items-center justify-center text-sm transition-all">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button id="tool-eraser" title="Eraser Tool" class="tool-btn w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 flex items-center justify-center text-sm transition-all">
+                            <i class="fa-solid fa-eraser"></i>
+                        </button>
+                        <button id="tool-bucket" title="Fill Bucket" class="tool-btn w-9 h-9 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 flex items-center justify-center text-sm transition-all">
+                            <i class="fa-solid fa-fill-drip"></i>
+                        </button>
+                    </div>
+
+                    <!-- Undo / Redo / Reset -->
+                    <div class="flex items-center space-x-1.5">
+                        <button id="btn-undo" title="Undo (Ctrl+Z)" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 flex items-center justify-center text-xs transition-all disabled:opacity-40">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                        <button id="btn-redo" title="Redo (Ctrl+Y)" class="w-8 h-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 flex items-center justify-center text-xs transition-all disabled:opacity-40">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                        <button id="btn-reset-tex" title="Reset Texture to Default" class="w-8 h-8 rounded-lg bg-red-900/40 hover:bg-red-800/60 text-red-300 border border-red-700/50 flex items-center justify-center text-xs transition-all">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pen Size & Color Row -->
+                <div class="grid grid-cols-2 gap-3 items-center pt-1 border-t border-gray-800">
+                    <!-- Brush Size Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-[11px] font-medium text-gray-400">Pen Size</label>
+                            <span id="brush-size-val" class="text-[11px] font-mono text-blue-400">12px</span>
+                        </div>
+                        <input id="brush-size" type="range" min="1" max="64" value="12" class="w-full accent-blue-500 h-1.5 bg-gray-800 rounded-lg cursor-pointer">
+                    </div>
+
+                    <!-- Color Picker Input & Swatch -->
+                    <div>
+                        <label class="text-[11px] font-medium text-gray-400 block mb-1">Pen Color</label>
+                        <div class="flex items-center space-x-2">
+                            <input id="color-picker" type="color" value="#FFE033" class="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-gray-700 p-0 overflow-hidden">
+                            <span id="hex-val" class="text-xs font-mono text-gray-300">#FFE033</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Preset Colors (Classic Noob Palette) -->
+                <div class="flex items-center space-x-1.5 pt-1 overflow-x-auto pb-1">
+                    <span class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider mr-1 shrink-0">Presets:</span>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #FFE033;" data-color="#FFE033" title="Noob Yellow"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #0084FF;" data-color="#0084FF" title="Classic Blue"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #28C430;" data-color="#28C430" title="Classic Green"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #EF4444;" data-color="#EF4444" title="Bright Red"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #111827;" data-color="#111827" title="Dark Gray"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #FFFFFF;" data-color="#FFFFFF" title="White"></button>
+                    <button class="preset-color w-6 h-6 rounded-full border border-gray-600 shrink-0" style="background-color: #8B5CF6;" data-color="#8B5CF6" title="Purple"></button>
+                </div>
+            </div>
+
+            <!-- 2D CANVAS DRAWING WORKSPACE AREA -->
+            <div class="flex-1 relative p-4 flex flex-col items-center justify-center overflow-auto checkerboard-bg">
+                <div class="relative shadow-2xl rounded-lg overflow-hidden border-2 border-gray-700 bg-gray-900 group">
+                    <!-- HTML2D Canvas 1 -->
+                    <canvas id="tex-canvas-1" width="512" height="512" class="w-full max-w-[360px] h-auto aspect-square block cursor-crosshair touch-none"></canvas>
+                    <!-- HTML2D Canvas 2 (Hidden by default) -->
+                    <canvas id="tex-canvas-2" width="512" height="512" class="w-full max-w-[360px] h-auto aspect-square hidden cursor-crosshair touch-none"></canvas>
+
+                    <!-- Active Canvas Title Overlay -->
+                    <div class="absolute top-2 left-2 bg-gray-950/80 px-2.5 py-1 rounded text-[11px] font-mono text-gray-300 border border-gray-800 pointer-events-none">
+                        <span id="canvas-label">Back Side (512x512)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEXTURE IMPORT & EXPORT FOOTER -->
+            <div class="p-3 border-t border-gray-800 bg-gray-950 flex items-center justify-between space-x-2">
+                <!-- Replace Texture with Image from Computer -->
+                <label id="btn-import-img" class="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition-colors flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-file-image mr-1.5 text-blue-400"></i> Replace Image
+                    <input type="file" id="image-upload-input" accept="image/png, image/jpeg, image/webp" class="hidden">
+                </label>
+
+                <!-- Download Active Texture Image -->
+                <button id="btn-download-tex" class="flex-1 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-medium rounded-lg border border-gray-700 transition-colors flex items-center justify-center">
+                    <i class="fa-solid fa-download mr-1.5 text-emerald-400"></i> Download PNG
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        /**
+         * 3D NOOB MAKER - Main Studio Application Logic
+         */
+        const MODEL_URL = "https://file.garden/Zj01o_oh-G9Y8APf/Peak%20noob%20fixed.glb";
+
+        // Application State
+        const state = {
+            scene: null,
+            camera: null,
+            renderer: null,
+            controls: null,
+            mixer: null,
+            animations: [],
+            activeAction: null,
+            currentAnimName: 'A-Pose',
+            modelGroup: null,
+            gridHelper: null,
+
+            // Texture Canvases & Three Textures
+            activeTexIndex: 1, // 1 or 2
+            canvases: { 1: null, 2: null },
+            contexts: { 1: null, 2: null },
+            threeTextures: { 1: null, 2: null },
+            originalTextures: { 1: null, 2: null },
+            materials: [],
+
+            // Drawing Tools State
+            activeTool: 'pen', // 'pen', 'eraser', 'bucket'
+            brushSize: 12,
+            brushColor: '#FFE033',
+            isDrawing: false,
+            lastX: 0,
+            lastY: 0,
+
+            // Undo / Redo History Stack per canvas slot
+            history: {
+                1: [],
+                2: []
+            },
+            historyIndex: {
+                1: -1,
+                2: -1
+            },
+            maxHistory: 20
+        };
+
+        // ----------------------------------------------------
+        // 1. THREE.JS SCENE SETUP
+        // ----------------------------------------------------
+        function initThreeJS() {
+            const container = document.getElementById('viewport-container');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+
+            // Scene
+            state.scene = new THREE.Scene();
+            state.scene.background = new THREE.Color(0x0b0f19);
+
+            // Camera
+            state.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+            state.camera.position.set(0, 1.2, 3.5);
+
+            // Renderer
+            state.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            state.renderer.setSize(width, height);
+            state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            state.renderer.shadowMap.enabled = true;
+            state.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            state.renderer.outputEncoding = THREE.sRGBEncoding;
+            container.appendChild(state.renderer.domElement);
+
+            // Orbit Controls
+            state.controls = new THREE.OrbitControls(state.camera, state.renderer.domElement);
+            state.controls.enableDamping = true;
+            state.controls.dampingFactor = 0.05;
+            state.controls.target.set(0, 0.9, 0);
+            state.controls.minDistance = 0.5;
+            state.controls.maxDistance = 10;
+
+            // Lighting Setup
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+            state.scene.add(ambientLight);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.9);
+            mainLight.position.set(3, 5, 4);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            state.scene.add(mainLight);
+
+            const fillLight = new THREE.DirectionalLight(0x88bbff, 0.4);
+            fillLight.position.set(-3, 2, -2);
+            state.scene.add(fillLight);
+
+            const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            rimLight.position.set(0, 4, -4);
+            state.scene.add(rimLight);
+
+            // Grid Helper
+            state.gridHelper = new THREE.GridHelper(10, 20, 0x3b82f6, 0x1e293b);
+            state.gridHelper.position.y = 0;
+            state.scene.add(state.gridHelper);
+
+            // Window Resize Listener
+            window.addEventListener('resize', onWindowResize);
+
+            // Animation Render Loop
+            const clock = new THREE.Clock();
+            function animate() {
+                requestAnimationFrame(animate);
+                const delta = clock.getDelta();
+
+                if (state.mixer) {
+                    state.mixer.update(delta);
+                }
+
+                state.controls.update();
+                state.renderer.render(state.scene, state.camera);
+            }
+            animate();
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('viewport-container');
+            if (!container) return;
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            state.camera.aspect = width / height;
+            state.camera.updateProjectionMatrix();
+            state.renderer.setSize(width, height);
+        }
+
+        // ----------------------------------------------------
+        // 2. CANVAS TEXTURE EDITOR INITIALIZATION
+        // ----------------------------------------------------
+        function initCanvases() {
+            state.canvases[1] = document.getElementById('tex-canvas-1');
+            state.canvases[2] = document.getElementById('tex-canvas-2');
+            state.contexts[1] = state.canvases[1].getContext('2d', { willReadFrequently: true });
+            state.contexts[2] = state.canvases[2].getContext('2d', { willReadFrequently: true });
+
+            // Initialize default colored background for Texture 1 (Back Side) and Texture 2 (Front Side)
+            resetCanvasTexture(1, '#FFE033', 'Back Side');
+            resetCanvasTexture(2, '#0084FF', 'Front Side');
+
+            // Create Three.js CanvasTextures
+            for (let i = 1; i <= 2; i++) {
+                const texture = new THREE.CanvasTexture(state.canvases[i]);
+                texture.flipY = false; // Match GLTF UV coordinate space
+                texture.encoding = THREE.sRGBEncoding;
+                state.threeTextures[i] = texture;
+            }
+
+            // Setup Event Listeners for Canvases
+            [1, 2].forEach(index => {
+                const canvas = state.canvases[index];
+
+                canvas.addEventListener('mousedown', (e) => startDrawing(e, index));
+                canvas.addEventListener('mousemove', (e) => draw(e, index));
+                canvas.addEventListener('mouseup', () => stopDrawing(index));
+                canvas.addEventListener('mouseleave', () => stopDrawing(index));
+
+                // Touch support
+                canvas.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousedown', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+
+                canvas.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    const mouseEvent = new MouseEvent('mousemove', {
+                        clientX: touch.clientX,
+                        clientY: touch.clientY
+                    });
+                    canvas.dispatchEvent(mouseEvent);
+                });
+
+                canvas.addEventListener('touchend', (e) => {
+                    const mouseEvent = new MouseEvent('mouseup', {});
+                    canvas.dispatchEvent(mouseEvent);
+                });
+            });
+        }
+
+        // ----------------------------------------------------
+        // 3. DRAWING & PAINTING TOOLS
+        // ----------------------------------------------------
+        function getCanvasCoordinates(e, canvas) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX,
+                y: (e.clientY - rect.top) * scaleY
+            };
+        }
+
+        function saveHistoryState(index) {
+            const ctx = state.contexts[index];
+            const canvas = state.canvases[index];
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            // Trim future history if we were in the middle of undo stack
+            state.history[index] = state.history[index].slice(0, state.historyIndex[index] + 1);
+            state.history[index].push(imageData);
+
+            if (state.history[index].length > state.maxHistory) {
+                state.history[index].shift();
+            } else {
+                state.historyIndex[index]++;
+            }
+
+            updateUndoRedoUI();
+        }
+
+        function undo(index) {
+            if (state.historyIndex[index] > 0) {
+                state.historyIndex[index]--;
+                const imageData = state.history[index][state.historyIndex[index]];
+                state.contexts[index].putImageData(imageData, 0, 0);
+                notifyTextureUpdate(index);
+                updateUndoRedoUI();
+            }
+        }
+
+        function redo(index) {
+            if (state.historyIndex[index] < state.history[index].length - 1) {
+                state.historyIndex[index]++;
+                const imageData = state.history[index][state.historyIndex[index]];
+                state.contexts[index].putImageData(imageData, 0, 0);
+                notifyTextureUpdate(index);
+                updateUndoRedoUI();
+            }
+        }
+
+        function updateUndoRedoUI() {
+            const idx = state.activeTexIndex;
+            const canUndo = state.historyIndex[idx] > 0;
+            const canRedo = state.historyIndex[idx] < state.history[idx].length - 1;
+
+            document.getElementById('btn-undo').disabled = !canUndo;
+            document.getElementById('btn-redo').disabled = !canRedo;
+        }
+
+        function startDrawing(e, index) {
+            if (index !== state.activeTexIndex) return;
+
+            const coords = getCanvasCoordinates(e, state.canvases[index]);
+            state.lastX = coords.x;
+            state.lastY = coords.y;
+
+            if (state.activeTool === 'bucket') {
+                floodFill(state.contexts[index], Math.floor(coords.x), Math.floor(coords.y), state.brushColor);
+                saveHistoryState(index);
+                notifyTextureUpdate(index);
+                return;
+            }
+
+            state.isDrawing = true;
+
+            // Paint single dot on click
+            drawDot(coords.x, coords.y, index);
+        }
+
+        function drawDot(x, y, index) {
+            const ctx = state.contexts[index];
+            ctx.beginPath();
+            ctx.arc(x, y, state.brushSize / 2, 0, Math.PI * 2);
+
+            if (state.activeTool === 'eraser') {
+                ctx.fillStyle = '#FFFFFF'; // Standard white erase or base color
+            } else {
+                ctx.fillStyle = state.brushColor;
+            }
+            ctx.fill();
+            notifyTextureUpdate(index);
+        }
+
+        function draw(e, index) {
+            if (!state.isDrawing || index !== state.activeTexIndex || state.activeTool === 'bucket') return;
+
+            const coords = getCanvasCoordinates(e, state.canvases[index]);
+            const ctx = state.contexts[index];
+
+            ctx.beginPath();
+            ctx.moveTo(state.lastX, state.lastY);
+            ctx.lineTo(coords.x, coords.y);
+
+            ctx.strokeStyle = (state.activeTool === 'eraser') ? '#FFFFFF' : state.brushColor;
+            ctx.lineWidth = state.brushSize;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+
+            state.lastX = coords.x;
+            state.lastY = coords.y;
+
+            notifyTextureUpdate(index);
+        }
+
+        function stopDrawing(index) {
+            if (state.isDrawing) {
+                state.isDrawing = false;
+                saveHistoryState(index);
+            }
+        }
+
+        function notifyTextureUpdate(index) {
+            if (state.threeTextures[index]) {
+                state.threeTextures[index].needsUpdate = true;
+            }
+        }
+
+        // ----------------------------------------------------
+        // FLOOD FILL BUCKET ALGORITHM
+        // ----------------------------------------------------
+        function floodFill(ctx, startX, startY, fillColorHex) {
+            const width = ctx.canvas.width;
+            const height = ctx.canvas.height;
+            const imgData = ctx.getImageData(0, 0, width, height);
+            const data = imgData.data;
+
+            // Convert Hex to RGBA
+            const temp = document.createElement('div');
+            temp.style.color = fillColorHex;
+            document.body.appendChild(temp);
+            const rgbStr = window.getComputedStyle(temp).color;
+            document.body.removeChild(temp);
+            const rgbVals = rgbStr.match(/\d+/g).map(Number);
+            const fillR = rgbVals[0], fillG = rgbVals[1], fillB = rgbVals[2], fillA = 255;
+
+            const startIdx = (startY * width + startX) * 4;
+            const startR = data[startIdx];
+            const startG = data[startIdx + 1];
+            const startB = data[startIdx + 2];
+            const startA = data[startIdx + 3];
+
+            if (startR === fillR && startG === fillG && startB === fillB && startA === fillA) return;
+
+            const queue = [[startX, startY]];
+            const visited = new Uint8Array(width * height);
+
+            while (queue.length > 0) {
+                const [x, y] = queue.pop();
+                const idx = y * width + x;
+
+                if (x < 0 || x >= width || y < 0 || y >= height || visited[idx]) continue;
+                visited[idx] = 1;
+
+                const pIdx = idx * 4;
+                const r = data[pIdx], g = data[pIdx + 1], b = data[pIdx + 2], a = data[pIdx + 3];
+
+                // Match with tolerance
+                if (Math.abs(r - startR) <= 20 && Math.abs(g - startG) <= 20 && Math.abs(b - startB) <= 20 && Math.abs(a - startA) <= 20) {
+                    data[pIdx] = fillR;
+                    data[pIdx + 1] = fillG;
+                    data[pIdx + 2] = fillB;
+                    data[pIdx + 3] = fillA;
+
+                    queue.push([x + 1, y]);
+                    queue.push([x - 1, y]);
+                    queue.push([x, y + 1]);
+                    queue.push([x, y - 1]);
+                }
+            }
+
+            ctx.putImageData(imgData, 0, 0);
+        }
+
+        function resetCanvasTexture(index, colorHex = '#FFE033', titleText = '') {
+            const ctx = state.contexts[index];
+            const canvas = state.canvases[index];
+
+            ctx.fillStyle = colorHex;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw a subtle decorative text or UV grid outline
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+            if (titleText) {
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+                ctx.font = 'bold 24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(titleText, canvas.width / 2, canvas.height / 2);
+            }
+
+            saveHistoryState(index);
+            notifyTextureUpdate(index);
+        }
+
+        // ----------------------------------------------------
+        // 4. MODEL LOADING & TEXTURE EXTRACTION
+        // ----------------------------------------------------
+        function loadGLBModel() {
+            const loader = new THREE.GLTFLoader();
+
+            const statusText = document.getElementById('loading-status');
+            const progressBar = document.getElementById('loading-bar');
+            const progressPercent = document.getElementById('loading-percentage');
+            const errorContainer = document.getElementById('loading-error');
+
+            loader.load(
+                MODEL_URL,
+                (gltf) => {
+                    // Success Callback
+                    state.modelGroup = gltf.scene;
+                    state.scene.add(state.modelGroup);
+
+                    // Adjust camera focus based on model bounds
+                    const box = new THREE.Box3().setFromObject(state.modelGroup);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    state.controls.target.copy(center);
+                    state.camera.position.set(center.x, center.y + size.y * 0.2, center.z + Math.max(size.x, size.y, size.z) * 1.8);
+                    state.controls.update();
+
+                    // Setup Rigged Animations
+                    setupAnimations(gltf);
+
+                    // Extract and assign textures to meshes
+                    processModelMaterials(state.modelGroup);
+
+                    // Hide Loading Screen
+                    document.getElementById('loading-screen').classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').style.display = 'none';
+                    }, 500);
+                },
+                (xhr) => {
+                    // Progress Callback
+                    if (xhr.lengthComputable) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        progressBar.style.width = percent + '%';
+                        progressPercent.innerText = percent + '%';
+                        statusText.innerText = `Loading 3D Model (${percent}%)`;
+                    } else {
+                        progressBar.style.width = '60%';
+                        progressPercent.innerText = '...';
+                        statusText.innerText = 'Downloading 3D assets...';
+                    }
+                },
+                (error) => {
+                    // Error Callback
+                    console.error('Error loading GLB:', error);
+                    errorContainer.classList.remove('hidden');
+                    document.getElementById('error-message').innerText = 'Could not download model from server. Click below to generate fallback 3D template.';
+                }
+            );
+        }
+
+        function processModelMaterials(root) {
+            state.materials = [];
+            let textureCount = 0;
+
+            root.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+
+                    mats.forEach((mat) => {
+                        if (!state.materials.includes(mat)) {
+                            state.materials.push(mat);
+
+                            // If material has an existing texture map, render it onto our 2D canvas!
+                            if (mat.map && mat.map.image) {
+                                textureCount++;
+                                const targetIdx = textureCount <= 2 ? textureCount : 2;
+                                copyImageToCanvas(mat.map.image, targetIdx);
+                                mat.map = state.threeTextures[targetIdx];
+                            } else {
+                                // Assign Canvas Texture
+                                textureCount++;
+                                const targetIdx = (textureCount % 2 === 1) ? 1 : 2;
+                                mat.map = state.threeTextures[targetIdx];
+                            }
+                            mat.needsUpdate = true;
+                        }
+                    });
+                }
+            });
+
+            // Ensure materials use updated canvas textures
+            state.materials.forEach((mat, idx) => {
+                const texIdx = (idx % 2 === 0) ? 1 : 2;
+                mat.map = state.threeTextures[texIdx];
+                mat.needsUpdate = true;
+            });
+
+            // Save original textures snapshot from GLB model for reset
+            saveOriginalTextures();
+        }
+
+        function saveOriginalTextures() {
+            for (let i = 1; i <= 2; i++) {
+                const canvas = state.canvases[i];
+                const ctx = state.contexts[i];
+                state.originalTextures[i] = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        function resetToDefaultTextures() {
+            for (let index = 1; index <= 2; index++) {
+                const ctx = state.contexts[index];
+                const canvas = state.canvases[index];
+                if (state.originalTextures[index]) {
+                    const orig = state.originalTextures[index];
+                    if (canvas.width !== orig.width || canvas.height !== orig.height) {
+                        canvas.width = orig.width;
+                        canvas.height = orig.height;
+                    }
+                    ctx.putImageData(orig, 0, 0);
+                } else {
+                    resetCanvasTexture(index, index === 1 ? '#FFE033' : '#0084FF', index === 1 ? 'Back Side' : 'Front Side');
+                }
+
+                // Reset history stack for this slot
+                state.history[index] = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
+                state.historyIndex[index] = 0;
+
+                notifyTextureUpdate(index);
+            }
+            updateUndoRedoUI();
+        }
+
+        function copyImageToCanvas(image, index) {
+            const canvas = state.canvases[index];
+            const ctx = state.contexts[index];
+
+            if (image.width && image.height) {
+                canvas.width = image.width;
+                canvas.height = image.height;
+            }
+
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            saveHistoryState(index);
+            notifyTextureUpdate(index);
+        }
+
+        // ----------------------------------------------------
+        // 5. ANIMATION MIXER & CONTROLS
+        // ----------------------------------------------------
+        function setupAnimations(gltf) {
+            if (!gltf.animations || gltf.animations.length === 0) return;
+
+            state.animations = gltf.animations;
+            state.mixer = new THREE.AnimationMixer(gltf.scene);
+
+            const selectEl = document.getElementById('anim-select');
+            selectEl.innerHTML = '';
+
+            // Default A-Pose option (No animation clip playing)
+            const defaultOption = document.createElement('option');
+            defaultOption.value = 'A-Pose';
+            defaultOption.innerText = 'A-Pose (Default Pose)';
+            selectEl.appendChild(defaultOption);
+
+            // Add clips from GLTF
+            gltf.animations.forEach((clip, i) => {
+                const opt = document.createElement('option');
+                opt.value = clip.name || `Animation ${i + 1}`;
+                opt.innerText = clip.name || `Animation ${i + 1}`;
+                selectEl.appendChild(opt);
+            });
+
+            // Select default A-Pose
+            playAnimation('A-Pose');
+        }
+
+        function playAnimation(animName) {
+            if (!state.mixer) return;
+
+            state.currentAnimName = animName;
+
+            if (state.activeAction) {
+                state.activeAction.stop();
+                state.activeAction = null;
+            }
+
+            if (animName === 'A-Pose') {
+                state.mixer.stopAllAction();
+                document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-play"></i>';
+                return;
+            }
+
+            const clip = THREE.AnimationClip.findByName(state.animations, animName) || state.animations[0];
+            if (clip) {
+                state.activeAction = state.mixer.clipAction(clip);
+                state.activeAction.play();
+                document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+            }
+        }
+
+        // ----------------------------------------------------
+        // 6. EXPORT GLB & TEXTURE UTILITIES
+        // ----------------------------------------------------
+        function exportGLB() {
+            if (!state.modelGroup) {
+                alert('Model is not ready to export.');
+                return;
+            }
+
+            const exportBtn = document.getElementById('export-glb-btn');
+            const originalHTML = exportBtn.innerHTML;
+            exportBtn.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-2"></i> Exporting...';
+            exportBtn.disabled = true;
+
+            // Mark textures for update
+            notifyTextureUpdate(1);
+            notifyTextureUpdate(2);
+
+            const exporter = new THREE.GLTFExporter();
+
+            // Export options
+            const options = {
+                binary: true,
+                animations: state.animations,
+                embedImages: true
+            };
+
+            exporter.parse(
+                state.modelGroup,
+                function (gltfResult) {
+                    let blob;
+                    let fileName = 'custom_noob_model.glb';
+
+                    // Ensure gltf output is correctly typed before creating Blob
+                    if (gltfResult instanceof ArrayBuffer) {
+                        blob = new Blob([gltfResult], { type: 'application/octet-stream' });
+                    } else if (typeof gltfResult === 'object') {
+                        // Stringify JSON object so it does not evaluate to "[object Object]"
+                        const output = JSON.stringify(gltfResult, null, 2);
+                        blob = new Blob([output], { type: 'application/json' });
+                        fileName = 'custom_noob_model.gltf';
+                    } else {
+                        blob = new Blob([gltfResult], { type: 'application/octet-stream' });
+                    }
+
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = fileName;
+                    link.click();
+                    URL.revokeObjectURL(link.href);
+
+                    exportBtn.innerHTML = originalHTML;
+                    exportBtn.disabled = false;
+                },
+                function (error) {
+                    console.error('An error occurred during GLTF export:', error);
+                    alert('Export failed. Check console for details.');
+                    exportBtn.innerHTML = originalHTML;
+                    exportBtn.disabled = false;
+                },
+                options
+            );
+        }
+
+        function downloadActiveTexture() {
+            const canvas = state.canvases[state.activeTexIndex];
+            const name = state.activeTexIndex === 1 ? 'back_side' : 'front_side';
+            const imageURI = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = imageURI;
+            link.download = `noob_${name}_texture.png`;
+            link.click();
+        }
+
+        function replaceTextureFromComputer(file) {
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (event) {
+                const img = new Image();
+                img.onload = function () {
+                    const idx = state.activeTexIndex;
+                    const ctx = state.contexts[idx];
+                    const canvas = state.canvases[idx];
+
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    saveHistoryState(idx);
+                    notifyTextureUpdate(idx);
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // ----------------------------------------------------
+        // FALLBACK TEMPLATE CREATOR (IF URL LOAD FAILS)
+        // ----------------------------------------------------
+        function createFallbackNoobModel() {
+            const noobGroup = new THREE.Group();
+
+            // Materials using Canvas Textures
+            const matHeadTorso = new THREE.MeshStandardMaterial({ map: state.threeTextures[1], roughness: 0.4 });
+            const matLimbs = new THREE.MeshStandardMaterial({ map: state.threeTextures[2], roughness: 0.4 });
+
+            // Torso
+            const torsoGeo = new THREE.BoxGeometry(1, 1.2, 0.6);
+            const torso = new THREE.Mesh(torsoGeo, matHeadTorso);
+            torso.position.y = 1.2;
+            noobGroup.add(torso);
+
+            // Head
+            const headGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const head = new THREE.Mesh(headGeo, matHeadTorso);
+            head.position.y = 2.2;
+            noobGroup.add(head);
+
+            // Left Arm
+            const armGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+            const leftArm = new THREE.Mesh(armGeo, matHeadTorso);
+            leftArm.position.set(-0.8, 1.2, 0);
+            noobGroup.add(leftArm);
+
+            // Right Arm
+            const rightArm = new THREE.Mesh(armGeo, matHeadTorso);
+            rightArm.position.set(0.8, 1.2, 0);
+            noobGroup.add(rightArm);
+
+            // Left Leg
+            const legGeo = new THREE.BoxGeometry(0.5, 1.2, 0.5);
+            const leftLeg = new THREE.Mesh(legGeo, matLimbs);
+            leftLeg.position.set(-0.3, 0.3, 0);
+            noobGroup.add(leftLeg);
+
+            // Right Leg
+            const rightLeg = new THREE.Mesh(legGeo, matLimbs);
+            rightLeg.position.set(0.3, 0.3, 0);
+            noobGroup.add(rightLeg);
+
+            state.modelGroup = noobGroup;
+            state.scene.add(state.modelGroup);
+
+            saveOriginalTextures();
+
+            document.getElementById('loading-screen').style.display = 'none';
+        }
+
+        // ----------------------------------------------------
+        // 7. EVENT LISTENERS & UI BINDING
+        // ----------------------------------------------------
+        function setupUIEventListeners() {
+            // Tab switching
+            const tab1 = document.getElementById('tab-tex-1');
+            const tab2 = document.getElementById('tab-tex-2');
+            const canvas1 = document.getElementById('tex-canvas-1');
+            const canvas2 = document.getElementById('tex-canvas-2');
+            const label = document.getElementById('canvas-label');
+
+            tab1.addEventListener('click', () => {
+                state.activeTexIndex = 1;
+                tab1.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white transition-all flex items-center justify-center';
+                tab2.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all flex items-center justify-center';
+                canvas1.classList.remove('hidden');
+                canvas2.classList.add('hidden');
+                label.innerText = 'Back Side (512x512)';
+                updateUndoRedoUI();
+            });
+
+            tab2.addEventListener('click', () => {
+                state.activeTexIndex = 2;
+                tab2.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 text-white transition-all flex items-center justify-center';
+                tab1.className = 'flex-1 py-1.5 text-xs font-semibold rounded-lg text-gray-400 hover:text-white transition-all flex items-center justify-center';
+                canvas2.classList.remove('hidden');
+                canvas1.classList.add('hidden');
+                label.innerText = 'Front Side (512x512)';
+                updateUndoRedoUI();
+            });
+
+            // Tool selection
+            const toolPen = document.getElementById('tool-pen');
+            const toolEraser = document.getElementById('tool-eraser');
+            const toolBucket = document.getElementById('tool-bucket');
+
+            function setActiveTool(tool, element) {
+                state.activeTool = tool;
+                [toolPen, toolEraser, toolBucket].forEach(btn => btn.classList.remove('active'));
+                element.classList.add('active');
+            }
+
+            toolPen.addEventListener('click', () => setActiveTool('pen', toolPen));
+            toolEraser.addEventListener('click', () => setActiveTool('eraser', toolEraser));
+            toolBucket.addEventListener('click', () => setActiveTool('bucket', toolBucket));
+
+            // Brush size slider
+            const sizeInput = document.getElementById('brush-size');
+            const sizeVal = document.getElementById('brush-size-val');
+            sizeInput.addEventListener('input', (e) => {
+                state.brushSize = parseInt(e.target.value);
+                sizeVal.innerText = state.brushSize + 'px';
+            });
+
+            // Color picker
+            const colorPicker = document.getElementById('color-picker');
+            const hexVal = document.getElementById('hex-val');
+            colorPicker.addEventListener('input', (e) => {
+                state.brushColor = e.target.value;
+                hexVal.innerText = e.target.value.toUpperCase();
+            });
+
+            // Preset Colors
+            document.querySelectorAll('.preset-color').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const hex = btn.getAttribute('data-color');
+                    state.brushColor = hex;
+                    colorPicker.value = hex;
+                    hexVal.innerText = hex.toUpperCase();
+                });
+            });
+
+            // Undo / Redo / Reset
+            document.getElementById('btn-undo').addEventListener('click', () => undo(state.activeTexIndex));
+            document.getElementById('btn-redo').addEventListener('click', () => redo(state.activeTexIndex));
+            
+            const resetModal = document.getElementById('reset-confirm-modal');
+            const cancelResetBtn = document.getElementById('modal-cancel-btn');
+            const confirmResetBtn = document.getElementById('modal-confirm-btn');
+
+            // Show reset modal when trash button is pressed
+            document.getElementById('btn-reset-tex').addEventListener('click', () => {
+                resetModal.classList.remove('hidden');
+            });
+
+            // Close modal on cancel
+            cancelResetBtn.addEventListener('click', () => {
+                resetModal.classList.add('hidden');
+            });
+
+            // Confirm reset: Reset BOTH Texture 1 (Back Side) and Texture 2 (Front Side) to original GLB textures
+            confirmResetBtn.addEventListener('click', () => {
+                resetToDefaultTextures();
+                resetModal.classList.add('hidden');
+            });
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key.toLowerCase() === 'z') {
+                    if (e.shiftKey) redo(state.activeTexIndex);
+                    else undo(state.activeTexIndex);
+                } else if (e.ctrlKey && e.key.toLowerCase() === 'y') {
+                    redo(state.activeTexIndex);
+                }
+            });
+
+            // Animation Selector
+            document.getElementById('anim-select').addEventListener('change', (e) => {
+                playAnimation(e.target.value);
+            });
+
+            // Animation Play/Pause
+            document.getElementById('anim-play-btn').addEventListener('click', () => {
+                if (!state.activeAction && state.currentAnimName !== 'A-Pose') {
+                    playAnimation(state.currentAnimName);
+                } else if (state.activeAction) {
+                    if (state.activeAction.isRunning()) {
+                        state.activeAction.paused = true;
+                        document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-play"></i>';
+                    } else {
+                        state.activeAction.paused = false;
+                        document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-pause"></i>';
+                    }
+                }
+            });
+
+            // Reset Camera
+            document.getElementById('reset-cam-btn').addEventListener('click', () => {
+                if (state.modelGroup) {
+                    const box = new THREE.Box3().setFromObject(state.modelGroup);
+                    const center = box.getCenter(new THREE.Vector3());
+                    state.controls.target.copy(center);
+                    state.camera.position.set(center.x, center.y + 0.3, center.z + 3.0);
+                    state.controls.update();
+                }
+            });
+
+            // Toggle Grid
+            document.getElementById('toggle-grid-btn').addEventListener('click', () => {
+                state.gridHelper.visible = !state.gridHelper.visible;
+            });
+
+            // Toggle Wireframe
+            document.getElementById('toggle-wireframe-btn').addEventListener('click', () => {
+                state.materials.forEach(m => {
+                    m.wireframe = !m.wireframe;
+                });
+            });
+
+            // Export GLB
+            document.getElementById('export-glb-btn').addEventListener('click', exportGLB);
+
+            // Download Texture PNG
+            document.getElementById('btn-download-tex').addEventListener('click', downloadActiveTexture);
+
+            // Upload Image File
+            document.getElementById('image-upload-input').addEventListener('change', (e) => {
+                if (e.target.files && e.target.files[0]) {
+                    replaceTextureFromComputer(e.target.files[0]);
+                }
+            });
+
+            // Retry Button
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                createFallbackNoobModel();
+            });
+        }
+
+        // ----------------------------------------------------
+        // 8. APPLICATION ENTRY POINT
+        // ----------------------------------------------------
+        window.onload = function () {
+            initThreeJS();
+            initCanvases();
+            setupUIEventListeners();
+            loadGLBModel();
+        };
+    </script>
+</body>
+</html>
