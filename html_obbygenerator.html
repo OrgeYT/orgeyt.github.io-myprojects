@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Obby Generator</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #87CEEB; /* Sky blue background */
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* UI Overlays */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background-color: white;
+            border: 2px solid rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+            z-index: 10;
+        }
+
+        .title {
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 0 #000;
+            text-align: center;
+        }
+        
+        .instructions {
+            color: #ccc;
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            background: linear-gradient(180deg, #4CAF50 0%, #2E7D32 100%);
+            border: 3px solid #1B5E20;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #1B5E20, 0 10px 10px rgba(0,0,0,0.3);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1B5E20, 0 4px 5px rgba(0,0,0,0.3);
+        }
+
+        #hud {
+            padding: 20px;
+            display: none;
+        }
+
+        .hud-text {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 0 #000;
+        }
+
+        #damage-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 0, 0, 0.4);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+        }
+    </style>
+    
+    <!-- Import Three.js via ES Modules -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.150.1/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="game-container"></div>
+    
+    <div id="ui-layer">
+        <div id="hud">
+            <div class="hud-text" id="stage-counter">Stage: 1 / 10</div>
+        </div>
+        <div id="crosshair"></div>
+    </div>
+    
+    <div id="damage-overlay"></div>
+
+    <div id="overlay">
+        <div class="title">OBBY GENERATOR</div>
+        <div class="instructions">
+            WASD - Move<br>
+            Space - Jump<br>
+            Mouse - Look Around<br><br>
+            <i>Avoid the Red Bricks! Touch the Green Pads to Checkpoint.</i>
+        </div>
+        <button class="btn" id="play-btn">Click to Play</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- Core Engine Setup ---
+        const container = document.getElementById('game-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 30, 200);
+
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // --- Lighting ---
+        const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        hemiLight.position.set(0, 200, 0);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(50, 100, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.top = 150;
+        dirLight.shadow.camera.bottom = -150;
+        dirLight.shadow.camera.left = -150;
+        dirLight.shadow.camera.right = 150;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        scene.add(dirLight);
+
+        // --- Game State & Physics Variables ---
+        const clock = new THREE.Clock();
+        
+        let collidables = []; // Standard solid boxes
+        let killBricks = [];  // Lava/red boxes
+        let checkpoints = []; // Safe zones
+        
+        const playerHalfExtents = new THREE.Vector3(1, 2.5, 1); // Player size: 2x5x2
+        const playerBox = new THREE.Box3();
+        
+        const playerGroup = new THREE.Group();
+        scene.add(playerGroup);
+
+        const velocity = new THREE.Vector3();
+        const moveDirection = new THREE.Vector3();
+        let isGrounded = false;
+        
+        const GRAVITY = 100;
+        const JUMP_SPEED = 35;
+        const MOVE_SPEED = 20;
+
+        let spawnPoint = new THREE.Vector3(0, 10, 0);
+        let currentStage = 1;
+        let totalStages = 15;
+        let isPlaying = false;
+
+        // Camera positioning logic
+        let yaw = 0;
+        let pitch = -0.2; // slight downward angle
+
+        // Inputs
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+
+        // --- Animation Variables ---
+        let mixer = null;
+        const animationActions = {};
+        let activeAction = null;
+
+        function fadeToAction(name, duration = 0.15) {
+            if (!mixer) return;
+            const nextAction = animationActions[name];
+            // Use 'idle' as a fallback if a specific animation is missing
+            const actionToPlay = nextAction || animationActions['idle']; 
+            
+            if (!actionToPlay || activeAction === actionToPlay) return;
+
+            const lastAction = activeAction;
+            activeAction = actionToPlay;
+
+            if (lastAction) {
+                lastAction.fadeOut(duration);
+            }
+            activeAction.reset().setEffectiveTimeScale(1).setEffectiveWeight(1).fadeIn(duration).play();
+        }
+
+        // --- STREAMING_CHUNK:Loading the player model... ---
+        let characterMesh = null;
+        const fallbackGeo = new THREE.BoxGeometry(2, 5, 2);
+        const fallbackMat = new THREE.MeshStandardMaterial({ color: 0x0055ff });
+        const fallbackMesh = new THREE.Mesh(fallbackGeo, fallbackMat);
+        fallbackMesh.castShadow = true;
+        fallbackMesh.position.y = 0; // Center is halfway up
+        
+        // Add Loading Text Sprite to fallback mesh
+        const textCanvas = document.createElement('canvas');
+        textCanvas.width = 512;
+        textCanvas.height = 128;
+        const textCtx = textCanvas.getContext('2d');
+        textCtx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent
+        textCtx.fillRect(0, 0, textCanvas.width, textCanvas.height);
+        textCtx.font = 'bold 28px sans-serif';
+        textCtx.fillStyle = 'white';
+        textCtx.textAlign = 'center';
+        
+        // Add a subtle drop shadow for readability against the sky
+        textCtx.shadowColor = "black";
+        textCtx.shadowBlur = 4;
+        textCtx.shadowOffsetX = 2;
+        textCtx.shadowOffsetY = 2;
+        
+        textCtx.fillText('Animations and Noob rig', 256, 50);
+        textCtx.fillText('might be loading...', 256, 90);
+        
+        const textTexture = new THREE.CanvasTexture(textCanvas);
+        const textMaterial = new THREE.SpriteMaterial({ map: textTexture });
+        const textSprite = new THREE.Sprite(textMaterial);
+        textSprite.scale.set(8, 2, 1); // Size of the sprite
+        textSprite.position.y = 4; // Position above the blue box
+        fallbackMesh.add(textSprite);
+
+        playerGroup.add(fallbackMesh);
+        
+        // Attempt to load the GLB player
+        const loader = new GLTFLoader();
+        loader.load(
+            'https://file.garden/Zj01o_oh-G9Y8APf/Peak%20noob%20fixed.glb',
+            (gltf) => {
+                characterMesh = gltf.scene;
+                
+                // Enable shadows
+                characterMesh.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                // Scale character to fit the 5-unit tall collision box roughly
+                // Typical models need significant scaling
+                const bbox = new THREE.Box3().setFromObject(characterMesh);
+                const size = bbox.getSize(new THREE.Vector3());
+                const targetHeight = 5;
+                const scale = targetHeight / size.y;
+                characterMesh.scale.set(scale, scale, scale);
+                
+                // Offset so bottom is at feet (-2.5 from center)
+                characterMesh.position.y = -playerHalfExtents.y;
+                characterMesh.rotation.y = -Math.PI / 2; // Initial rotation reversed
+                
+                // Replace fallback
+                playerGroup.remove(fallbackMesh);
+                playerGroup.add(characterMesh);
+                console.log("Player model loaded successfully!");
+
+                // Load second GLB (clark.glb) just to extract animations
+                loader.load(
+                    'https://file.garden/Zj01o_oh-G9Y8APf/clark.glb',
+                    (gltfAnim) => {
+                        const anims = gltfAnim.animations;
+                        if (anims && anims.length > 0) {
+                            // Collect all valid bone/node names from the Noob model
+                            const validNodes = new Set();
+                            characterMesh.traverse((child) => {
+                                validNodes.add(child.name);
+                            });
+
+                            // Apply the animations to the Noob characterMesh
+                            mixer = new THREE.AnimationMixer(characterMesh);
+                            
+                            anims.forEach((clip) => {
+                                // FILTER FIX: Remove tracks for bones that don't exist in the Noob model
+                                // This stops the THREE.PropertyBinding console errors.
+                                clip.tracks = clip.tracks.filter((track) => {
+                                    const nodeName = track.name.split('.')[0];
+                                    return validNodes.has(nodeName);
+                                });
+
+                                const name = clip.name.toLowerCase();
+                                // We only care about idle and run from this file
+                                if (name.includes('idle')) {
+                                    animationActions.idle = mixer.clipAction(clip);
+                                } else if (name.includes('run')) {
+                                    animationActions.run = mixer.clipAction(clip);
+                                }
+                            });
+
+                            // Start playing idle immediately
+                            if (animationActions.idle) {
+                                activeAction = animationActions.idle;
+                                activeAction.play();
+                            }
+                        }
+                    },
+                    undefined,
+                    (error) => {
+                        console.warn('Could not load animation GLB.', error);
+                    }
+                );
+            },
+            undefined,
+            (error) => {
+                console.warn('Could not load custom GLB model, using fallback box.', error);
+            }
+        );
+
+        // Set initial position
+        playerGroup.position.copy(spawnPoint);
+
+        // --- STREAMING_CHUNK:Procedural Level Generation Logic... ---
+        
+        // Utility to create boxes
+        function createBox(w, h, d, color, x, y, z) {
+            const geo = new THREE.BoxGeometry(w, h, d);
+            const mat = new THREE.MeshStandardMaterial({ color: color });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+            return mesh;
+        }
+
+        function addSolid(w, h, d, color, x, y, z) {
+            const mesh = createBox(w, h, d, color, x, y, z);
+            const box = new THREE.Box3().setFromObject(mesh);
+            collidables.push({ mesh, box });
+        }
+
+        function addKillBrick(w, h, d, x, y, z) {
+            const mesh = createBox(w, h, d, 0xff0000, x, y, z);
+            const box = new THREE.Box3().setFromObject(mesh);
+            killBricks.push({ mesh, box });
+            collidables.push({ mesh, box }); // Make it solid too
+        }
+
+        function addCheckpoint(z) {
+            // Base
+            addSolid(20, 1, 20, 0xaaaaaa, 0, 0, z);
+            // Pad
+            const mesh = createBox(8, 1.2, 8, 0x005500, 0, 0, z);
+            const box = new THREE.Box3().setFromObject(mesh);
+            
+            const spawnPos = new THREE.Vector3(0, 5, z);
+            checkpoints.push({ mesh, box, spawnPos, active: false });
+        }
+
+        // Stage 1: Platforms
+        function buildPlatforms(zStart) {
+            const count = 5;
+            for (let i = 0; i < count; i++) {
+                // Alternating colors
+                const color = i % 2 === 0 ? 0xffff00 : 0x0000ff;
+                addSolid(10, 1, 10, color, 0, 0, zStart - 5 - i * 12);
+            }
+        }
+
+        // Stage 2: Line Jumps
+        function buildLineJumps(zStart) {
+            // Main path
+            addSolid(16, 1, 60, 0x888888, 0, 0, zStart - 30);
+            
+            const count = 5;
+            for (let i = 0; i < count; i++) {
+                addKillBrick(16.5, 1.5, 2, 0, 0, zStart - 10 - i * 10);
+            }
+        }
+
+        // Stage 3: Checker board (Alternating paths)
+        function buildCheckerboard(zStart) {
+            const rows = 6;
+            const cols = 3;
+            
+            // Solid base plate to prevent falling underneath visually
+            addSolid(18, 0.5, 60, 0x333333, 0, -0.5, zStart - 30);
+
+            for (let r = 0; r < rows; r++) {
+                // Ensure at least one safe block per row
+                let safeCol = Math.floor(Math.random() * cols);
+                
+                for (let c = 0; c < cols; c++) {
+                    let isKill = (c !== safeCol) && (Math.random() > 0.4);
+                    let xPos = (c - 1) * 6; // -6, 0, +6
+                    let zPos = zStart - 5 - r * 10;
+                    
+                    if (isKill) {
+                        addKillBrick(5.5, 1, 9.5, xPos, 0, zPos);
+                    } else {
+                        addSolid(5.5, 1, 9.5, 0xdddddd, xPos, 0, zPos);
+                    }
+                }
+            }
+        }
+
+        // Stage 4: Tight rope
+        function buildTightRope(zStart) {
+            addSolid(1.5, 1, 60, 0x8B4513, 0, 0, zStart - 30);
+        }
+
+        // Stage 5: Glass Bridge (Choose correct path)
+        function buildGlassBridge(zStart) {
+            const count = 5;
+            for (let i = 0; i < count; i++) {
+                let safeSide = Math.random() > 0.5 ? 1 : -1;
+                let zPos = zStart - 6 - i * 12;
+                
+                // Left platform vs Right platform
+                if (safeSide === -1) {
+                    addSolid(8, 1, 10, 0x44aaff, -5, 0, zPos);
+                    addKillBrick(8, 1, 10, 5, 0, zPos); // Red kill brick on right
+                } else {
+                    addKillBrick(8, 1, 10, -5, 0, zPos); // Red kill brick on left
+                    addSolid(8, 1, 10, 0x44aaff, 5, 0, zPos);
+                }
+            }
+        }
+
+        // Stage 6: Offset Platforms (Zig zag jumps)
+        function buildOffsetPlatforms(zStart) {
+            const count = 5;
+            for (let i = 0; i < count; i++) {
+                let xPos = i % 2 === 0 ? -6 : 6;
+                const color = i % 2 === 0 ? 0xff8800 : 0xaa00ff;
+                addSolid(6, 1, 6, color, xPos, 0, zStart - 6 - i * 12);
+            }
+        }
+
+        // Stage 7: Wall Maze
+        function buildWallMaze(zStart) {
+            // Solid floor
+            addSolid(20, 1, 60, 0x555555, 0, 0, zStart - 30);
+            
+            // Walls blocking path (forcing zig-zag)
+            addSolid(14, 5, 2, 0x333333, 4, 3, zStart - 15);
+            addSolid(14, 5, 2, 0x333333, -4, 3, zStart - 30);
+            addSolid(14, 5, 2, 0x333333, 4, 3, zStart - 45);
+
+            // Small kill bricks to dodge on the corners
+            addKillBrick(4, 1.2, 4, -5, 0.1, zStart - 15);
+            addKillBrick(4, 1.2, 4, 5, 0.1, zStart - 30);
+            addKillBrick(4, 1.2, 4, -5, 0.1, zStart - 45);
+        }
+
+        // Stage 8: Lava Pillars
+        function buildLavaPillars(zStart) {
+            // Giant lava pit on the floor
+            addKillBrick(20, 0.5, 60, 0, -0.25, zStart - 30);
+            
+            // Safe pillars sticking out of the lava
+            addSolid(5, 1.5, 5, 0xcccccc, 0, 0.5, zStart - 10);
+            addSolid(5, 1.5, 5, 0xcccccc, -6, 0.5, zStart - 22);
+            addSolid(5, 1.5, 5, 0xcccccc, 6, 0.5, zStart - 34);
+            addSolid(5, 1.5, 5, 0xcccccc, -6, 0.5, zStart - 46);
+            addSolid(5, 1.5, 5, 0xcccccc, 0, 0.5, zStart - 56);
+        }
+
+        // --- STREAMING_CHUNK:Building the Obby world... ---
+        function generateWorld() {
+            let currentZ = 0;
+            
+            // Spawn point (Center at 0, occupies space from +10 to -10)
+            addCheckpoint(0);
+            checkpoints[0].active = true;
+            checkpoints[0].mesh.material.color.setHex(0x00ff00);
+            spawnPoint.copy(checkpoints[0].spawnPos);
+            
+            currentZ = -10; // Start of first stage exactly at the edge of the checkpoint
+
+            const stageTypes = [
+                buildPlatforms, 
+                buildLineJumps, 
+                buildCheckerboard, 
+                buildTightRope,
+                buildGlassBridge,
+                buildOffsetPlatforms,
+                buildWallMaze,
+                buildLavaPillars
+            ];
+
+            for (let i = 0; i < totalStages; i++) {
+                // Pick random stage
+                const stageFunc = stageTypes[Math.floor(Math.random() * stageTypes.length)];
+                stageFunc(currentZ);
+                
+                currentZ -= 60; // Advance Z by the exact length of a stage
+                
+                if (i < totalStages - 1) {
+                    addCheckpoint(currentZ - 10); // Center checkpoint so its edge touches the stage
+                    currentZ -= 20; // Advance Z by the length of a checkpoint
+                } else {
+                    // Final win pad
+                    addSolid(30, 1, 30, 0xffd700, 0, 0, currentZ - 15); // Gold pad
+                }
+            }
+        }
+        
+        generateWorld();
+
+        // --- STREAMING_CHUNK:Handling Inputs & Pointer Lock... ---
+        
+        // UI Elements
+        const overlay = document.getElementById('overlay');
+        const playBtn = document.getElementById('play-btn');
+        const hud = document.getElementById('hud');
+        const crosshair = document.getElementById('crosshair');
+        const damageOverlay = document.getElementById('damage-overlay');
+
+        playBtn.addEventListener('click', () => {
+            document.body.requestPointerLock();
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement === document.body) {
+                isPlaying = true;
+                overlay.style.display = 'none';
+                hud.style.display = 'block';
+                crosshair.style.display = 'block';
+            } else {
+                isPlaying = false;
+                overlay.style.display = 'flex';
+                hud.style.display = 'none';
+                crosshair.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isPlaying) {
+                // Mouse sensitivity
+                yaw -= e.movementX * 0.003;
+                pitch -= e.movementY * 0.003;
+                // Clamp pitch so we don't flip upside down
+                pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            switch(e.code) {
+                case 'KeyW': keys.w = true; break;
+                case 'KeyA': keys.a = true; break;
+                case 'KeyS': keys.s = true; break;
+                case 'KeyD': keys.d = true; break;
+                case 'Space': keys.space = true; break;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            switch(e.code) {
+                case 'KeyW': keys.w = false; break;
+                case 'KeyA': keys.a = false; break;
+                case 'KeyS': keys.s = false; break;
+                case 'KeyD': keys.d = false; break;
+                case 'Space': keys.space = false; break;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // --- STREAMING_CHUNK:Physics Engine & Collision Logic... ---
+        
+        function updatePlayerBox() {
+            // Keep box centered exactly on player pos
+            playerBox.min.copy(playerGroup.position).sub(playerHalfExtents);
+            playerBox.max.copy(playerGroup.position).add(playerHalfExtents);
+        }
+
+        function die() {
+            // Flash screen red
+            damageOverlay.style.opacity = '1';
+            setTimeout(() => { damageOverlay.style.opacity = '0'; }, 300);
+
+            // Reset
+            playerGroup.position.copy(spawnPoint);
+            velocity.set(0, 0, 0);
+            updatePlayerBox();
+        }
+
+        function gameLoop() {
+            requestAnimationFrame(gameLoop);
+
+            const dt = Math.min(clock.getDelta(), 0.05); // Cap DT to prevent clipping on lag
+
+            if (isPlaying) {
+                // 1. Calculate input direction relative to camera yaw
+                moveDirection.set(0, 0, 0);
+                if (keys.w) moveDirection.z -= 1;
+                if (keys.s) moveDirection.z += 1;
+                if (keys.a) moveDirection.x -= 1;
+                if (keys.d) moveDirection.x += 1;
+                
+                if (moveDirection.lengthSq() > 0) {
+                    moveDirection.normalize();
+                    // Rotate input vector by yaw (Y axis)
+                    moveDirection.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+                    
+                    // Rotate character model to face movement direction smoothly
+                    if (characterMesh) {
+                        const targetAngle = Math.atan2(moveDirection.x, moveDirection.z) - (Math.PI / 2); // Reversed offset
+                        let angleDiff = targetAngle - characterMesh.rotation.y;
+                        // Normalize difference to -PI to PI
+                        angleDiff = (angleDiff + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+                        characterMesh.rotation.y += angleDiff * 15 * dt;
+                    } else {
+                        // Fallback mesh rotation
+                        const targetAngle = Math.atan2(moveDirection.x, moveDirection.z);
+                        let angleDiff = targetAngle - fallbackMesh.rotation.y;
+                        angleDiff = (angleDiff + Math.PI * 3) % (Math.PI * 2) - Math.PI;
+                        fallbackMesh.rotation.y += angleDiff * 15 * dt;
+                    }
+                }
+
+                // Instant ground movement like Roblox
+                velocity.x = moveDirection.x * MOVE_SPEED;
+                velocity.z = moveDirection.z * MOVE_SPEED;
+
+                // Jump logic
+                if (keys.space && isGrounded) {
+                    velocity.y = JUMP_SPEED;
+                    isGrounded = false;
+                }
+
+                // Apply Gravity
+                velocity.y -= GRAVITY * dt;
+
+                // --- AXIS-BY-AXIS COLLISION RESOLUTION ---
+                
+                // Y-Axis
+                playerGroup.position.y += velocity.y * dt;
+                updatePlayerBox();
+                isGrounded = false;
+                
+                for (let obj of collidables) {
+                    if (playerBox.intersectsBox(obj.box)) {
+                        if (velocity.y < 0) { // Falling down onto surface
+                            playerGroup.position.y = obj.box.max.y + playerHalfExtents.y + 0.001;
+                            isGrounded = true;
+                        } else if (velocity.y > 0) { // Jumping up into ceiling
+                            playerGroup.position.y = obj.box.min.y - playerHalfExtents.y - 0.001;
+                        }
+                        velocity.y = 0;
+                        updatePlayerBox();
+                    }
+                }
+
+                // X-Axis
+                playerGroup.position.x += velocity.x * dt;
+                updatePlayerBox();
+                
+                for (let obj of collidables) {
+                    if (playerBox.intersectsBox(obj.box)) {
+                        if (velocity.x > 0) {
+                            playerGroup.position.x = obj.box.min.x - playerHalfExtents.x - 0.001;
+                        } else if (velocity.x < 0) {
+                            playerGroup.position.x = obj.box.max.x + playerHalfExtents.x + 0.001;
+                        }
+                        updatePlayerBox();
+                    }
+                }
+
+                // Z-Axis
+                playerGroup.position.z += velocity.z * dt;
+                updatePlayerBox();
+                
+                for (let obj of collidables) {
+                    if (playerBox.intersectsBox(obj.box)) {
+                        if (velocity.z > 0) {
+                            playerGroup.position.z = obj.box.min.z - playerHalfExtents.z - 0.001;
+                        } else if (velocity.z < 0) {
+                            playerGroup.position.z = obj.box.max.z + playerHalfExtents.z + 0.001;
+                        }
+                        updatePlayerBox();
+                    }
+                }
+
+                // --- INTERACTION CHECKS ---
+                
+                // 1. Kill bricks
+                for (let kb of killBricks) {
+                    if (playerBox.intersectsBox(kb.box)) {
+                        die();
+                        break;
+                    }
+                }
+
+                // 2. Void death
+                if (playerGroup.position.y < -30) {
+                    die();
+                }
+
+                // 3. Checkpoints
+                for (let i = 0; i < checkpoints.length; i++) {
+                    let cp = checkpoints[i];
+                    if (!cp.active && playerBox.intersectsBox(cp.box)) {
+                        cp.active = true;
+                        cp.mesh.material.color.setHex(0x00ff00); // Bright green active state
+                        spawnPoint.copy(cp.spawnPos);
+                        
+                        // Stage counter logic (approximate)
+                        let newStage = Math.min(i + 1, totalStages);
+                        document.getElementById('stage-counter').innerText = `Stage: ${newStage} / ${totalStages}`;
+                    }
+                }
+            } // End isPlaying logic
+
+            // Animation State Update
+            if (isPlaying) {
+                let targetAnim = 'idle';
+                // Ignore jumping/falling, only switch to run if moving
+                if (moveDirection.lengthSq() > 0) {
+                    targetAnim = 'run';
+                }
+                fadeToAction(targetAnim, 0.1);
+            }
+
+            if (mixer) {
+                mixer.update(dt);
+            }
+
+            // --- CAMERA UPDATES ---
+            
+            // Calculate orbital camera position
+            const cameraDist = 16;
+            const camOffset = new THREE.Vector3(0, 0, cameraDist);
+            
+            // Apply pitch (X axis) and yaw (Y axis) rotations
+            camOffset.applyAxisAngle(new THREE.Vector3(1, 0, 0), pitch);
+            camOffset.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+            
+            // Follow player position, slightly elevated to look at head/torso
+            const lookTarget = playerGroup.position.clone().add(new THREE.Vector3(0, 1.5, 0));
+            camera.position.copy(lookTarget).add(camOffset);
+            camera.lookAt(lookTarget);
+
+            renderer.render(scene, camera);
+        }
+
+        // Start the loop!
+        gameLoop();
+    </script>
+</body>
+</html>
