@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Embeder</title>
+</head>
+<!-- Classic early-90s plain gray background with standard system text colors -->
+<body bgcolor="#D3D3D3" text="#000000" link="#0000EE" vlink="#551A8B" alink="#FF0000">
+
+    <!-- Simple, structured header -->
+    <table border="0" width="100%" cellpadding="10">
+        <tr>
+            <td>
+                <h2><font face="Times New Roman, Times, serif">Simply embed websites</font></h2>
+                <hr size="2" color="#808080" noshade>
+                <p><font face="Arial, Helvetica, sans-serif" size="2">simply embed any website (who allows to be embeded). use the effects on orge yt projects side bar cuz its cool</font></p>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Control Panel Layout Matrix -->
+    <table border="1" bgcolor="#C0C0C0" bordercolor="#FFFFFF" bordercolorlight="#C0C0C0" bordercolordark="#808080" cellpadding="8" cellspacing="0" style="margin-left: 10px;">
+        <tr>
+            <td>
+                <font face="Arial, Helvetica, sans-serif" size="2"><b>Preset Locations:</b></font><br>
+                <!-- Presets dropdown selector -->
+                <select id="presetSelect" onchange="applyPreset()" style="font-family: Arial, sans-serif; font-size: 12px; width: 320px;">
+                    <option value="https://example.com">Example Domain (Default)</option>
+                    <option value="https://orgeyt.github.io/orgeyt.github.io-myprojects/">Orgeyt Projects</option>
+                    <option value="https://websim.com">Websim</option>
+                    <option value="https://turbowarp.org">TurboWarp Editor</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <font face="Arial, Helvetica, sans-serif" size="2"><b>Target URL:</b></font><br>
+                <!-- Manual input text bar defaulted to example.com -->
+                <input type="text" id="urlInput" value="https://example.com" size="45" style="font-family: Courier New, monospace; font-size: 13px;">
+                <input type="button" value="Load URL" onclick="embedUrl()" style="font-family: Arial, sans-serif; font-size: 12px; font-weight: bold;">
+            </td>
+        </tr>
+    </table>
+
+    <br>
+
+    <!-- Embedding frame container -->
+    <table border="1" bordercolor="#808080" cellpadding="0" cellspacing="0" width="98%" style="margin-left: 10px;">
+        <tr>
+            <td bgcolor="#808080" height="20">
+                <font face="Arial, Helvetica, sans-serif" size="2" color="#FFFFFF">&nbsp;<b>Display Window Output</b></font>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <!-- Expanded iframe height to 850px -->
+                <iframe id="embedFrame" src="https://example.com" width="100%" height="850" frameborder="0" bgcolor="#FFFFFF">
+                    Your current browser does not support frame embedding utilities.
+                </iframe>
+            </td>
+        </tr>
+    </table>
+
+    <br>
+    <hr size="1" color="#808080" width="98%" align="left" style="margin-left: 10px;" noshade>
+    
+    <table border="0" width="98%" style="margin-left: 10px;">
+        <tr>
+            <td align="right">
+                <font face="Times New Roman, Times, serif" size="2"><i>Utility Version 1.0.4 - Standard HTML Formatting</i></font>
+            </td>
+        </tr>
+    </table>
+
+    <!-- Control Script Engine -->
+    <script type="text/javascript">
+        // Updates input box and iframe when dropdown changes
+        function applyPreset() {
+            var select = document.getElementById('presetSelect');
+            var input = document.getElementById('urlInput');
+            
+            input.value = select.value;
+            embedUrl();
+        }
+
+        // Commits the URL string to the frame source safely
+        function embedUrl() {
+            var input = document.getElementById('urlInput').value.trim();
+            
+            // Auto-appends standard communication scheme prefix if missing
+            if (!/^https?:\/\//i.test(input)) {
+                input = 'https://' + input;
+                document.getElementById('urlInput').value = input;
+            }
+            
+            document.getElementById('embedFrame').src = input;
+        }
+    </script>
+
+</body>
+</html>
