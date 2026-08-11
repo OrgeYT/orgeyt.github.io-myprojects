@@ -162,7 +162,13 @@
         </div>
 
         <!-- Global Action Buttons -->
-        <div class="flex items-center space-x-2">
+        <div class="flex items-center space-x-3">
+            <!-- Export Options -->
+            <label title="Include Rig Animations in Export" class="flex items-center space-x-1.5 cursor-pointer text-xs text-gray-300 hover:text-white transition-colors bg-gray-950/70 border border-gray-800 px-3 py-1.5 rounded-xl">
+                <input type="checkbox" id="export-anim-check" checked class="accent-blue-500 cursor-pointer w-3.5 h-3.5">
+                <span>Pack Animations</span>
+            </label>
+
             <!-- Reset Camera Button -->
             <button id="reset-cam-btn" title="Reset Camera View" class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs font-medium rounded-lg border border-gray-700 transition-colors flex items-center">
                 <i class="fa-solid fa-video mr-1.5"></i> Reset View
@@ -314,7 +320,7 @@
         /**
          * 3D NOOB MAKER - Main Studio Application Logic
          */
-        const MODEL_URL = "https://file.garden/Zj01o_oh-G9Y8APf/custom_noob_model%20(2).glb";
+        const MODEL_URL = "https://file.garden/Zj01o_oh-G9Y8APf/Noob%20armpit%20fix.glb";
 
         // Application State
         const state = {
@@ -654,13 +660,22 @@
             const startB = data[startIdx + 2];
             const startA = data[startIdx + 3];
 
-            if (startR === fillR && startG === fillG && startB === fillB && startA === fillA) return;
+            // Ignore if colors are basically identical to prevent unnecessary loops
+            if (Math.abs(startR - fillR) < 5 && Math.abs(startG - fillG) < 5 && Math.abs(startB - fillB) < 5) return;
 
-            const queue = [[startX, startY]];
+            // Use a flat array for queue (much faster than pushing/popping nested arrays)
+            const queue = [startX, startY];
             const visited = new Uint8Array(width * height);
+            
+            // Tolerances for fixing anti-aliased halos/outlines
+            const fillTolerance = 60;   // Main region to propagate (increased from 20 to swallow blurry edges)
+            const bleedTolerance = 140; // Boundary pixels to color but NOT propagate (creates a 1-pixel bleed)
 
             while (queue.length > 0) {
-                const [x, y] = queue.pop();
+                // Pop y then x because we push x then y
+                const y = queue.pop();
+                const x = queue.pop();
+                
                 const idx = y * width + x;
 
                 if (x < 0 || x >= width || y < 0 || y >= height || visited[idx]) continue;
@@ -669,17 +684,30 @@
                 const pIdx = idx * 4;
                 const r = data[pIdx], g = data[pIdx + 1], b = data[pIdx + 2], a = data[pIdx + 3];
 
-                // Match with tolerance
-                if (Math.abs(r - startR) <= 20 && Math.abs(g - startG) <= 20 && Math.abs(b - startB) <= 20 && Math.abs(a - startA) <= 20) {
+                const rDiff = Math.abs(r - startR);
+                const gDiff = Math.abs(g - startG);
+                const bDiff = Math.abs(b - startB);
+                const aDiff = Math.abs(a - startA);
+
+                // Main region match (propagate fill)
+                if (rDiff <= fillTolerance && gDiff <= fillTolerance && bDiff <= fillTolerance && aDiff <= fillTolerance) {
                     data[pIdx] = fillR;
                     data[pIdx + 1] = fillG;
                     data[pIdx + 2] = fillB;
                     data[pIdx + 3] = fillA;
 
-                    queue.push([x + 1, y]);
-                    queue.push([x - 1, y]);
-                    queue.push([x, y + 1]);
-                    queue.push([x, y - 1]);
+                    // Push neighbors (push x then y)
+                    queue.push(x + 1, y);
+                    queue.push(x - 1, y);
+                    queue.push(x, y + 1);
+                    queue.push(x, y - 1);
+                } 
+                // Boundary anti-aliasing pixels (color them to remove outline, but don't propagate)
+                else if (rDiff <= bleedTolerance && gDiff <= bleedTolerance && bDiff <= bleedTolerance) {
+                    data[pIdx] = fillR;
+                    data[pIdx + 1] = fillG;
+                    data[pIdx + 2] = fillB;
+                    data[pIdx + 3] = fillA;
                 }
             }
 
@@ -886,6 +914,9 @@
                 selectEl.appendChild(opt);
             });
 
+            // Ensure the UI select matches the default state
+            selectEl.value = 'A-Pose';
+
             // Select default A-Pose
             playAnimation('A-Pose');
         }
@@ -902,6 +933,16 @@
 
             if (animName === 'A-Pose') {
                 state.mixer.stopAllAction();
+                
+                // Force reset the skeleton to its rest/bind pose
+                if (state.modelGroup) {
+                    state.modelGroup.traverse((child) => {
+                        if (child.isSkinnedMesh) {
+                            child.pose();
+                        }
+                    });
+                }
+                
                 document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-play"></i>';
                 return;
             }
@@ -909,6 +950,7 @@
             const clip = THREE.AnimationClip.findByName(state.animations, animName) || state.animations[0];
             if (clip) {
                 state.activeAction = state.mixer.clipAction(clip);
+                state.activeAction.reset(); // Ensure it starts from the beginning
                 state.activeAction.play();
                 document.getElementById('anim-play-btn').innerHTML = '<i class="fa-solid fa-pause"></i>';
             }
@@ -933,12 +975,17 @@
             notifyTextureUpdate(2);
 
             const exporter = new THREE.GLTFExporter();
+            
+            const includeAnimations = document.getElementById('export-anim-check').checked;
 
             // Export options
             const options = {
-                binary: true,
-                animations: state.animations
+                binary: true
             };
+            
+            if (includeAnimations && state.animations && state.animations.length > 0) {
+                options.animations = state.animations;
+            }
 
             try {
                 // In Three.js r128, the GLTFExporter.parse signature is parse(input, onDone, options)
