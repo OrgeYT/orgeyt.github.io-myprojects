@@ -348,7 +348,7 @@ body.layout-down #file-list { max-height: 200px; }
     display: flex;
     gap: 5px;
     margin-bottom: 10px;
-    flex-wrap: wrap; /* Added for the extra tab */
+    flex-wrap: wrap;
 }
 
 .tab-btn {
@@ -444,7 +444,7 @@ body.layout-down #file-list { max-height: 200px; }
 .file-btn.favorited-item {
     background-color: rgba(255, 255, 0, 0.35);
     border-color: rgba(255, 255, 0, 0.5);
-    color: #fff; /* Ensuring visibility */
+    color: #fff;
     text-shadow: 1px 1px 2px #000;
 }
 
@@ -455,21 +455,23 @@ body.layout-down #file-list { max-height: 200px; }
 .main-content {
     flex: 1;
     display: flex;
-    background-color: #000; /* Behind iframe frame stays black */
+    background-color: #000;
     position: relative; 
     align-items: center;
     justify-content: center;
+    overflow: hidden;
 }
 
 #runner-frame {
     width: 100%;
     height: 100%;
     border: none;
-    background-color: #fff; /* Iframe stays white to not break projects */
+    background-color: #fff;
     
     /* Project Effects */
     --fx-invert: 0%;
     --fx-bw: 0%;
+    --fx-hue: 0deg;
     filter: invert(var(--fx-invert)) grayscale(var(--fx-bw));
     transition: filter 0.3s, transform 0.3s, box-shadow 0.3s, border-radius 0.3s;
 }
@@ -479,7 +481,7 @@ body.layout-down #file-list { max-height: 200px; }
 #runner-frame.fx-pixel { image-rendering: pixelated; }
 #runner-frame.fx-rainbow { animation: rainbow-fx 2.5s linear infinite; }
 
-/* NEW EFFECTS */
+/* PROJECT EFFECTS */
 #runner-frame.fx-glow {
     box-shadow: 0 0 35px 15px var(--accent-solid);
     transform: scale(0.95);
@@ -488,6 +490,53 @@ body.layout-down #file-list { max-height: 200px; }
 
 #runner-frame.fx-wavy {
     animation: wavy-fx 3s infinite ease-in-out;
+}
+
+/* NEW EFFECTS */
+#runner-frame.fx-rawbw {
+    filter: grayscale(100%) contrast(10000%) !important;
+}
+
+#runner-frame.fx-posterize {
+    filter: url(#posterize-filter);
+}
+
+#runner-frame.fx-flipped {
+    transform: scaleX(-1);
+}
+
+#runner-frame.fx-color {
+    filter: grayscale(100%) sepia(100%) hue-rotate(calc(var(--fx-hue, 0deg) - 40deg)) saturate(300%);
+}
+
+#runner-frame.fx-discration {
+    animation: discration-fx 0.15s infinite alternate ease-in-out, discration-spin 4s infinite linear;
+}
+
+/* Discration Overlay Items */
+.discration-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 99;
+    font-weight: bold;
+    font-size: 1.6rem;
+    color: #ff0055;
+    text-shadow: 2px 2px 0px #000, -2px -2px 0px #fff;
+    animation: discration-bounce 0.4s infinite alternate ease-in-out;
+}
+
+/* Pixel Overlay */
+#pixel-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    background-size: 4px 4px;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 0.2) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 1px, transparent 1px);
+    z-index: 5;
 }
 
 /* Keyframes */
@@ -501,6 +550,22 @@ body.layout-down #file-list { max-height: 200px; }
     25% { transform: scale(1.02) skewX(1deg) skewY(1deg) translateY(4px); }
     50% { transform: scale(1.02) skewX(-1deg) skewY(-1deg) translateY(-4px); }
     75% { transform: scale(1.02) skewX(-2deg) skewY(1deg) translateY(2px); }
+}
+
+@keyframes discration-fx {
+    0% { transform: translate(-10px, -6px) rotate(-3deg) scale(0.97); filter: hue-rotate(0deg) contrast(160%); }
+    50% { transform: translate(12px, 8px) rotate(4deg) scale(1.03); filter: hue-rotate(180deg) invert(40%); }
+    100% { transform: translate(-8px, 9px) rotate(-4deg) scale(0.98); filter: hue-rotate(360deg) contrast(220%); }
+}
+
+@keyframes discration-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes discration-bounce {
+    0% { transform: scale(1) rotate(-12deg); }
+    100% { transform: scale(1.5) rotate(18deg); }
 }
 
 /* UI Control Buttons Layering */
@@ -594,8 +659,9 @@ body.layout-down #file-list { max-height: 200px; }
 }
 
 .setting-group input[type="text"],
-.setting-group input[type="file"] {
-    padding: 8px;
+.setting-group input[type="file"],
+.setting-group input[type="range"] {
+    padding: 6px;
     background-color: var(--bg-main);
     border: 1px solid var(--border-main);
     color: var(--text-main);
@@ -697,7 +763,7 @@ body.layout-down #file-list { max-height: 200px; }
     border-radius: 5px;
     display: flex;
     flex-direction: column;
-    opacity: 0.5; /* Dimmed when locked */
+    opacity: 0.5;
     transition: opacity 0.3s, border-color 0.3s, background-color 0.3s;
 }
 
@@ -916,7 +982,6 @@ body.layout-down #file-list { max-height: 200px; }
     text-transform: uppercase;
     letter-spacing: 1px;
 }
-/* The hover effect and colors will now automatically be handled by the .toggle-btn class! */
 
 .admin-section {
     margin-top: 15px;
