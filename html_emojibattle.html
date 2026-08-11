@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🪨📃✂️ RPS Simulation Game</title>
+    <!-- Dynamic SVG Favicon featuring all 3 emojis -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.85em%22 font-size=%2232%22>🪨</text><text x=%2233%22 y=%22.85em%22 font-size=%2232%22>📃</text><text x=%2266%22 y=%22.85em%22 font-size=%2232%22>✂️</text></svg>">
+    <!-- Tailwind CSS for modern responsive UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom aesthetics and canvas styling */
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            overflow: hidden;
+            background-color: #f8fafc;
+        }
+
+        /* Glassmorphism card styles */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+
+        /* Canvas white map background */
+        #gameCanvas {
+            background-color: #ffffff;
+            cursor: crosshair;
+        }
+
+        /* Smooth tab animations */
+        .btn-press {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .btn-press:active {
+            transform: scale(0.96);
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col font-sans text-slate-800 antialiased bg-slate-100">
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app" class="relative w-full h-full flex flex-col overflow-hidden">
+
+        <!-- TITLE / SETTINGS SCREEN -->
+        <div id="titleScreen" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
+            <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/60 flex flex-col max-h-[92vh] overflow-y-auto">
+                
+                <!-- Header -->
+                <div class="text-center mb-6">
+                    <div id="titleEmojiContainer" class="inline-flex items-center justify-center space-x-2 text-3xl sm:text-5xl mb-2 hover:scale-105 transition-transform cursor-default flex-wrap">
+                        <span id="titleEmoji1" class="animate-bounce">🪨</span>
+                        <span id="titleEmoji2" class="animate-bounce [animation-delay:0.15s]">📃</span>
+                        <span id="titleEmoji3" class="animate-bounce [animation-delay:0.3s]">✂️</span>
+                        <span id="titleEmoji4" class="animate-bounce [animation-delay:0.45s] hidden">🦎</span>
+                        <span id="titleEmoji5" class="animate-bounce [animation-delay:0.6s] hidden">🖖</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Emoji Simulation</h1>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Watch emojis chase, flee, collide, and transform!</p>
+                </div>
+
+                <!-- Settings Form -->
+                <div class="space-y-5">
+                    
+                    <!-- Presets Selector -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Preset Themes</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="applyPreset('classic')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
+                                <span class="text-base sm:text-lg">🪨 📃 ✂️ 🦎 🖖</span>
+                                <span>Classic</span>
+                            </button>
+                            <button type="button" onclick="applyPreset('elemental')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
+                                <span class="text-base sm:text-lg">🔥 💧 🌿 ⚡ 🌀</span>
+                                <span>Elements</span>
+                            </button>
+                            <button type="button" onclick="applyPreset('animals')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
+                                <span class="text-base sm:text-lg">🐶 🐱 🐭 🐸 🐍</span>
+                                <span>Animals</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Game Mode Selection -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Game Mode</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 p-1 bg-slate-100 rounded-2xl">
+                            <button id="mode1v0Btn" type="button" onclick="setMode('1v0')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">1 team</button>
+                            <button id="mode2v2Btn" type="button" onclick="setMode('2v2')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">2 teams</button>
+                            <button id="mode3v3Btn" type="button" onclick="setMode('3v3')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm bg-white text-blue-600">3 teams</button>
+                            <button id="mode4v4Btn" type="button" onclick="setMode('4v4')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">4 teams</button>
+                            <button id="mode5v5Btn" type="button" onclick="setMode('5v5')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">5 teams</button>
+                        </div>
+                        <p id="modeDescription" class="text-[11px] text-slate-500 mt-1.5 px-1 leading-snug">
+                            3 teams follows cyclic rules (A beats B, B beats C, C beats A).
+                        </p>
+                    </div>
+
+                    <!-- Teams Configuration -->
+                    <div class="space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 max-h-52 overflow-y-auto">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Custom Emojis</label>
+
+                        <!-- Team 1 -->
+                        <div class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-bold text-slate-600 w-16">Team 1:</span>
+                            <div class="flex items-center gap-2 flex-1">
+                                <input type="text" id="team1Emoji" maxlength="2" value="🪨" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team1Name" value="Rock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 2 -->
+                        <div id="team2Row" class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-bold text-slate-600 w-16">Team 2:</span>
+                            <div class="flex items-center gap-2 flex-1">
+                                <input type="text" id="team2Emoji" maxlength="2" value="📃" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team2Name" value="Paper" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 3 -->
+                        <div id="team3Row" class="flex items-center justify-between gap-3">
+                            <span class="text-xs font-bold text-slate-600 w-16">Team 3:</span>
+                            <div class="flex items-center gap-2 flex-1">
+                                <input type="text" id="team3Emoji" maxlength="2" value="✂️" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team3Name" value="Scissors" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 4 -->
+                        <div id="team4Row" class="flex items-center justify-between gap-3 hidden">
+                            <span class="text-xs font-bold text-slate-600 w-16">Team 4:</span>
+                            <div class="flex items-center gap-2 flex-1">
+                                <input type="text" id="team4Emoji" maxlength="2" value="🦎" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team4Name" value="Lizard" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 5 -->
+                        <div id="team5Row" class="flex items-center justify-between gap-3 hidden">
+                            <span class="text-xs font-bold text-slate-600 w-16">Team 5:</span>
+                            <div class="flex items-center gap-2 flex-1">
+                                <input type="text" id="team5Emoji" maxlength="2" value="🖖" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team5Name" value="Spock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Units Per Team Slider -->
+                    <div>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Units Per Team</label>
+                            <span id="unitsValueDisplay" class="text-sm font-black text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">10</span>
+                        </div>
+                        <input type="range" id="unitsSlider" min="1" max="50" value="10" step="1" oninput="document.getElementById('unitsValueDisplay').innerText = this.value" class="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg">
+                        <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-medium">
+                            <span>1 (Quick)</span>
+                            <span>10 (Default)</span>
+                            <span>50 (Chaos!)</span>
+                        </div>
+                    </div>
+
+                    <!-- Player Control Toggle Option -->
+                    <div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200/80 flex items-center justify-between shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <span class="text-2xl">👑</span>
+                            <div>
+                                <label for="playerModeToggle" class="text-xs font-bold uppercase tracking-wider text-amber-900 cursor-pointer">Play As A Unit</label>
+                                <p class="text-[11px] text-amber-700 font-medium leading-tight">Control a crowned emoji with your cursor! You transform on hit.</p>
+                            </div>
+                        </div>
+                        <input type="checkbox" id="playerModeToggle" class="w-5 h-5 accent-amber-600 rounded cursor-pointer">
+                    </div>
+
+                    <!-- Additional Physics Tuning -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Speed</label>
+                            <select id="speedSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 bg-white px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-700 shadow-sm">
+                                <option value="1.5">Slow & Calm</option>
+                                <option value="2.5" selected>Normal</option>
+                                <option value="3.8">Fast & Energetic</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Shakiness</label>
+                            <select id="jitterSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 bg-white px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-700 shadow-sm">
+                                <option value="0.2">Mild</option>
+                                <option value="0.5" selected>Shaky (Default)</option>
+                                <option value="0.9">Super Nervous</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Start Simulation Button -->
+                <button type="button" onclick="startGame()" class="w-full mt-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-2xl shadow-lg shadow-blue-500/30 btn-press flex items-center justify-center gap-2 tracking-wide uppercase">
+                    <span>🚀 Launch Simulation</span>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- IN-GAME TOP HUD OVERLAY -->
+        <div id="gameHUD" class="absolute top-3 left-3 right-3 z-20 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
+            
+            <!-- Left Info Panel: Timer & Controls -->
+            <div class="glass-panel rounded-2xl p-2.5 px-4 shadow-md pointer-events-auto flex items-center justify-between sm:justify-start gap-3 border border-slate-200/80">
+                <!-- Match Timer -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400 uppercase font-black tracking-wider">TIME</span>
+                    <span id="hudTimer" class="font-mono text-lg font-extrabold text-slate-800 tracking-tight">00:00.0</span>
+                </div>
+
+                <div class="h-4 w-px bg-slate-200"></div>
+
+                <!-- HUD Action Buttons -->
+                <div class="flex items-center gap-1">
+                    <!-- Pause/Play -->
+                    <button id="pauseBtn" onclick="togglePause()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Pause/Play">
+                        <svg id="pauseIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <svg id="playIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </button>
+                    <!-- Speed Toggle -->
+                    <button id="speedMultiplierBtn" onclick="cycleSpeedMultiplier()" class="px-2 py-1 text-xs font-black rounded-xl hover:bg-slate-100 text-blue-600 bg-blue-50 border border-blue-200 btn-press" title="Simulation Speed">
+                        1x
+                    </button>
+                    <!-- Restart Match -->
+                    <button onclick="restartGame()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Restart Match">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                    <!-- Settings/Menu Button -->
+                    <button onclick="openSettings()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Return to Title / Settings">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    </button>
+                    <!-- Audio Sound Mute Toggle -->
+                    <button id="soundBtn" onclick="toggleAudio()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Toggle Sound Effects">
+                        <span id="soundIcon" class="text-base">🔊</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Info Panel: Live Team Counters -->
+            <div id="hudCounters" class="glass-panel rounded-2xl p-2 px-3 shadow-md pointer-events-auto flex items-center justify-around gap-2 sm:gap-3 border border-slate-200/80 flex-wrap">
+                <!-- Dynamically populated team badges -->
+            </div>
+
+        </div>
+
+        <!-- WINNER ANNOUNCEMENT MODAL -->
+        <div id="winModal" class="absolute inset-0 z-40 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+            <div class="glass-panel w-full max-w-md rounded-3xl p-8 shadow-2xl text-center border border-white/80">
+                
+                <div id="winEmoji" class="text-7xl mb-3 animate-bounce">🏆</div>
+                <h2 id="winTitle" class="text-3xl font-black text-slate-900 tracking-tight">Team Victorious!</h2>
+                <p id="winSubtext" class="text-sm font-medium text-slate-500 mt-2">All opponents have been converted!</p>
+                
+                <!-- Match Statistics -->
+                <div class="my-6 p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2 text-xs sm:text-sm text-slate-600">
+                    <div class="flex justify-between">
+                        <span>Total Match Time:</span>
+                        <span id="winStatTime" class="font-bold font-mono text-slate-800">00:00.0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Total Transformations:</span>
+                        <span id="winStatConversions" class="font-bold text-slate-800">0</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Winning Team Size:</span>
+                        <span id="winStatFinalCount" class="font-bold text-slate-800">30</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="restartGame()" class="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md shadow-blue-500/20 btn-press">
+                        🔄 Rematch
+                    </button>
+                    <button onclick="openSettings()" class="py-3 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-2xl btn-press">
+                        ⚙️ Title / Settings
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- THE CANVAS ARENA -->
+        <canvas id="gameCanvas" class="w-full h-full block flex-1"></canvas>
+
+    </div>
+
+    <script>
+        /* ==========================================================================
+           GLOBAL GAME ENGINE STATE
+           ========================================================================== */
+        let canvas, ctx;
+        let units = [];
+        let particles = [];
+        let isPaused = false;
+        let isGameOver = false;
+        let totalConversions = 0;
+        let elapsedTime = 0;
+        let lastFrameTime = 0;
+        let mouseX = 0;
+        let mouseY = 0;
+        let isMouseActive = false;
+
+        const PRESETS = {
+            classic: {
+                teams: [
+                    { emoji: '🪨', name: 'Rock', color: '#64748b' },
+                    { emoji: '📃', name: 'Paper', color: '#0284c7' },
+                    { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
+                    { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
+                    { emoji: '🖖', name: 'Spock', color: '#9333ea' }
+                ]
+            },
+            elemental: {
+                teams: [
+                    { emoji: '🔥', name: 'Fire', color: '#f97316' },
+                    { emoji: '💧', name: 'Water', color: '#06b6d4' },
+                    { emoji: '🌿', name: 'Grass', color: '#16a34a' },
+                    { emoji: '⚡', name: 'Lightning', color: '#eab308' },
+                    { emoji: '🌀', name: 'Wind', color: '#6366f1' }
+                ]
+            },
+            animals: {
+                teams: [
+                    { emoji: '🐶', name: 'Dog', color: '#d97706' },
+                    { emoji: '🐱', name: 'Cat', color: '#9333ea' },
+                    { emoji: '🐭', name: 'Mouse', color: '#475569' },
+                    { emoji: '🐸', name: 'Frog', color: '#15803d' },
+                    { emoji: '🐍', name: 'Snake', color: '#047857' }
+                ]
+            }
+        };
+
+        const config = {
+            mode: '3v3', // '2v2', '3v3', '4v4', '5v5'
+            playerEnabled: false,
+            teams: [
+                { emoji: '🪨', name: 'Rock', color: '#64748b' },
+                { emoji: '📃', name: 'Paper', color: '#0284c7' },
+                { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
+                { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
+                { emoji: '🖖', name: 'Spock', color: '#9333ea' }
+            ],
+            unitsPerTeam: 10,
+            baseSpeed: 2.5,
+            shakiness: 0.5,
+            unitRadius: 20,
+            speedMultiplier: 1 // 1x, 2x, 4x simulation speed
+        };
+
+        /* ==========================================================================
+           WEB AUDIO SYNTHESIZER
+           ========================================================================== */
+        class SoundManager {
+            constructor() {
+                this.ctx = null;
+                this.muted = false;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+            playPop(pitchFactor = 1) {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    const freq = 400 * pitchFactor;
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(800 * pitchFactor, this.ctx.currentTime + 0.08);
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.08);
+                } catch(e) {}
+            }
+            playBounce() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.05);
+                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.05);
+                } catch(e) {}
+            }
+            playFanfare() {
+                if (this.muted) return;
+                this.init();
+                if (!this.ctx) return;
+                try {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.value = freq;
+                        const startTime = this.ctx.currentTime + idx * 0.12;
+                        gain.gain.setValueAtTime(0.2, startTime);
+                        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(startTime);
+                        osc.stop(startTime + 0.3);
+                    });
+                } catch(e) {}
+            }
+        }
+        const audio = new SoundManager();
+
+        /* ==========================================================================
+           PARTICLE SYSTEM
+           ========================================================================== */
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * 4 + 1;
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                this.radius = Math.random() * 3 + 2;
+                this.life = 1.0;
+                this.decay = Math.random() * 0.03 + 0.02;
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vx *= 0.95;
+                this.vy *= 0.95;
+                this.life -= this.decay;
+            }
+            draw(ctx) {
+                if (this.life <= 0) return;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function createBurst(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push(new Particle(x, y, color));
+            }
+        }
+
+        /* ==========================================================================
+           GAME LOGIC MATRIX (2v2, 3v3, 4v4, 5v5 RPSLS)
+           ========================================================================== */
+        function doesBeat(winnerIdx, loserIdx, mode) {
+            if (winnerIdx === loserIdx) return false;
+            if (mode === '2v2') {
+                return false; // Handled as random 50/50 win on touch
+            }
+            if (mode === '3v3') {
+                return (winnerIdx + 2) % 3 === loserIdx;
+            }
+            if (mode === '4v4') {
+                return (winnerIdx + 3) % 4 === loserIdx;
+            }
+            if (mode === '5v5') {
+                // Rock-Paper-Scissors-Lizard-Spock rules:
+                // 0: Rock, 1: Paper, 2: Scissors, 3: Lizard, 4: Spock
+                const targets = {
+                    0: [2, 3], // Rock crushes Scissors (2) & Lizard (3)
+                    1: [0, 4], // Paper covers Rock (0) & disproves Spock (4)
+                    2: [1, 3], // Scissors cuts Paper (1) & decapitates Lizard (3)
+                    3: [4, 1], // Lizard poisons Spock (4) & eats Paper (1)
+                    4: [0, 2]  // Spock vaporizes Rock (0) & smashes Scissors (2)
+                };
+                return targets[winnerIdx] ? targets[winnerIdx].includes(loserIdx) : false;
+            }
+            return false;
+        }
+
+        /* ==========================================================================
+           UNIT CLASS & AI BEHAVIOR
+           ========================================================================== */
+        class Unit {
+            constructor(x, y, teamIndex) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * config.baseSpeed * 2;
+                this.vy = (Math.random() - 0.5) * config.baseSpeed * 2;
+                this.teamIndex = teamIndex;
+                this.radius = config.unitRadius;
+                this.immunityTimer = 0; // Prevent instant conversion loop
+                this.pulseScale = 1.0;  // Scale effect on conversion
+                this.wanderAngle = Math.random() * Math.PI * 2;
+                this.isPlayer = false;
+            }
+
+            get team() {
+                return config.teams[this.teamIndex];
+            }
+
+            update(width, height, allUnits) {
+                if (this.immunityTimer > 0) this.immunityTimer--;
+                if (this.pulseScale > 1.0) this.pulseScale -= 0.03;
+
+                if (config.mode === '1v0') {
+                    const centerX = width / 2;
+                    const centerY = height / 2;
+                    let dx = this.x - centerX;
+                    let dy = this.y - centerY;
+                    if (dx === 0 && dy === 0) {
+                        dx = Math.random() - 0.5;
+                        dy = Math.random() - 0.5;
+                    }
+                    const len = Math.hypot(dx, dy) || 1;
+                    
+                    // Accelerate away from center with high speed off-screen
+                    this.vx += (dx / len) * 0.8;
+                    this.vy += (dy / len) * 0.8;
+
+                    this.x += this.vx * config.speedMultiplier;
+                    this.y += this.vy * config.speedMultiplier;
+                    return; // Bypass wall boundary bounces
+                }
+
+                // --- AI / PLAYER STEERING & TARGET SELECTION ---
+                let fx = 0;
+                let fy = 0;
+
+                if (this.isPlayer && isMouseActive) {
+                    // Player Steering: Move slowly towards mouse cursor
+                    const dx = mouseX - this.x;
+                    const dy = mouseY - this.y;
+                    const dist = Math.hypot(dx, dy) || 1;
+                    if (dist > 8) {
+                        const pullFactor = Math.min(1.4, dist * 0.02);
+                        fx += (dx / dist) * pullFactor;
+                        fy += (dy / dist) * pullFactor;
+                    }
+                } else {
+                    let chaseTarget = null;
+                    let chaseDist = Infinity;
+
+                    let fleeTarget = null;
+                    let fleeDist = Infinity;
+
+                    if (config.mode === '2v2') {
+                        // 2v2 Mode: Seek opponent team
+                        const opponentTeamIdx = this.teamIndex === 0 ? 1 : 0;
+                        for (const u of allUnits) {
+                            if (u === this) continue;
+                            if (u.teamIndex === opponentTeamIdx) {
+                                const dx = u.x - this.x;
+                                const dy = u.y - this.y;
+                                const dSq = dx * dx + dy * dy;
+                                if (dSq < chaseDist) {
+                                    chaseDist = dSq;
+                                    chaseTarget = u;
+                                }
+                            }
+                        }
+                    } else {
+                        // 3v3, 4v4, 5v5 Modes: Chase targets we beat, flee threats that beat us
+                        for (const u of allUnits) {
+                            if (u === this || u.teamIndex === this.teamIndex) continue;
+
+                            const dx = u.x - this.x;
+                            const dy = u.y - this.y;
+                            const dSq = dx * dx + dy * dy;
+
+                            // Check if u is a target we beat
+                            if (doesBeat(this.teamIndex, u.teamIndex, config.mode)) {
+                                if (dSq < chaseDist) {
+                                    chaseDist = dSq;
+                                    chaseTarget = u;
+                                }
+                            } 
+                            // Check if u is a threat that beats us
+                            else if (doesBeat(u.teamIndex, this.teamIndex, config.mode)) {
+                                if (dSq < fleeDist) {
+                                    fleeDist = dSq;
+                                    fleeTarget = u;
+                                }
+                            }
+                        }
+                    }
+
+                    // 1. Chase Force
+                    if (chaseTarget) {
+                        const dx = chaseTarget.x - this.x;
+                        const dy = chaseTarget.y - this.y;
+                        const len = Math.hypot(dx, dy) || 1;
+                        fx += (dx / len) * 1.2;
+                        fy += (dy / len) * 1.2;
+                    }
+
+                    // 2. Flee Force
+                    if (fleeTarget) {
+                        const dx = this.x - fleeTarget.x;
+                        const dy = this.y - fleeTarget.y;
+                        const len = Math.hypot(dx, dy) || 1;
+                        const fleeWeight = Math.min(2.5, 4000 / (fleeDist + 1));
+                        fx += (dx / len) * fleeWeight;
+                        fy += (dy / len) * fleeWeight;
+                    }
+                }
+
+                // 3. Shaky / Jitter Movement (applies to both AI & Player)
+                this.wanderAngle += (Math.random() - 0.5) * config.shakiness * 2;
+                fx += Math.cos(this.wanderAngle) * (config.shakiness * 1.5);
+                fy += Math.sin(this.wanderAngle) * (config.shakiness * 1.5);
+
+                // 4. Teammate Separation
+                for (const u of allUnits) {
+                    if (u === this || u.teamIndex !== this.teamIndex) continue;
+                    const dx = this.x - u.x;
+                    const dy = this.y - u.y;
+                    const dSq = dx * dx + dy * dy;
+                    if (dSq > 0 && dSq < (this.radius * 2.2) ** 2) {
+                        const dist = Math.sqrt(dSq);
+                        fx += (dx / dist) * 0.8;
+                        fy += (dy / dist) * 0.8;
+                    }
+                }
+
+                // Apply velocity acceleration
+                const accel = 0.25;
+                this.vx += fx * accel;
+                this.vy += fy * accel;
+
+                // Cap max speed
+                const speed = Math.hypot(this.vx, this.vy);
+                const maxSpeed = config.baseSpeed;
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+
+                // Update Position
+                this.x += this.vx * config.speedMultiplier;
+                this.y += this.vy * config.speedMultiplier;
+
+                // Boundary bounce
+                const margin = this.radius;
+                if (this.x < margin) {
+                    this.x = margin;
+                    this.vx = Math.abs(this.vx);
+                } else if (this.x > width - margin) {
+                    this.x = width - margin;
+                    this.vx = -Math.abs(this.vx);
+                }
+
+                if (this.y < margin) {
+                    this.y = margin;
+                    this.vy = Math.abs(this.vy);
+                } else if (this.y > height - margin) {
+                    this.y = height - margin;
+                    this.vy = -Math.abs(this.vy);
+                }
+            }
+
+            draw(ctx) {
+                const currentRadius = this.radius * this.pulseScale;
+
+                ctx.save();
+
+                // Distinctive halo & crown indicator for Player unit
+                if (this.isPlayer) {
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, currentRadius * 1.45, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+                    ctx.fill();
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.setLineDash([4, 4]);
+                    ctx.stroke();
+
+                    // Floating crown icon above player
+                    ctx.font = `${currentRadius * 0.85}px sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText('👑', this.x, this.y - currentRadius * 1.15);
+                }
+
+                ctx.fillStyle = '#000000';
+                ctx.globalAlpha = 1.0;
+
+                // Draw Unit Emoji Appearance
+                ctx.font = `${currentRadius * 1.5}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.team.emoji, this.x, this.y);
+
+                ctx.restore();
+            }
+        }
+
+        /* ==========================================================================
+           COLLISION RESOLUTION & CONVERSION LOGIC
+           ========================================================================== */
+        function handleCollisions() {
+            const numUnits = units.length;
+
+            for (let i = 0; i < numUnits; i++) {
+                for (let j = i + 1; j < numUnits; j++) {
+                    const u1 = units[i];
+                    const u2 = units[j];
+
+                    const dx = u2.x - u1.x;
+                    const dy = u2.y - u1.y;
+                    const distSq = dx * dx + dy * dy;
+                    const minDist = u1.radius + u2.radius;
+
+                    if (distSq < minDist * minDist) {
+                        const dist = Math.sqrt(distSq) || 0.001;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+
+                        // 1. Separate overlapping circles
+                        const overlap = 0.5 * (minDist - dist);
+                        u1.x -= nx * overlap;
+                        u1.y -= ny * overlap;
+                        u2.x += nx * overlap;
+                        u2.y += ny * overlap;
+
+                        // 2. Elastic Impulse Bounce
+                        const kx = u1.vx - u2.vx;
+                        const ky = u1.vy - u2.vy;
+                        const p = 2 * (nx * kx + ny * ky) / 2;
+
+                        u1.vx -= p * nx;
+                        u1.vy -= p * ny;
+                        u2.vx += p * nx;
+                        u2.vy += p * ny;
+
+                        // 3. Transformation Rules Check
+                        if (u1.teamIndex !== u2.teamIndex && u1.immunityTimer === 0 && u2.immunityTimer === 0) {
+                            
+                            let winnerUnit = null;
+                            let loserUnit = null;
+
+                            if (config.mode === '2v2') {
+                                // 2v2 Mode: 50/50 win on touch for fair gameplay
+                                if (Math.random() < 0.5) {
+                                    winnerUnit = u1;
+                                    loserUnit = u2;
+                                } else {
+                                    winnerUnit = u2;
+                                    loserUnit = u1;
+                                }
+                            } else {
+                                // 3v3, 4v4, 5v5 Modes
+                                if (doesBeat(u1.teamIndex, u2.teamIndex, config.mode)) {
+                                    winnerUnit = u1;
+                                    loserUnit = u2;
+                                } else if (doesBeat(u2.teamIndex, u1.teamIndex, config.mode)) {
+                                    winnerUnit = u2;
+                                    loserUnit = u1;
+                                }
+                            }
+
+                            if (winnerUnit && loserUnit) {
+                                // Transform loser into winner's team!
+                                loserUnit.teamIndex = winnerUnit.teamIndex;
+                                loserUnit.immunityTimer = 18;
+                                loserUnit.pulseScale = 1.6;
+                                totalConversions++;
+
+                                createBurst(loserUnit.x, loserUnit.y, winnerUnit.team.color);
+                                audio.playPop(1 + winnerUnit.teamIndex * 0.15);
+
+                                // Extra effect if the player unit got transformed!
+                                if (loserUnit.isPlayer) {
+                                    audio.playPop(2.2);
+                                    createBurst(loserUnit.x, loserUnit.y, '#f59e0b');
+                                }
+                            }
+                        } else {
+                            audio.playBounce();
+                        }
+
+                    }
+                }
+            }
+        }
+
+        /* ==========================================================================
+           GAME LOOP & UI REFRESH
+           ========================================================================== */
+        function formatTime(ms) {
+            const totalSec = Math.floor(ms / 1000);
+            const mins = Math.floor(totalSec / 60).toString().padStart(2, '0');
+            const secs = (totalSec % 60).toString().padStart(2, '0');
+            const tenths = Math.floor((ms % 1000) / 100);
+            return `${mins}:${secs}.${tenths}`;
+        }
+
+        function gameLoop(timestamp) {
+            if (!lastFrameTime) lastFrameTime = timestamp;
+            const deltaTime = timestamp - lastFrameTime;
+            lastFrameTime = timestamp;
+
+            const isTitleHidden = document.getElementById('titleScreen').classList.contains('hidden');
+
+            if (!isPaused && !isGameOver && isTitleHidden) {
+                elapsedTime += deltaTime * config.speedMultiplier;
+                document.getElementById('hudTimer').innerText = formatTime(elapsedTime);
+
+                // Update units physics & AI
+                units.forEach(u => u.update(canvas.width, canvas.height, units));
+
+                // Resolve collisions & transformations
+                handleCollisions();
+
+                // Check victory state
+                checkWinCondition();
+
+                // Update live HUD
+                updateHUDCounters();
+            }
+
+            // Draw frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw(ctx);
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            // Draw units
+            units.forEach(u => u.draw(ctx));
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateHUDCounters() {
+            const container = document.getElementById('hudCounters');
+            const total = units.length;
+
+            const counts = [0, 0, 0, 0, 0];
+            units.forEach(u => counts[u.teamIndex]++);
+
+            const maxTeams = config.mode === '1v0' ? 1 : config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
+            let html = '';
+
+            for (let i = 0; i < maxTeams; i++) {
+                const team = config.teams[i];
+                const count = counts[i];
+                const pct = Math.round((count / total) * 100) || 0;
+
+                html += `
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <span class="text-lg sm:text-2xl">${team.emoji}</span>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black text-slate-800">${count} <span class="text-[10px] font-normal text-slate-400">(${pct}%)</span></span>
+                            <div class="w-10 sm:w-14 h-1.5 bg-slate-200 rounded-full overflow-hidden mt-0.5">
+                                <div class="h-full rounded-full transition-all duration-300" style="width: ${pct}%; background-color: ${team.color}"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function checkWinCondition() {
+            if (config.mode === '1v0' && !isGameOver) {
+                // Win when all units have fled off the screen
+                const allOffscreen = units.length > 0 && units.every(u => 
+                    u.x < -u.radius * 2 || u.x > canvas.width + u.radius * 2 ||
+                    u.y < -u.radius * 2 || u.y > canvas.height + u.radius * 2
+                );
+
+                if (allOffscreen) {
+                    isGameOver = true;
+                    const winner = config.teams[0];
+                    audio.playFanfare();
+
+                    setTimeout(() => {
+                        document.getElementById('winEmoji').innerText = winner.emoji;
+                        document.getElementById('winTitle').innerText = `${winner.name} Wins!`;
+                        document.getElementById('winSubtext').innerText = 'The team escaped off-screen to claim victory!';
+                        document.getElementById('winStatTime').innerText = document.getElementById('hudTimer').innerText;
+                        document.getElementById('winStatConversions').innerText = 0;
+                        document.getElementById('winStatFinalCount').innerText = units.length;
+                        document.getElementById('winModal').classList.remove('hidden');
+                    }, 200);
+                }
+                return;
+            }
+
+            const maxTeams = config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
+            const counts = [0, 0, 0, 0, 0];
+            units.forEach(u => counts[u.teamIndex]++);
+
+            const activeTeams = counts.slice(0, maxTeams).filter(c => c > 0);
+
+            if (activeTeams.length === 1 && !isGameOver) {
+                isGameOver = true;
+                const winnerIndex = counts.findIndex((c, idx) => idx < maxTeams && c > 0);
+                const winner = config.teams[winnerIndex];
+
+                audio.playFanfare();
+
+                // Show Victory Modal
+                setTimeout(() => {
+                    document.getElementById('winEmoji').innerText = winner.emoji;
+                    document.getElementById('winTitle').innerText = `${winner.name} Wins!`;
+                    document.getElementById('winSubtext').innerText = 'All opponents have been converted!';
+                    document.getElementById('winStatTime').innerText = document.getElementById('hudTimer').innerText;
+                    document.getElementById('winStatConversions').innerText = totalConversions;
+                    document.getElementById('winStatFinalCount').innerText = units.length;
+                    document.getElementById('winModal').classList.remove('hidden');
+                }, 300);
+            }
+        }
+
+        /* ==========================================================================
+           CONTROLS & SETTINGS HANDLERS
+           ========================================================================== */
+        function startGame() {
+            audio.init();
+            readSettingsFromForm();
+            document.getElementById('titleScreen').classList.add('hidden');
+            document.getElementById('winModal').classList.add('hidden');
+            initMatch();
+        }
+
+        function restartGame() {
+            audio.init();
+            document.getElementById('winModal').classList.add('hidden');
+            initMatch();
+        }
+
+        function openSettings() {
+            isPaused = true;
+            document.getElementById('titleScreen').classList.remove('hidden');
+            document.getElementById('winModal').classList.add('hidden');
+        }
+
+        function togglePause() {
+            isPaused = !isPaused;
+            document.getElementById('pauseIcon').classList.toggle('hidden', isPaused);
+            document.getElementById('playIcon').classList.toggle('hidden', !isPaused);
+        }
+
+        function cycleSpeedMultiplier() {
+            if (config.speedMultiplier === 1) config.speedMultiplier = 2;
+            else if (config.speedMultiplier === 2) config.speedMultiplier = 4;
+            else config.speedMultiplier = 1;
+
+            document.getElementById('speedMultiplierBtn').innerText = `${config.speedMultiplier}x`;
+        }
+
+        function toggleAudio() {
+            audio.muted = !audio.muted;
+            document.getElementById('soundIcon').innerText = audio.muted ? '🔇' : '🔊';
+        }
+
+        function setMode(mode) {
+            config.mode = mode;
+            const btn1 = document.getElementById('mode1v0Btn');
+            const btn2 = document.getElementById('mode2v2Btn');
+            const btn3 = document.getElementById('mode3v3Btn');
+            const btn4 = document.getElementById('mode4v4Btn');
+            const btn5 = document.getElementById('mode5v5Btn');
+
+            const team2Row = document.getElementById('team2Row');
+            const team3Row = document.getElementById('team3Row');
+            const team4Row = document.getElementById('team4Row');
+            const team5Row = document.getElementById('team5Row');
+            const modeDesc = document.getElementById('modeDescription');
+
+            [btn1, btn2, btn3, btn4, btn5].forEach(btn => {
+                if (btn) btn.className = 'py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900';
+            });
+
+            const activeBtn = mode === '1v0' ? btn1 : mode === '2v2' ? btn2 : mode === '3v3' ? btn3 : mode === '4v4' ? btn4 : mode === '5v5' ? btn5 : btn3;
+            if (activeBtn) activeBtn.className = 'py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm bg-white text-blue-600';
+
+            if (team2Row) team2Row.style.display = (mode !== '1v0') ? 'flex' : 'none';
+            team3Row.style.display = (mode === '3v3' || mode === '4v4' || mode === '5v5') ? 'flex' : 'none';
+            team4Row.style.display = (mode === '4v4' || mode === '5v5') ? 'flex' : 'none';
+            team5Row.style.display = (mode === '5v5') ? 'flex' : 'none';
+
+            if (mode === '1v0') {
+                modeDesc.innerText = '1 team (Joke Mode): Watch team units run away off-screen instantly to claim default victory!';
+            } else if (mode === '2v2') {
+                modeDesc.innerText = '2 teams mode features random 50/50 winning chance on touch for fair gameplay!';
+            } else if (mode === '3v3') {
+                modeDesc.innerText = '3 teams follows cyclic rules (A beats B, B beats C, C beats A).';
+            } else if (mode === '4v4') {
+                modeDesc.innerText = '4 teams follows a 4-team cyclic elimination loop!';
+            } else if (mode === '5v5') {
+                modeDesc.innerHTML = '<strong>5 teams Classic RPSLS:</strong><br>✂️ cuts 📃 | 📃 covers 🪨 | 🪨 crushes 🦎 | 🦎 poisons 🖖 | 🖖 smashes ✂️<br>✂️ decapitates 🦎 | 🦎 eats 📃 | 📃 disproves 🖖 | 🖖 vaporizes 🪨 | 🪨 crushes ✂️';
+            }
+
+            updateEmojiTitles();
+        }
+
+        function applyPreset(key) {
+            const preset = PRESETS[key];
+            if (!preset) return;
+
+            document.getElementById('team1Emoji').value = preset.teams[0].emoji;
+            document.getElementById('team1Name').value = preset.teams[0].name;
+
+            document.getElementById('team2Emoji').value = preset.teams[1].emoji;
+            document.getElementById('team2Name').value = preset.teams[1].name;
+
+            document.getElementById('team3Emoji').value = preset.teams[2].emoji;
+            document.getElementById('team3Name').value = preset.teams[2].name;
+
+            document.getElementById('team4Emoji').value = preset.teams[3].emoji;
+            document.getElementById('team4Name').value = preset.teams[3].name;
+
+            document.getElementById('team5Emoji').value = preset.teams[4].emoji;
+            document.getElementById('team5Name').value = preset.teams[4].name;
+
+            updateEmojiTitles();
+        }
+
+        function updateEmojiTitles() {
+            const e1 = document.getElementById('team1Emoji').value || '🪨';
+            const e2 = document.getElementById('team2Emoji').value || '📃';
+            const e3 = document.getElementById('team3Emoji').value || '✂️';
+            const e4 = document.getElementById('team4Emoji').value || '🦎';
+            const e5 = document.getElementById('team5Emoji').value || '🖖';
+
+            document.getElementById('titleEmoji1').innerText = e1;
+            document.getElementById('titleEmoji2').innerText = e2;
+            document.getElementById('titleEmoji3').innerText = e3;
+            document.getElementById('titleEmoji4').innerText = e4;
+            document.getElementById('titleEmoji5').innerText = e5;
+
+            document.getElementById('titleEmoji2').style.display = (config.mode !== '1v0') ? 'inline-block' : 'none';
+            document.getElementById('titleEmoji3').style.display = (config.mode !== '1v0' && config.mode !== '2v2') ? 'inline-block' : 'none';
+            document.getElementById('titleEmoji4').style.display = (config.mode === '4v4' || config.mode === '5v5') ? 'inline-block' : 'none';
+            document.getElementById('titleEmoji5').style.display = (config.mode === '5v5') ? 'inline-block' : 'none';
+        }
+
+        function readSettingsFromForm() {
+            config.unitsPerTeam = parseInt(document.getElementById('unitsSlider').value, 10);
+            config.baseSpeed = parseFloat(document.getElementById('speedSelect').value);
+            config.shakiness = parseFloat(document.getElementById('jitterSelect').value);
+            config.playerEnabled = document.getElementById('playerModeToggle').checked;
+
+            config.teams[0] = {
+                emoji: document.getElementById('team1Emoji').value || '🪨',
+                name: document.getElementById('team1Name').value || 'Team 1',
+                color: '#64748b'
+            };
+            config.teams[1] = {
+                emoji: document.getElementById('team2Emoji').value || '📃',
+                name: document.getElementById('team2Name').value || 'Team 2',
+                color: '#0284c7'
+            };
+            config.teams[2] = {
+                emoji: document.getElementById('team3Emoji').value || '✂️',
+                name: document.getElementById('team3Name').value || 'Team 3',
+                color: '#e11d48'
+            };
+            config.teams[3] = {
+                emoji: document.getElementById('team4Emoji').value || '🦎',
+                name: document.getElementById('team4Name').value || 'Team 4',
+                color: '#16a34a'
+            };
+            config.teams[4] = {
+                emoji: document.getElementById('team5Emoji').value || '🖖',
+                name: document.getElementById('team5Name').value || 'Team 5',
+                color: '#9333ea'
+            };
+        }
+
+        /* ==========================================================================
+           MATCH INITIALIZATION & SPAWNING
+           ========================================================================== */
+        function initMatch() {
+            units = [];
+            particles = [];
+            elapsedTime = 0;
+            totalConversions = 0;
+            isPaused = false;
+            isGameOver = false;
+
+            document.getElementById('pauseIcon').classList.remove('hidden');
+            document.getElementById('playIcon').classList.add('hidden');
+
+            const numTeams = config.mode === '1v0' ? 1 : config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
+            const count = config.unitsPerTeam;
+            const margin = 50;
+
+            if (config.mode === '1v0') {
+                // Spawn in center cluster for maximum dramatic fleeing effect
+                for (let i = 0; i < count; i++) {
+                    const spawnX = canvas.width / 2 + (Math.random() - 0.5) * 60;
+                    const spawnY = canvas.height / 2 + (Math.random() - 0.5) * 60;
+                    units.push(new Unit(spawnX, spawnY, 0));
+                }
+            } else {
+                for (let teamIdx = 0; teamIdx < numTeams; teamIdx++) {
+                    const angle = (teamIdx / numTeams) * Math.PI * 2;
+                    const centerX = canvas.width / 2 + Math.cos(angle) * (canvas.width * 0.28);
+                    const centerY = canvas.height / 2 + Math.sin(angle) * (canvas.height * 0.28);
+
+                    for (let i = 0; i < count; i++) {
+                        const spawnX = Math.max(margin, Math.min(canvas.width - margin, centerX + (Math.random() - 0.5) * 120));
+                        const spawnY = Math.max(margin, Math.min(canvas.height - margin, centerY + (Math.random() - 0.5) * 120));
+                        units.push(new Unit(spawnX, spawnY, teamIdx));
+                    }
+                }
+            }
+
+            // Designate Player Unit if Player Mode is enabled
+            if (config.playerEnabled && units.length > 0) {
+                units[0].isPlayer = true;
+            }
+
+            updateHUDCounters();
+        }
+
+        /* ==========================================================================
+           RESPONSIVE CANVAS RESIZING & BOOTSTRAP
+           ========================================================================== */
+        function resizeCanvas() {
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        }
+
+        window.onload = function() {
+            canvas = document.getElementById('gameCanvas');
+            ctx = canvas.getContext('2d');
+
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+
+            // Track mouse/touch cursor position for player movement control
+            const updateCursorPos = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+                isMouseActive = true;
+            };
+
+            window.addEventListener('mousemove', updateCursorPos);
+            window.addEventListener('touchmove', (e) => {
+                if (e.touches.length > 0) {
+                    updateCursorPos(e.touches[0]);
+                }
+            }, { passive: true });
+
+            // Interactivity: Tap/Click map to scatter nearby units with a pulse wave
+            canvas.addEventListener('pointerdown', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+
+                audio.playBounce();
+                createBurst(clickX, clickY, '#3b82f6');
+
+                // Shockwave pulse force to scatter emojis!
+                units.forEach(u => {
+                    const dx = u.x - clickX;
+                    const dy = u.y - clickY;
+                    const dist = Math.hypot(dx, dy) || 1;
+                    if (dist < 150) {
+                        const force = (150 - dist) / 10;
+                        u.vx += (dx / dist) * force;
+                        u.vy += (dy / dist) * force;
+                    }
+                });
+            });
+
+            // Start main animation frame loop
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
