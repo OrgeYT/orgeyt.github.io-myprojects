@@ -194,7 +194,7 @@ const projects = [
     { name: "beat catch", path: "scratch-1350648798" },
     "beatcatchautocharter",
     "buddiner",
-    { name: "dont look at this. look away. NO", path: "balls.txt" },
+    { name: "control yeah", path: "control.png" }, // the txt was not for the young i changed it
     "faviconplatformer",
     "hp",
     "nyancatlostinspace",
