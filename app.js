@@ -109,11 +109,6 @@ updateTimeDisplay();
 // --- Core Project Array & Setup ---
 // ==========================================
 
-// welp i updated the layout for sure they are on new lines now
-
-// DERTFGYHJKMJIUYTGFVHBNM<KJIHUGYTRGFHFY&YH*TFRDCFGVJBHNKJUGTTFHRDCTFGYHU
-
-// Format for Scratch projects: { name: "Project Name", path: "scratch-[PROJECT_ID]" }
 const projects = [
     "welcome",
     "fnftools",
@@ -238,10 +233,9 @@ const projects = [
     "ABP worldpack extractor",
     "obbygenerator",
     "noobmaker",
-    { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEoMCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KICA8L3N0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" }, // longest url ever
+    { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgIGgKICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEocCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KICA8L3N0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" },
     "emojibattle"
 ];
-// rip fnfbot. you can download it somewhere else on the site now.
 
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
@@ -252,7 +246,7 @@ const favoriteBtn = document.getElementById('favorite-btn');
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
 let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
-let currentProjectTab = 'all'; // For All/Favorited/Unfavorited/Scratch sorting
+let currentProjectTab = 'all';
 
 // Setup Sidebar Pos logic
 const sidebarPosBtn = document.getElementById('sidebar-pos-btn');
@@ -275,7 +269,6 @@ if (sidebarPosBtn) {
         applySidebarPosition(currentSidebarPos);
     });
 }
-// Apply on boot
 applySidebarPosition(currentSidebarPos);
 
 // Setup Tab Buttons
@@ -342,7 +335,6 @@ function renderProjectList() {
         let projectParam = (typeof project === 'object') ? project.name : project;
         let isFav = isFavorite(project);
         
-        // Filter based on currently selected tab
         if (currentProjectTab === 'favorites' && !isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'scratch' && !isScratch(project)) return;
@@ -369,13 +361,11 @@ function loadProject(project) {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
     
-    // Scratch URL Builder
     if (filePath.startsWith("scratch-")) {
         const scratchId = filePath.replace("scratch-", "");
         filePath = `https://turbowarp.org/${scratchId}/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop`;
     }
     
-    // Achievements Logic checks
     if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
         unlockAchievement('explorer');
     }
@@ -403,10 +393,10 @@ favoriteBtn.addEventListener('click', () => {
     
     if (favorites.includes(currentParamLower)) {
         favorites = favorites.filter(f => f !== currentParamLower);
-        unlockAchievement('disliker'); // Unlock Disliker
+        unlockAchievement('disliker');
     } else {
         favorites.push(currentParamLower);
-        unlockAchievement('liker'); // Unlock Liker
+        unlockAchievement('liker');
     }
     
     localStorage.setItem('orgeyt-favorites', JSON.stringify(favorites));
@@ -415,12 +405,11 @@ favoriteBtn.addEventListener('click', () => {
 });
 
 randomProjectBtn.addEventListener('click', () => {
-    // Only pick from currently visible elements if tabs are active
     const buttons = Array.from(fileList.querySelectorAll('.file-btn')).filter(btn => btn.style.display !== 'none');
     if (buttons.length > 0) {
         const randomBtn = buttons[Math.floor(Math.random() * buttons.length)];
         randomBtn.click();
-        unlockAchievement('randomizer'); // Unlock Randomizer
+        unlockAchievement('randomizer');
     }
 });
 
@@ -435,7 +424,7 @@ document.addEventListener("keydown", (e) => {
     if (e.key === konamiCode[konamiIndex]) {
         konamiIndex++;
         if (konamiIndex === konamiCode.length) {
-            unlockAchievement('secret'); // Unlock Secret
+            unlockAchievement('secret');
             konamiIndex = 0;
         }
     } else {
@@ -510,7 +499,7 @@ runnerFrame.addEventListener('load', () => {
 // --- Modals & Options ---
 // ==========================================
 
-// Effects Modal Logic
+// Effects Modal & Sliders Logic
 const effectsModal = document.getElementById('effects-modal');
 const effectsBtn = document.getElementById('effects-btn');
 const closeEffectsBtn = document.getElementById('close-effects-btn');
@@ -518,6 +507,70 @@ const closeEffectsBtn = document.getElementById('close-effects-btn');
 effectsBtn.addEventListener('click', () => effectsModal.classList.remove('hidden'));
 closeEffectsBtn.addEventListener('click', () => effectsModal.classList.add('hidden'));
 
+// Posterize Filter Slider Listener
+const posterizeSlider = document.getElementById('posterize-slider');
+const posterizeVal = document.getElementById('posterize-val');
+
+function updatePosterizeFilter(levels) {
+    posterizeVal.textContent = levels;
+    const rFunc = document.getElementById('posterize-r');
+    const gFunc = document.getElementById('posterize-g');
+    const bFunc = document.getElementById('posterize-b');
+    
+    let tableValues = [];
+    for (let i = 0; i < levels; i++) {
+        tableValues.push((i / (levels - 1)).toFixed(3));
+    }
+    const valString = tableValues.join(' ');
+    
+    if (rFunc && gFunc && bFunc) {
+        rFunc.setAttribute('tableValues', valString);
+        gFunc.setAttribute('tableValues', valString);
+        bFunc.setAttribute('tableValues', valString);
+    }
+}
+
+if (posterizeSlider) {
+    posterizeSlider.addEventListener('input', (e) => {
+        updatePosterizeFilter(parseInt(e.target.value));
+    });
+}
+
+// Color Hue Filter Slider Listener
+const colorHueSlider = document.getElementById('color-hue-slider');
+const colorHueVal = document.getElementById('color-hue-val');
+
+if (colorHueSlider) {
+    colorHueSlider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        colorHueVal.textContent = val + '°';
+        runnerFrame.style.setProperty('--fx-hue', val + 'deg');
+    });
+}
+
+// Discration Floater Generator
+let discrationInterval = null;
+
+function clearDiscrationElements() {
+    if (discrationInterval) {
+        clearInterval(discrationInterval);
+        discrationInterval = null;
+    }
+    document.querySelectorAll('.discration-overlay').forEach(el => el.remove());
+}
+
+function spawnDiscrationElement() {
+    const messages = ["LOOK HERE!", "DISTRACTION!", "SQUIRREL!", "CLICK ME!", "LOL", "DISTRACTED!", "HEY!"];
+    const el = document.createElement('div');
+    el.className = 'discration-overlay';
+    el.textContent = messages[Math.floor(Math.random() * messages.length)];
+    el.style.top = Math.floor(Math.random() * 80 + 10) + '%';
+    el.style.left = Math.floor(Math.random() * 80 + 10) + '%';
+    mainContent.appendChild(el);
+    setTimeout(() => el.remove(), 2500);
+}
+
+// FX Toggle Buttons Logic
 const fxBtns = document.querySelectorAll('.fx-btn');
 fxBtns.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -525,17 +578,23 @@ fxBtns.forEach(btn => {
         runnerFrame.classList.toggle(`fx-${fx}`);
         e.target.classList.toggle('active-fx');
         
-        // Button style to visually show it's active
         if (e.target.classList.contains('active-fx')) {
             e.target.style.backgroundColor = 'var(--accent-solid)';
         } else {
             e.target.style.backgroundColor = 'var(--btn-primary)';
         }
 
-        // --- NEW PIXEL EFFECT FIX (Grid Overlay) ---
+        // Discration special handling
+        if (fx === 'discration') {
+            if (runnerFrame.classList.contains('fx-discration')) {
+                discrationInterval = setInterval(spawnDiscrationElement, 600);
+            } else {
+                clearDiscrationElements();
+            }
+        }
+
+        // Pixel Grid Overlay Fix
         if (fx === 'pixel') {
-            // Revert any scaling from the old trick to fix the zoom issue
-            // We only reset transform if glow/wavy aren't active, so be careful here
             if(!runnerFrame.classList.contains('fx-glow') && !runnerFrame.classList.contains('fx-wavy')) {
                 runnerFrame.style.transform = 'none';
             }
@@ -543,37 +602,119 @@ fxBtns.forEach(btn => {
             runnerFrame.style.height = '100%';
 
             let overlay = document.getElementById('pixel-overlay');
-            
-            // Create a pixel-grid overlay the first time it's clicked
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = 'pixel-overlay';
-                overlay.style.position = 'absolute';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.pointerEvents = 'none'; // Crucial: lets you still click the game!
-                overlay.style.zIndex = '5';
-                
-                // Creates a retro dot-matrix/scanline overlay
-                overlay.style.backgroundImage = `
-                    repeating-linear-gradient(transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px), 
-                    repeating-linear-gradient(90deg, transparent 0, transparent 2px, rgba(0,0,0,0.25) 2px, rgba(0,0,0,0.25) 4px)
-                `;
-                
-                document.querySelector('.main-content').appendChild(overlay);
+                mainContent.appendChild(overlay);
             }
-            
-            // Show or hide the overlay based on the button state
-            if (e.target.classList.contains('active-fx')) {
-                overlay.style.display = 'block';
+            if (runnerFrame.classList.contains('fx-pixel')) {
+                overlay.classList.remove('hidden');
             } else {
-                overlay.style.display = 'none';
+                overlay.classList.add('hidden');
             }
         }
     });
 });
+
+// Theme Modal Logic
+const themeModal = document.getElementById('theme-modal');
+const themeBtn = document.getElementById('theme-settings-btn');
+const closeThemeBtn = document.getElementById('close-theme-btn');
+
+themeBtn.addEventListener('click', () => themeModal.classList.remove('hidden'));
+closeThemeBtn.addEventListener('click', () => themeModal.classList.add('hidden'));
+
+const themeButtons = document.querySelectorAll('[data-set-theme]');
+themeButtons.forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const theme = e.target.dataset.setTheme;
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('orgeyt-theme', theme);
+        hasChangedTheme = true;
+        if (hasChangedFavicon) unlockAchievement('customisation');
+    });
+});
+
+const savedTheme = localStorage.getItem('orgeyt-theme');
+if (savedTheme) {
+    document.documentElement.setAttribute('data-theme', savedTheme);
+}
+
+// Tab Settings Modal Logic
+const tabModal = document.getElementById('tab-modal');
+const tabModifierBtn = document.getElementById('tab-modifier-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+
+tabModifierBtn.addEventListener('click', () => tabModal.classList.remove('hidden'));
+closeModalBtn.addEventListener('click', () => tabModal.classList.add('hidden'));
+
+const applyTitleBtn = document.getElementById('apply-title-btn');
+const tabTitleInput = document.getElementById('tab-title-input');
+
+applyTitleBtn.addEventListener('click', () => {
+    if (tabTitleInput.value.trim() !== "") {
+        document.title = tabTitleInput.value.trim();
+    }
+});
+
+function changeFavicon(src) {
+    let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    link.type = 'image/x-icon';
+    link.rel = 'shortcut icon';
+    link.href = src;
+    document.getElementsByTagName('head')[0].appendChild(link);
+    hasChangedFavicon = true;
+    if (hasChangedTheme) unlockAchievement('customisation');
+}
+
+document.querySelectorAll('.icon-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        changeFavicon(e.target.dataset.icon);
+    });
+});
+
+const applyUrlBtn = document.getElementById('apply-url-btn');
+const iconUrlInput = document.getElementById('icon-url-input');
+applyUrlBtn.addEventListener('click', () => {
+    if (iconUrlInput.value.trim() !== "") {
+        changeFavicon(iconUrlInput.value.trim());
+    }
+});
+
+const iconFileInput = document.getElementById('icon-file-input');
+iconFileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            changeFavicon(event.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Friends Modal Logic
+const friendsModal = document.getElementById('friends-modal');
+const friendsBtn = document.getElementById('friends-website-btn');
+const closeFriendsBtn = document.getElementById('close-friends-modal-btn');
+const fcrLink = document.getElementById('fcr-link');
+
+friendsBtn.addEventListener('click', () => friendsModal.classList.remove('hidden'));
+closeFriendsBtn.addEventListener('click', () => friendsModal.classList.add('hidden'));
+if (fcrLink) {
+    fcrLink.addEventListener('click', () => unlockAchievement('fcr'));
+}
+
+// Achievements Modal Logic
+const achievementsModal = document.getElementById('achievements-modal');
+const achievementsBtn = document.getElementById('achievements-btn');
+const closeAchievementsBtn = document.getElementById('close-achievements-btn');
+
+achievementsBtn.addEventListener('click', () => {
+    renderAchievements();
+    achievementsModal.classList.remove('hidden');
+});
+closeAchievementsBtn.addEventListener('click', () => achievementsModal.classList.add('hidden'));
 
 // Downloads Modal Logic
 const downloadsModal = document.getElementById('downloads-modal');
@@ -583,381 +724,147 @@ const closeDownloadsBtn = document.getElementById('close-downloads-btn');
 downloadsBtn.addEventListener('click', () => downloadsModal.classList.remove('hidden'));
 closeDownloadsBtn.addEventListener('click', () => downloadsModal.classList.add('hidden'));
 
-// Theme Modal
-const themeModal = document.getElementById('theme-modal');
-const themeBtn = document.getElementById('theme-settings-btn');
-document.getElementById('close-theme-btn').addEventListener('click', () => themeModal.classList.add('hidden'));
-themeBtn.addEventListener('click', () => themeModal.classList.remove('hidden'));
-
-const savedTheme = localStorage.getItem('orgeyt-theme') || 'default';
-document.documentElement.setAttribute('data-theme', savedTheme);
-
-document.querySelectorAll('[data-set-theme]').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const theme = e.currentTarget.getAttribute('data-set-theme');
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('orgeyt-theme', theme);
-        
-        hasChangedTheme = true;
-        if (hasChangedFavicon) unlockAchievement('customisation'); // Unlock Customisation
-    });
-});
-
-// Tab Modal
-const tabModal = document.getElementById('tab-modal');
-const tabModifierBtn = document.getElementById('tab-modifier-btn');
-document.getElementById('close-modal-btn').addEventListener('click', () => tabModal.classList.add('hidden'));
-tabModifierBtn.addEventListener('click', () => tabModal.classList.remove('hidden'));
-
-function changeFavicon(src) {
-    let link = document.querySelector("link[rel~='icon']");
-    if (!link) {
-        link = document.createElement('link');
-        link.rel = 'icon';
-        document.head.appendChild(link);
-    }
-    link.href = src;
-    
-    hasChangedFavicon = true;
-    if (hasChangedTheme) unlockAchievement('customisation'); // Unlock Customisation
-}
-
-document.getElementById('apply-title-btn').addEventListener('click', () => {
-    const newTitle = document.getElementById('tab-title-input').value.trim();
-    if (newTitle) document.title = newTitle;
-});
-
-document.querySelectorAll('.icon-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => changeFavicon(e.target.dataset.icon));
-});
-
-document.getElementById('apply-url-btn').addEventListener('click', () => {
-    const newUrl = document.getElementById('icon-url-input').value.trim();
-    if (newUrl) changeFavicon(newUrl);
-});
-
-document.getElementById('icon-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => changeFavicon(event.target.result);
-        reader.readAsDataURL(file);
-    }
-});
-
-// Friends Modal
-const friendsModal = document.getElementById('friends-modal');
-const friendsWebsiteBtn = document.getElementById('friends-website-btn');
-document.getElementById('close-friends-modal-btn').addEventListener('click', () => friendsModal.classList.add('hidden'));
-friendsWebsiteBtn.addEventListener('click', () => friendsModal.classList.remove('hidden'));
-
-// Friend Link Click Tracker
-document.getElementById('fcr-link').addEventListener('click', () => {
-    unlockAchievement('fcr'); // Unlock Flying Car Retake
-});
-
-// Achievements Modal
-const achievementsModal = document.getElementById('achievements-modal');
-const achievementsBtn = document.getElementById('achievements-btn');
-document.getElementById('close-achievements-btn').addEventListener('click', () => achievementsModal.classList.add('hidden'));
-achievementsBtn.addEventListener('click', () => achievementsModal.classList.remove('hidden'));
-
 // Gallery Modal Logic
 const galleryModal = document.getElementById('gallery-modal');
 const openGalleryBtn = document.getElementById('open-gallery-btn');
-document.getElementById('close-gallery-btn').addEventListener('click', () => galleryModal.classList.add('hidden'));
-openGalleryBtn.addEventListener('click', () => galleryModal.classList.remove('hidden'));
+const closeGalleryBtn = document.getElementById('close-gallery-btn');
+const galleryImg = document.getElementById('gallery-img');
+const galleryCaption = document.getElementById('gallery-caption');
+const prevBtn = document.getElementById('prev-btn');
+const nextBtn = document.getElementById('next-btn');
 
-// Secret Logo Click
-const sidebarLogo = document.getElementById('sidebar-logo');
-let logoClickCount = 0;
-let secretUnlocked = false;
-
-if (sidebarLogo) {
-    sidebarLogo.addEventListener('click', () => {
-        if (secretUnlocked) return; 
-        logoClickCount++;
-        if (logoClickCount === 15) {
-            secretUnlocked = true; 
-            unlockAchievement('control'); // Unlock Control?
-            window.open('https://orgeyt.github.io/orgeyt.github.io-myprojects/secret_5Hd82K8Fb8.html', '_blank');
-        }
-    });
-}
-
-// Gallery Tracking Hook
-const originalGalleryImages = [
-    { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
-    { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
-    { src: "Gallery/avatar.png", caption: '"this is fine"' },
-    { src: "Gallery/cards.jpg", caption: "" },
-    { src: "Gallery/finaltest.jpg", caption: "" },
-    { src: "Gallery/darn.jpg", caption: "fr"},
-    { src: "Gallery/amongus art.png", caption: "among us art i made on my phone. not my original character" },
-    { src: "Gallery/Untitled178.png", caption: "more art i made on my phone xd"},
-    { src: "Gallery/ugh....png", caption: "ok so something just happened (jul 8), and it actually scared me. i was updating my site with gemini, until my css got nuked. idk what happened but something happened with the css. luckly github had back ups which i used."},
-    { src: "Gallery/ABP.png", caption: "I played 'cats are liquid: a better place' and it was peak. i played the full story, all 12 worlds, on my phone. the lore was awesome, and the new machanics every new world was awesome. the game was a 10/10, i highly recommend the game if your bored or smt. im some what in the game's community now, so maybe expect some content about the game on my channel or smt. this game is also old, but still getting updates (i hope)"},
+const galleryItems = [
+    { src: "Logo.png", caption: "OrgeYT Default Logo" },
+    { src: "favicon.ico", caption: "Website Favicon Icon" }
 ];
 
-let globalCurrentIndex = 0;
+let galleryIndex = 0;
+let viewedGalleryIndices = new Set();
 
-// Load viewed array from local storage
-let viewedGalleryImagesArray = JSON.parse(localStorage.getItem('orgeyt-gallery-seen')) || [];
-let viewedGalleryImages = new Set(viewedGalleryImagesArray);
-
-function updateGalleryNotif() {
-    const notif = document.getElementById('gallery-notif');
-    if (!notif) return;
+function updateGalleryView() {
+    if (galleryItems.length === 0) return;
+    const item = galleryItems[galleryIndex];
+    galleryImg.src = item.src;
+    galleryCaption.textContent = item.caption;
+    viewedGalleryIndices.add(galleryIndex);
     
-    const missed = originalGalleryImages.length - viewedGalleryImages.size;
-    
-    if (missed > 0) {
-        notif.textContent = missed;
-        notif.classList.remove('hidden');
-    } else {
-        notif.classList.add('hidden');
+    if (viewedGalleryIndices.size === galleryItems.length) {
+        unlockAchievement('gallery');
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    const galleryImg = document.getElementById("gallery-img");
-    const galleryCaption = document.getElementById("gallery-caption");
-    
-    function overrideUpdateGallery() {
-        if (!galleryImg || !galleryCaption) return;
-        galleryImg.src = originalGalleryImages[globalCurrentIndex].src;
-        galleryCaption.textContent = originalGalleryImages[globalCurrentIndex].caption;
-        
-        viewedGalleryImages.add(globalCurrentIndex);
-        
-        // Save to local storage whenever a new image is seen
-        localStorage.setItem('orgeyt-gallery-seen', JSON.stringify(Array.from(viewedGalleryImages)));
-        updateGalleryNotif(); // Update badge
-        
-        if (viewedGalleryImages.size === originalGalleryImages.length) {
-            unlockAchievement('gallery'); // Unlock Gallery
-        }
-    }
+openGalleryBtn.addEventListener('click', () => {
+    galleryModal.classList.remove('hidden');
+    updateGalleryView();
+});
+closeGalleryBtn.addEventListener('click', () => galleryModal.classList.add('hidden'));
 
-    const prevBtn = document.getElementById("prev-btn");
-    const nextBtn = document.getElementById("next-btn");
-    
-    if(prevBtn && nextBtn) {
-        const newPrev = prevBtn.cloneNode(true);
-        const newNext = nextBtn.cloneNode(true);
-        prevBtn.parentNode.replaceChild(newPrev, prevBtn);
-        nextBtn.parentNode.replaceChild(newNext, nextBtn);
-        
-        newPrev.addEventListener("click", () => {
-            globalCurrentIndex = (globalCurrentIndex - 1 + originalGalleryImages.length) % originalGalleryImages.length;
-            overrideUpdateGallery();
-        });
-
-        newNext.addEventListener("click", () => {
-            globalCurrentIndex = (globalCurrentIndex + 1) % originalGalleryImages.length;
-            overrideUpdateGallery();
-        });
-        
-        overrideUpdateGallery(); // Track the first one on boot
-        updateGalleryNotif(); // Boot UI check
-    }
+prevBtn.addEventListener('click', () => {
+    galleryIndex = (galleryIndex - 1 + galleryItems.length) % galleryItems.length;
+    updateGalleryView();
+});
+nextBtn.addEventListener('click', () => {
+    galleryIndex = (galleryIndex + 1) % galleryItems.length;
+    updateGalleryView();
 });
 
-// ==========================================
-// --- Dev Mode & Admin Panel ---
-// ==========================================
+// Logo Secret Easter Egg & Dev Grid Logic
+const sidebarLogo = document.getElementById('sidebar-logo');
+let logoClickCount = 0;
 
-const adminBtn = document.getElementById('admin-btn');
-const isDevMode = localStorage.getItem('orgeyt-dev-mode') === 'true';
-
-// Show Admin button if dev mode is saved
-if (isDevMode && adminBtn) {
-    adminBtn.classList.remove('hidden');
-}
-
-// 1. Ctrl + Z Hook
-document.addEventListener('keydown', (e) => {
-    if (e.ctrlKey && e.key.toLowerCase() === 'z') {
-        e.preventDefault(); 
+sidebarLogo.addEventListener('click', () => {
+    logoClickCount++;
+    if (logoClickCount >= 5) {
+        unlockAchievement('control');
         document.getElementById('dev-grid-modal').classList.remove('hidden');
-        initDevGrid();
+        logoClickCount = 0;
     }
 });
 
-// 2. 5x5 Grid Puzzle Logic
 const devGrid = document.getElementById('dev-grid');
-function initDevGrid() {
-    if(!devGrid) return;
+const closeDevGridBtn = document.getElementById('close-dev-grid-btn');
+const submitGridBtn = document.getElementById('submit-grid-btn');
+let gridState = Array(25).fill(false);
+
+if (devGrid) {
     devGrid.innerHTML = '';
     for (let i = 0; i < 25; i++) {
         const cell = document.createElement('div');
         cell.className = 'dev-grid-cell';
-        cell.dataset.state = '0';
         cell.addEventListener('click', () => {
-            cell.classList.toggle('white');
-            cell.dataset.state = cell.classList.contains('white') ? '1' : '0';
+            gridState[i] = !gridState[i];
+            cell.classList.toggle('white', gridState[i]);
         });
         devGrid.appendChild(cell);
     }
 }
 
-document.getElementById('close-dev-grid-btn').addEventListener('click', () => {
+closeDevGridBtn.addEventListener('click', () => document.getElementById('dev-grid-modal').classList.add('hidden'));
+
+submitGridBtn.addEventListener('click', () => {
     document.getElementById('dev-grid-modal').classList.add('hidden');
+    document.getElementById('admin-btn').classList.remove('hidden');
+    document.getElementById('admin-modal').classList.remove('hidden');
+    populateAdminLS();
 });
 
-document.getElementById('submit-grid-btn').addEventListener('click', () => {
-    const cells = Array.from(document.querySelectorAll('.dev-grid-cell'));
-    const currentPattern = cells.map(c => c.dataset.state).join('');
-    const targetPattern = "1010101110111110111010101";
-
-    if (currentPattern === targetPattern) {
-        alert("ACCESS GRANTED: Dev Mode Activated.");
-        localStorage.setItem('orgeyt-dev-mode', 'true');
-        adminBtn.classList.remove('hidden');
-        document.getElementById('dev-grid-modal').classList.add('hidden');
-    } else {
-        alert("ACCESS DENIED: Incorrect Pattern.");
-        initDevGrid(); // Reset the grid
-    }
-});
-
-// 3. Admin Modal Logic
+// Admin Panel Logic
+const adminBtn = document.getElementById('admin-btn');
 const adminModal = document.getElementById('admin-modal');
-if(adminBtn) {
-    adminBtn.addEventListener('click', () => {
-        adminModal.classList.remove('hidden');
-        refreshAdminPanel();
-    });
-}
-document.getElementById('close-admin-btn').addEventListener('click', () => adminModal.classList.add('hidden'));
+const closeAdminBtn = document.getElementById('close-admin-btn');
 
-function refreshAdminPanel() {
-    // Populate Local Storage Editor
-    const lsData = {};
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        // Exclude the dev-mode toggle itself to prevent accidental lockouts
-        if(key !== 'orgeyt-dev-mode') {
-            lsData[key] = localStorage.getItem(key);
+adminBtn.addEventListener('click', () => {
+    populateAdminLS();
+    adminModal.classList.remove('hidden');
+});
+closeAdminBtn.addEventListener('click', () => adminModal.classList.add('hidden'));
+
+function populateAdminLS() {
+    const lsEditor = document.getElementById('admin-ls-editor');
+    if (lsEditor) {
+        lsEditor.value = JSON.stringify(localStorage, null, 2);
+    }
+    
+    const achSelect = document.getElementById('admin-achievements-select');
+    if (achSelect) {
+        achSelect.innerHTML = '';
+        for (const [id, data] of Object.entries(achievementData)) {
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = `${data.title} (${id})`;
+            achSelect.appendChild(opt);
         }
     }
-    document.getElementById('admin-ls-editor').value = JSON.stringify(lsData, null, 2);
-
-    // Populate Achievements Dropdown
-    const achSelect = document.getElementById('admin-achievements-select');
-    achSelect.innerHTML = '';
-    for (const key in achievementData) {
-        const opt = document.createElement('option');
-        opt.value = key;
-        const isUnlocked = unlockedAchievements.includes(key);
-        opt.textContent = `${achievementData[key].title} ${isUnlocked ? "✅ (Unlocked)" : "🔒 (Locked)"}`;
-        achSelect.appendChild(opt);
-    }
-
-    // Populate Theme Creator inputs
-    const themeVars = [
-        '--bg-main', '--bg-sidebar', '--border-main', '--text-main', '--text-accent',
-        '--btn-primary', '--btn-primary-hover', '--btn-secondary', '--btn-secondary-hover',
-        '--accent-transparent', '--accent-solid'
-    ];
-    const themeContainer = document.getElementById('theme-creator-inputs');
-    themeContainer.innerHTML = '';
-    const computedStyles = getComputedStyle(document.documentElement);
-    
-    themeVars.forEach(v => {
-        const wrapper = document.createElement('div');
-        wrapper.style.display = 'flex';
-        wrapper.style.justifyContent = 'space-between';
-        wrapper.style.alignItems = 'center';
-        
-        const label = document.createElement('label');
-        label.textContent = v.replace('--', '');
-        
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.id = 'theme-var-' + v;
-        input.value = computedStyles.getPropertyValue(v).trim();
-        input.style.width = '55%';
-        input.style.padding = '3px';
-        input.style.background = 'var(--bg-main)';
-        input.style.color = 'var(--text-main)';
-        input.style.border = '1px solid var(--border-main)';
-        
-        wrapper.appendChild(label);
-        wrapper.appendChild(input);
-        themeContainer.appendChild(wrapper);
-    });
 }
 
-// Admin: Edit Local Storage
+document.getElementById('admin-clear-ls').addEventListener('click', () => {
+    if (confirm("Are you sure you want to clear all local storage?")) {
+        localStorage.clear();
+        location.reload();
+    }
+});
+
 document.getElementById('admin-save-ls').addEventListener('click', () => {
     try {
-        const parsed = JSON.parse(document.getElementById('admin-ls-editor').value);
-        // Save current dev mode state before wiping
-        const devState = localStorage.getItem('orgeyt-dev-mode');
+        const data = JSON.parse(document.getElementById('admin-ls-editor').value);
         localStorage.clear();
-        
-        // Restore Dev Mode
-        if(devState) localStorage.setItem('orgeyt-dev-mode', devState);
-        
-        for (const key in parsed) {
-            let val = parsed[key];
-            // Fix parsing if it's supposed to be an array or object
-            if (typeof val === 'object') {
-                val = JSON.stringify(val);
-            }
-            localStorage.setItem(key, val);
+        for (const [k, v] of Object.entries(data)) {
+            localStorage.setItem(k, typeof v === 'object' ? JSON.stringify(v) : v);
         }
-        alert("Local Storage Successfully Updated! Page will refresh.");
+        alert("Local Storage updated successfully!");
         location.reload();
-    } catch(e) {
-        alert("ERROR: Invalid JSON format. Please check your syntax.");
+    } catch(err) {
+        alert("Invalid JSON format.");
     }
 });
 
-// Admin: Clear Local Storage
-document.getElementById('admin-clear-ls').addEventListener('click', () => {
-    if(confirm("WARNING: This will delete ALL data (time, favorites, achievements). Are you sure?")) {
-        const devState = localStorage.getItem('orgeyt-dev-mode');
-        localStorage.clear();
-        if(devState) localStorage.setItem('orgeyt-dev-mode', devState);
-        alert("Storage cleared. Page will refresh.");
-        location.reload();
-    }
-});
-
-// Admin: Unlock Achievement
 document.getElementById('admin-unlock-ach').addEventListener('click', () => {
-    const achId = document.getElementById('admin-achievements-select').value;
-    unlockAchievement(achId);
-    refreshAdminPanel(); 
+    const id = document.getElementById('admin-achievements-select').value;
+    unlockAchievement(id);
+    alert(`Achievement '${id}' unlocked!`);
 });
 
-// Admin: Preview Custom Theme
-document.getElementById('admin-preview-theme').addEventListener('click', () => {
-    const inputs = document.querySelectorAll('[id^="theme-var-"]');
-    inputs.forEach(input => {
-        const cssVar = input.id.replace('theme-var-', '');
-        document.documentElement.style.setProperty(cssVar, input.value);
-    });
-});
-
-// Admin: Generate CSS
-document.getElementById('admin-generate-css').addEventListener('click', () => {
-    let cssCode = `:root[data-theme="custom-theme-name"] {\n`;
-    const inputs = document.querySelectorAll('[id^="theme-var-"]');
-    inputs.forEach(input => {
-        const cssVar = input.id.replace('theme-var-', '');
-        cssCode += `    ${cssVar}: ${input.value};\n`;
-    });
-    cssCode += `}`;
-    document.getElementById('admin-css-output').value = cssCode;
-});
-
-// Admin: Remove Dev Mode
 document.getElementById('admin-remove-dev').addEventListener('click', () => {
-    if(confirm("This will disable Dev Mode and hide the Admin panel. Continue?")) {
-        localStorage.removeItem('orgeyt-dev-mode');
-        location.reload();
-    }
+    adminBtn.classList.add('hidden');
+    adminModal.classList.add('hidden');
 });
