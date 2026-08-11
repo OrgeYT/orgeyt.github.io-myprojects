@@ -17,7 +17,7 @@
         <div id="project-counter" style="font-size: 0.8rem; color: var(--text-accent);"></div>
         <div id="time-counter">Time: 0s</div>
 
-<div class="sidebar-controls" id="sidebar-controls">
+        <div class="sidebar-controls" id="sidebar-controls">
             <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
             <button id="tab-modifier-btn" class="toggle-btn">Tab Settings</button>
             <button id="theme-settings-btn" class="toggle-btn">Theme Settings</button>
@@ -77,7 +77,7 @@
     </div>
 
     <div id="effects-modal" class="modal hidden">
-        <div class="modal-content">
+        <div class="modal-content" style="width: 380px;">
             <span id="close-effects-btn" class="close-btn">&times;</span>
             <h3>Project Effects</h3>
             <div class="setting-group" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;">
@@ -87,6 +87,21 @@
                 <button class="modal-btn fx-btn" data-effect="invert">Invert</button>
                 <button class="modal-btn fx-btn" data-effect="wavy">Wavy</button>
                 <button class="modal-btn fx-btn" data-effect="glow">Glow</button>
+                <button class="modal-btn fx-btn" data-effect="rawbw">Raw B&W</button>
+                <button class="modal-btn fx-btn" data-effect="posterize">Posterize</button>
+                <button class="modal-btn fx-btn" data-effect="flipped">Flipped</button>
+                <button class="modal-btn fx-btn" data-effect="color">Color</button>
+                <button class="modal-btn fx-btn" data-effect="discration">Discration</button>
+            </div>
+
+            <div class="setting-group" id="posterize-control" style="margin-top: 10px;">
+                <label for="posterize-slider">Posterize Levels: <span id="posterize-val">4</span></label>
+                <input type="range" id="posterize-slider" min="2" max="16" value="4" style="width: 100%;">
+            </div>
+
+            <div class="setting-group" id="color-hue-control" style="margin-top: 10px;">
+                <label for="color-hue-slider">Color Hue: <span id="color-hue-val">0°</span></label>
+                <input type="range" id="color-hue-slider" min="0" max="360" value="0" style="width: 100%;">
             </div>
         </div>
     </div>
@@ -108,7 +123,7 @@
                     <button class="modal-btn icon-btn" data-icon="favicon.ico">Default</button>
                     <button class="modal-btn icon-btn" data-icon="icons/mungus.ico">Mungus</button>
                     <button class="modal-btn icon-btn" data-icon="icons/googleclassroom.ico">Classroom</button>
-                     <button class="modal-btn icon-btn" data-icon="icons/fcr.ico">RETAKE</button>
+                    <button class="modal-btn icon-btn" data-icon="icons/fcr.ico">RETAKE</button>
                 </div>
             </div>
 
@@ -193,8 +208,7 @@
 
             <div class="admin-section">
                 <h4>Theme Architect</h4>
-                <div id="theme-creator-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 10px;">
-                    </div>
+                <div id="theme-creator-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 10px;"></div>
                 <div style="display: flex; gap: 5px;">
                     <button id="admin-preview-theme" class="modal-btn" style="flex: 1;">Preview Theme</button>
                     <button id="admin-generate-css" class="modal-btn" style="flex: 1;">Generate CSS</button>
@@ -209,18 +223,18 @@
     </div>
     
     <div id="downloads-modal" class="modal hidden">
-    <div class="modal-content">
-        <span id="close-downloads-btn" class="close-btn">&times;</span>
-        <h3>Downloadable Projects</h3>
-        <div class="setting-group">
-            <a href="download/FNFBOT to Psych.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: FNFBOT to Psych.zip</a>
-            <a href="download/vbsmaker.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: vbsmaker.zip</a>
-            <a href="https://github.com/OrgeYT/orgeyt.github.io-myprojects/releases/download/download/Kitty.window.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: Kitty window</a>
-            <a href="download/decode.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: decode animation</a>
-            <a href="download/file contents.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: file contents/folder dump</a>
+        <div class="modal-content">
+            <span id="close-downloads-btn" class="close-btn">&times;</span>
+            <h3>Downloadable Projects</h3>
+            <div class="setting-group">
+                <a href="download/FNFBOT to Psych.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: FNFBOT to Psych.zip</a>
+                <a href="download/vbsmaker.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: vbsmaker.zip</a>
+                <a href="https://github.com/OrgeYT/orgeyt.github.io-myprojects/releases/download/download/Kitty.window.zip" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: Kitty window</a>
+                <a href="download/decode.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: decode animation</a>
+                <a href="download/file contents.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: file contents/folder dump</a>
+            </div>
         </div>
     </div>
-</div>
 
     <div id="achievement-toast" class="hidden">
         <div class="toast-content">
@@ -228,6 +242,19 @@
             <span id="toast-text">Name</span>
         </div>
     </div>
+
+    <!-- Posterize Filter Definition -->
+    <svg style="display: none;">
+        <defs>
+            <filter id="posterize-filter">
+                <feComponentTransfer>
+                    <feFuncR id="posterize-r" type="discrete" tableValues="0 0.33 0.66 1"/>
+                    <feFuncG id="posterize-g" type="discrete" tableValues="0 0.33 0.66 1"/>
+                    <feFuncB id="posterize-b" type="discrete" tableValues="0 0.33 0.66 1"/>
+                </feComponentTransfer>
+            </filter>
+        </defs>
+    </svg>
 
     <script src="app.js"></script>
 </body>
