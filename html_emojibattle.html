@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,6 +10,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     fontFamily: {
@@ -29,24 +30,39 @@
             -webkit-user-select: none;
             touch-action: manipulation;
             overflow: hidden;
-            background-color: #f8fafc;
         }
 
-        /* Glassmorphism card styles */
-        .glass-panel {
+        body.light-theme {
+            background-color: #f8fafc;
+        }
+        body.light-theme #gameCanvas {
+            background-color: #ffffff;
+        }
+
+        body.dark-theme {
+            background-color: #0f172a;
+        }
+        body.dark-theme #gameCanvas {
+            background-color: #090d16;
+        }
+
+        /* Glassmorphism panel styles */
+        body.light-theme .glass-panel {
             background: rgba(255, 255, 255, 0.92);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(226, 232, 240, 0.8);
+            color: #1e293b;
         }
 
-        /* Canvas white map background */
-        #gameCanvas {
-            background-color: #ffffff;
-            cursor: crosshair;
+        body.dark-theme .glass-panel {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.8);
+            color: #f8fafc;
         }
 
-        /* Smooth tab animations */
         .btn-press {
             transition: transform 0.1s ease, box-shadow 0.1s ease;
         }
@@ -54,7 +70,6 @@
             transform: scale(0.96);
         }
 
-        /* Custom scrollbar */
         ::-webkit-scrollbar {
             width: 6px;
         }
@@ -64,14 +79,14 @@
         }
     </style>
 </head>
-<body class="w-screen h-screen flex flex-col font-sans text-slate-800 antialiased bg-slate-100">
+<body class="light-theme w-screen h-screen flex flex-col font-sans antialiased">
 
     <!-- MAIN APP CONTAINER -->
     <div id="app" class="relative w-full h-full flex flex-col overflow-hidden">
 
         <!-- TITLE / SETTINGS SCREEN -->
-        <div id="titleScreen" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md">
-            <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-white/60 flex flex-col max-h-[92vh] overflow-y-auto">
+        <div id="titleScreen" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
+            <div class="glass-panel w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col max-h-[92vh] overflow-y-auto">
                 
                 <!-- Header -->
                 <div class="text-center mb-6">
@@ -80,10 +95,10 @@
                         <span id="titleEmoji2" class="animate-bounce [animation-delay:0.15s]">📃</span>
                         <span id="titleEmoji3" class="animate-bounce [animation-delay:0.3s]">✂️</span>
                         <span id="titleEmoji4" class="animate-bounce [animation-delay:0.45s] hidden">🦎</span>
-                        <span id="titleEmoji5" class="animate-bounce [animation-delay:0.6s] hidden">🖖</span>
+                        <span id="titleEmoji5" class="animate-bounce [animation-delay:0.6s] hidden">🍴</span>
                     </div>
-                    <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Emoji Simulation</h1>
-                    <p class="text-xs sm:text-sm text-slate-500 mt-1 font-medium">Watch emojis chase, flee, collide, and transform!</p>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Emoji Simulation</h1>
+                    <p class="text-xs sm:text-sm opacity-75 mt-1 font-medium">Watch emojis chase, flee, collide, and transform! "Updating with claude soon...!"</p>
                 </div>
 
                 <!-- Settings Form -->
@@ -91,84 +106,73 @@
                     
                     <!-- Presets Selector -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Preset Themes</label>
-                        <div class="grid grid-cols-3 gap-2">
-                            <button type="button" onclick="applyPreset('classic')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
-                                <span class="text-base sm:text-lg">🪨 📃 ✂️ 🦎 🖖</span>
-                                <span>Classic</span>
-                            </button>
-                            <button type="button" onclick="applyPreset('elemental')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
-                                <span class="text-base sm:text-lg">🔥 💧 🌿 ⚡ 🌀</span>
-                                <span>Elements</span>
-                            </button>
-                            <button type="button" onclick="applyPreset('animals')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 btn-press flex flex-col items-center gap-1 shadow-sm">
-                                <span class="text-base sm:text-lg">🐶 🐱 🐭 🐸 🐍</span>
-                                <span>Animals</span>
-                            </button>
+                        <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Preset Themes</label>
+                        <div id="presetGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <!-- Dynamically populated from PRESETS object -->
                         </div>
                     </div>
 
                     <!-- Game Mode Selection -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Game Mode</label>
-                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 p-1 bg-slate-100 rounded-2xl">
-                            <button id="mode1v0Btn" type="button" onclick="setMode('1v0')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">1 team</button>
-                            <button id="mode2v2Btn" type="button" onclick="setMode('2v2')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">2 teams</button>
-                            <button id="mode3v3Btn" type="button" onclick="setMode('3v3')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm bg-white text-blue-600">3 teams</button>
-                            <button id="mode4v4Btn" type="button" onclick="setMode('4v4')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">4 teams</button>
-                            <button id="mode5v5Btn" type="button" onclick="setMode('5v5')" class="py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900">5 teams</button>
+                        <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Game Mode</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 p-1 bg-slate-200/60 dark:bg-slate-800/80 rounded-2xl">
+                            <button id="mode1v0Btn" type="button" onclick="setMode('1v0')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">1 team</button>
+                            <button id="mode2v2Btn" type="button" onclick="setMode('2v2')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">2 teams</button>
+                            <button id="mode3v3Btn" type="button" onclick="setMode('3v3')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400">3 teams</button>
+                            <button id="mode4v4Btn" type="button" onclick="setMode('4v4')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">4 teams</button>
+                            <button id="mode5v5Btn" type="button" onclick="setMode('5v5')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">5 teams</button>
                         </div>
-                        <p id="modeDescription" class="text-[11px] text-slate-500 mt-1.5 px-1 leading-snug">
+                        <p id="modeDescription" class="text-[11px] opacity-70 mt-1.5 px-1 leading-snug">
                             3 teams follows cyclic rules (A beats B, B beats C, C beats A).
                         </p>
                     </div>
 
                     <!-- Teams Configuration -->
-                    <div class="space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/60 max-h-52 overflow-y-auto">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Custom Emojis</label>
+                    <div class="space-y-3 bg-slate-100 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 max-h-52 overflow-y-auto">
+                        <label class="block text-xs font-bold uppercase tracking-wider opacity-70">Custom Emojis</label>
 
                         <!-- Team 1 -->
                         <div class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold text-slate-600 w-16">Team 1:</span>
+                            <span class="text-xs font-bold opacity-80 w-16">Team 1:</span>
                             <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team1Emoji" maxlength="2" value="🪨" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team1Name" value="Rock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team1Emoji" maxlength="2" value="🪨" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team1Name" value="Rock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 2 -->
                         <div id="team2Row" class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold text-slate-600 w-16">Team 2:</span>
+                            <span class="text-xs font-bold opacity-80 w-16">Team 2:</span>
                             <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team2Emoji" maxlength="2" value="📃" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team2Name" value="Paper" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team2Emoji" maxlength="2" value="📃" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team2Name" value="Paper" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 3 -->
                         <div id="team3Row" class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold text-slate-600 w-16">Team 3:</span>
+                            <span class="text-xs font-bold opacity-80 w-16">Team 3:</span>
                             <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team3Emoji" maxlength="2" value="✂️" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team3Name" value="Scissors" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team3Emoji" maxlength="2" value="✂️" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team3Name" value="Scissors" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 4 -->
                         <div id="team4Row" class="flex items-center justify-between gap-3 hidden">
-                            <span class="text-xs font-bold text-slate-600 w-16">Team 4:</span>
+                            <span class="text-xs font-bold opacity-80 w-16">Team 4:</span>
                             <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team4Emoji" maxlength="2" value="🦎" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team4Name" value="Lizard" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team4Emoji" maxlength="2" value="🦎" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team4Name" value="Lizard" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 5 -->
                         <div id="team5Row" class="flex items-center justify-between gap-3 hidden">
-                            <span class="text-xs font-bold text-slate-600 w-16">Team 5:</span>
+                            <span class="text-xs font-bold opacity-80 w-16">Team 5:</span>
                             <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team5Emoji" maxlength="2" value="🖖" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team5Name" value="Spock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team5Emoji" maxlength="2" value="🍴" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team5Name" value="Spock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
                     </div>
@@ -176,24 +180,46 @@
                     <!-- Units Per Team Slider -->
                     <div>
                         <div class="flex justify-between items-center mb-1">
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Units Per Team</label>
-                            <span id="unitsValueDisplay" class="text-sm font-black text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-lg border border-blue-200">10</span>
+                            <label class="text-xs font-bold uppercase tracking-wider opacity-70">Units Per Team</label>
+                            <span id="unitsValueDisplay" class="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">10</span>
                         </div>
-                        <input type="range" id="unitsSlider" min="1" max="50" value="10" step="1" oninput="document.getElementById('unitsValueDisplay').innerText = this.value" class="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg">
-                        <div class="flex justify-between text-[10px] text-slate-400 mt-1 font-medium">
-                            <span>1 (Quick)</span>
-                            <span>10 (Default)</span>
-                            <span>50 (Chaos!)</span>
+                        <input type="range" id="unitsSlider" min="1" max="50" value="10" step="1" oninput="document.getElementById('unitsValueDisplay').innerText = this.value" class="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                    </div>
+
+                    <!-- Audio Options & Sound Type Selector -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Sound Mode</label>
+                            <select id="soundTypeSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium shadow-sm">
+                                <option value="mp3" selected>Custom MP3s</option>
+                                <option value="synth">Synthetic (Old)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Theme</label>
+                            <select id="themeSelect" onchange="handleThemeChange()" class="w-full h-9 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium shadow-sm">
+                                <option value="light" selected>Light Mode</option>
+                                <option value="dark">Dark Mode</option>
+                            </select>
                         </div>
                     </div>
 
+                    <!-- Background Music Volume Slider -->
+                    <div class="bg-slate-100 dark:bg-slate-800/50 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-xs font-bold uppercase tracking-wider opacity-70 flex items-center gap-1.5"><span>🎵</span> Background Music Volume</label>
+                            <span id="bgMusicVolDisplay" class="text-xs font-bold font-mono">30%</span>
+                        </div>
+                        <input type="range" id="bgMusicVolSlider" min="0" max="100" value="30" step="1" oninput="updateBgMusicVolume(this.value)" class="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                    </div>
+
                     <!-- Player Control Toggle Option -->
-                    <div class="bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200/80 flex items-center justify-between shadow-sm">
+                    <div class="bg-amber-50 dark:bg-amber-950/40 p-3.5 rounded-2xl border border-amber-200 dark:border-amber-800 flex items-center justify-between shadow-sm">
                         <div class="flex items-center gap-2.5">
                             <span class="text-2xl">👑</span>
                             <div>
-                                <label for="playerModeToggle" class="text-xs font-bold uppercase tracking-wider text-amber-900 cursor-pointer">Play As A Unit</label>
-                                <p class="text-[11px] text-amber-700 font-medium leading-tight">Control a crowned emoji with your cursor! You transform on hit.</p>
+                                <label for="playerModeToggle" class="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200 cursor-pointer">Play As A Unit</label>
+                                <p class="text-[11px] text-amber-700 dark:text-amber-400 font-medium leading-tight">Control a crowned emoji with your cursor! You transform on hit.</p>
                             </div>
                         </div>
                         <input type="checkbox" id="playerModeToggle" class="w-5 h-5 accent-amber-600 rounded cursor-pointer">
@@ -202,16 +228,16 @@
                     <!-- Additional Physics Tuning -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Speed</label>
-                            <select id="speedSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 bg-white px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-700 shadow-sm">
+                            <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Speed</label>
+                            <select id="speedSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium shadow-sm">
                                 <option value="1.5">Slow & Calm</option>
                                 <option value="2.5" selected>Normal</option>
                                 <option value="3.8">Fast & Energetic</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Shakiness</label>
-                            <select id="jitterSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 bg-white px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium text-slate-700 shadow-sm">
+                            <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Shakiness</label>
+                            <select id="jitterSelect" class="w-full h-9 text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 px-2 focus:ring-2 focus:ring-blue-500 focus:outline-none font-medium shadow-sm">
                                 <option value="0.2">Mild</option>
                                 <option value="0.5" selected>Shaky (Default)</option>
                                 <option value="0.9">Super Nervous</option>
@@ -233,69 +259,69 @@
         <div id="gameHUD" class="absolute top-3 left-3 right-3 z-20 pointer-events-none flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
             
             <!-- Left Info Panel: Timer & Controls -->
-            <div class="glass-panel rounded-2xl p-2.5 px-4 shadow-md pointer-events-auto flex items-center justify-between sm:justify-start gap-3 border border-slate-200/80">
+            <div class="glass-panel rounded-2xl p-2.5 px-4 shadow-md pointer-events-auto flex items-center justify-between sm:justify-start gap-3">
                 <!-- Match Timer -->
                 <div class="flex items-center gap-2">
-                    <span class="text-xs text-slate-400 uppercase font-black tracking-wider">TIME</span>
-                    <span id="hudTimer" class="font-mono text-lg font-extrabold text-slate-800 tracking-tight">00:00.0</span>
+                    <span class="text-xs opacity-60 uppercase font-black tracking-wider">TIME</span>
+                    <span id="hudTimer" class="font-mono text-lg font-extrabold tracking-tight">00:00.0</span>
                 </div>
 
-                <div class="h-4 w-px bg-slate-200"></div>
+                <div class="h-4 w-px bg-slate-300 dark:bg-slate-700"></div>
 
                 <!-- HUD Action Buttons -->
                 <div class="flex items-center gap-1">
                     <!-- Pause/Play -->
-                    <button id="pauseBtn" onclick="togglePause()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Pause/Play">
+                    <button id="pauseBtn" onclick="togglePause()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Pause/Play">
                         <svg id="pauseIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <svg id="playIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </button>
                     <!-- Speed Toggle -->
-                    <button id="speedMultiplierBtn" onclick="cycleSpeedMultiplier()" class="px-2 py-1 text-xs font-black rounded-xl hover:bg-slate-100 text-blue-600 bg-blue-50 border border-blue-200 btn-press" title="Simulation Speed">
+                    <button id="speedMultiplierBtn" onclick="cycleSpeedMultiplier()" class="px-2 py-1 text-xs font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 btn-press" title="Simulation Speed">
                         1x
                     </button>
                     <!-- Restart Match -->
-                    <button onclick="restartGame()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Restart Match">
+                    <button onclick="restartGame()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Restart Match">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     </button>
                     <!-- Settings/Menu Button -->
-                    <button onclick="openSettings()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Return to Title / Settings">
+                    <button onclick="openSettings()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Return to Title / Settings">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     </button>
                     <!-- Audio Sound Mute Toggle -->
-                    <button id="soundBtn" onclick="toggleAudio()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-600 btn-press transition-colors" title="Toggle Sound Effects">
+                    <button id="soundBtn" onclick="toggleAudio()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Toggle Sound Effects">
                         <span id="soundIcon" class="text-base">🔊</span>
                     </button>
                 </div>
             </div>
 
             <!-- Right Info Panel: Live Team Counters -->
-            <div id="hudCounters" class="glass-panel rounded-2xl p-2 px-3 shadow-md pointer-events-auto flex items-center justify-around gap-2 sm:gap-3 border border-slate-200/80 flex-wrap">
+            <div id="hudCounters" class="glass-panel rounded-2xl p-2 px-3 shadow-md pointer-events-auto flex items-center justify-around gap-2 sm:gap-3 flex-wrap">
                 <!-- Dynamically populated team badges -->
             </div>
 
         </div>
 
         <!-- WINNER ANNOUNCEMENT MODAL -->
-        <div id="winModal" class="absolute inset-0 z-40 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-md">
-            <div class="glass-panel w-full max-w-md rounded-3xl p-8 shadow-2xl text-center border border-white/80">
+        <div id="winModal" class="absolute inset-0 z-40 hidden flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div class="glass-panel w-full max-w-md rounded-3xl p-8 shadow-2xl text-center border">
                 
                 <div id="winEmoji" class="text-7xl mb-3 animate-bounce">🏆</div>
-                <h2 id="winTitle" class="text-3xl font-black text-slate-900 tracking-tight">Team Victorious!</h2>
-                <p id="winSubtext" class="text-sm font-medium text-slate-500 mt-2">All opponents have been converted!</p>
+                <h2 id="winTitle" class="text-3xl font-black tracking-tight">Team Victorious!</h2>
+                <p id="winSubtext" class="text-sm font-medium opacity-75 mt-2">All opponents have been converted!</p>
                 
                 <!-- Match Statistics -->
-                <div class="my-6 p-4 bg-slate-50 rounded-2xl border border-slate-200/60 space-y-2 text-xs sm:text-sm text-slate-600">
+                <div class="my-6 p-4 bg-slate-100 dark:bg-slate-800/60 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2 text-xs sm:text-sm">
                     <div class="flex justify-between">
                         <span>Total Match Time:</span>
-                        <span id="winStatTime" class="font-bold font-mono text-slate-800">00:00.0</span>
+                        <span id="winStatTime" class="font-bold font-mono">00:00.0</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Total Transformations:</span>
-                        <span id="winStatConversions" class="font-bold text-slate-800">0</span>
+                        <span id="winStatConversions" class="font-bold">0</span>
                     </div>
                     <div class="flex justify-between">
                         <span>Winning Team Size:</span>
-                        <span id="winStatFinalCount" class="font-bold text-slate-800">30</span>
+                        <span id="winStatFinalCount" class="font-bold">30</span>
                     </div>
                 </div>
 
@@ -304,7 +330,7 @@
                     <button onclick="restartGame()" class="py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl shadow-md shadow-blue-500/20 btn-press">
                         🔄 Rematch
                     </button>
-                    <button onclick="openSettings()" class="py-3 px-4 bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold rounded-2xl btn-press">
+                    <button onclick="openSettings()" class="py-3 px-4 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 font-bold rounded-2xl btn-press">
                         ⚙️ Title / Settings
                     </button>
                 </div>
@@ -316,6 +342,9 @@
         <canvas id="gameCanvas" class="w-full h-full block flex-1"></canvas>
 
     </div>
+
+    <!-- BACKGROUND MUSIC AUDIO ELEMENT -->
+    <audio id="bgMusic" src="https://file.garden/Zj01o_oh-G9Y8APf/emoji%20battle/bg.mp3" preload="auto" loop></audio>
 
     <script>
         /* ==========================================================================
@@ -333,61 +362,350 @@
         let mouseY = 0;
         let isMouseActive = false;
 
-        const PRESETS = {
-            classic: {
-                teams: [
-                    { emoji: '🪨', name: 'Rock', color: '#64748b' },
-                    { emoji: '📃', name: 'Paper', color: '#0284c7' },
-                    { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
-                    { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
-                    { emoji: '🖖', name: 'Spock', color: '#9333ea' }
-                ]
-            },
-            elemental: {
-                teams: [
-                    { emoji: '🔥', name: 'Fire', color: '#f97316' },
-                    { emoji: '💧', name: 'Water', color: '#06b6d4' },
-                    { emoji: '🌿', name: 'Grass', color: '#16a34a' },
-                    { emoji: '⚡', name: 'Lightning', color: '#eab308' },
-                    { emoji: '🌀', name: 'Wind', color: '#6366f1' }
-                ]
-            },
-            animals: {
-                teams: [
-                    { emoji: '🐶', name: 'Dog', color: '#d97706' },
-                    { emoji: '🐱', name: 'Cat', color: '#9333ea' },
-                    { emoji: '🐭', name: 'Mouse', color: '#475569' },
-                    { emoji: '🐸', name: 'Frog', color: '#15803d' },
-                    { emoji: '🐍', name: 'Snake', color: '#047857' }
-                ]
-            }
-        };
+ /* ==========================================================================
+   PRESET THEMES REGISTRY
+   ========================================================================== */
+const PRESETS = {
+    classic: {
+        label: 'Classic',
+        icon: '🪨 📃 ✂️',
+        teams: [
+            { emoji: '🪨', name: 'Rock', color: '#64748b' },
+            { emoji: '📃', name: 'Paper', color: '#0284c7' },
+            { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
+            { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
+            { emoji: '🖖', name: 'Spock', color: '#9333ea' }
+        ]
+    },
+
+    elemental: {
+        label: 'Elements',
+        icon: '🔥 💧 🌿',
+        teams: [
+            { emoji: '🔥', name: 'Fire', color: '#f97316' },
+            { emoji: '💧', name: 'Water', color: '#06b6d4' },
+            { emoji: '🌿', name: 'Grass', color: '#16a34a' },
+            { emoji: '⚡', name: 'Lightning', color: '#eab308' },
+            { emoji: '🌀', name: 'Wind', color: '#6366f1' }
+        ]
+    },
+
+    animals: {
+        label: 'Animals',
+        icon: '🐶 🐱 🐭',
+        teams: [
+            { emoji: '🐶', name: 'Dog', color: '#d97706' },
+            { emoji: '🐱', name: 'Cat', color: '#9333ea' },
+            { emoji: '🐭', name: 'Mouse', color: '#475569' },
+            { emoji: '🐸', name: 'Frog', color: '#15803d' },
+            { emoji: '🐍', name: 'Snake', color: '#047857' }
+        ]
+    },
+
+    rainbow: {
+        label: 'Rainbow',
+        icon: '🔴 🟠 🟡',
+        teams: [
+            { emoji: '🔴', name: 'Red', color: '#ef4444' },
+            { emoji: '🟠', name: 'Orange', color: '#f97316' },
+            { emoji: '🟡', name: 'Yellow', color: '#eab308' },
+            { emoji: '🟢', name: 'Green', color: '#22c55e' },
+            { emoji: '🔵', name: 'Blue', color: '#3b82f6' }
+        ]
+    },
+
+    unusedEmojis: {
+        label: 'Quirky',
+        icon: '🪿 🫨 🪤',
+        teams: [
+            { emoji: '🪿', name: 'Goose', color: '#64748b' },
+            { emoji: '🫨', name: 'Shaking', color: '#f59e0b' },
+            { emoji: '🪤', name: 'Trap', color: '#a16207' },
+            { emoji: '🫗', name: 'Pouring', color: '#0ea5e9' },
+            { emoji: '🪇', name: 'Maraca', color: '#dc2626' }
+        ]
+    },
+
+    instruments: {
+        label: 'Music',
+        icon: '🎸 🎹 🥁',
+        teams: [
+            { emoji: '🎸', name: 'Guitar', color: '#b45309' },
+            { emoji: '🎹', name: 'Piano', color: '#475569' },
+            { emoji: '🥁', name: 'Drums', color: '#dc2626' },
+            { emoji: '🎺', name: 'Trumpet', color: '#eab308' },
+            { emoji: '🎻', name: 'Violin', color: '#92400e' }
+        ]
+    },
+
+    cosmic: {
+        label: 'Cosmic',
+        icon: '🌟 🌙 🪐',
+        teams: [
+            { emoji: '🌟', name: 'Star', color: '#eab308' },
+            { emoji: '🌙', name: 'Moon', color: '#6366f1' },
+            { emoji: '🪐', name: 'Planet', color: '#a855f7' },
+            { emoji: '☄️', name: 'Comet', color: '#ef4444' },
+            { emoji: '🌌', name: 'Galaxy', color: '#4f46e5' }
+        ]
+    },
+
+    foodFight: {
+        label: 'Food',
+        icon: '🍕 🍔 🌮',
+        teams: [
+            { emoji: '🍕', name: 'Pizza', color: '#ef4444' },
+            { emoji: '🍔', name: 'Burger', color: '#d97706' },
+            { emoji: '🌮', name: 'Taco', color: '#eab308' },
+            { emoji: '🍩', name: 'Donut', color: '#ec4899' },
+            { emoji: '🍉', name: 'Watermelon', color: '#16a34a' }
+        ]
+    },
+
+    orgeYT: {
+        label: 'OrgeYT',
+        icon: '🎮 💻 ▶️',
+        teams: [
+            { emoji: '🎮', name: 'FNF', color: '#ec4899' },
+            { emoji: '🧩', name: 'Scratch', color: '#f59e0b' },
+            { emoji: '🌐', name: 'Websim', color: '#6366f1' },
+            { emoji: '▶️', name: 'YouTube', color: '#ef4444' },
+            { emoji: '💻', name: 'Projects', color: '#22c55e' }
+        ]
+    },
+
+    brad: {
+        label: 'Brad',
+        icon: '🚗 🎬 🍳',
+        teams: [
+            { emoji: '🚗', name: 'Cars', color: '#ef4444' },
+            { emoji: '🎬', name: 'FCR', color: '#8b5cf6' },
+            { emoji: '🍳', name: 'Cooking', color: '#f59e0b' },
+            { emoji: '🅱️', name: 'Bnoob', color: '#06b6d4' },
+            { emoji: '🔥', name: 'Chaos', color: '#f97316' }
+        ]
+    },
+
+    // ——— 15 NEW PRESETS ———
+
+    sports: {
+        label: 'Sports',
+        icon: '⚽ 🏀 🏈',
+        teams: [
+            { emoji: '⚽', name: 'Soccer', color: '#16a34a' },
+            { emoji: '🏀', name: 'Basketball', color: '#ea580c' },
+            { emoji: '🏈', name: 'Football', color: '#b45309' },
+            { emoji: '🎾', name: 'Tennis', color: '#eab308' },
+            { emoji: '🏐', name: 'Volleyball', color: '#0ea5e9' }
+        ]
+    },
+
+    weather: {
+        label: 'Weather',
+        icon: '☀️ 🌧️ ❄️',
+        teams: [
+            { emoji: '☀️', name: 'Sunny', color: '#f59e0b' },
+            { emoji: '🌧️', name: 'Rain', color: '#0284c7' },
+            { emoji: '❄️', name: 'Snow', color: '#67e8f9' },
+            { emoji: '⛈️', name: 'Storm', color: '#4f46e5' },
+            { emoji: '🌈', name: 'Rainbow', color: '#ec4899' }
+        ]
+    },
+
+    fantasy: {
+        label: 'Fantasy',
+        icon: '🧙 🐉 🗡️',
+        teams: [
+            { emoji: '🧙', name: 'Wizard', color: '#7c3aed' },
+            { emoji: '🐉', name: 'Dragon', color: '#dc2626' },
+            { emoji: '🗡️', name: 'Knight', color: '#64748b' },
+            { emoji: '🧝', name: 'Elf', color: '#16a34a' },
+            { emoji: '👻', name: 'Ghost', color: '#a78bfa' }
+        ]
+    },
+
+    ocean: {
+        label: 'Ocean',
+        icon: '🐙 🦈 🐠',
+        teams: [
+            { emoji: '🐙', name: 'Octopus', color: '#9333ea' },
+            { emoji: '🦈', name: 'Shark', color: '#475569' },
+            { emoji: '🐠', name: 'Fish', color: '#06b6d4' },
+            { emoji: '🦀', name: 'Crab', color: '#ef4444' },
+            { emoji: '🐳', name: 'Whale', color: '#0284c7' }
+        ]
+    },
+
+    vehicles: {
+        label: 'Vehicles',
+        icon: '🚗 ✈️ 🚂',
+        teams: [
+            { emoji: '🚗', name: 'Car', color: '#ef4444' },
+            { emoji: '✈️', name: 'Plane', color: '#0ea5e9' },
+            { emoji: '🚂', name: 'Train', color: '#64748b' },
+            { emoji: '🚢', name: 'Ship', color: '#0369a1' },
+            { emoji: '🚀', name: 'Rocket', color: '#f97316' }
+        ]
+    },
+
+    fruits: {
+        label: 'Fruits',
+        icon: '🍎 🍌 🍇',
+        teams: [
+            { emoji: '🍎', name: 'Apple', color: '#ef4444' },
+            { emoji: '🍌', name: 'Banana', color: '#eab308' },
+            { emoji: '🍇', name: 'Grape', color: '#9333ea' },
+            { emoji: '🍓', name: 'Strawberry', color: '#e11d48' },
+            { emoji: '🍍', name: 'Pineapple', color: '#f59e0b' }
+        ]
+    },
+
+    halloween: {
+        label: 'Halloween',
+        icon: '🎃 👻 🦇',
+        teams: [
+            { emoji: '🎃', name: 'Pumpkin', color: '#f97316' },
+            { emoji: '👻', name: 'Ghost', color: '#e2e8f0' },
+            { emoji: '🦇', name: 'Bat', color: '#1e293b' },
+            { emoji: '🕷️', name: 'Spider', color: '#475569' },
+            { emoji: '💀', name: 'Skull', color: '#94a3b8' }
+        ]
+    },
+
+    tech: {
+        label: 'Tech',
+        icon: '💻 📱 🤖',
+        teams: [
+            { emoji: '💻', name: 'Laptop', color: '#64748b' },
+            { emoji: '📱', name: 'Phone', color: '#0ea5e9' },
+            { emoji: '🤖', name: 'Robot', color: '#22c55e' },
+            { emoji: '🖥️', name: 'Monitor', color: '#475569' },
+            { emoji: '⌨️', name: 'Keyboard', color: '#1e293b' }
+        ]
+    },
+
+    emotions: {
+        label: 'Emotions',
+        icon: '😀 😢 😡',
+        teams: [
+            { emoji: '😀', name: 'Happy', color: '#eab308' },
+            { emoji: '😢', name: 'Sad', color: '#3b82f6' },
+            { emoji: '😡', name: 'Angry', color: '#ef4444' },
+            { emoji: '😱', name: 'Shocked', color: '#a855f7' },
+            { emoji: '😴', name: 'Sleepy', color: '#6366f1' }
+        ]
+    },
+
+    superheroes: {
+        label: 'Heroes',
+        icon: '🦸 🦹 ⚡',
+        teams: [
+            { emoji: '🦸', name: 'Hero', color: '#2563eb' },
+            { emoji: '🦹', name: 'Villain', color: '#7c3aed' },
+            { emoji: '⚡', name: 'Speed', color: '#eab308' },
+            { emoji: '🛡️', name: 'Shield', color: '#64748b' },
+            { emoji: '💥', name: 'Power', color: '#ef4444' }
+        ]
+    },
+
+    nature: {
+        label: 'Nature',
+        icon: '🌲 🌸 🏔️',
+        teams: [
+            { emoji: '🌲', name: 'Forest', color: '#166534' },
+            { emoji: '🌸', name: 'Flower', color: '#ec4899' },
+            { emoji: '🏔️', name: 'Mountain', color: '#475569' },
+            { emoji: '🌊', name: 'Wave', color: '#0ea5e9' },
+            { emoji: '☀️', name: 'Sun', color: '#f59e0b' }
+        ]
+    },
+
+    desserts: {
+        label: 'Desserts',
+        icon: '🍰 🍦 🍪',
+        teams: [
+            { emoji: '🍰', name: 'Cake', color: '#f472b6' },
+            { emoji: '🍦', name: 'Ice Cream', color: '#67e8f9' },
+            { emoji: '🍪', name: 'Cookie', color: '#d97706' },
+            { emoji: '🧁', name: 'Cupcake', color: '#ec4899' },
+            { emoji: '🍫', name: 'Chocolate', color: '#78350f' }
+        ]
+    },
+
+    mythical: {
+        label: 'Mythical',
+        icon: '🦄 🧜 🐲',
+        teams: [
+            { emoji: '🦄', name: 'Unicorn', color: '#c084fc' },
+            { emoji: '🧜', name: 'Mermaid', color: '#06b6d4' },
+            { emoji: '🐲', name: 'Dragon', color: '#16a34a' },
+            { emoji: '🧙‍♂️', name: 'Mage', color: '#7c3aed' },
+            { emoji: '🧚', name: 'Fairy', color: '#f472b6' }
+        ]
+    },
+
+    office: {
+        label: 'Office',
+        icon: '📎 🖊️ 📁',
+        teams: [
+            { emoji: '📎', name: 'Paperclip', color: '#64748b' },
+            { emoji: '🖊️', name: 'Pen', color: '#1e40af' },
+            { emoji: '📁', name: 'Folder', color: '#eab308' },
+            { emoji: '📌', name: 'Pin', color: '#ef4444' },
+            { emoji: '🖨️', name: 'Printer', color: '#475569' }
+        ]
+    },
+
+    spaceBattle: {
+        label: 'Space Battle',
+        icon: '🛸 👽 🚀',
+        teams: [
+            { emoji: '🛸', name: 'UFO', color: '#22c55e' },
+            { emoji: '👽', name: 'Alien', color: '#84cc16' },
+            { emoji: '🚀', name: 'Rocket', color: '#ef4444' },
+            { emoji: '🛰️', name: 'Satellite', color: '#64748b' },
+            { emoji: '🌌', name: 'Void', color: '#4f46e5' }
+        ]
+    }
+};
 
         const config = {
-            mode: '3v3', // '2v2', '3v3', '4v4', '5v5'
+            mode: '3v3',
             playerEnabled: false,
+            soundType: 'mp3',
+            bgMusicVolume: 0.3,
             teams: [
                 { emoji: '🪨', name: 'Rock', color: '#64748b' },
                 { emoji: '📃', name: 'Paper', color: '#0284c7' },
                 { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
                 { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
-                { emoji: '🖖', name: 'Spock', color: '#9333ea' }
+                { emoji: '🍴', name: 'Spock', color: '#9333ea' }
             ],
             unitsPerTeam: 10,
             baseSpeed: 2.5,
             shakiness: 0.5,
             unitRadius: 20,
-            speedMultiplier: 1 // 1x, 2x, 4x simulation speed
+            speedMultiplier: 1
         };
 
         /* ==========================================================================
-           WEB AUDIO SYNTHESIZER
+           AUDIO MANAGER
            ========================================================================== */
         class SoundManager {
             constructor() {
                 this.ctx = null;
                 this.muted = false;
+                
+                this.rockAudio = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/emoji%20battle/rock.mp3');
+                this.paperAudio = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/emoji%20battle/paper.mp3');
+                this.scissorsAudio = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/emoji%20battle/scissors.mp3');
+
+                [this.rockAudio, this.paperAudio, this.scissorsAudio].forEach(audio => {
+                    audio.preload = 'auto';
+                    audio.volume = 0.8;
+                });
             }
+
             init() {
                 if (!this.ctx) {
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -396,44 +714,53 @@
                 if (this.ctx && this.ctx.state === 'suspended') {
                     this.ctx.resume();
                 }
+
+                const bgMusic = document.getElementById('bgMusic');
+                if (bgMusic && bgMusic.paused) {
+                    bgMusic.volume = config.bgMusicVolume;
+                    bgMusic.play().catch(e => {});
+                }
             }
-            playPop(pitchFactor = 1) {
+
+            playTransformSound(emojiChar) {
                 if (this.muted) return;
                 this.init();
+
+                if (config.soundType === 'mp3') {
+                    try {
+                        let targetAudio = null;
+                        if (emojiChar === config.teams[0].emoji || emojiChar.includes('🪨') || emojiChar.includes('🔥') || emojiChar.includes('🐶')) {
+                            targetAudio = this.rockAudio;
+                        } else if (emojiChar === config.teams[1].emoji || emojiChar.includes('📃') || emojiChar.includes('💧') || emojiChar.includes('🐱')) {
+                            targetAudio = this.paperAudio;
+                        } else {
+                            targetAudio = this.scissorsAudio;
+                        }
+
+                        if (targetAudio) {
+                            targetAudio.currentTime = 0;
+                            targetAudio.play().catch(e => {});
+                            return;
+                        }
+                    } catch(e) {}
+                }
+
                 if (!this.ctx) return;
                 try {
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
-                    const freq = 400 * pitchFactor;
-                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(800 * pitchFactor, this.ctx.currentTime + 0.08);
-                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.08);
+                    osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
                     osc.connect(gain);
                     gain.connect(this.ctx.destination);
                     osc.start();
-                    osc.stop(this.ctx.currentTime + 0.08);
+                    osc.stop(this.ctx.currentTime + 0.1);
                 } catch(e) {}
             }
-            playBounce() {
-                if (this.muted) return;
-                this.init();
-                if (!this.ctx) return;
-                try {
-                    const osc = this.ctx.createOscillator();
-                    const gain = this.ctx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.05);
-                    gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
-                    osc.connect(gain);
-                    gain.connect(this.ctx.destination);
-                    osc.start();
-                    osc.stop(this.ctx.currentTime + 0.05);
-                } catch(e) {}
-            }
+
             playFanfare() {
                 if (this.muted) return;
                 this.init();
@@ -446,7 +773,7 @@
                         osc.type = 'triangle';
                         osc.frequency.value = freq;
                         const startTime = this.ctx.currentTime + idx * 0.12;
-                        gain.gain.setValueAtTime(0.2, startTime);
+                        gain.gain.setValueAtTime(0.25, startTime);
                         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
                         osc.connect(gain);
                         gain.connect(this.ctx.destination);
@@ -457,6 +784,25 @@
             }
         }
         const audio = new SoundManager();
+
+        function updateBgMusicVolume(val) {
+            config.bgMusicVolume = val / 100;
+            document.getElementById('bgMusicVolDisplay').innerText = `${val}%`;
+            const bgMusic = document.getElementById('bgMusic');
+            if (bgMusic) {
+                bgMusic.volume = config.bgMusicVolume;
+            }
+        }
+
+        function handleThemeChange() {
+            const theme = document.getElementById('themeSelect').value;
+            const body = document.body;
+            if (theme === 'dark') {
+                body.className = 'dark-theme w-screen h-screen flex flex-col font-sans antialiased dark';
+            } else {
+                body.className = 'light-theme w-screen h-screen flex flex-col font-sans antialiased';
+            }
+        }
 
         /* ==========================================================================
            PARTICLE SYSTEM
@@ -500,28 +846,20 @@
         }
 
         /* ==========================================================================
-           GAME LOGIC MATRIX (2v2, 3v3, 4v4, 5v5 RPSLS)
+           GAME LOGIC MATRIX
            ========================================================================== */
         function doesBeat(winnerIdx, loserIdx, mode) {
             if (winnerIdx === loserIdx) return false;
-            if (mode === '2v2') {
-                return false; // Handled as random 50/50 win on touch
-            }
-            if (mode === '3v3') {
-                return (winnerIdx + 2) % 3 === loserIdx;
-            }
-            if (mode === '4v4') {
-                return (winnerIdx + 3) % 4 === loserIdx;
-            }
+            if (mode === '2v2') return false;
+            if (mode === '3v3') return (winnerIdx + 2) % 3 === loserIdx;
+            if (mode === '4v4') return (winnerIdx + 3) % 4 === loserIdx;
             if (mode === '5v5') {
-                // Rock-Paper-Scissors-Lizard-Spock rules:
-                // 0: Rock, 1: Paper, 2: Scissors, 3: Lizard, 4: Spock
                 const targets = {
-                    0: [2, 3], // Rock crushes Scissors (2) & Lizard (3)
-                    1: [0, 4], // Paper covers Rock (0) & disproves Spock (4)
-                    2: [1, 3], // Scissors cuts Paper (1) & decapitates Lizard (3)
-                    3: [4, 1], // Lizard poisons Spock (4) & eats Paper (1)
-                    4: [0, 2]  // Spock vaporizes Rock (0) & smashes Scissors (2)
+                    0: [2, 3], // Rock beats Scissors and Lizard
+                    1: [0, 4], // Paper beats Rock and Spock
+                    2: [1, 3], // Scissors beats Paper and Lizard
+                    3: [1, 4], // Lizard beats Paper and Spock
+                    4: [0, 2]  // Spock beats Rock and Scissors
                 };
                 return targets[winnerIdx] ? targets[winnerIdx].includes(loserIdx) : false;
             }
@@ -539,8 +877,8 @@
                 this.vy = (Math.random() - 0.5) * config.baseSpeed * 2;
                 this.teamIndex = teamIndex;
                 this.radius = config.unitRadius;
-                this.immunityTimer = 0; // Prevent instant conversion loop
-                this.pulseScale = 1.0;  // Scale effect on conversion
+                this.immunityTimer = 0;
+                this.pulseScale = 1.0;
                 this.wanderAngle = Math.random() * Math.PI * 2;
                 this.isPlayer = false;
             }
@@ -564,21 +902,18 @@
                     }
                     const len = Math.hypot(dx, dy) || 1;
                     
-                    // Accelerate away from center with high speed off-screen
                     this.vx += (dx / len) * 0.8;
                     this.vy += (dy / len) * 0.8;
 
                     this.x += this.vx * config.speedMultiplier;
                     this.y += this.vy * config.speedMultiplier;
-                    return; // Bypass wall boundary bounces
+                    return;
                 }
 
-                // --- AI / PLAYER STEERING & TARGET SELECTION ---
                 let fx = 0;
                 let fy = 0;
 
                 if (this.isPlayer && isMouseActive) {
-                    // Player Steering: Move slowly towards mouse cursor
                     const dx = mouseX - this.x;
                     const dy = mouseY - this.y;
                     const dist = Math.hypot(dx, dy) || 1;
@@ -590,12 +925,10 @@
                 } else {
                     let chaseTarget = null;
                     let chaseDist = Infinity;
-
                     let fleeTarget = null;
                     let fleeDist = Infinity;
 
                     if (config.mode === '2v2') {
-                        // 2v2 Mode: Seek opponent team
                         const opponentTeamIdx = this.teamIndex === 0 ? 1 : 0;
                         for (const u of allUnits) {
                             if (u === this) continue;
@@ -610,23 +943,18 @@
                             }
                         }
                     } else {
-                        // 3v3, 4v4, 5v5 Modes: Chase targets we beat, flee threats that beat us
                         for (const u of allUnits) {
                             if (u === this || u.teamIndex === this.teamIndex) continue;
-
                             const dx = u.x - this.x;
                             const dy = u.y - this.y;
                             const dSq = dx * dx + dy * dy;
 
-                            // Check if u is a target we beat
                             if (doesBeat(this.teamIndex, u.teamIndex, config.mode)) {
                                 if (dSq < chaseDist) {
                                     chaseDist = dSq;
                                     chaseTarget = u;
                                 }
-                            } 
-                            // Check if u is a threat that beats us
-                            else if (doesBeat(u.teamIndex, this.teamIndex, config.mode)) {
+                            } else if (doesBeat(u.teamIndex, this.teamIndex, config.mode)) {
                                 if (dSq < fleeDist) {
                                     fleeDist = dSq;
                                     fleeTarget = u;
@@ -635,7 +963,6 @@
                         }
                     }
 
-                    // 1. Chase Force
                     if (chaseTarget) {
                         const dx = chaseTarget.x - this.x;
                         const dy = chaseTarget.y - this.y;
@@ -644,7 +971,6 @@
                         fy += (dy / len) * 1.2;
                     }
 
-                    // 2. Flee Force
                     if (fleeTarget) {
                         const dx = this.x - fleeTarget.x;
                         const dy = this.y - fleeTarget.y;
@@ -655,12 +981,10 @@
                     }
                 }
 
-                // 3. Shaky / Jitter Movement (applies to both AI & Player)
                 this.wanderAngle += (Math.random() - 0.5) * config.shakiness * 2;
                 fx += Math.cos(this.wanderAngle) * (config.shakiness * 1.5);
                 fy += Math.sin(this.wanderAngle) * (config.shakiness * 1.5);
 
-                // 4. Teammate Separation
                 for (const u of allUnits) {
                     if (u === this || u.teamIndex !== this.teamIndex) continue;
                     const dx = this.x - u.x;
@@ -673,12 +997,10 @@
                     }
                 }
 
-                // Apply velocity acceleration
                 const accel = 0.25;
                 this.vx += fx * accel;
                 this.vy += fy * accel;
 
-                // Cap max speed
                 const speed = Math.hypot(this.vx, this.vy);
                 const maxSpeed = config.baseSpeed;
                 if (speed > maxSpeed) {
@@ -686,11 +1008,9 @@
                     this.vy = (this.vy / speed) * maxSpeed;
                 }
 
-                // Update Position
                 this.x += this.vx * config.speedMultiplier;
                 this.y += this.vy * config.speedMultiplier;
 
-                // Boundary bounce
                 const margin = this.radius;
                 if (this.x < margin) {
                     this.x = margin;
@@ -714,31 +1034,17 @@
 
                 ctx.save();
 
-                // Distinctive halo & crown indicator for Player unit
                 if (this.isPlayer) {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, currentRadius * 1.45, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
-                    ctx.fill();
-                    ctx.lineWidth = 2.5;
-                    ctx.strokeStyle = '#f59e0b';
-                    ctx.setLineDash([4, 4]);
-                    ctx.stroke();
-
-                    // Floating crown icon above player
                     ctx.font = `${currentRadius * 0.85}px sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'bottom';
                     ctx.fillText('👑', this.x, this.y - currentRadius * 1.15);
                 }
 
-                ctx.fillStyle = '#000000';
-                ctx.globalAlpha = 1.0;
-
-                // Draw Unit Emoji Appearance
                 ctx.font = `${currentRadius * 1.5}px sans-serif`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                ctx.globalAlpha = 1.0;
                 ctx.fillText(this.team.emoji, this.x, this.y);
 
                 ctx.restore();
@@ -746,7 +1052,7 @@
         }
 
         /* ==========================================================================
-           COLLISION RESOLUTION & CONVERSION LOGIC
+           COLLISION RESOLUTION
            ========================================================================== */
         function handleCollisions() {
             const numUnits = units.length;
@@ -766,14 +1072,12 @@
                         const nx = dx / dist;
                         const ny = dy / dist;
 
-                        // 1. Separate overlapping circles
                         const overlap = 0.5 * (minDist - dist);
                         u1.x -= nx * overlap;
                         u1.y -= ny * overlap;
                         u2.x += nx * overlap;
                         u2.y += ny * overlap;
 
-                        // 2. Elastic Impulse Bounce
                         const kx = u1.vx - u2.vx;
                         const ky = u1.vy - u2.vy;
                         const p = 2 * (nx * kx + ny * ky) / 2;
@@ -783,14 +1087,11 @@
                         u2.vx += p * nx;
                         u2.vy += p * ny;
 
-                        // 3. Transformation Rules Check
                         if (u1.teamIndex !== u2.teamIndex && u1.immunityTimer === 0 && u2.immunityTimer === 0) {
-                            
                             let winnerUnit = null;
                             let loserUnit = null;
 
                             if (config.mode === '2v2') {
-                                // 2v2 Mode: 50/50 win on touch for fair gameplay
                                 if (Math.random() < 0.5) {
                                     winnerUnit = u1;
                                     loserUnit = u2;
@@ -799,7 +1100,6 @@
                                     loserUnit = u1;
                                 }
                             } else {
-                                // 3v3, 4v4, 5v5 Modes
                                 if (doesBeat(u1.teamIndex, u2.teamIndex, config.mode)) {
                                     winnerUnit = u1;
                                     loserUnit = u2;
@@ -810,32 +1110,22 @@
                             }
 
                             if (winnerUnit && loserUnit) {
-                                // Transform loser into winner's team!
                                 loserUnit.teamIndex = winnerUnit.teamIndex;
                                 loserUnit.immunityTimer = 18;
                                 loserUnit.pulseScale = 1.6;
                                 totalConversions++;
 
                                 createBurst(loserUnit.x, loserUnit.y, winnerUnit.team.color);
-                                audio.playPop(1 + winnerUnit.teamIndex * 0.15);
-
-                                // Extra effect if the player unit got transformed!
-                                if (loserUnit.isPlayer) {
-                                    audio.playPop(2.2);
-                                    createBurst(loserUnit.x, loserUnit.y, '#f59e0b');
-                                }
+                                audio.playTransformSound(winnerUnit.team.emoji);
                             }
-                        } else {
-                            audio.playBounce();
                         }
-
                     }
                 }
             }
         }
 
         /* ==========================================================================
-           GAME LOOP & UI REFRESH
+           GAME LOOP & UI
            ========================================================================== */
         function formatTime(ms) {
             const totalSec = Math.floor(ms / 1000);
@@ -856,23 +1146,14 @@
                 elapsedTime += deltaTime * config.speedMultiplier;
                 document.getElementById('hudTimer').innerText = formatTime(elapsedTime);
 
-                // Update units physics & AI
                 units.forEach(u => u.update(canvas.width, canvas.height, units));
-
-                // Resolve collisions & transformations
                 handleCollisions();
-
-                // Check victory state
                 checkWinCondition();
-
-                // Update live HUD
                 updateHUDCounters();
             }
 
-            // Draw frame
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Draw background particles
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
                 p.update();
@@ -880,7 +1161,6 @@
                 if (p.life <= 0) particles.splice(i, 1);
             }
 
-            // Draw units
             units.forEach(u => u.draw(ctx));
 
             requestAnimationFrame(gameLoop);
@@ -905,8 +1185,8 @@
                     <div class="flex items-center gap-1.5 sm:gap-2">
                         <span class="text-lg sm:text-2xl">${team.emoji}</span>
                         <div class="flex flex-col">
-                            <span class="text-xs font-black text-slate-800">${count} <span class="text-[10px] font-normal text-slate-400">(${pct}%)</span></span>
-                            <div class="w-10 sm:w-14 h-1.5 bg-slate-200 rounded-full overflow-hidden mt-0.5">
+                            <span class="text-xs font-black">${count} <span class="text-[10px] font-normal opacity-60">(${pct}%)</span></span>
+                            <div class="w-10 sm:w-14 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full overflow-hidden mt-0.5">
                                 <div class="h-full rounded-full transition-all duration-300" style="width: ${pct}%; background-color: ${team.color}"></div>
                             </div>
                         </div>
@@ -919,7 +1199,6 @@
 
         function checkWinCondition() {
             if (config.mode === '1v0' && !isGameOver) {
-                // Win when all units have fled off the screen
                 const allOffscreen = units.length > 0 && units.every(u => 
                     u.x < -u.radius * 2 || u.x > canvas.width + u.radius * 2 ||
                     u.y < -u.radius * 2 || u.y > canvas.height + u.radius * 2
@@ -956,7 +1235,6 @@
 
                 audio.playFanfare();
 
-                // Show Victory Modal
                 setTimeout(() => {
                     document.getElementById('winEmoji').innerText = winner.emoji;
                     document.getElementById('winTitle').innerText = `${winner.name} Wins!`;
@@ -970,7 +1248,7 @@
         }
 
         /* ==========================================================================
-           CONTROLS & SETTINGS HANDLERS
+           CONTROLS & SETTINGS
            ========================================================================== */
         function startGame() {
             audio.init();
@@ -1009,6 +1287,10 @@
         function toggleAudio() {
             audio.muted = !audio.muted;
             document.getElementById('soundIcon').innerText = audio.muted ? '🔇' : '🔊';
+            const bgMusic = document.getElementById('bgMusic');
+            if (bgMusic) {
+                bgMusic.muted = audio.muted;
+            }
         }
 
         function setMode(mode) {
@@ -1026,11 +1308,11 @@
             const modeDesc = document.getElementById('modeDescription');
 
             [btn1, btn2, btn3, btn4, btn5].forEach(btn => {
-                if (btn) btn.className = 'py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all text-slate-600 hover:text-slate-900';
+                if (btn) btn.className = 'py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100';
             });
 
             const activeBtn = mode === '1v0' ? btn1 : mode === '2v2' ? btn2 : mode === '3v3' ? btn3 : mode === '4v4' ? btn4 : mode === '5v5' ? btn5 : btn3;
-            if (activeBtn) activeBtn.className = 'py-2 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all shadow-sm bg-white text-blue-600';
+            if (activeBtn) activeBtn.className = 'py-2 px-1 text-xs font-bold rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400';
 
             if (team2Row) team2Row.style.display = (mode !== '1v0') ? 'flex' : 'none';
             team3Row.style.display = (mode === '3v3' || mode === '4v4' || mode === '5v5') ? 'flex' : 'none';
@@ -1038,7 +1320,7 @@
             team5Row.style.display = (mode === '5v5') ? 'flex' : 'none';
 
             if (mode === '1v0') {
-                modeDesc.innerText = '1 team (Joke Mode): Watch team units run away off-screen instantly to claim default victory!';
+                modeDesc.innerText = '1 team: Watch team units run away off-screen instantly to claim default victory!';
             } else if (mode === '2v2') {
                 modeDesc.innerText = '2 teams mode features random 50/50 winning chance on touch for fair gameplay!';
             } else if (mode === '3v3') {
@@ -1046,7 +1328,7 @@
             } else if (mode === '4v4') {
                 modeDesc.innerText = '4 teams follows a 4-team cyclic elimination loop!';
             } else if (mode === '5v5') {
-                modeDesc.innerHTML = '<strong>5 teams Classic RPSLS:</strong><br>✂️ cuts 📃 | 📃 covers 🪨 | 🪨 crushes 🦎 | 🦎 poisons 🖖 | 🖖 smashes ✂️<br>✂️ decapitates 🦎 | 🦎 eats 📃 | 📃 disproves 🖖 | 🖖 vaporizes 🪨 | 🪨 crushes ✂️';
+                modeDesc.innerText = '5 teams Rock-Paper-Scissors-Lizard-Spock ruleset enabled!';
             }
 
             updateEmojiTitles();
@@ -1056,22 +1338,40 @@
             const preset = PRESETS[key];
             if (!preset) return;
 
-            document.getElementById('team1Emoji').value = preset.teams[0].emoji;
-            document.getElementById('team1Name').value = preset.teams[0].name;
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
+            });
+            const activePresetBtn = document.getElementById(`presetBtn_${key}`);
+            if (activePresetBtn) {
+                activePresetBtn.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
+            }
 
-            document.getElementById('team2Emoji').value = preset.teams[1].emoji;
-            document.getElementById('team2Name').value = preset.teams[1].name;
-
-            document.getElementById('team3Emoji').value = preset.teams[2].emoji;
-            document.getElementById('team3Name').value = preset.teams[2].name;
-
-            document.getElementById('team4Emoji').value = preset.teams[3].emoji;
-            document.getElementById('team4Name').value = preset.teams[3].name;
-
-            document.getElementById('team5Emoji').value = preset.teams[4].emoji;
-            document.getElementById('team5Name').value = preset.teams[4].name;
+            for (let i = 0; i < 5; i++) {
+                const teamData = preset.teams[i];
+                if (teamData) {
+                    const emojiInput = document.getElementById(`team${i+1}Emoji`);
+                    const nameInput = document.getElementById(`team${i+1}Name`);
+                    if (emojiInput) emojiInput.value = teamData.emoji;
+                    if (nameInput) nameInput.value = teamData.name;
+                }
+            }
 
             updateEmojiTitles();
+        }
+
+        function renderPresetButtons() {
+            const grid = document.getElementById('presetGrid');
+            if (!grid) return;
+            let html = '';
+            for (const [key, preset] of Object.entries(PRESETS)) {
+                html += `
+                    <button type="button" id="presetBtn_${key}" onclick="applyPreset('${key}')" class="preset-btn p-2 text-xs sm:text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:opacity-90 btn-press flex flex-col items-center gap-1 shadow-sm">
+                        <span class="text-base sm:text-lg">${preset.icon}</span>
+                        <span>${preset.label}</span>
+                    </button>
+                `;
+            }
+            grid.innerHTML = html;
         }
 
         function updateEmojiTitles() {
@@ -1079,7 +1379,7 @@
             const e2 = document.getElementById('team2Emoji').value || '📃';
             const e3 = document.getElementById('team3Emoji').value || '✂️';
             const e4 = document.getElementById('team4Emoji').value || '🦎';
-            const e5 = document.getElementById('team5Emoji').value || '🖖';
+            const e5 = document.getElementById('team5Emoji').value || '🍴';
 
             document.getElementById('titleEmoji1').innerText = e1;
             document.getElementById('titleEmoji2').innerText = e2;
@@ -1098,6 +1398,7 @@
             config.baseSpeed = parseFloat(document.getElementById('speedSelect').value);
             config.shakiness = parseFloat(document.getElementById('jitterSelect').value);
             config.playerEnabled = document.getElementById('playerModeToggle').checked;
+            config.soundType = document.getElementById('soundTypeSelect').value;
 
             config.teams[0] = {
                 emoji: document.getElementById('team1Emoji').value || '🪨',
@@ -1120,15 +1421,12 @@
                 color: '#16a34a'
             };
             config.teams[4] = {
-                emoji: document.getElementById('team5Emoji').value || '🖖',
+                emoji: document.getElementById('team5Emoji').value || '🍴',
                 name: document.getElementById('team5Name').value || 'Team 5',
                 color: '#9333ea'
             };
         }
 
-        /* ==========================================================================
-           MATCH INITIALIZATION & SPAWNING
-           ========================================================================== */
         function initMatch() {
             units = [];
             particles = [];
@@ -1145,7 +1443,6 @@
             const margin = 50;
 
             if (config.mode === '1v0') {
-                // Spawn in center cluster for maximum dramatic fleeing effect
                 for (let i = 0; i < count; i++) {
                     const spawnX = canvas.width / 2 + (Math.random() - 0.5) * 60;
                     const spawnY = canvas.height / 2 + (Math.random() - 0.5) * 60;
@@ -1165,7 +1462,6 @@
                 }
             }
 
-            // Designate Player Unit if Player Mode is enabled
             if (config.playerEnabled && units.length > 0) {
                 units[0].isPlayer = true;
             }
@@ -1173,9 +1469,6 @@
             updateHUDCounters();
         }
 
-        /* ==========================================================================
-           RESPONSIVE CANVAS RESIZING & BOOTSTRAP
-           ========================================================================== */
         function resizeCanvas() {
             if (canvas) {
                 canvas.width = window.innerWidth;
@@ -1187,10 +1480,20 @@
             canvas = document.getElementById('gameCanvas');
             ctx = canvas.getContext('2d');
 
+            renderPresetButtons();
+            applyPreset('classic');
+
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Track mouse/touch cursor position for player movement control
+            const firstInteractionHandler = () => {
+                audio.init();
+                window.removeEventListener('pointerdown', firstInteractionHandler);
+                window.removeEventListener('keydown', firstInteractionHandler);
+            };
+            window.addEventListener('pointerdown', firstInteractionHandler);
+            window.addEventListener('keydown', firstInteractionHandler);
+
             const updateCursorPos = (e) => {
                 const rect = canvas.getBoundingClientRect();
                 mouseX = e.clientX - rect.left;
@@ -1205,16 +1508,14 @@
                 }
             }, { passive: true });
 
-            // Interactivity: Tap/Click map to scatter nearby units with a pulse wave
             canvas.addEventListener('pointerdown', (e) => {
+                audio.init();
                 const rect = canvas.getBoundingClientRect();
                 const clickX = e.clientX - rect.left;
                 const clickY = e.clientY - rect.top;
 
-                audio.playBounce();
                 createBurst(clickX, clickY, '#3b82f6');
 
-                // Shockwave pulse force to scatter emojis!
                 units.forEach(u => {
                     const dx = u.x - clickX;
                     const dy = u.y - clickY;
@@ -1227,7 +1528,6 @@
                 });
             });
 
-            // Start main animation frame loop
             requestAnimationFrame(gameLoop);
         };
     </script>
