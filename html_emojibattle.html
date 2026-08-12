@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🪨📃✂️ RPS Simulation Game</title>
+    <title>🪨📃✂️ Emoji Battle Simulator</title>
     <!-- Dynamic SVG Favicon featuring all 3 emojis -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.85em%22 font-size=%2232%22>🪨</text><text x=%2233%22 y=%22.85em%22 font-size=%2232%22>📃</text><text x=%2266%22 y=%22.85em%22 font-size=%2232%22>✂️</text></svg>">
+    <link id="dynamicFavicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.85em%22 font-size=%2232%22>🪨</text><text x=%2233%22 y=%22.85em%22 font-size=%2232%22>📃</text><text x=%2266%22 y=%22.85em%22 font-size=%2232%22>✂️</text></svg>">
     <!-- Tailwind CSS for modern responsive UI styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -64,10 +64,43 @@
         }
 
         .btn-press {
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.15s ease, background-color 0.15s ease;
         }
         .btn-press:active {
             transform: scale(0.96);
+        }
+
+        /* Visible keyboard focus without disturbing the mouse-driven look */
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 9999px;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin-top: -6px;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 9999px;
+            background: #3b82f6;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         }
 
         ::-webkit-scrollbar {
@@ -76,6 +109,26 @@
         ::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 9999px;
+        }
+
+        body.dark-theme ::-webkit-scrollbar-thumb {
+            background: #475569;
+        }
+
+        .preset-btn {
+            transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+        }
+        .preset-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .animate-bounce {
+                animation: none !important;
+            }
+            * {
+                transition-duration: 0.01ms !important;
+            }
         }
     </style>
 </head>
@@ -90,15 +143,18 @@
                 
                 <!-- Header -->
                 <div class="text-center mb-6">
-                    <div id="titleEmojiContainer" class="inline-flex items-center justify-center space-x-2 text-3xl sm:text-5xl mb-2 hover:scale-105 transition-transform cursor-default flex-wrap">
-                        <span id="titleEmoji1" class="animate-bounce">🪨</span>
-                        <span id="titleEmoji2" class="animate-bounce [animation-delay:0.15s]">📃</span>
-                        <span id="titleEmoji3" class="animate-bounce [animation-delay:0.3s]">✂️</span>
-                        <span id="titleEmoji4" class="animate-bounce [animation-delay:0.45s] hidden">🦎</span>
-                        <span id="titleEmoji5" class="animate-bounce [animation-delay:0.6s] hidden">🍴</span>
+                    <div id="titleEmojiContainer" class="inline-flex items-center justify-center space-x-1.5 sm:space-x-2 text-2xl xs:text-3xl sm:text-5xl mb-2 hover:scale-105 transition-transform cursor-default flex-wrap">
+                        <span id="titleEmoji1" class="animate-bounce [animation-delay:0s]">🪨</span>
+                        <span id="titleEmoji2" class="animate-bounce [animation-delay:0.1s]">📃</span>
+                        <span id="titleEmoji3" class="animate-bounce [animation-delay:0.2s]">✂️</span>
+                        <span id="titleEmoji4" class="animate-bounce [animation-delay:0.3s] hidden">🦎</span>
+                        <span id="titleEmoji5" class="animate-bounce [animation-delay:0.4s] hidden">🖖</span>
+                        <span id="titleEmoji6" class="animate-bounce [animation-delay:0.5s] hidden">🧙</span>
+                        <span id="titleEmoji7" class="animate-bounce [animation-delay:0.6s] hidden">🐉</span>
+                        <span id="titleEmoji8" class="animate-bounce [animation-delay:0.7s] hidden">🛡️</span>
                     </div>
-                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Emoji Simulation</h1>
-                    <p class="text-xs sm:text-sm opacity-75 mt-1 font-medium">Watch emojis chase, flee, collide, and transform! "Updating with claude soon...!"</p>
+                    <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Emoji Battle Simulator</h1>
+                    <p class="text-xs sm:text-sm opacity-75 mt-1 font-medium">Watch emojis chase, flee, collide, and transform — up to 8 teams!</p>
                 </div>
 
                 <!-- Settings Form -->
@@ -107,72 +163,100 @@
                     <!-- Presets Selector -->
                     <div>
                         <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Preset Themes</label>
-                        <div id="presetGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        <div id="presetGrid" class="grid grid-cols-3 sm:grid-cols-4 gap-2">
                             <!-- Dynamically populated from PRESETS object -->
                         </div>
                     </div>
 
-                    <!-- Game Mode Selection -->
+                    <!-- Number of Teams -->
                     <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider opacity-70 mb-2">Game Mode</label>
-                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-1.5 p-1 bg-slate-200/60 dark:bg-slate-800/80 rounded-2xl">
-                            <button id="mode1v0Btn" type="button" onclick="setMode('1v0')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">1 team</button>
-                            <button id="mode2v2Btn" type="button" onclick="setMode('2v2')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">2 teams</button>
-                            <button id="mode3v3Btn" type="button" onclick="setMode('3v3')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400">3 teams</button>
-                            <button id="mode4v4Btn" type="button" onclick="setMode('4v4')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">4 teams</button>
-                            <button id="mode5v5Btn" type="button" onclick="setMode('5v5')" class="py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100">5 teams</button>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="text-xs font-bold uppercase tracking-wider opacity-70">Number of Teams</label>
+                            <span id="teamCountDisplay" class="text-sm font-black text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/40 px-2.5 py-0.5 rounded-lg border border-blue-200 dark:border-blue-800">3</span>
+                        </div>
+                        <input type="range" id="teamCountSlider" min="1" max="8" value="3" step="1" oninput="setTeamCount(parseInt(this.value, 10))" class="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg">
+                        <div class="flex justify-between px-0.5 mt-0.5">
+                            <span class="text-[10px] opacity-40 font-mono">1</span>
+                            <span class="text-[10px] opacity-40 font-mono">8</span>
                         </div>
                         <p id="modeDescription" class="text-[11px] opacity-70 mt-1.5 px-1 leading-snug">
-                            3 teams follows cyclic rules (A beats B, B beats C, C beats A).
+                            3 teams locked in cyclic combat — each beats 1 rival and loses to 1.
                         </p>
                     </div>
 
                     <!-- Teams Configuration -->
-                    <div class="space-y-3 bg-slate-100 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 max-h-52 overflow-y-auto">
+                    <div class="space-y-2.5 bg-slate-100 dark:bg-slate-800/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 max-h-64 overflow-y-auto">
                         <label class="block text-xs font-bold uppercase tracking-wider opacity-70">Custom Emojis</label>
 
                         <!-- Team 1 -->
-                        <div class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold opacity-80 w-16">Team 1:</span>
-                            <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team1Emoji" maxlength="2" value="🪨" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team1Name" value="Rock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                        <div id="team1Row" class="flex items-center justify-between gap-3">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team1Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#64748b"></span>Team 1:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team1Emoji" maxlength="4" value="🪨" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team1Name" value="Rock" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 2 -->
                         <div id="team2Row" class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold opacity-80 w-16">Team 2:</span>
-                            <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team2Emoji" maxlength="2" value="📃" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team2Name" value="Paper" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team2Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#0284c7"></span>Team 2:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team2Emoji" maxlength="4" value="📃" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team2Name" value="Paper" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 3 -->
                         <div id="team3Row" class="flex items-center justify-between gap-3">
-                            <span class="text-xs font-bold opacity-80 w-16">Team 3:</span>
-                            <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team3Emoji" maxlength="2" value="✂️" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team3Name" value="Scissors" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team3Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#e11d48"></span>Team 3:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team3Emoji" maxlength="4" value="✂️" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team3Name" value="Scissors" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 4 -->
                         <div id="team4Row" class="flex items-center justify-between gap-3 hidden">
-                            <span class="text-xs font-bold opacity-80 w-16">Team 4:</span>
-                            <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team4Emoji" maxlength="2" value="🦎" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team4Name" value="Lizard" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team4Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#16a34a"></span>Team 4:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team4Emoji" maxlength="4" value="🦎" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team4Name" value="Lizard" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
 
                         <!-- Team 5 -->
                         <div id="team5Row" class="flex items-center justify-between gap-3 hidden">
-                            <span class="text-xs font-bold opacity-80 w-16">Team 5:</span>
-                            <div class="flex items-center gap-2 flex-1">
-                                <input type="text" id="team5Emoji" maxlength="2" value="🍴" oninput="updateEmojiTitles()" class="w-12 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
-                                <input type="text" id="team5Name" value="Spock" class="flex-1 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team5Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#9333ea"></span>Team 5:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team5Emoji" maxlength="4" value="🖖" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team5Name" value="Spock" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 6 -->
+                        <div id="team6Row" class="flex items-center justify-between gap-3 hidden">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team6Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#f97316"></span>Team 6:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team6Emoji" maxlength="4" value="🧙" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team6Name" value="Wizard" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 7 -->
+                        <div id="team7Row" class="flex items-center justify-between gap-3 hidden">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team7Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#0ea5e9"></span>Team 7:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team7Emoji" maxlength="4" value="🐉" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team7Name" value="Dragon" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                            </div>
+                        </div>
+
+                        <!-- Team 8 -->
+                        <div id="team8Row" class="flex items-center justify-between gap-3 hidden">
+                            <span class="flex items-center gap-1.5 text-xs font-bold opacity-80 w-16 shrink-0"><span id="team8Swatch" class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:#facc15"></span>Team 8:</span>
+                            <div class="flex items-center gap-2 flex-1 min-w-0">
+                                <input type="text" id="team8Emoji" maxlength="4" value="🛡️" oninput="updateEmojiTitles()" class="w-14 h-10 text-center text-xl rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
+                                <input type="text" id="team8Name" value="Shield" class="flex-1 min-w-0 h-10 px-3 text-sm rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-sm">
                             </div>
                         </div>
                     </div>
@@ -271,24 +355,24 @@
                 <!-- HUD Action Buttons -->
                 <div class="flex items-center gap-1">
                     <!-- Pause/Play -->
-                    <button id="pauseBtn" onclick="togglePause()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Pause/Play">
+                    <button id="pauseBtn" onclick="togglePause()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Pause/Play" aria-label="Pause or resume the simulation">
                         <svg id="pauseIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         <svg id="playIcon" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     </button>
                     <!-- Speed Toggle -->
-                    <button id="speedMultiplierBtn" onclick="cycleSpeedMultiplier()" class="px-2 py-1 text-xs font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 btn-press" title="Simulation Speed">
+                    <button id="speedMultiplierBtn" onclick="cycleSpeedMultiplier()" class="px-2 py-1 text-xs font-black rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 btn-press" title="Simulation Speed" aria-label="Cycle simulation speed multiplier">
                         1x
                     </button>
                     <!-- Restart Match -->
-                    <button onclick="restartGame()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Restart Match">
+                    <button onclick="restartGame()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Restart Match" aria-label="Restart match">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     </button>
                     <!-- Settings/Menu Button -->
-                    <button onclick="openSettings()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Return to Title / Settings">
+                    <button onclick="openSettings()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Return to Title / Settings" aria-label="Return to title and settings">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                     </button>
                     <!-- Audio Sound Mute Toggle -->
-                    <button id="soundBtn" onclick="toggleAudio()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Toggle Sound Effects">
+                    <button id="soundBtn" onclick="toggleAudio()" class="p-1.5 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-press transition-colors" title="Toggle Sound Effects" aria-label="Toggle sound effects">
                         <span id="soundIcon" class="text-base">🔊</span>
                     </button>
                 </div>
@@ -362,8 +446,13 @@
         let mouseY = 0;
         let isMouseActive = false;
 
+        // Simulation supports anywhere from 1 (sandbox) to 8 teams at once.
+        const MAX_TEAMS = 8;
+
  /* ==========================================================================
    PRESET THEMES REGISTRY
+   Each preset defines up to MAX_TEAMS (8) teams. Modes with fewer teams
+   simply use the first N entries.
    ========================================================================== */
 const PRESETS = {
     classic: {
@@ -374,7 +463,10 @@ const PRESETS = {
             { emoji: '📃', name: 'Paper', color: '#0284c7' },
             { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
             { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
-            { emoji: '🖖', name: 'Spock', color: '#9333ea' }
+            { emoji: '🖖', name: 'Spock', color: '#9333ea' },
+            { emoji: '🧙', name: 'Wizard', color: '#7c3aed' },
+            { emoji: '🐉', name: 'Dragon', color: '#b91c1c' },
+            { emoji: '🛡️', name: 'Shield', color: '#78716c' }
         ]
     },
 
@@ -386,7 +478,10 @@ const PRESETS = {
             { emoji: '💧', name: 'Water', color: '#06b6d4' },
             { emoji: '🌿', name: 'Grass', color: '#16a34a' },
             { emoji: '⚡', name: 'Lightning', color: '#eab308' },
-            { emoji: '🌀', name: 'Wind', color: '#6366f1' }
+            { emoji: '🌀', name: 'Wind', color: '#6366f1' },
+            { emoji: '🪨', name: 'Earth', color: '#92400e' },
+            { emoji: '❄️', name: 'Ice', color: '#38bdf8' },
+            { emoji: '☀️', name: 'Sun', color: '#fbbf24' }
         ]
     },
 
@@ -398,7 +493,10 @@ const PRESETS = {
             { emoji: '🐱', name: 'Cat', color: '#9333ea' },
             { emoji: '🐭', name: 'Mouse', color: '#475569' },
             { emoji: '🐸', name: 'Frog', color: '#15803d' },
-            { emoji: '🐍', name: 'Snake', color: '#047857' }
+            { emoji: '🐍', name: 'Snake', color: '#047857' },
+            { emoji: '🦊', name: 'Fox', color: '#ea580c' },
+            { emoji: '🐺', name: 'Wolf', color: '#52525b' },
+            { emoji: '🦉', name: 'Owl', color: '#a16207' }
         ]
     },
 
@@ -410,7 +508,10 @@ const PRESETS = {
             { emoji: '🟠', name: 'Orange', color: '#f97316' },
             { emoji: '🟡', name: 'Yellow', color: '#eab308' },
             { emoji: '🟢', name: 'Green', color: '#22c55e' },
-            { emoji: '🔵', name: 'Blue', color: '#3b82f6' }
+            { emoji: '🔵', name: 'Blue', color: '#3b82f6' },
+            { emoji: '🟣', name: 'Purple', color: '#a855f7' },
+            { emoji: '🟤', name: 'Brown', color: '#92400e' },
+            { emoji: '⚪', name: 'White', color: '#94a3b8' }
         ]
     },
 
@@ -422,7 +523,10 @@ const PRESETS = {
             { emoji: '🫨', name: 'Shaking', color: '#f59e0b' },
             { emoji: '🪤', name: 'Trap', color: '#a16207' },
             { emoji: '🫗', name: 'Pouring', color: '#0ea5e9' },
-            { emoji: '🪇', name: 'Maraca', color: '#dc2626' }
+            { emoji: '🪇', name: 'Maraca', color: '#dc2626' },
+            { emoji: '🫠', name: 'Melting', color: '#ec4899' },
+            { emoji: '🪫', name: 'Low Battery', color: '#65a30d' },
+            { emoji: '🫥', name: 'Invisible', color: '#6b7280' }
         ]
     },
 
@@ -434,7 +538,10 @@ const PRESETS = {
             { emoji: '🎹', name: 'Piano', color: '#475569' },
             { emoji: '🥁', name: 'Drums', color: '#dc2626' },
             { emoji: '🎺', name: 'Trumpet', color: '#eab308' },
-            { emoji: '🎻', name: 'Violin', color: '#92400e' }
+            { emoji: '🎻', name: 'Violin', color: '#92400e' },
+            { emoji: '🎷', name: 'Sax', color: '#7c3aed' },
+            { emoji: '🪕', name: 'Banjo', color: '#16a34a' },
+            { emoji: '🎤', name: 'Mic', color: '#ec4899' }
         ]
     },
 
@@ -446,7 +553,10 @@ const PRESETS = {
             { emoji: '🌙', name: 'Moon', color: '#6366f1' },
             { emoji: '🪐', name: 'Planet', color: '#a855f7' },
             { emoji: '☄️', name: 'Comet', color: '#ef4444' },
-            { emoji: '🌌', name: 'Galaxy', color: '#4f46e5' }
+            { emoji: '🌌', name: 'Galaxy', color: '#4f46e5' },
+            { emoji: '🚀', name: 'Rocket', color: '#0ea5e9' },
+            { emoji: '👽', name: 'Alien', color: '#22c55e' },
+            { emoji: '🛸', name: 'UFO', color: '#64748b' }
         ]
     },
 
@@ -458,7 +568,55 @@ const PRESETS = {
             { emoji: '🍔', name: 'Burger', color: '#d97706' },
             { emoji: '🌮', name: 'Taco', color: '#eab308' },
             { emoji: '🍩', name: 'Donut', color: '#ec4899' },
-            { emoji: '🍉', name: 'Watermelon', color: '#16a34a' }
+            { emoji: '🍉', name: 'Watermelon', color: '#16a34a' },
+            { emoji: '🍣', name: 'Sushi', color: '#0ea5e9' },
+            { emoji: '🍦', name: 'Ice Cream', color: '#f472b6' },
+            { emoji: '🥐', name: 'Croissant', color: '#92400e' }
+        ]
+    },
+
+    sports: {
+        label: 'Sports',
+        icon: '⚽ 🏀 🏈',
+        teams: [
+            { emoji: '⚽', name: 'Soccer', color: '#16a34a' },
+            { emoji: '🏀', name: 'Basketball', color: '#ea580c' },
+            { emoji: '🏈', name: 'Football', color: '#92400e' },
+            { emoji: '⚾', name: 'Baseball', color: '#dc2626' },
+            { emoji: '🎾', name: 'Tennis', color: '#84cc16' },
+            { emoji: '🏐', name: 'Volleyball', color: '#eab308' },
+            { emoji: '🏓', name: 'Ping Pong', color: '#e11d48' },
+            { emoji: '🥊', name: 'Boxing', color: '#7c3aed' }
+        ]
+    },
+
+    ocean: {
+        label: 'Ocean',
+        icon: '🐙 🦈 🐬',
+        teams: [
+            { emoji: '🐙', name: 'Octopus', color: '#a855f7' },
+            { emoji: '🦈', name: 'Shark', color: '#475569' },
+            { emoji: '🐬', name: 'Dolphin', color: '#0ea5e9' },
+            { emoji: '🦀', name: 'Crab', color: '#dc2626' },
+            { emoji: '🐳', name: 'Whale', color: '#2563eb' },
+            { emoji: '🐠', name: 'Fish', color: '#f97316' },
+            { emoji: '🦑', name: 'Squid', color: '#be185d' },
+            { emoji: '🐢', name: 'Turtle', color: '#15803d' }
+        ]
+    },
+
+    fantasy: {
+        label: 'Fantasy',
+        icon: '🧙 🐉 🦄',
+        teams: [
+            { emoji: '🧙', name: 'Wizard', color: '#7c3aed' },
+            { emoji: '🐉', name: 'Dragon', color: '#b91c1c' },
+            { emoji: '🧝', name: 'Elf', color: '#16a34a' },
+            { emoji: '🧟', name: 'Zombie', color: '#4d7c0f' },
+            { emoji: '👻', name: 'Ghost', color: '#94a3b8' },
+            { emoji: '🧛', name: 'Vampire', color: '#7f1d1d' },
+            { emoji: '🦄', name: 'Unicorn', color: '#ec4899' },
+            { emoji: '🧞', name: 'Genie', color: '#0ea5e9' }
         ]
     },
 
@@ -470,7 +628,10 @@ const PRESETS = {
             { emoji: '🧩', name: 'Scratch', color: '#f59e0b' },
             { emoji: '🌐', name: 'Websim', color: '#6366f1' },
             { emoji: '▶️', name: 'YouTube', color: '#ef4444' },
-            { emoji: '💻', name: 'Projects', color: '#22c55e' }
+            { emoji: '💻', name: 'Projects', color: '#22c55e' },
+            { emoji: '🎨', name: 'Design', color: '#a855f7' },
+            { emoji: '🕹️', name: 'Games', color: '#0ea5e9' },
+            { emoji: '📢', name: 'Community', color: '#f97316' }
         ]
     },
 
@@ -482,21 +643,10 @@ const PRESETS = {
             { emoji: '🎬', name: 'FCR', color: '#8b5cf6' },
             { emoji: '🍳', name: 'Cooking', color: '#f59e0b' },
             { emoji: '🅱️', name: 'Bnoob', color: '#06b6d4' },
-            { emoji: '🔥', name: 'Chaos', color: '#f97316' }
-        ]
-    },
-
-    // ——— 15 NEW PRESETS ———
-
-    sports: {
-        label: 'Sports',
-        icon: '⚽ 🏀 🏈',
-        teams: [
-            { emoji: '⚽', name: 'Soccer', color: '#16a34a' },
-            { emoji: '🏀', name: 'Basketball', color: '#ea580c' },
-            { emoji: '🏈', name: 'Football', color: '#b45309' },
-            { emoji: '🎾', name: 'Tennis', color: '#eab308' },
-            { emoji: '🏐', name: 'Volleyball', color: '#0ea5e9' }
+            { emoji: '🔥', name: 'Chaos', color: '#f97316' },
+            { emoji: '🎯', name: 'Focus', color: '#22c55e' },
+            { emoji: '🏆', name: 'Wins', color: '#eab308' },
+            { emoji: '💥', name: 'Bang', color: '#dc2626' }
         ]
     },
 
@@ -508,31 +658,10 @@ const PRESETS = {
             { emoji: '🌧️', name: 'Rain', color: '#0284c7' },
             { emoji: '❄️', name: 'Snow', color: '#67e8f9' },
             { emoji: '⛈️', name: 'Storm', color: '#4f46e5' },
-            { emoji: '🌈', name: 'Rainbow', color: '#ec4899' }
-        ]
-    },
-
-    fantasy: {
-        label: 'Fantasy',
-        icon: '🧙 🐉 🗡️',
-        teams: [
-            { emoji: '🧙', name: 'Wizard', color: '#7c3aed' },
-            { emoji: '🐉', name: 'Dragon', color: '#dc2626' },
-            { emoji: '🗡️', name: 'Knight', color: '#64748b' },
-            { emoji: '🧝', name: 'Elf', color: '#16a34a' },
-            { emoji: '👻', name: 'Ghost', color: '#a78bfa' }
-        ]
-    },
-
-    ocean: {
-        label: 'Ocean',
-        icon: '🐙 🦈 🐠',
-        teams: [
-            { emoji: '🐙', name: 'Octopus', color: '#9333ea' },
-            { emoji: '🦈', name: 'Shark', color: '#475569' },
-            { emoji: '🐠', name: 'Fish', color: '#06b6d4' },
-            { emoji: '🦀', name: 'Crab', color: '#ef4444' },
-            { emoji: '🐳', name: 'Whale', color: '#0284c7' }
+            { emoji: '🌈', name: 'Rainbow', color: '#ec4899' },
+            { emoji: '🌪️', name: 'Tornado', color: '#64748b' },
+            { emoji: '🌫️', name: 'Fog', color: '#94a3b8' },
+            { emoji: '🔥', name: 'Heatwave', color: '#ef4444' }
         ]
     },
 
@@ -544,7 +673,10 @@ const PRESETS = {
             { emoji: '✈️', name: 'Plane', color: '#0ea5e9' },
             { emoji: '🚂', name: 'Train', color: '#64748b' },
             { emoji: '🚢', name: 'Ship', color: '#0369a1' },
-            { emoji: '🚀', name: 'Rocket', color: '#f97316' }
+            { emoji: '🚀', name: 'Rocket', color: '#f97316' },
+            { emoji: '🚲', name: 'Bike', color: '#22c55e' },
+            { emoji: '🏍️', name: 'Motorcycle', color: '#1e293b' },
+            { emoji: '🚁', name: 'Helicopter', color: '#7c3aed' }
         ]
     },
 
@@ -556,7 +688,10 @@ const PRESETS = {
             { emoji: '🍌', name: 'Banana', color: '#eab308' },
             { emoji: '🍇', name: 'Grape', color: '#9333ea' },
             { emoji: '🍓', name: 'Strawberry', color: '#e11d48' },
-            { emoji: '🍍', name: 'Pineapple', color: '#f59e0b' }
+            { emoji: '🍍', name: 'Pineapple', color: '#f59e0b' },
+            { emoji: '🥝', name: 'Kiwi', color: '#65a30d' },
+            { emoji: '🍑', name: 'Peach', color: '#fb923c' },
+            { emoji: '🍋', name: 'Lemon', color: '#facc15' }
         ]
     },
 
@@ -568,7 +703,10 @@ const PRESETS = {
             { emoji: '👻', name: 'Ghost', color: '#e2e8f0' },
             { emoji: '🦇', name: 'Bat', color: '#1e293b' },
             { emoji: '🕷️', name: 'Spider', color: '#475569' },
-            { emoji: '💀', name: 'Skull', color: '#94a3b8' }
+            { emoji: '💀', name: 'Skull', color: '#94a3b8' },
+            { emoji: '🧙', name: 'Witch', color: '#7c3aed' },
+            { emoji: '🧟', name: 'Zombie', color: '#4d7c0f' },
+            { emoji: '🍬', name: 'Candy', color: '#ec4899' }
         ]
     },
 
@@ -580,7 +718,10 @@ const PRESETS = {
             { emoji: '📱', name: 'Phone', color: '#0ea5e9' },
             { emoji: '🤖', name: 'Robot', color: '#22c55e' },
             { emoji: '🖥️', name: 'Monitor', color: '#475569' },
-            { emoji: '⌨️', name: 'Keyboard', color: '#1e293b' }
+            { emoji: '⌨️', name: 'Keyboard', color: '#1e293b' },
+            { emoji: '🖱️', name: 'Mouse', color: '#78716c' },
+            { emoji: '💾', name: 'Disk', color: '#eab308' },
+            { emoji: '🔌', name: 'Plug', color: '#dc2626' }
         ]
     },
 
@@ -592,7 +733,10 @@ const PRESETS = {
             { emoji: '😢', name: 'Sad', color: '#3b82f6' },
             { emoji: '😡', name: 'Angry', color: '#ef4444' },
             { emoji: '😱', name: 'Shocked', color: '#a855f7' },
-            { emoji: '😴', name: 'Sleepy', color: '#6366f1' }
+            { emoji: '😴', name: 'Sleepy', color: '#6366f1' },
+            { emoji: '🥳', name: 'Excited', color: '#ec4899' },
+            { emoji: '😎', name: 'Cool', color: '#0ea5e9' },
+            { emoji: '🤔', name: 'Thinking', color: '#65a30d' }
         ]
     },
 
@@ -604,7 +748,10 @@ const PRESETS = {
             { emoji: '🦹', name: 'Villain', color: '#7c3aed' },
             { emoji: '⚡', name: 'Speed', color: '#eab308' },
             { emoji: '🛡️', name: 'Shield', color: '#64748b' },
-            { emoji: '💥', name: 'Power', color: '#ef4444' }
+            { emoji: '💥', name: 'Power', color: '#ef4444' },
+            { emoji: '🦾', name: 'Strength', color: '#78716c' },
+            { emoji: '🕶️', name: 'Stealth', color: '#1e293b' },
+            { emoji: '🔥', name: 'Fire Power', color: '#f97316' }
         ]
     },
 
@@ -616,7 +763,10 @@ const PRESETS = {
             { emoji: '🌸', name: 'Flower', color: '#ec4899' },
             { emoji: '🏔️', name: 'Mountain', color: '#475569' },
             { emoji: '🌊', name: 'Wave', color: '#0ea5e9' },
-            { emoji: '☀️', name: 'Sun', color: '#f59e0b' }
+            { emoji: '☀️', name: 'Sun', color: '#f59e0b' },
+            { emoji: '🍄', name: 'Mushroom', color: '#dc2626' },
+            { emoji: '🌵', name: 'Cactus', color: '#4d7c0f' },
+            { emoji: '🍃', name: 'Leaf', color: '#22c55e' }
         ]
     },
 
@@ -628,7 +778,10 @@ const PRESETS = {
             { emoji: '🍦', name: 'Ice Cream', color: '#67e8f9' },
             { emoji: '🍪', name: 'Cookie', color: '#d97706' },
             { emoji: '🧁', name: 'Cupcake', color: '#ec4899' },
-            { emoji: '🍫', name: 'Chocolate', color: '#78350f' }
+            { emoji: '🍫', name: 'Chocolate', color: '#78350f' },
+            { emoji: '🍩', name: 'Donut', color: '#f59e0b' },
+            { emoji: '🍭', name: 'Lollipop', color: '#e11d48' },
+            { emoji: '🥧', name: 'Pie', color: '#ea580c' }
         ]
     },
 
@@ -639,8 +792,11 @@ const PRESETS = {
             { emoji: '🦄', name: 'Unicorn', color: '#c084fc' },
             { emoji: '🧜', name: 'Mermaid', color: '#06b6d4' },
             { emoji: '🐲', name: 'Dragon', color: '#16a34a' },
-            { emoji: '🧙‍♂️', name: 'Mage', color: '#7c3aed' },
-            { emoji: '🧚', name: 'Fairy', color: '#f472b6' }
+            { emoji: '🧙', name: 'Mage', color: '#7c3aed' },
+            { emoji: '🧚', name: 'Fairy', color: '#f472b6' },
+            { emoji: '🐺', name: 'Werewolf', color: '#52525b' },
+            { emoji: '🧞', name: 'Genie', color: '#0ea5e9' },
+            { emoji: '👹', name: 'Ogre', color: '#dc2626' }
         ]
     },
 
@@ -652,7 +808,10 @@ const PRESETS = {
             { emoji: '🖊️', name: 'Pen', color: '#1e40af' },
             { emoji: '📁', name: 'Folder', color: '#eab308' },
             { emoji: '📌', name: 'Pin', color: '#ef4444' },
-            { emoji: '🖨️', name: 'Printer', color: '#475569' }
+            { emoji: '🖨️', name: 'Printer', color: '#475569' },
+            { emoji: '📊', name: 'Chart', color: '#16a34a' },
+            { emoji: '🗂️', name: 'Files', color: '#f97316' },
+            { emoji: '📅', name: 'Calendar', color: '#7c3aed' }
         ]
     },
 
@@ -664,23 +823,33 @@ const PRESETS = {
             { emoji: '👽', name: 'Alien', color: '#84cc16' },
             { emoji: '🚀', name: 'Rocket', color: '#ef4444' },
             { emoji: '🛰️', name: 'Satellite', color: '#64748b' },
-            { emoji: '🌌', name: 'Void', color: '#4f46e5' }
+            { emoji: '🌌', name: 'Void', color: '#4f46e5' },
+            { emoji: '🌠', name: 'Shooting Star', color: '#eab308' },
+            { emoji: '🪐', name: 'Planet', color: '#a855f7' },
+            { emoji: '🔫', name: 'Blaster', color: '#dc2626' }
         ]
     }
 };
 
+        // Fallback team definitions (emoji/name/color) used whenever an
+        // input field is left blank. There is one entry per possible team slot.
+        const DEFAULT_TEAMS = [
+            { emoji: '🪨', name: 'Team 1', color: '#64748b' },
+            { emoji: '📃', name: 'Team 2', color: '#0284c7' },
+            { emoji: '✂️', name: 'Team 3', color: '#e11d48' },
+            { emoji: '🦎', name: 'Team 4', color: '#16a34a' },
+            { emoji: '🖖', name: 'Team 5', color: '#9333ea' },
+            { emoji: '🧙', name: 'Team 6', color: '#f97316' },
+            { emoji: '🐉', name: 'Team 7', color: '#0ea5e9' },
+            { emoji: '🛡️', name: 'Team 8', color: '#facc15' }
+        ];
+
         const config = {
-            mode: '3v3',
+            teamCount: 3,
             playerEnabled: false,
             soundType: 'mp3',
             bgMusicVolume: 0.3,
-            teams: [
-                { emoji: '🪨', name: 'Rock', color: '#64748b' },
-                { emoji: '📃', name: 'Paper', color: '#0284c7' },
-                { emoji: '✂️', name: 'Scissors', color: '#e11d48' },
-                { emoji: '🦎', name: 'Lizard', color: '#16a34a' },
-                { emoji: '🍴', name: 'Spock', color: '#9333ea' }
-            ],
+            teams: DEFAULT_TEAMS.map(t => ({ ...t })),
             unitsPerTeam: 10,
             baseSpeed: 2.5,
             shakiness: 0.5,
@@ -722,36 +891,31 @@ const PRESETS = {
                 }
             }
 
-            playTransformSound(emojiChar) {
+            // Takes the winning unit's team index (not its emoji) so this scales
+            // cleanly to any preset and any of the 8 possible teams.
+            playTransformSound(teamIndex) {
                 if (this.muted) return;
                 this.init();
 
+                const bucket = ((teamIndex % 3) + 3) % 3;
+
                 if (config.soundType === 'mp3') {
                     try {
-                        let targetAudio = null;
-                        if (emojiChar === config.teams[0].emoji || emojiChar.includes('🪨') || emojiChar.includes('🔥') || emojiChar.includes('🐶')) {
-                            targetAudio = this.rockAudio;
-                        } else if (emojiChar === config.teams[1].emoji || emojiChar.includes('📃') || emojiChar.includes('💧') || emojiChar.includes('🐱')) {
-                            targetAudio = this.paperAudio;
-                        } else {
-                            targetAudio = this.scissorsAudio;
-                        }
-
-                        if (targetAudio) {
-                            targetAudio.currentTime = 0;
-                            targetAudio.play().catch(e => {});
-                            return;
-                        }
+                        const targetAudio = bucket === 0 ? this.rockAudio : bucket === 1 ? this.paperAudio : this.scissorsAudio;
+                        targetAudio.currentTime = 0;
+                        targetAudio.play().catch(e => {});
+                        return;
                     } catch(e) {}
                 }
 
                 if (!this.ctx) return;
                 try {
+                    const baseFreq = [450, 550, 650][bucket];
                     const osc = this.ctx.createOscillator();
                     const gain = this.ctx.createGain();
                     osc.type = 'sine';
-                    osc.frequency.setValueAtTime(450, this.ctx.currentTime);
-                    osc.frequency.exponentialRampToValueAtTime(850, this.ctx.currentTime + 0.1);
+                    osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.9, this.ctx.currentTime + 0.1);
                     gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.1);
                     osc.connect(gain);
@@ -797,11 +961,10 @@ const PRESETS = {
         function handleThemeChange() {
             const theme = document.getElementById('themeSelect').value;
             const body = document.body;
-            if (theme === 'dark') {
-                body.className = 'dark-theme w-screen h-screen flex flex-col font-sans antialiased dark';
-            } else {
-                body.className = 'light-theme w-screen h-screen flex flex-col font-sans antialiased';
-            }
+            const isDark = theme === 'dark';
+            body.classList.toggle('dark-theme', isDark);
+            body.classList.toggle('light-theme', !isDark);
+            body.classList.toggle('dark', isDark);
         }
 
         /* ==========================================================================
@@ -847,13 +1010,19 @@ const PRESETS = {
 
         /* ==========================================================================
            GAME LOGIC MATRIX
+           Works for any team count from 1-8. With 1 team there's no combat and
+           with 2 it's a coin flip (handled by callers), so this only needs to
+           cover 3+. For teamCount === 5 we keep the authentic Rock-Paper-
+           Scissors-Lizard-Spock matrix; every other count uses a balanced
+           circulant tournament where each team beats the same number of
+           "neighboring" teams around the circle (and loses to the same number),
+           which is the natural generalization of classic 3-way RPS.
            ========================================================================== */
-        function doesBeat(winnerIdx, loserIdx, mode) {
+        function doesBeat(winnerIdx, loserIdx, teamCount) {
             if (winnerIdx === loserIdx) return false;
-            if (mode === '2v2') return false;
-            if (mode === '3v3') return (winnerIdx + 2) % 3 === loserIdx;
-            if (mode === '4v4') return (winnerIdx + 3) % 4 === loserIdx;
-            if (mode === '5v5') {
+            if (teamCount <= 2) return false;
+
+            if (teamCount === 5) {
                 const targets = {
                     0: [2, 3], // Rock beats Scissors and Lizard
                     1: [0, 4], // Paper beats Rock and Spock
@@ -863,7 +1032,10 @@ const PRESETS = {
                 };
                 return targets[winnerIdx] ? targets[winnerIdx].includes(loserIdx) : false;
             }
-            return false;
+
+            const beatCount = Math.floor((teamCount - 1) / 2);
+            const offset = (winnerIdx - loserIdx + teamCount) % teamCount;
+            return offset >= 1 && offset <= beatCount;
         }
 
         /* ==========================================================================
@@ -891,7 +1063,7 @@ const PRESETS = {
                 if (this.immunityTimer > 0) this.immunityTimer--;
                 if (this.pulseScale > 1.0) this.pulseScale -= 0.03;
 
-                if (config.mode === '1v0') {
+                if (config.teamCount === 1) {
                     const centerX = width / 2;
                     const centerY = height / 2;
                     let dx = this.x - centerX;
@@ -928,7 +1100,7 @@ const PRESETS = {
                     let fleeTarget = null;
                     let fleeDist = Infinity;
 
-                    if (config.mode === '2v2') {
+                    if (config.teamCount === 2) {
                         const opponentTeamIdx = this.teamIndex === 0 ? 1 : 0;
                         for (const u of allUnits) {
                             if (u === this) continue;
@@ -949,12 +1121,12 @@ const PRESETS = {
                             const dy = u.y - this.y;
                             const dSq = dx * dx + dy * dy;
 
-                            if (doesBeat(this.teamIndex, u.teamIndex, config.mode)) {
+                            if (doesBeat(this.teamIndex, u.teamIndex, config.teamCount)) {
                                 if (dSq < chaseDist) {
                                     chaseDist = dSq;
                                     chaseTarget = u;
                                 }
-                            } else if (doesBeat(u.teamIndex, this.teamIndex, config.mode)) {
+                            } else if (doesBeat(u.teamIndex, this.teamIndex, config.teamCount)) {
                                 if (dSq < fleeDist) {
                                     fleeDist = dSq;
                                     fleeTarget = u;
@@ -1091,7 +1263,7 @@ const PRESETS = {
                             let winnerUnit = null;
                             let loserUnit = null;
 
-                            if (config.mode === '2v2') {
+                            if (config.teamCount === 2) {
                                 if (Math.random() < 0.5) {
                                     winnerUnit = u1;
                                     loserUnit = u2;
@@ -1100,10 +1272,10 @@ const PRESETS = {
                                     loserUnit = u1;
                                 }
                             } else {
-                                if (doesBeat(u1.teamIndex, u2.teamIndex, config.mode)) {
+                                if (doesBeat(u1.teamIndex, u2.teamIndex, config.teamCount)) {
                                     winnerUnit = u1;
                                     loserUnit = u2;
-                                } else if (doesBeat(u2.teamIndex, u1.teamIndex, config.mode)) {
+                                } else if (doesBeat(u2.teamIndex, u1.teamIndex, config.teamCount)) {
                                     winnerUnit = u2;
                                     loserUnit = u1;
                                 }
@@ -1116,7 +1288,7 @@ const PRESETS = {
                                 totalConversions++;
 
                                 createBurst(loserUnit.x, loserUnit.y, winnerUnit.team.color);
-                                audio.playTransformSound(winnerUnit.team.emoji);
+                                audio.playTransformSound(winnerUnit.teamIndex);
                             }
                         }
                     }
@@ -1170,10 +1342,10 @@ const PRESETS = {
             const container = document.getElementById('hudCounters');
             const total = units.length;
 
-            const counts = [0, 0, 0, 0, 0];
+            const counts = new Array(MAX_TEAMS).fill(0);
             units.forEach(u => counts[u.teamIndex]++);
 
-            const maxTeams = config.mode === '1v0' ? 1 : config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
+            const maxTeams = config.teamCount;
             let html = '';
 
             for (let i = 0; i < maxTeams; i++) {
@@ -1198,7 +1370,7 @@ const PRESETS = {
         }
 
         function checkWinCondition() {
-            if (config.mode === '1v0' && !isGameOver) {
+            if (config.teamCount === 1 && !isGameOver) {
                 const allOffscreen = units.length > 0 && units.every(u => 
                     u.x < -u.radius * 2 || u.x > canvas.width + u.radius * 2 ||
                     u.y < -u.radius * 2 || u.y > canvas.height + u.radius * 2
@@ -1222,8 +1394,8 @@ const PRESETS = {
                 return;
             }
 
-            const maxTeams = config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
-            const counts = [0, 0, 0, 0, 0];
+            const maxTeams = config.teamCount;
+            const counts = new Array(MAX_TEAMS).fill(0);
             units.forEach(u => counts[u.teamIndex]++);
 
             const activeTeams = counts.slice(0, maxTeams).filter(c => c > 0);
@@ -1293,43 +1465,32 @@ const PRESETS = {
             }
         }
 
-        function setMode(mode) {
-            config.mode = mode;
-            const btn1 = document.getElementById('mode1v0Btn');
-            const btn2 = document.getElementById('mode2v2Btn');
-            const btn3 = document.getElementById('mode3v3Btn');
-            const btn4 = document.getElementById('mode4v4Btn');
-            const btn5 = document.getElementById('mode5v5Btn');
+        // Builds a human-readable explanation of the current combat rules
+        // for any team count from 1 to MAX_TEAMS.
+        function getModeDescription(n) {
+            if (n === 1) return '1 team: everyone runs for the edge of the screen together to claim victory!';
+            if (n === 2) return '2 teams: every clash is a 50/50 coin flip — pure chaos, perfectly fair.';
+            if (n === 5) return '5 teams: the full Rock-Paper-Scissors-Lizard-Spock ruleset — each team beats exactly two rivals.';
 
-            const team2Row = document.getElementById('team2Row');
-            const team3Row = document.getElementById('team3Row');
-            const team4Row = document.getElementById('team4Row');
-            const team5Row = document.getElementById('team5Row');
-            const modeDesc = document.getElementById('modeDescription');
+            const beatCount = Math.floor((n - 1) / 2);
+            const neutral = n % 2 === 0 ? ' One matchup per team is a neutral standoff.' : '';
+            return `${n} teams locked in cyclic combat — each beats ${beatCount} rival${beatCount === 1 ? '' : 's'} and loses to ${beatCount}.${neutral}`;
+        }
 
-            [btn1, btn2, btn3, btn4, btn5].forEach(btn => {
-                if (btn) btn.className = 'py-2 px-1 text-xs font-bold rounded-xl transition-all opacity-70 hover:opacity-100';
-            });
+        function setTeamCount(n) {
+            n = Math.max(1, Math.min(MAX_TEAMS, n));
+            config.teamCount = n;
 
-            const activeBtn = mode === '1v0' ? btn1 : mode === '2v2' ? btn2 : mode === '3v3' ? btn3 : mode === '4v4' ? btn4 : mode === '5v5' ? btn5 : btn3;
-            if (activeBtn) activeBtn.className = 'py-2 px-1 text-xs font-bold rounded-xl transition-all shadow-sm bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400';
+            const slider = document.getElementById('teamCountSlider');
+            if (slider) slider.value = n;
+            document.getElementById('teamCountDisplay').innerText = n;
 
-            if (team2Row) team2Row.style.display = (mode !== '1v0') ? 'flex' : 'none';
-            team3Row.style.display = (mode === '3v3' || mode === '4v4' || mode === '5v5') ? 'flex' : 'none';
-            team4Row.style.display = (mode === '4v4' || mode === '5v5') ? 'flex' : 'none';
-            team5Row.style.display = (mode === '5v5') ? 'flex' : 'none';
-
-            if (mode === '1v0') {
-                modeDesc.innerText = '1 team: Watch team units run away off-screen instantly to claim default victory!';
-            } else if (mode === '2v2') {
-                modeDesc.innerText = '2 teams mode features random 50/50 winning chance on touch for fair gameplay!';
-            } else if (mode === '3v3') {
-                modeDesc.innerText = '3 teams follows cyclic rules (A beats B, B beats C, C beats A).';
-            } else if (mode === '4v4') {
-                modeDesc.innerText = '4 teams follows a 4-team cyclic elimination loop!';
-            } else if (mode === '5v5') {
-                modeDesc.innerText = '5 teams Rock-Paper-Scissors-Lizard-Spock ruleset enabled!';
+            for (let i = 1; i <= MAX_TEAMS; i++) {
+                const row = document.getElementById(`team${i}Row`);
+                if (row) row.style.display = i <= n ? 'flex' : 'none';
             }
+
+            document.getElementById('modeDescription').innerText = getModeDescription(n);
 
             updateEmojiTitles();
         }
@@ -1346,14 +1507,14 @@ const PRESETS = {
                 activePresetBtn.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50', 'dark:bg-blue-950/60');
             }
 
-            for (let i = 0; i < 5; i++) {
-                const teamData = preset.teams[i];
-                if (teamData) {
-                    const emojiInput = document.getElementById(`team${i+1}Emoji`);
-                    const nameInput = document.getElementById(`team${i+1}Name`);
-                    if (emojiInput) emojiInput.value = teamData.emoji;
-                    if (nameInput) nameInput.value = teamData.name;
-                }
+            for (let i = 0; i < MAX_TEAMS; i++) {
+                const teamData = preset.teams[i] || DEFAULT_TEAMS[i];
+                const emojiInput = document.getElementById(`team${i+1}Emoji`);
+                const nameInput = document.getElementById(`team${i+1}Name`);
+                const swatch = document.getElementById(`team${i+1}Swatch`);
+                if (emojiInput) emojiInput.value = teamData.emoji;
+                if (nameInput) nameInput.value = teamData.name;
+                if (swatch) swatch.style.backgroundColor = teamData.color;
             }
 
             updateEmojiTitles();
@@ -1374,23 +1535,33 @@ const PRESETS = {
             grid.innerHTML = html;
         }
 
+        // Rebuilds the tab favicon on the fly from whatever the first three
+        // teams' emojis currently are — so the tab icon always matches the game.
+        function updateBrowserTab() {
+            const e1 = (document.getElementById('team1Emoji') && document.getElementById('team1Emoji').value) || DEFAULT_TEAMS[0].emoji;
+            const e2 = (document.getElementById('team2Emoji') && document.getElementById('team2Emoji').value) || DEFAULT_TEAMS[1].emoji;
+            const e3 = (document.getElementById('team3Emoji') && document.getElementById('team3Emoji').value) || DEFAULT_TEAMS[2].emoji;
+
+            // Tab icon
+            const link = document.getElementById('dynamicFavicon');
+            if (link) {
+                const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".85em" font-size="32">${e1}</text><text x="33" y=".85em" font-size="32">${e2}</text><text x="66" y=".85em" font-size="32">${e3}</text></svg>`;
+                link.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+            }
+
+            // Tab text
+            document.title = `${e1}${e2}${e3} Emoji Battle Simulator`;
+        }
+
         function updateEmojiTitles() {
-            const e1 = document.getElementById('team1Emoji').value || '🪨';
-            const e2 = document.getElementById('team2Emoji').value || '📃';
-            const e3 = document.getElementById('team3Emoji').value || '✂️';
-            const e4 = document.getElementById('team4Emoji').value || '🦎';
-            const e5 = document.getElementById('team5Emoji').value || '🍴';
-
-            document.getElementById('titleEmoji1').innerText = e1;
-            document.getElementById('titleEmoji2').innerText = e2;
-            document.getElementById('titleEmoji3').innerText = e3;
-            document.getElementById('titleEmoji4').innerText = e4;
-            document.getElementById('titleEmoji5').innerText = e5;
-
-            document.getElementById('titleEmoji2').style.display = (config.mode !== '1v0') ? 'inline-block' : 'none';
-            document.getElementById('titleEmoji3').style.display = (config.mode !== '1v0' && config.mode !== '2v2') ? 'inline-block' : 'none';
-            document.getElementById('titleEmoji4').style.display = (config.mode === '4v4' || config.mode === '5v5') ? 'inline-block' : 'none';
-            document.getElementById('titleEmoji5').style.display = (config.mode === '5v5') ? 'inline-block' : 'none';
+            for (let i = 1; i <= MAX_TEAMS; i++) {
+                const input = document.getElementById(`team${i}Emoji`);
+                const span = document.getElementById(`titleEmoji${i}`);
+                if (!input || !span) continue;
+                span.innerText = input.value || DEFAULT_TEAMS[i - 1].emoji;
+                span.style.display = i <= config.teamCount ? 'inline-block' : 'none';
+            }
+            updateBrowserTab();
         }
 
         function readSettingsFromForm() {
@@ -1400,31 +1571,15 @@ const PRESETS = {
             config.playerEnabled = document.getElementById('playerModeToggle').checked;
             config.soundType = document.getElementById('soundTypeSelect').value;
 
-            config.teams[0] = {
-                emoji: document.getElementById('team1Emoji').value || '🪨',
-                name: document.getElementById('team1Name').value || 'Team 1',
-                color: '#64748b'
-            };
-            config.teams[1] = {
-                emoji: document.getElementById('team2Emoji').value || '📃',
-                name: document.getElementById('team2Name').value || 'Team 2',
-                color: '#0284c7'
-            };
-            config.teams[2] = {
-                emoji: document.getElementById('team3Emoji').value || '✂️',
-                name: document.getElementById('team3Name').value || 'Team 3',
-                color: '#e11d48'
-            };
-            config.teams[3] = {
-                emoji: document.getElementById('team4Emoji').value || '🦎',
-                name: document.getElementById('team4Name').value || 'Team 4',
-                color: '#16a34a'
-            };
-            config.teams[4] = {
-                emoji: document.getElementById('team5Emoji').value || '🍴',
-                name: document.getElementById('team5Name').value || 'Team 5',
-                color: '#9333ea'
-            };
+            for (let i = 0; i < MAX_TEAMS; i++) {
+                const emojiInput = document.getElementById(`team${i+1}Emoji`);
+                const nameInput = document.getElementById(`team${i+1}Name`);
+                config.teams[i] = {
+                    emoji: (emojiInput && emojiInput.value) || DEFAULT_TEAMS[i].emoji,
+                    name: (nameInput && nameInput.value) || DEFAULT_TEAMS[i].name,
+                    color: DEFAULT_TEAMS[i].color
+                };
+            }
         }
 
         function initMatch() {
@@ -1438,11 +1593,11 @@ const PRESETS = {
             document.getElementById('pauseIcon').classList.remove('hidden');
             document.getElementById('playIcon').classList.add('hidden');
 
-            const numTeams = config.mode === '1v0' ? 1 : config.mode === '2v2' ? 2 : config.mode === '3v3' ? 3 : config.mode === '4v4' ? 4 : 5;
+            const numTeams = config.teamCount;
             const count = config.unitsPerTeam;
             const margin = 50;
 
-            if (config.mode === '1v0') {
+            if (numTeams === 1) {
                 for (let i = 0; i < count; i++) {
                     const spawnX = canvas.width / 2 + (Math.random() - 0.5) * 60;
                     const spawnY = canvas.height / 2 + (Math.random() - 0.5) * 60;
@@ -1482,6 +1637,7 @@ const PRESETS = {
 
             renderPresetButtons();
             applyPreset('classic');
+            setTeamCount(3);
 
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
