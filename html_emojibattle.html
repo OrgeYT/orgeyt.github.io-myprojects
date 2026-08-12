@@ -1263,19 +1263,21 @@ const PRESETS = {
                             let winnerUnit = null;
                             let loserUnit = null;
 
-                            if (config.teamCount === 2) {
+                            if (config.teamCount >= 3 && doesBeat(u1.teamIndex, u2.teamIndex, config.teamCount)) {
+                                winnerUnit = u1;
+                                loserUnit = u2;
+                            } else if (config.teamCount >= 3 && doesBeat(u2.teamIndex, u1.teamIndex, config.teamCount)) {
+                                winnerUnit = u2;
+                                loserUnit = u1;
+                            } else {
+                                // No decisive cyclic result — either 2-team head-to-head
+                                // combat, or a "neutral" matchup that can occur with even
+                                // team counts (e.g. the team directly opposite in the
+                                // cycle). Either way, flip a coin instead of doing nothing.
                                 if (Math.random() < 0.5) {
                                     winnerUnit = u1;
                                     loserUnit = u2;
                                 } else {
-                                    winnerUnit = u2;
-                                    loserUnit = u1;
-                                }
-                            } else {
-                                if (doesBeat(u1.teamIndex, u2.teamIndex, config.teamCount)) {
-                                    winnerUnit = u1;
-                                    loserUnit = u2;
-                                } else if (doesBeat(u2.teamIndex, u1.teamIndex, config.teamCount)) {
                                     winnerUnit = u2;
                                     loserUnit = u1;
                                 }
