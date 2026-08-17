@@ -238,7 +238,7 @@ const projects = [
     "embed",
     "Vibin (Not my project)",
     "imagefinder",
-    "memorydrawer",
+    "memorydrawing",
     "errormaker" // three new projects in a row! holy s\it bro!!
 ];
 
