@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratch Auto-Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        #logArea::-webkit-scrollbar { width: 8px; }
+        #logArea::-webkit-scrollbar-track { background: #0f172a; border-radius: 8px; }
+        #logArea::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px; }
+        #logArea::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+
+<body class="bg-slate-100 min-h-screen flex items-center justify-center p-3 sm:p-6">
+
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden border border-slate-200/80 my-4">
+        
+        <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-700 p-6 sm:p-8 text-center text-white relative">
+            <div class="inline-flex items-center justify-center bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-indigo-100 mb-3 border border-white/20">
+                ✨ Deep Scratch 3.0 & TurboWarp Engine
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-1">Scratch Auto-Translator</h1>
+            <p class="text-indigo-100 text-xs sm:text-sm max-w-md mx-auto opacity-90">Translates blocks, variables, operators, custom blocks, lists, comments, costumes & SVG text!</p>
+            
+            <div class="flex justify-center mt-6 space-x-1.5 bg-indigo-950/40 p-1.5 rounded-2xl border border-white/10 max-w-md mx-auto">
+                <button id="tab-translator-btn" class="flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-white text-indigo-700 shadow-md">
+                    🌐 Translator
+                </button>
+                <button id="tab-settings-btn" class="flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white hover:bg-white/10">
+                    ⚙️ Translation Scope
+                </button>
+                <button id="tab-expect-btn" class="flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white hover:bg-white/10">
+                    💡 Guide
+                </button>
+            </div>
+        </div>
+
+        <div id="tab-translator-content" class="p-5 sm:p-8 space-y-6">
+            
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">1. Select Scratch Project (.sb3)</label>
+                <div class="flex items-center justify-center w-full">
+                    <label for="dropzone-file" id="dropzone-label" class="flex flex-col items-center justify-center w-full h-36 border-2 border-slate-300 border-dashed rounded-2xl cursor-pointer bg-slate-50/80 hover:bg-slate-100/80 transition-all group">
+                        <div class="flex flex-col items-center justify-center pt-4 pb-4 text-center px-4">
+                            <div class="p-3 bg-indigo-50 text-indigo-600 rounded-full mb-2 group-hover:scale-110 transition-transform">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                            </div>
+                            <p class="mb-1 text-sm text-slate-700 font-bold" id="filename-display">Click to select or drag & drop an .sb3 file</p>
+                            <p class="text-xs text-slate-400">Compatible with Scratch 3.0, TurboWarp & PenguinMod</p>
+                        </div>
+                        <input id="dropzone-file" type="file" accept=".sb3" class="hidden" />
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label for="language-select" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">2. Target Language</label>
+                <div class="relative">
+                    <select id="language-select" class="bg-slate-50 border border-slate-300 text-slate-800 text-sm font-medium rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 block w-full p-3.5 outline-none transition appearance-none pr-10 cursor-pointer">
+                        <!-- Populated dynamically via JavaScript -->
+                    </select>
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
+                        <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gradient-to-br from-slate-50 to-indigo-50/30 p-4 rounded-2xl border border-slate-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <label for="direct-api-toggle" class="text-sm font-bold text-slate-800 cursor-pointer">Direct API Mode (Recommended)</label>
+                            <span class="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Fast & Safe</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mt-1">Translates block text, variables, operators, and custom blocks directly in JSON while preserving link IDs and placeholders.</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+                        <input type="checkbox" id="direct-api-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+            </div>
+
+            <button id="translate-btn" class="w-full text-white bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] font-bold rounded-2xl text-base px-5 py-4 text-center transition-all shadow-lg shadow-indigo-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+                <span>Translate Entire Project</span>
+            </button>
+
+            <div id="progress-container" class="hidden space-y-3 bg-slate-50 p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-inner">
+                <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                    <span id="progress-label">Preparing translation pipeline...</span>
+                    <span id="progress-percent" class="text-indigo-600 font-mono text-sm">0%</span>
+                </div>
+                
+                <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden p-0.5">
+                    <div id="progress-bar" class="bg-gradient-to-r from-indigo-500 to-purple-600 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                </div>
+
+                <div id="working-notice" class="hidden bg-amber-50 border border-amber-200 text-amber-900 text-xs p-3 rounded-xl flex items-center gap-2.5 animate-pulse">
+                    <span class="text-lg shrink-0">⏳</span>
+                    <span class="font-medium">Deep translation in progress! Parsing block strings, custom blocks, variables & SVG elements...</span>
+                </div>
+            </div>
+
+            <div id="status-container" class="hidden">
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">Console Log</label>
+                    <div class="flex items-center gap-2 text-xs">
+                        <button id="copy-log-btn" class="text-slate-500 hover:text-indigo-600 font-semibold transition">📋 Copy Log</button>
+                        <span class="text-slate-300">|</span>
+                        <button id="clear-log-btn" class="text-slate-500 hover:text-red-600 font-semibold transition">🗑️ Clear</button>
+                    </div>
+                </div>
+                <div id="logArea" class="bg-slate-950 text-emerald-400 text-xs font-mono p-4 rounded-2xl h-44 overflow-y-auto w-full break-all shadow-inner border border-slate-800 space-y-1">
+                    <!-- Dynamic logs stream here -->
+                </div>
+            </div>
+
+            <div id="summary-card" class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-4 text-emerald-900 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="font-bold text-sm flex items-center gap-1.5 text-emerald-800">
+                        <span>🎉</span> Translation Finished Successfully!
+                    </h3>
+                    <span class="text-xs font-semibold bg-emerald-200 text-emerald-800 px-2 py-0.5 rounded-md">100% Ready</span>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">Block Text Literals</span>
+                        <span id="stat-blocks" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">Variables & Lists</span>
+                        <span id="stat-vars" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">Comments & Notes</span>
+                        <span id="stat-comments" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">Custom Block Procedures</span>
+                        <span id="stat-procs" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">SVG Costumes Processed</span>
+                        <span id="stat-svgs" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                    <div class="bg-white/80 p-2 rounded-xl border border-emerald-100">
+                        <span class="block text-slate-500 text-[10px]">Broadcast Messages</span>
+                        <span id="stat-broadcasts" class="font-bold text-emerald-700 text-sm">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <a id="download-btn" class="hidden w-full text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] font-bold rounded-2xl text-base px-5 py-4 text-center transition-all shadow-lg shadow-emerald-200 block cursor-pointer">
+                ⬇️ Download Translated .sb3 Project
+            </a>
+
+        </div>
+
+        <div id="tab-settings-content" class="hidden p-6 sm:p-8 space-y-5">
+            <h2 class="text-base font-bold text-slate-800 mb-1 flex items-center gap-2">
+                <span>⚙️</span> Choose What to Translate
+            </h2>
+            <p class="text-xs text-slate-500 mb-4">Toggle specific components to customize what gets translated in your project.</p>
+
+            <div class="space-y-3 text-xs sm:text-sm">
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-block-literals" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Block Text Strings & Operators</span>
+                        <span class="text-xs text-slate-500">Translates literal text inside <code class="bg-slate-200 px-1 rounded text-slate-700">set [var] to [text]</code>, <code class="bg-slate-200 px-1 rounded text-slate-700">(text) = [hello]</code>, <code class="bg-slate-200 px-1 rounded text-slate-700">join [] []</code>, Speech, Ask, and List operations.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-variables-lists" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Variables & List Names</span>
+                        <span class="text-xs text-slate-500">Translates variable names and list names while safely maintaining variable field connections across all scripts.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-custom-blocks" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Custom Blocks / Procedures</span>
+                        <span class="text-xs text-slate-500">Translates block definition labels and parameter names while keeping placeholders (%s, %n) and argument reporters linked.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-comments" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Script Comments & Code Notes</span>
+                        <span class="text-xs text-slate-500">Translates floating workspace comments and block-attached explanation notes.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-svg-costumes" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Vector SVG Costumes & Text Layers</span>
+                        <span class="text-xs text-slate-500">Translates vector graphic text with automatic font scaling to prevent text overflow.</span>
+                    </div>
+                </label>
+
+                <label class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 cursor-pointer hover:bg-slate-100 transition">
+                    <input type="checkbox" id="scope-broadcasts-sprites" checked class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                    <div>
+                        <span class="font-bold text-slate-800 block">Broadcast Messages, Sprite & Costume Names</span>
+                        <span class="text-xs text-slate-500">Translates event names, sprite names, and costume labels while updating menu dropdown fields across all sprites.</span>
+                    </div>
+                </label>
+            </div>
+
+            <div class="mt-6 pt-4 border-t border-slate-200 text-center">
+                <button id="save-settings-btn" class="w-full text-white bg-indigo-600 hover:bg-indigo-700 font-bold rounded-xl text-sm py-3 transition shadow-md">
+                    Return to Translator →
+                </button>
+            </div>
+        </div>
+
+        <div id="tab-expect-content" class="hidden p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+                <span>📋</span> Complete Translation Features
+            </h2>
+            
+            <div class="space-y-3">
+                <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span class="bg-indigo-100 text-indigo-700 font-bold rounded-xl w-7 h-7 flex items-center justify-center shrink-0 text-sm">1</span>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Full Block Literal & Operator Coverage</h3>
+                        <p class="text-xs text-slate-600 mt-0.5">Translates text typed inside set-variable blocks (<code class="bg-slate-200 px-1 rounded text-slate-700">set [text] to [hello]</code>), operator logic (<code class="bg-slate-200 px-1 rounded text-slate-700">(text) = [hello]</code>), string joins, lists, speech, and ask prompts.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span class="bg-indigo-100 text-indigo-700 font-bold rounded-xl w-7 h-7 flex items-center justify-center shrink-0 text-sm">2</span>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Safe Custom Block & Link Preservation</h3>
+                        <p class="text-xs text-slate-600 mt-0.5">Parses custom block prototypes (<code class="bg-slate-200 px-1 rounded text-slate-700">define my_block %s</code>) while preserving argument placeholders (<code class="bg-slate-200 px-1 rounded text-slate-700">%s</code>, <code class="bg-slate-200 px-1 rounded text-slate-700">%n</code>) and syncing argument reporter blocks inside definitions.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span class="bg-indigo-100 text-indigo-700 font-bold rounded-xl w-7 h-7 flex items-center justify-center shrink-0 text-sm">3</span>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Smart SVG Vector Font Auto-Fitting</h3>
+                        <p class="text-xs text-slate-600 mt-0.5">Vector text elements are translated line-by-line while calculating text width and automatically scaling down font size if the translated language requires more horizontal space.</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200">
+                    <span class="bg-indigo-100 text-indigo-700 font-bold rounded-xl w-7 h-7 flex items-center justify-center shrink-0 text-sm">4</span>
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-sm">Dropdown Dependency Syncing</h3>
+                        <p class="text-xs text-slate-600 mt-0.5">Ensures that if a Sprite is translated, blocks like <i>distance to</i>, <i>point towards</i>, <i>touching</i>, and <i>create clone of</i> are automatically updated to prevent script breaking.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 pt-4 border-t border-slate-200 text-center">
+                <button id="switch-to-translator-btn" class="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline">
+                    Ready? Go back to Translator →
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Dictionary of Scratch Translate extension languages (100+ supported targets)
+        const SCRATCH_LANGUAGES = {
+            "am": "Amharic", "ar": "Arabic", "az": "Azerbaijani", "bg": "Bulgarian", "bn": "Bengali", 
+            "ca": "Catalan", "cs": "Czech", "cy": "Welsh", "da": "Danish", "de": "German", "el": "Greek", 
+            "en": "English", "eo": "Esperanto", "es": "Spanish", "et": "Estonian", "eu": "Basque", "fa": "Persian", 
+            "fi": "Finnish", "fr": "French", "ga": "Irish", "gl": "Galician", "he": "Hebrew", "hi": "Hindi", 
+            "hr": "Croatian", "ht": "Haitian Creole", "hu": "Hungarian", "hy": "Armenian", "id": "Indonesian", 
+            "is": "Icelandic", "it": "Italian", "ja": "Japanese", "ka": "Georgian", "kk": "Kazakh", "km": "Khmer", 
+            "kn": "Kannada", "ko": "Korean", "ku": "Kurdish", "ky": "Kyrgyz", "la": "Latin", "lt": "Lithuanian", 
+            "lv": "Latvian", "mi": "Maori", "mk": "Macedonian", "ml": "Malayalam", "mn": "Mongolian", "mr": "Marathi", 
+            "ms": "Malay", "mt": "Maltese", "my": "Myanmar (Burmese)", "ne": "Nepali", "nl": "Dutch", "no": "Norwegian", 
+            "ny": "Chichewa", "or": "Odia", "pa": "Punjabi", "pl": "Polish", "ps": "Pashto", "pt": "Portuguese", 
+            "pt-br": "Portuguese (Brazil)", "ro": "Romanian", "ru": "Russian", "rw": "Kinyarwanda", "sd": "Sindhi", 
+            "si": "Sinhala", "sk": "Slovak", "sl": "Slovenian", "sm": "Samoan", "sn": "Shona", "so": "Somali", 
+            "sq": "Albanian", "sr": "Serbian", "st": "Sesotho", "su": "Sundanese", "sv": "Swedish", "sw": "Swahili", 
+            "ta": "Tamil", "te": "Telugu", "tg": "Tajik", "th": "Thai", "tk": "Turkmen", "tl": "Filipino", 
+            "tr": "Turkish", "tt": "Tatar", "ug": "Uyghur", "uk": "Ukrainian", "ur": "Urdu", "uz": "Uzbek", 
+            "vi": "Vietnamese", "xh": "Xhosa", "yi": "Yiddish", "yo": "Yoruba", "zh-cn": "Chinese (Simplified)", 
+            "zh-tw": "Chinese (Traditional)", "zu": "Zulu"
+        };
+
+        const tabTranslatorBtn = document.getElementById('tab-translator-btn');
+        const tabSettingsBtn = document.getElementById('tab-settings-btn');
+        const tabExpectBtn = document.getElementById('tab-expect-btn');
+        
+        const tabTranslatorContent = document.getElementById('tab-translator-content');
+        const tabSettingsContent = document.getElementById('tab-settings-content');
+        const tabExpectContent = document.getElementById('tab-expect-content');
+        
+        const switchToTranslatorBtn = document.getElementById('switch-to-translator-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+
+        const fileInput = document.getElementById('dropzone-file');
+        const fileDisplay = document.getElementById('filename-display');
+        const dropzoneLabel = document.getElementById('dropzone-label');
+        const langSelect = document.getElementById('language-select');
+        const directApiToggle = document.getElementById('direct-api-toggle');
+        const translateBtn = document.getElementById('translate-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressLabel = document.getElementById('progress-label');
+        const workingNotice = document.getElementById('working-notice');
+
+        const statusContainer = document.getElementById('status-container');
+        const logArea = document.getElementById('logArea');
+        const copyLogBtn = document.getElementById('copy-log-btn');
+        const clearLogBtn = document.getElementById('clear-log-btn');
+        const summaryCard = document.getElementById('summary-card');
+
+        let currentFile = null;
+        const translationCache = {};
+
+        function showTab(tabName) {
+            tabTranslatorContent.classList.add('hidden');
+            tabSettingsContent.classList.add('hidden');
+            tabExpectContent.classList.add('hidden');
+
+            tabTranslatorBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white hover:bg-white/10";
+            tabSettingsBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white hover:bg-white/10";
+            tabExpectBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-indigo-100 hover:text-white hover:bg-white/10";
+
+            if (tabName === 'translator') {
+                tabTranslatorContent.classList.remove('hidden');
+                tabTranslatorBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-white text-indigo-700 shadow-md";
+            } else if (tabName === 'settings') {
+                tabSettingsContent.classList.remove('hidden');
+                tabSettingsBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-white text-indigo-700 shadow-md";
+            } else if (tabName === 'expect') {
+                tabExpectContent.classList.remove('hidden');
+                tabExpectBtn.className = "flex-1 py-2 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-white text-indigo-700 shadow-md";
+            }
+        }
+
+        tabTranslatorBtn.addEventListener('click', () => showTab('translator'));
+        tabSettingsBtn.addEventListener('click', () => showTab('settings'));
+        tabExpectBtn.addEventListener('click', () => showTab('expect'));
+        switchToTranslatorBtn.addEventListener('click', () => showTab('translator'));
+        saveSettingsBtn.addEventListener('click', () => showTab('translator'));
+
+        
+        /**
+         * Splits a string into alternating word segments and delimiter/separator segments 
+         * ([word, sep, word, sep...]) to guarantee hyphens, underscores, dots, and numbers 
+         * are never dropped by translation APIs.
+         */
+        function tokenizeString(str) {
+            if (!str || typeof str !== 'string') return [str];
+            return str.split(/([ \-_.]+)/);
+        }
+
+        /**
+         * Checks if a string segment contains valid translatable text.
+         */
+        function isTranslatableText(str) {
+            if (!str || typeof str !== 'string') return false;
+            // Skip pure separators/delimiters
+            if (/^[ \-_.]+$/.test(str)) return false;
+            // Skip pure numeric values, coordinates, percentages
+            if (!isNaN(str) && !isNaN(parseFloat(str))) return false;
+            // Skip pure mathematical/logical operators
+            if (/^[=+\-*\/%<>!&|^]+$/.test(str)) return false;
+            // Skip block placeholders like %s, %n
+            if (/^%[snb]$/.test(str)) return false;
+            // Skip md5 asset hashes
+            if (/^[a-f0-9]{32}\.(png|svg|wav|mp3)$/i.test(str)) return false;
+            
+            return true;
+        }
+
+        /**
+         * Harvests all translatable word segments from a string into the harvest set.
+         */
+        function addForTranslation(str, harvestSet) {
+            if (!str || typeof str !== 'string') return;
+            const parts = tokenizeString(str);
+            for (let i = 0; i < parts.length; i += 2) {
+                const part = parts[i];
+                if (isTranslatableText(part)) {
+                    harvestSet.add(part);
+                }
+            }
+        }
+
+        /**
+         * Reconstructs a translated compound string by translating translatable word segments
+         * and preserving all separators, hyphens, underscores, and numbers.
+         */
+        function getTranslation(str, targetLang) {
+            if (!str || typeof str !== 'string') return str;
+            const parts = tokenizeString(str);
+            let result = '';
+            
+            for (let i = 0; i < parts.length; i++) {
+                if (i % 2 === 0) {
+                    const part = parts[i];
+                    if (isTranslatableText(part)) {
+                        const cacheKey = `${part}_${targetLang}`;
+                        if (translationCache[cacheKey]) {
+                            result += translationCache[cacheKey];
+                        } else {
+                            result += part;
+                        }
+                    } else {
+                        result += part;
+                    }
+                } else {
+                    result += parts[i];
+                }
+            }
+            return result;
+        }
+
+        async function translateBatchNetwork(stringsArray, targetLang, onProgress) {
+            const uniqueStrings = Array.from(new Set(stringsArray.filter(s => isTranslatableText(s))));
+            const uncatched = uniqueStrings.filter(s => !translationCache[`${s}_${targetLang}`]);
+            
+            if (uncatched.length === 0) {
+                if (onProgress) onProgress(100, 100);
+                return;
+            }
+
+            const BATCH_SIZE = 30; // Batch strings to drastically reduce HTTP requests
+            for (let i = 0; i < uncatched.length; i += BATCH_SIZE) {
+                const chunk = uncatched.slice(i, i + BATCH_SIZE);
+                const delimiter = "\n---SCRATCH_DELIM---\n";
+                const joinedText = chunk.join(delimiter);
+
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 6000); 
+
+                    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(joinedText)}`;
+                    const res = await fetch(url, { signal: controller.signal });
+                    clearTimeout(timeoutId);
+
+                    if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+                    
+                    const data = await res.json();
+                    const translatedFull = data[0].map(item => item[0]).join('');
+                    const translatedParts = translatedFull.split(/\s*---SCRATCH_DELIM---\s*/);
+
+                    chunk.forEach((origStr, idx) => {
+                        const translated = (translatedParts[idx] && translatedParts[idx].trim()) ? translatedParts[idx].trim() : origStr;
+                        translationCache[`${origStr}_${targetLang}`] = translated;
+                    });
+                } catch (e) {
+                    console.warn("Batch translation request timed out or failed. Running fallback...", e);
+                    for (const str of chunk) {
+                        await translateSingleFallback(str, targetLang);
+                    }
+                }
+
+                if (onProgress) {
+                    onProgress(Math.min(i + BATCH_SIZE, uncatched.length), uncatched.length);
+                }
+
+                await new Promise(r => setTimeout(r, 50));
+            }
+        }
+
+        async function translateSingleFallback(str, targetLang) {
+            const cacheKey = `${str}_${targetLang}`;
+            if (translationCache[cacheKey]) return translationCache[cacheKey];
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(str)}`;
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (res.ok) {
+                    const data = await res.json();
+                    const translated = data[0].map(item => item[0]).join('');
+                    translationCache[cacheKey] = translated;
+                    return translated;
+                }
+            } catch (err) {
+                console.warn(`Fallback failed for "${str}":`, err);
+            }
+            translationCache[cacheKey] = str;
+            return str;
+        }
+
+        function generateId() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#%()*+,-./:;=?@[]^_`{|}~';
+            let id = '';
+            for (let i = 0; i < 20; i++) {
+                id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
+        }
+
+        function translateProccode(proccode, targetLang) {
+            if (!proccode || typeof proccode !== 'string') return proccode;
+            
+            const placeholders = proccode.match(/%[snb]/g) || [];
+            const textParts = proccode.split(/%[snb]/g);
+            
+            const translatedParts = textParts.map(part => {
+                return getTranslation(part, targetLang);
+            });
+            
+            let result = '';
+            for (let i = 0; i < translatedParts.length; i++) {
+                result += translatedParts[i];
+                if (i < placeholders.length) {
+                    result += placeholders[i];
+                }
+            }
+            return result;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const sortedLangs = Object.entries(SCRATCH_LANGUAGES).sort((a, b) => a[1].localeCompare(b[1]));
+            sortedLangs.forEach(([code, name]) => {
+                const option = document.createElement('option');
+                option.value = code;
+                option.textContent = name;
+                if (code === 'ja') option.selected = true;
+                langSelect.appendChild(option);
+            });
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                currentFile = e.target.files[0];
+                fileDisplay.textContent = currentFile.name;
+                fileDisplay.classList.add('text-indigo-600', 'font-bold');
+                dropzoneLabel.classList.add('border-indigo-500', 'bg-indigo-50/80');
+            } else {
+                currentFile = null;
+                fileDisplay.textContent = "Click to select or drag & drop an .sb3 file";
+                fileDisplay.classList.remove('text-indigo-600', 'font-bold');
+                dropzoneLabel.classList.remove('border-indigo-500', 'bg-indigo-50/80');
+            }
+        });
+
+        function logMsg(msg, isError = false) {
+            statusContainer.classList.remove('hidden');
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            if (isError) div.classList.add('text-red-400', 'font-semibold');
+            logArea.appendChild(div);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        clearLogBtn.addEventListener('click', () => { logArea.innerHTML = ''; });
+        copyLogBtn.addEventListener('click', () => {
+            const text = logArea.innerText;
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            alert('Console log copied to clipboard!');
+        });
+
+        function setProgress(percentage, labelText, showWorkingNotice = false) {
+            progressContainer.classList.remove('hidden');
+            const clamped = Math.min(100, Math.max(0, Math.round(percentage)));
+            progressBar.style.width = `${clamped}%`;
+            progressPercent.textContent = `${clamped}%`;
+            if (labelText) progressLabel.textContent = labelText;
+            
+            if (showWorkingNotice) {
+                workingNotice.classList.remove('hidden');
+            } else {
+                workingNotice.classList.add('hidden');
+            }
+        }
+
+        function estimateTextWidth(str) {
+            if (!str) return 0;
+            let w = 0;
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                if ((code >= 0x2E80 && code <= 0x9FFF) || 
+                    (code >= 0xAC00 && code <= 0xD7AF) || 
+                    (code >= 0xF900 && code <= 0xFAFF) || 
+                    (code >= 0xFF00 && code <= 0xFFEF)) {
+                    w += 1.85;
+                } else if (str[i] === ' ') {
+                    w += 0.35;
+                } else if (str[i] === str[i].toUpperCase() && str[i] !== str[i].toLowerCase()) {
+                    w += 1.15;
+                } else {
+                    w += 0.80;
+                }
+            }
+            return Math.max(w, 0.1);
+        }
+
+        function getSvgFontSize(node) {
+            if (node.hasAttribute && node.hasAttribute('font-size')) {
+                const parsed = parseFloat(node.getAttribute('font-size'));
+                if (!isNaN(parsed) && parsed > 0) return parsed;
+            }
+            const style = (node.getAttribute && node.getAttribute('style')) || '';
+            const match = style.match(/font-size\s*:\s*([\d.]+)/i);
+            if (match) {
+                const parsed = parseFloat(match[1]);
+                if (!isNaN(parsed) && parsed > 0) return parsed;
+            }
+            if (node.parentElement && node.parentElement.tagName.toLowerCase() !== 'svg') {
+                return getSvgFontSize(node.parentElement);
+            }
+            return 12;
+        }
+
+        function fitSvgTextNode(node, origText, newText) {
+            const origWidth = estimateTextWidth(origText);
+            const newWidth = estimateTextWidth(newText);
+            if (newWidth <= 0 || origWidth <= 0) return;
+
+            const scaleRatio = origWidth / newWidth;
+            if (scaleRatio < 0.98) {
+                const currentFs = getSvgFontSize(node);
+                const fittedFs = Math.max(currentFs * 0.18, currentFs * scaleRatio);
+                const roundedFs = Math.round(fittedFs * 100) / 100;
+
+                node.setAttribute('font-size', `${roundedFs}px`);
+                
+                if (node.hasAttribute('style')) {
+                    let style = node.getAttribute('style');
+                    if (/font-size\s*:\s*[\d.]+(px)?/i.test(style)) {
+                        node.setAttribute('style', style.replace(/font-size\s*:\s*[\d.]+(px)?/i, `font-size: ${roundedFs}px`));
+                    } else {
+                        node.setAttribute('style', `${style}; font-size: ${roundedFs}px`);
+                    }
+                } else {
+                    node.setAttribute('style', `font-size: ${roundedFs}px`);
+                }
+            }
+        }
+
+        function wrapInputWithTranslateBlock(blocks, parentBlockId, inputKey, targetLang) {
+            const parentBlock = blocks[parentBlockId];
+            if (!parentBlock || !parentBlock.inputs || !parentBlock.inputs[inputKey]) return false;
+
+            const oldInput = parentBlock.inputs[inputKey];
+
+            if (oldInput[0] === 2 || oldInput[0] === 3) {
+                const existingBlockId = oldInput[1];
+                if (blocks[existingBlockId] && blocks[existingBlockId].opcode === 'translate_getTranslate') {
+                    return false;
+                }
+            }
+
+            const translateBlockId = generateId();
+            const menuBlockId = generateId();
+
+            let shadowArray = null;
+            if (oldInput[0] === 1) shadowArray = oldInput[1];
+            else if (oldInput[0] === 3) shadowArray = oldInput[2];
+
+            if (oldInput[0] === 2 || oldInput[0] === 3) {
+                const innerBlockId = oldInput[1];
+                if (blocks[innerBlockId]) {
+                    blocks[innerBlockId].parent = translateBlockId;
+                }
+            }
+
+            blocks[menuBlockId] = {
+                opcode: "translate_menu_languages",
+                next: null,
+                parent: translateBlockId,
+                inputs: {},
+                fields: { "languages": [targetLang, null] },
+                shadow: true,
+                topLevel: false
+            };
+
+            blocks[translateBlockId] = {
+                opcode: "translate_getTranslate",
+                next: null,
+                parent: parentBlockId,
+                inputs: {
+                    "WORDS": oldInput,
+                    "LANGUAGE": [1, menuBlockId]
+                },
+                fields: {},
+                shadow: false,
+                topLevel: false
+            };
+
+            if (shadowArray) {
+                parentBlock.inputs[inputKey] = [3, translateBlockId, shadowArray];
+            } else {
+                parentBlock.inputs[inputKey] = [2, translateBlockId];
+            }
+
+            return true;
+        }
+
+        translateBtn.addEventListener('click', async () => {
+            if (!currentFile) {
+                logMsg("Error: Please select an .sb3 file first.", true);
+                return;
+            }
+
+            const targetLang = langSelect.value;
+            const useDirectApi = directApiToggle.checked;
+
+            const scopeBlockLiterals = document.getElementById('scope-block-literals').checked;
+            const scopeVariablesLists = document.getElementById('scope-variables-lists').checked;
+            const scopeCustomBlocks = document.getElementById('scope-custom-blocks').checked;
+            const scopeComments = document.getElementById('scope-comments').checked;
+            const scopeSvgCostumes = document.getElementById('scope-svg-costumes').checked;
+            const scopeBroadcastsSprites = document.getElementById('scope-broadcasts-sprites').checked;
+
+            translateBtn.disabled = true;
+            translateBtn.textContent = "Translating Project...";
+            downloadBtn.classList.add('hidden');
+            summaryCard.classList.add('hidden');
+            logArea.innerHTML = '';
+
+            let stats = {
+                blocks: 0,
+                vars: 0,
+                comments: 0,
+                procs: 0,
+                svgs: 0,
+                broadcasts: 0
+            };
+            
+            setProgress(0, "Reading .sb3 project archive...", false);
+            logMsg(`Starting project translation into: ${SCRATCH_LANGUAGES[targetLang]} (${useDirectApi ? 'Direct API Mode' : 'Translate Extension Mode'})`);
+
+            try {
+                setProgress(5, "Extracting project architecture...", false);
+                const arrayBuffer = await currentFile.arrayBuffer();
+                const zip = await JSZip.loadAsync(arrayBuffer);
+                
+                if (!zip.file("project.json")) {
+                    throw new Error("Invalid .sb3 archive: project.json missing");
+                }
+
+                setProgress(10, "Parsing project.json structure...", false);
+                const projectJsonText = await zip.file("project.json").async("string");
+                const projectData = JSON.parse(projectJsonText);
+
+                if (!useDirectApi) {
+                    if (!projectData.extensions) projectData.extensions = [];
+                    if (!projectData.extensions.includes('translate')) {
+                        projectData.extensions.push('translate');
+                        logMsg("Injected Scratch 'translate' extension capability into project.");
+                    }
+                }
+
+                const textHarvest = new Set();
+                setProgress(15, "Scanning project for all translatable text...", true);
+
+                if (scopeBlockLiterals) {
+                    for (const target of projectData.targets) {
+                        if (!target.blocks) continue;
+                        for (const bId in target.blocks) {
+                            const block = target.blocks[bId];
+                            if (!block || typeof block !== 'object') continue;
+                            if (block.inputs) {
+                                for (const inputKey in block.inputs) {
+                                    const input = block.inputs[inputKey];
+                                    if (!Array.isArray(input)) continue;
+                                    if (Array.isArray(input[1]) && input[1][0] === 10) {
+                                        addForTranslation(input[1][1], textHarvest);
+                                    }
+                                    if (Array.isArray(input[2]) && input[2][0] === 10) {
+                                        addForTranslation(input[2][1], textHarvest);
+                                    }
+                                }
+                            }
+                            if (block.opcode === 'text' && block.fields && block.fields.TEXT) {
+                                addForTranslation(block.fields.TEXT[0], textHarvest);
+                            }
+                        }
+                    }
+                }
+
+                if (scopeCustomBlocks) {
+                    for (const target of projectData.targets) {
+                        if (!target.blocks) continue;
+                        for (const bId in target.blocks) {
+                            const block = target.blocks[bId];
+                            if (block && block.opcode === 'procedures_prototype' && block.mutation) {
+                                const mut = block.mutation;
+                                if (mut.argumentnames) {
+                                    try {
+                                        let names = JSON.parse(mut.argumentnames);
+                                        if (Array.isArray(names)) names.forEach(n => addForTranslation(n, textHarvest));
+                                    } catch(e){}
+                                }
+                                if (mut.argumentdefaults) {
+                                    try {
+                                        let defs = JSON.parse(mut.argumentdefaults);
+                                        if (Array.isArray(defs)) defs.forEach(d => addForTranslation(d, textHarvest));
+                                    } catch(e){}
+                                }
+                                if (mut.proccode && typeof mut.proccode === 'string') {
+                                    const parts = mut.proccode.split(/(%[snb])/g);
+                                    parts.forEach(p => (!/^%[snb]$/.test(p)) && addForTranslation(p, textHarvest));
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (scopeVariablesLists) {
+                    for (const target of projectData.targets) {
+                        if (target.variables) {
+                            for (const vId in target.variables) {
+                                addForTranslation(target.variables[vId][0], textHarvest);
+                            }
+                        }
+                        if (target.lists) {
+                            for (const lId in target.lists) {
+                                addForTranslation(target.lists[lId][0], textHarvest);
+                            }
+                        }
+                    }
+                }
+
+                if (scopeComments) {
+                    for (const target of projectData.targets) {
+                        if (target.comments) {
+                            for (const cId in target.comments) {
+                                const comment = target.comments[cId];
+                                if (comment && comment.text) addForTranslation(comment.text, textHarvest);
+                            }
+                        }
+                    }
+                }
+
+                if (scopeBroadcastsSprites) {
+                    for (const target of projectData.targets) {
+                        if (target.broadcasts) {
+                            for (const bcId in target.broadcasts) {
+                                addForTranslation(target.broadcasts[bcId], textHarvest);
+                            }
+                        }
+                        if (target.name && target.name !== "Stage") addForTranslation(target.name, textHarvest);
+                        if (target.costumes) {
+                            for (const c of target.costumes) {
+                                if (c.name) addForTranslation(c.name, textHarvest);
+                            }
+                        }
+                    }
+                }
+
+                const svgFiles = scopeSvgCostumes ? Object.keys(zip.files).filter(name => name.endsWith('.svg')) : [];
+                const svgDocs = {};
+                if (scopeSvgCostumes && svgFiles.length > 0) {
+                    for (const filename of svgFiles) {
+                        const svgText = await zip.file(filename).async("string");
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(svgText, "image/svg+xml");
+                        svgDocs[filename] = doc;
+                        const textElements = doc.querySelectorAll('text');
+                        for (const textEl of textElements) {
+                            const tspans = textEl.querySelectorAll('tspan');
+                            if (tspans.length > 0) {
+                                for (const tspan of tspans) {
+                                    addForTranslation(tspan.textContent, textHarvest);
+                                }
+                            } else {
+                                addForTranslation(textEl.textContent, textHarvest);
+                            }
+                        }
+                    }
+                }
+
+                logMsg(`Found ${textHarvest.size} unique translatable root strings across project.`);
+
+                setProgress(25, `Batch translating ${textHarvest.size} unique strings...`, true);
+                await translateBatchNetwork(Array.from(textHarvest), targetLang, (done, total) => {
+                    const pct = 25 + Math.round((done / Math.max(total, 1)) * 40);
+                    setProgress(pct, `Batch translating strings (${done}/${total})...`, true);
+                });
+
+                logMsg("Batch network translation step completed successfully.");
+
+                setProgress(68, "Applying translations to project structure...", true);
+
+                if (scopeBlockLiterals) {
+                    for (const target of projectData.targets) {
+                        if (!target.blocks) continue;
+                        for (const bId in target.blocks) {
+                            const block = target.blocks[bId];
+                            if (!block || typeof block !== 'object') continue;
+
+                            if (block.inputs) {
+                                for (const inputKey in block.inputs) {
+                                    const input = block.inputs[inputKey];
+                                    if (!Array.isArray(input)) continue;
+
+                                    if (Array.isArray(input[1]) && input[1][0] === 10) {
+                                        const textVal = input[1][1];
+                                        if (isTranslatableText(textVal)) {
+                                            if (useDirectApi) {
+                                                const translated = getTranslation(textVal, targetLang);
+                                                if (translated !== textVal) {
+                                                    input[1][1] = translated;
+                                                    stats.blocks++;
+                                                }
+                                            } else {
+                                                const wrapped = wrapInputWithTranslateBlock(target.blocks, bId, inputKey, targetLang);
+                                                if (wrapped) stats.blocks++;
+                                            }
+                                        }
+                                    }
+
+                                    if (Array.isArray(input[2]) && input[2][0] === 10) {
+                                        const textVal = input[2][1];
+                                        if (isTranslatableText(textVal)) {
+                                            if (useDirectApi) {
+                                                const translated = getTranslation(textVal, targetLang);
+                                                if (translated !== textVal) {
+                                                    input[2][1] = translated;
+                                                    stats.blocks++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (block.opcode === 'text' && block.fields && block.fields.TEXT) {
+                                const orig = block.fields.TEXT[0];
+                                if (isTranslatableText(orig)) {
+                                    const translated = getTranslation(orig, targetLang);
+                                    if (translated !== orig) {
+                                        block.fields.TEXT[0] = translated;
+                                        stats.blocks++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    logMsg(`Block literals updated: ${stats.blocks}`);
+                }
+
+                if (scopeCustomBlocks) {
+                    for (const target of projectData.targets) {
+                        if (!target.blocks) continue;
+                        for (const bId in target.blocks) {
+                            const block = target.blocks[bId];
+                            if (block && block.opcode === 'procedures_prototype' && block.mutation) {
+                                const mut = block.mutation;
+                                const argMap = {};
+
+                                if (mut.argumentnames) {
+                                    try {
+                                        let names = JSON.parse(mut.argumentnames);
+                                        if (Array.isArray(names)) {
+                                            const newNames = names.map(n => {
+                                                if (!isTranslatableText(n)) return n;
+                                                const trans = getTranslation(n, targetLang);
+                                                if (trans !== n) argMap[n] = trans;
+                                                return trans;
+                                            });
+                                            mut.argumentnames = JSON.stringify(newNames);
+
+                                            for (const cbId in target.blocks) {
+                                                const cb = target.blocks[cbId];
+                                                if (cb && (cb.opcode === 'argument_reporter_string_number' || cb.opcode === 'argument_reporter_boolean')) {
+                                                    if (cb.fields && cb.fields.VALUE && argMap[cb.fields.VALUE[0]]) {
+                                                        cb.fields.VALUE[0] = argMap[cb.fields.VALUE[0]];
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } catch (e) {}
+                                }
+
+                                if (mut.argumentdefaults) {
+                                    try {
+                                        let defaults = JSON.parse(mut.argumentdefaults);
+                                        if (Array.isArray(defaults)) {
+                                            mut.argumentdefaults = JSON.stringify(defaults.map(d => isTranslatableText(d) ? getTranslation(d, targetLang) : d));
+                                        }
+                                    } catch (e) {}
+                                }
+
+                                if (mut.proccode && typeof mut.proccode === 'string') {
+                                    const oldProccode = mut.proccode;
+                                    const newProccode = translateProccode(oldProccode, targetLang);
+                                    
+                                    if (newProccode !== oldProccode) {
+                                        mut.proccode = newProccode;
+                                        stats.procs++;
+
+                                        for (const t of projectData.targets) {
+                                            if (!t.blocks) continue;
+                                            for (const cbId in t.blocks) {
+                                                const cb = t.blocks[cbId];
+                                                if (cb && cb.opcode === 'procedures_call' && cb.mutation && cb.mutation.proccode === oldProccode) {
+                                                    cb.mutation.proccode = newProccode;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    logMsg(`Custom block procedure definitions synced: ${stats.procs}`);
+                }
+
+                if (scopeVariablesLists) {
+                    for (const target of projectData.targets) {
+                        if (target.variables) {
+                            for (const varId in target.variables) {
+                                const vTuple = target.variables[varId];
+                                const oldName = vTuple[0];
+                                if (isTranslatableText(oldName)) {
+                                    const newName = getTranslation(oldName, targetLang);
+                                    if (oldName !== newName) {
+                                        vTuple[0] = newName;
+                                        stats.vars++;
+
+                                        for (const t of projectData.targets) {
+                                            if (!t.blocks) continue;
+                                            for (const bId in t.blocks) {
+                                                const b = t.blocks[bId];
+                                                if (b && b.fields) {
+                                                    for (const fKey in b.fields) {
+                                                        if (b.fields[fKey] && b.fields[fKey][1] === varId) {
+                                                            b.fields[fKey][0] = newName;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (target.lists) {
+                            for (const listId in target.lists) {
+                                const lTuple = target.lists[listId];
+                                const oldName = lTuple[0];
+                                if (isTranslatableText(oldName)) {
+                                    const newName = getTranslation(oldName, targetLang);
+                                    if (oldName !== newName) {
+                                        lTuple[0] = newName;
+                                        stats.vars++;
+
+                                        for (const t of projectData.targets) {
+                                            if (!t.blocks) continue;
+                                            for (const bId in t.blocks) {
+                                                const b = t.blocks[bId];
+                                                if (b && b.fields) {
+                                                    for (const fKey in b.fields) {
+                                                        if (b.fields[fKey] && b.fields[fKey][1] === listId) {
+                                                            b.fields[fKey][0] = newName;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    logMsg(`Variables & List names updated: ${stats.vars}`);
+                }
+
+                if (scopeComments) {
+                    for (const target of projectData.targets) {
+                        if (target.comments) {
+                            for (const cId in target.comments) {
+                                const comment = target.comments[cId];
+                                if (comment && comment.text && isTranslatableText(comment.text)) {
+                                    comment.text = getTranslation(comment.text, targetLang);
+                                    stats.comments++;
+                                }
+                            }
+                        }
+                    }
+                    logMsg(`Script comments translated: ${stats.comments}`);
+                }
+
+                if (scopeBroadcastsSprites) {
+                    for (const target of projectData.targets) {
+                        if (target.broadcasts) {
+                            for (const bcId in target.broadcasts) {
+                                const oldBcName = target.broadcasts[bcId];
+                                if (isTranslatableText(oldBcName)) {
+                                    const newBcName = getTranslation(oldBcName, targetLang);
+                                    if (oldBcName !== newBcName) {
+                                        target.broadcasts[bcId] = newBcName;
+                                        stats.broadcasts++;
+
+                                        for (const t of projectData.targets) {
+                                            if (!t.blocks) continue;
+                                            for (const bId in t.blocks) {
+                                                const b = t.blocks[bId];
+                                                if (b && b.fields && b.fields.BROADCAST_OPTION && b.fields.BROADCAST_OPTION[1] === bcId) {
+                                                    b.fields.BROADCAST_OPTION[0] = newBcName;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (target.name && target.name !== "Stage" && isTranslatableText(target.name)) {
+                            const oldSpriteName = target.name;
+                            const newSpriteName = getTranslation(oldSpriteName, targetLang);
+                            if (oldSpriteName !== newSpriteName) {
+                                target.name = newSpriteName;
+
+                                for (const t of projectData.targets) {
+                                    if (!t.blocks) continue;
+                                    for (const bId in t.blocks) {
+                                        const b = t.blocks[bId];
+                                        if (b && b.fields) {
+                                            for (const fk of ['TOUCHINGOBJECTMENU', 'TOWARDS', 'TO', 'DISTANCETOMENU', 'OBJECT', 'CLONE_OPTION']) {
+                                                if (b.fields[fk] && b.fields[fk][0] === oldSpriteName) {
+                                                    b.fields[fk][0] = newSpriteName;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (target.costumes) {
+                            for (const c of target.costumes) {
+                                if (c.name && isTranslatableText(c.name)) {
+                                    const oldCostumeName = c.name;
+                                    const newCostumeName = getTranslation(oldCostumeName, targetLang);
+                                    if (oldCostumeName !== newCostumeName) {
+                                        c.name = newCostumeName;
+
+                                        for (const t of projectData.targets) {
+                                            if (!t.blocks) continue;
+                                            for (const bId in t.blocks) {
+                                                const b = t.blocks[bId];
+                                                if (b && b.fields) {
+                                                    for (const fk of ['COSTUME', 'BACKDROP']) {
+                                                        if (b.fields[fk] && b.fields[fk][0] === oldCostumeName) {
+                                                            b.fields[fk][0] = newCostumeName;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    logMsg(`Broadcasts & Sprites synced: ${stats.broadcasts}`);
+                }
+
+                if (scopeSvgCostumes && svgFiles.length > 0) {
+                    for (const filename of svgFiles) {
+                        const doc = svgDocs[filename];
+                        if (!doc) continue;
+
+                        const textElements = doc.querySelectorAll('text');
+                        let modifiedSvg = false;
+
+                        for (const textEl of textElements) {
+                            const tspans = textEl.querySelectorAll('tspan');
+                            if (tspans.length > 0) {
+                                for (const tspan of tspans) {
+                                    const orig = tspan.textContent;
+                                    if (isTranslatableText(orig)) {
+                                        const translated = getTranslation(orig, targetLang);
+                                        if (translated !== orig) {
+                                            fitSvgTextNode(tspan, orig.trim(), translated.trim());
+                                            tspan.textContent = translated;
+                                            modifiedSvg = true;
+                                        }
+                                    }
+                                }
+                            } else {
+                                const orig = textEl.textContent;
+                                if (isTranslatableText(orig)) {
+                                    const translated = getTranslation(orig, targetLang);
+                                    if (translated !== orig) {
+                                        fitSvgTextNode(textEl, orig.trim(), translated.trim());
+                                        textEl.textContent = translated;
+                                        modifiedSvg = true;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (modifiedSvg) {
+                            const serializer = new XMLSerializer();
+                            zip.file(filename, serializer.serializeToString(doc));
+                            stats.svgs++;
+                        }
+                    }
+                    logMsg(`SVG costumes translated and auto-fitted: ${stats.svgs}`);
+                }
+
+                setProgress(92, "Translating project filename...", false);
+                const originalBaseName = currentFile.name.replace(/\.sb3$/i, '');
+                const translatedBaseName = getTranslation(originalBaseName, targetLang);
+                const finalFileName = `${translatedBaseName}_${targetLang}.sb3`;
+
+                setProgress(96, "Repackaging project.json into .sb3 archive...", false);
+                zip.file("project.json", JSON.stringify(projectData));
+
+                const newBlob = await zip.generateAsync({
+                    type: "blob",
+                    compression: "DEFLATE",
+                    compressionOptions: { level: 6 }
+                });
+
+                setProgress(100, "Translation Complete!", false);
+                const downloadUrl = URL.createObjectURL(newBlob);
+                downloadBtn.href = downloadUrl;
+                downloadBtn.download = finalFileName;
+                downloadBtn.classList.remove('hidden');
+
+                document.getElementById('stat-blocks').textContent = stats.blocks;
+                document.getElementById('stat-vars').textContent = stats.vars;
+                document.getElementById('stat-comments').textContent = stats.comments;
+                document.getElementById('stat-procs').textContent = stats.procs;
+                document.getElementById('stat-svgs').textContent = stats.svgs;
+                document.getElementById('stat-broadcasts').textContent = stats.broadcasts;
+                summaryCard.classList.remove('hidden');
+
+                logMsg(`🎉 Project translation successfully complete! Ready to download: ${finalFileName}`);
+
+            } catch (error) {
+                console.error(error);
+                logMsg(`Fatal Error: ${error.message}`, true);
+                setProgress(0, "Translation Failed!", false);
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.textContent = "Translate Entire Project";
+            }
+        });
+    </script>
+</body>
+</html>
