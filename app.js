@@ -239,7 +239,8 @@ const projects = [
     "Vibin (Not my project)",
     "imagefinder",
     "memorydrawing",
-    "errormaker" // three new projects in a row! holy s\it bro!!
+    "errormaker", // three new projects in a row! holy s\it bro!!
+    "translate scratch projects"
 ];
 
 const fileList = document.getElementById('file-list');
