@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Error Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&family=Roboto:wght@400;500&family=Segoe+UI:wght@400;600&family=Ubuntu:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f3f4f6;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Generic container styles */
+        .controls-panel {
+            width: 350px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 10;
+        }
+
+        .preview-panel {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e5e7eb;
+            background-image: radial-gradient(#cbd5e1 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: auto;
+            position: relative;
+            padding: 40px;
+        }
+
+        /* --- Websim Error Styles --- */
+        .error-websim {
+            background-color: white;
+            width: 600px;
+            height: 600px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Comic Neue', cursive;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .error-websim-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        .error-websim-text {
+            font-size: 4rem;
+            color: black;
+            text-align: center;
+            letter-spacing: 1px;
+            transform: rotate(-1deg);
+            transition: font-size 0.2s, color 0.2s;
+            line-height: normal; /* Reverted from 1 to fix html2canvas baseline dropping */
+            margin: 0;
+            padding: 0;
+            display: inline-block;
+        }
+
+        /* --- Windows Error Styles --- */
+        .error-windows {
+            background-color: #f0f0f0;
+            border: 1px solid #0054e3;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+            width: 450px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: width 0.2s;
+        }
+        .error-windows-header {
+            background: linear-gradient(to bottom, #0058e6 0%, #3a93ff 100%);
+            color: white;
+            padding: 6px 10px;
+            font-size: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            line-height: 18px; /* Fix html2canvas shift */
+        }
+        .error-windows-header .close-btn {
+            background: #cc0000;
+            color: white;
+            border: 1px solid white;
+            border-radius: 3px;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            line-height: 18px; /* Fix html2canvas shift */
+            cursor: default;
+            box-sizing: border-box;
+        }
+        .error-windows-body {
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            background-color: #f0f0f0;
+        }
+        .error-windows-icon {
+            width: 40px;
+            height: 40px;
+            background-color: #e81123;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+            transition: background-color 0.2s;
+            line-height: 40px; /* Fix html2canvas shift */
+        }
+        .error-windows-text-container {
+            flex-grow: 1;
+        }
+        .error-windows-main-text {
+            font-size: 14px;
+            color: #333;
+            margin: 0 0 20px 0;
+            line-height: 1.4;
+            word-break: break-word;
+            transition: font-size 0.2s;
+        }
+        .error-windows-footer {
+            padding: 10px 20px;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: flex-end;
+            border-top: 1px solid #dfdfdf;
+        }
+        .error-windows-btn {
+            padding: 4px 20px;
+            background-color: #e1e1e1;
+            border: 1px solid #adadad;
+            border-radius: 3px;
+            font-size: 14px;
+            line-height: 18px; /* Fix html2canvas shift */
+            cursor: default;
+            display: inline-block;
+        }
+
+        /* --- Linux Error Styles --- */
+        .error-linux {
+            background-color: #fafafa;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.1);
+            width: 400px;
+            font-family: 'Ubuntu', 'Segoe UI', sans-serif;
+            overflow: hidden;
+            transition: width 0.2s;
+        }
+        .error-linux-header {
+            background-color: #e0e0e0;
+            padding: 8px 15px;
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+            border-bottom: 1px solid #ccc;
+            border-radius: 8px 8px 0 0;
+            line-height: 20px; /* Fix html2canvas shift */
+        }
+        .error-linux-body {
+            padding: 25px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .error-linux-icon {
+            font-size: 48px;
+            color: #e01b24;
+            margin-bottom: 15px;
+            line-height: 48px; /* Fix html2canvas shift */
+            height: 48px;
+            transition: font-size 0.2s, color 0.2s;
+        }
+        .error-linux-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #242424;
+            line-height: 1.3;
+        }
+        .error-linux-message {
+            font-size: 14px;
+            color: #5e5c64;
+            margin-bottom: 25px;
+            line-height: 1.4;
+            word-break: break-word;
+        }
+        .error-linux-footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+        }
+        .error-linux-btn {
+            padding: 8px 16px;
+            background-color: #f6f5f4;
+            border: 1px solid #cdc7c2;
+            border-radius: 6px;
+            color: #242424;
+            font-weight: 500;
+            cursor: default;
+            line-height: 20px; /* Fix html2canvas shift */
+            display: inline-block;
+        }
+        .error-linux-btn.primary {
+            background-color: #3584e4;
+            color: white;
+            border-color: #3584e4;
+        }
+
+        /* --- Google Error Styles --- */
+        .error-google {
+            background-color: #202124;
+            width: 800px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            font-family: Arial, sans-serif;
+            color: #bdc1c6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .error-google-top {
+            background-color: #202124;
+            padding: 20px 20px 0 20px;
+            border-bottom: 1px solid #3c4043;
+        }
+        .error-google-searchbar {
+            background-color: #303134;
+            border-radius: 24px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            margin-bottom: 16px;
+            max-width: 690px;
+            box-sizing: border-box;
+        }
+        .error-google-searchtext {
+            flex-grow: 1;
+            color: #e8eaed;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+            outline: none;
+            border: none;
+            background: transparent;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            line-height: 44px; /* CRITICAL FIX: Explicitly match container height */
+            height: 44px;
+            padding: 0;
+            margin: 0;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .error-google-nav {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+            color: #9aa0a6;
+            padding-bottom: 12px;
+            line-height: 20px;
+        }
+        .error-google-nav span.active {
+            color: #e8eaed;
+            border-bottom: 3px solid #e8eaed;
+            padding-bottom: 9px;
+            font-weight: bold;
+        }
+        .error-google-body {
+            padding: 30px 20px;
+            font-size: 16px;
+        }
+        .error-google-body p {
+            margin: 0 0 15px 0;
+            word-break: break-word;
+        }
+        .error-google-query {
+            font-weight: bold;
+            color: #e8eaed;
+        }
+        .error-google-suggestions {
+            margin-left: 40px; /* Increased to accommodate outside bullets */
+            padding-left: 0;
+            list-style-type: disc;
+            list-style-position: outside; /* Reverted to outside to fix the huge export gap */
+        }
+        .error-google-suggestions li {
+            margin-bottom: 5px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        /* --- Scratch Error Styles --- */
+        .error-scratch {
+            background-color: #4c97ff;
+            width: 700px;
+            min-height: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: white;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        .error-scratch-icon {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 20px;
+        }
+        .error-scratch-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+        .error-scratch-text {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+            max-width: 400px;
+            word-break: break-word;
+        }
+        .error-scratch-btn {
+            background-color: white;
+            color: #4c97ff;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: default;
+            line-height: 20px; /* Fix html2canvas shift */
+            display: inline-block;
+        }
+
+        /* --- Scratch Sprite Error Styles --- */
+        .error-sprite {
+            background-color: #cccccc;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        
+        .error-sprite-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .error-sprite-mark {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 150px;
+            color: black;
+            font-weight: normal;
+            line-height: normal; /* CRITICAL FIX: line-height 1 ruins html2canvas large text alignment */
+            margin: 0;
+            padding: 0;
+            display: inline-block;
+            text-align: center;
+        }
+
+        /* --- BSOD Modern Styles --- */
+        .error-bsod {
+            background-color: #0078d7;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 800px;
+            min-height: 600px;
+            padding: 80px 100px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+        .error-bsod-face { font-size: 8rem; margin-bottom: 20px; line-height: 1; }
+        .error-bsod-main { font-size: 1.8rem; margin-bottom: 30px; line-height: 1.3; word-break: break-word; }
+        .error-bsod-progress { font-size: 1.2rem; margin-bottom: 30px; }
+        .error-bsod-bottom { display: flex; align-items: flex-start; gap: 20px; margin-top: 20px; }
+        .error-bsod-qr { width: 100px; height: 100px; background: white; padding: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+        .error-bsod-details { font-size: 1rem; line-height: 1.5; display: flex; flex-direction: column; justify-content: center; }
+
+        /* --- Android Corrupted Styles --- */
+        .error-android {
+            background-color: #00c4b5;
+            width: 360px;
+            min-height: 740px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            font-family: 'Roboto', sans-serif;
+            color: white;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow: hidden;
+        }
+        .error-android-top {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ff5252;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .error-android-icon { width: 120px; height: 120px; margin-bottom: 30px; display: flex; align-items: center; justify-content: center; }
+        .error-android-icon svg { width: 100%; height: 100%; }
+        .error-android-msg { font-size: 16px; line-height: 1.5; max-width: 280px; word-break: break-word; }
+
+        /* --- Retro BSOD Styles --- */
+        .error-retro {
+            background-color: #0000a8;
+            color: white;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            width: 720px;
+            min-height: 400px;
+            padding: 40px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .error-retro-title {
+            background-color: #a8a8a8;
+            color: #0000a8;
+            padding: 2px 10px;
+            margin-bottom: 30px;
+            display: inline-block;
+            max-width: 100%;
+            box-sizing: border-box;
+            word-break: break-word;
+        }
+        .error-retro-text {
+            text-align: left;
+            width: 100%;
+            font-size: 16px;
+            line-height: 2;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* --- ChatGPT Error Styles --- */
+        .error-chatgpt {
+            background-color: #343541;
+            color: #d1d5db;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 800px;
+            min-height: 500px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .error-chatgpt-user {
+            background-color: #343541;
+            padding: 20px 40px;
+            display: flex;
+            gap: 20px;
+            border-bottom: 1px solid #2a2b32;
+        }
+        .error-chatgpt-user-icon {
+            width: 30px;
+            height: 30px;
+            background-color: #f59e0b;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .error-chatgpt-bot {
+            background-color: #444654;
+            padding: 20px 40px;
+            display: flex;
+            gap: 20px;
+            flex-grow: 1;
+        }
+        .error-chatgpt-bot-icon {
+            width: 30px;
+            height: 30px;
+            background-color: #10a37f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .error-chatgpt-bot-icon svg { width: 20px; height: 20px; fill: white; }
+        .error-chatgpt-bubble {
+            border: 1px solid #ef4444;
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .error-chatgpt-bubble-icon { width: 14px; height: 14px; background: #ef4444; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        .error-chatgpt-footer {
+            background-color: #343541;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            border-top: 1px solid #2a2b32;
+        }
+        .error-chatgpt-bot-err { font-size: 14px; }
+        .error-chatgpt-btn {
+            background-color: #10a37f;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .error-chatgpt-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        /* --- Dino Error Styles --- */
+        .error-dino {
+            background-color: #ffffff;
+            color: #202124;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            width: 700px;
+            min-height: 450px;
+            padding: 40px 60px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .error-dino-icon { width: 44px; height: 48px; margin-bottom: 20px; }
+        .error-dino-icon svg { width: 100%; height: 100%; fill: #535353; }
+        .error-dino-title { font-size: 24px; font-weight: bold; margin-bottom: 15px; word-break: break-word; }
+        .error-dino-sugg-title { font-size: 14px; margin-bottom: 5px; }
+        .error-dino-sugg { margin-top: 0; padding-left: 20px; font-size: 14px; color: #5f6368; list-style-type: disc; margin-bottom: 25px; line-height: 1.6; word-break: break-word; }
+        .error-dino-err { font-size: 12px; color: #5f6368; }
+
+        /* Utilities */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div class="controls-panel flex flex-col gap-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">Error Generator</h1>
+            <p class="text-sm text-gray-500">Customize and export your error screens.</p>
+        </div>
+
+        <div>
+            <label for="templateSelect" class="block text-sm font-medium text-gray-700 mb-1">Error Template</label>
+            <select id="templateSelect" class="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="websim">Websim Flagged</option>
+                <option value="windows">Windows Error</option>
+                <option value="linux">Linux Error</option>
+                <option value="google">Google Not Found</option>
+                <option value="scratch">Scratch Crash</option>
+                <option value="sprite">Scratch Sprite</option>
+                <option value="bsod">BSOD (Win 10/11)</option>
+                <option value="android">Android Corrupted</option>
+                <option value="retro">Windows Retro BSOD</option>
+                <option value="chatgpt">ChatGPT Error</option>
+                <option value="dino">No Internet (Dino)</option>
+            </select>
+        </div>
+
+        <div id="dynamicInputs" class="flex flex-col gap-4">
+            <!-- Inputs injected here -->
+        </div>
+        
+        <div class="mt-auto pt-4 border-t border-gray-200">
+            <p id="exportStatus" class="text-xs text-gray-500 mb-2 text-center">Downloads a PNG of the error screen shown on the right.</p>
+             <button id="exportBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                  <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                </svg>
+                <span id="exportBtnLabel">Download PNG</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="preview-panel transition-all duration-500 ease-in-out" id="previewArea" aria-hidden="true">
+        <!-- 1. Websim Template -->
+        <div id="tpl-websim" class="error-template error-websim">
+            <div class="error-websim-inner">
+                <div id="websim-text" class="error-websim-text">Content Flagged</div>
+            </div>
+        </div>
+
+        <!-- 2. Windows Template -->
+        <div id="tpl-windows" class="error-template error-windows hidden">
+            <div class="error-windows-header">
+                <span id="win-title">Error</span>
+                <div class="close-btn">X</div>
+            </div>
+            <div class="error-windows-body">
+                <div id="win-icon" class="error-windows-icon">X</div>
+                <div class="error-windows-text-container">
+                    <div id="win-text" class="error-windows-main-text">An unknown error has occurred.</div>
+                </div>
+            </div>
+            <div class="error-windows-footer">
+                <div id="win-btn-text" class="error-windows-btn">OK</div>
+            </div>
+        </div>
+
+        <!-- 3. Linux Template -->
+        <div id="tpl-linux" class="error-template error-linux hidden">
+            <div id="lin-header" class="error-linux-header">Application Error</div>
+            <div class="error-linux-body">
+                <div id="lin-icon" class="error-linux-icon">⚠</div>
+                <div id="lin-title" class="error-linux-title">Something went wrong</div>
+                <div id="lin-text" class="error-linux-message">The application encountered an unrecoverable error and needs to close.</div>
+                <div class="error-linux-footer">
+                    <div id="lin-btn-1" class="error-linux-btn">Cancel</div>
+                    <div id="lin-btn-2" class="error-linux-btn primary">Force Quit</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Google Error Template -->
+        <div id="tpl-google" class="error-template error-google hidden">
+            <div class="error-google-top">
+                <div class="error-google-searchbar">
+                    <div id="google-query-input-display" class="error-google-searchtext"></div>
+                    <svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#9aa0a6" width="20" height="20"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+                    <div style="border-left: 1px solid #5f6368; height: 24px; margin: 0 12px;"></div>
+                    <svg focusable="false" viewBox="0 0 24 24" fill="#8ab4f8" width="20" height="20" style="margin-right: 12px;"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"></path><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"></path></svg>
+                    <svg focusable="false" viewBox="0 0 24 24" fill="#8ab4f8" width="20" height="20"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path></svg>
+                </div>
+                <div class="error-google-nav">
+                    <span>AI Mode</span>
+                    <span class="active">All</span>
+                    <span>Shopping</span>
+                    <span>Images</span>
+                    <span>Videos</span>
+                    <span>News</span>
+                    <span>Forums</span>
+                    <span>More ▾</span>
+                    <span>Tools ▾</span>
+                </div>
+            </div>
+            <div class="error-google-body" id="google-body">
+                <p>Your search - <span id="google-query-display" class="error-google-query"></span> - did not match any documents.</p>
+                <p>Suggestions:</p>
+                <ul id="google-suggestions" class="error-google-suggestions">
+                    <li>Make sure all words are spelled correctly.</li>
+                    <li>Try different keywords.</li>
+                    <li>Try more general keywords.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 5. Scratch Error Template -->
+        <div id="tpl-scratch" class="error-template error-scratch hidden">
+            <svg class="error-scratch-icon" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+            </svg>
+            <div id="scratch-title" class="error-scratch-title">Oops! Something went wrong.</div>
+            <div id="scratch-text" class="error-scratch-text">We are so sorry, but it looks like Scratch has crashed.<br>This bug has been automatically reported to the Scratch<br>Team. Please refresh your page to try again.</div>
+            <div id="scratch-btn" class="error-scratch-btn">Reload</div>
+        </div>
+
+        <!-- 6. Scratch Sprite Template -->
+        <div id="tpl-sprite" class="error-template error-sprite hidden">
+            <div class="error-sprite-inner">
+                <div id="sprite-mark" class="error-sprite-mark">?</div>
+            </div>
+        </div>
+
+        <!-- 7. BSOD Modern Template -->
+        <div id="tpl-bsod" class="error-template error-bsod hidden">
+            <div id="bsod-face" class="error-bsod-face">:(</div>
+            <div id="bsod-main" class="error-bsod-main">Your PC ran into a problem and needs to restart. We're just collecting some error info, and then we'll restart for you.</div>
+            <div id="bsod-progress" class="error-bsod-progress">20% complete</div>
+            <div class="error-bsod-bottom">
+                <div class="error-bsod-qr">
+                    <svg viewBox="0 0 100 100" fill="black" width="80" height="80"><path d="M10,10 h30 v30 h-30 z M15,15 v20 h20 v-20 z M60,10 h30 v30 h-30 z M65,15 v20 h20 v-20 z M10,60 h30 v30 h-30 z M15,65 v20 h20 v-20 z M45,45 h10 v10 h-10 z M55,55 h10 v10 h-10 z M65,45 h25 v10 h-25 z M45,65 h15 v25 h-15 z M75,65 h15 v15 h-15 z"/></svg>
+                </div>
+                <div class="error-bsod-details">
+                    <div style="margin-bottom: 5px;">For more information about this issue and possible fixes, visit https://www.windows.com/stopcode</div>
+                    <div>If you call a support person, give them this info:</div>
+                    <div id="bsod-stopcode" style="margin-top: 5px;">Stop code: CRITICAL_PROCESS_DIED</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. Android Corrupted Template -->
+        <div id="tpl-android" class="error-template error-android hidden">
+            <div id="and-top" class="error-android-top">ODIN MODE</div>
+            <div class="error-android-icon">
+                <svg id="and-icon-svg" viewBox="0 0 24 24" fill="#f8bbd0">
+                    <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+                </svg>
+            </div>
+            <div id="and-msg" class="error-android-msg">An error has occurred while updating the device software.<br>Use the Emergency recovery function in the Smart Switch PC software.</div>
+        </div>
+
+        <!-- 9. Retro BSOD Template -->
+        <div id="tpl-retro" class="error-template error-retro hidden">
+            <div id="ret-title" class="error-retro-title">Windows</div>
+            <div class="error-retro-text">
+                <span id="ret-msg1">An error has occurred. To continue:</span><br><br>
+                <span id="ret-msg2">Press Enter to return to Windows, or</span><br><br>
+                <span id="ret-msg3">Press CTRL+ALT+DEL to restart your computer. If you do this,
+you will lose any unsaved information in all open applications.</span><br><br>
+                <span id="ret-err">Error: 0E : 016F : BFF9B3D4</span><br><br><br>
+                <div style="text-align: center;" id="ret-msg4">Press any key to continue _</div>
+            </div>
+        </div>
+
+        <!-- 10. ChatGPT Error Template -->
+        <div id="tpl-chatgpt" class="error-template error-chatgpt hidden">
+            <div class="error-chatgpt-user">
+                <div id="gpt-user-icon" class="error-chatgpt-user-icon">DE</div>
+                <div id="gpt-user-msg" style="flex-grow: 1; margin-top: 4px;">what about having the title in a vertical orientation?</div>
+            </div>
+            <div class="error-chatgpt-bot">
+                <div class="error-chatgpt-bot-icon" id="gpt-bot-icon">
+                    <svg viewBox="0 0 41 41"><path d="M37.5 21a16.5 16.5 0 0 0-1.4-6.6c1.2-1.7 1.8-3.7 1.8-5.8 0-4.8-3.9-8.6-8.6-8.6-1.8 0-3.5.5-5 1.4A16.5 16.5 0 0 0 20.5 0a16.5 16.5 0 0 0-11 4.2c-1.3-.9-2.9-1.4-4.5-1.4-4.8 0-8.6 3.9-8.6 8.6 0 2.2.6 4.3 1.9 6A16.5 16.5 0 0 0 0 21c0 2.6.6 5.1 1.7 7.3-1.1 1.7-1.7 3.7-1.7 5.7 0 4.8 3.9 8.6 8.6 8.6 1.7 0 3.4-.5 4.8-1.4a16.5 16.5 0 0 0 24.3-11.4c1.1-1.7 1.7-3.7 1.7-5.8z" fill="#10a37f"/></svg>
+                </div>
+                <div style="margin-top: 4px;">
+                    <div class="error-chatgpt-bubble">
+                        <div class="error-chatgpt-bubble-icon">!</div>
+                        <span id="gpt-err-msg">Hmm...something seems to have gone wrong.</span>
+                    </div>
+                </div>
+            </div>
+            <div class="error-chatgpt-footer">
+                <div id="gpt-bot-err" class="error-chatgpt-bot-err">There was an error generating a response</div>
+                <div id="gpt-btn" class="error-chatgpt-btn">
+                    <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.95 7.95 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                    Regenerate
+                </div>
+            </div>
+        </div>
+
+        <!-- 11. No WiFi Dino Template -->
+        <div id="tpl-dino" class="error-template error-dino hidden">
+            <div class="error-dino-icon">
+                <svg id="dino-icon-svg" viewBox="0 0 24 24" shape-rendering="crispEdges">
+                    <path d="M12 2h8v2h-2v2h2v2h-2v4h-2v2h-2v-2H8v2H6v2H4v2H2v-6h2v-2h2v-2h2v-2h2V8h2V2zm4 4h-2v2h2V6z"/>
+                </svg>
+            </div>
+            <div id="dino-title" class="error-dino-title">No internet</div>
+            <div id="dino-sugg-title" class="error-dino-sugg-title">Try:</div>
+            <ul id="dino-sugg" class="error-dino-sugg">
+                <li>Checking the network cables, modem, and router</li>
+                <li>Reconnecting to Wi-Fi</li>
+            </ul>
+            <div id="dino-err" class="error-dino-err">ERR_INTERNET_DISCONNECTED</div>
+        </div>
+    </div>
+
+    <script>
+        const templates = {
+            websim: {
+                id: 'tpl-websim',
+                fields: [
+                    { id: 'websim-text-input', label: 'Message', target: 'websim-text', default: 'Content Flagged' },
+                    { id: 'websim-fontsize', label: 'Font Size (rem)', target: 'websim-text', type: 'number', default: '4', applyAs: 'fontSize', suffix: 'rem', step: '0.5' },
+                    { id: 'websim-color', label: 'Text Color', target: 'websim-text', type: 'color', default: '#000000', applyAs: 'color' },
+                    { id: 'websim-bg', label: 'Background', target: 'tpl-websim', type: 'color', default: '#ffffff', applyAs: 'backgroundColor' },
+                    { id: 'websim-rotation', label: 'Rotation (deg)', target: 'websim-text', type: 'number', default: '-1', applyAs: 'transform', prefix: 'rotate(', suffix: 'deg)' },
+                    { id: 'websim-width', label: 'Box Width (px)', target: 'tpl-websim', type: 'number', default: '600', applyAs: 'width', suffix: 'px', step: '10' },
+                    { id: 'websim-height', label: 'Box Height (px)', target: 'tpl-websim', type: 'number', default: '600', applyAs: 'height', suffix: 'px', step: '10' }
+                ]
+            },
+            windows: {
+                id: 'tpl-windows',
+                fields: [
+                    { id: 'win-title-input', label: 'Window Title', target: 'win-title', default: 'Error' },
+                    { id: 'win-icon-char', label: 'Icon Character', target: 'win-icon', default: 'X' },
+                    { id: 'win-icon-bg', label: 'Icon Background', target: 'win-icon', type: 'color', default: '#e81123', applyAs: 'backgroundColor' },
+                    { id: 'win-text-input', label: 'Error Message', target: 'win-text', default: 'An unknown error has occurred.', type: 'textarea' },
+                    { id: 'win-text-size', label: 'Text Size (px)', target: 'win-text', type: 'number', default: '14', applyAs: 'fontSize', suffix: 'px' },
+                    { id: 'win-text-color', label: 'Message Text Color', target: 'win-text', type: 'color', default: '#333333', applyAs: 'color' },
+                    { id: 'win-btn-input', label: 'Button Text', target: 'win-btn-text', default: 'OK' },
+                    { id: 'win-btn-bg', label: 'Button Color', target: 'win-btn-text', type: 'color', default: '#e1e1e1', applyAs: 'backgroundColor' },
+                    { id: 'win-width', label: 'Window Width (px)', target: 'tpl-windows', type: 'number', default: '450', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            },
+            linux: {
+                id: 'tpl-linux',
+                fields: [
+                    { id: 'lin-header-input', label: 'Header Text', target: 'lin-header', default: 'Application Error' },
+                    { id: 'lin-header-bg', label: 'Header Background', target: 'lin-header', type: 'color', default: '#e0e0e0', applyAs: 'backgroundColor' },
+                    { id: 'lin-icon-char', label: 'Icon (Emoji/Char)', target: 'lin-icon', default: '⚠' },
+                    { id: 'lin-icon-color', label: 'Icon Color', target: 'lin-icon', type: 'color', default: '#e01b24', applyAs: 'color' },
+                    { id: 'lin-title-input', label: 'Error Title', target: 'lin-title', default: 'Something went wrong' },
+                    { id: 'lin-title-color', label: 'Title Color', target: 'lin-title', type: 'color', default: '#242424', applyAs: 'color' },
+                    { id: 'lin-text-input', label: 'Details', target: 'lin-text', default: 'The application encountered an unrecoverable error and needs to close.', type: 'textarea' },
+                    { id: 'lin-text-color', label: 'Details Text Color', target: 'lin-text', type: 'color', default: '#5e5c64', applyAs: 'color' },
+                    { id: 'lin-btn1-input', label: 'Secondary Button', target: 'lin-btn-1', default: 'Cancel' },
+                    { id: 'lin-btn2-input', label: 'Primary Button', target: 'lin-btn-2', default: 'Force Quit' },
+                    { id: 'lin-btn2-bg', label: 'Primary Button Color', target: 'lin-btn-2', type: 'color', default: '#3584e4', applyAs: 'backgroundColor' },
+                    { id: 'lin-width', label: 'Window Width (px)', target: 'tpl-linux', type: 'number', default: '400', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            },
+            google: {
+                id: 'tpl-google',
+                fields: [
+                    { id: 'goog-query', label: 'Search Query', target: 'google-query-display', default: 'rgijggjrejergojiegojigerojige' },
+                    { id: 'goog-query-color', label: 'Query Highlight Color', target: 'google-query-display', type: 'color', default: '#e8eaed', applyAs: 'color' },
+                    { id: 'goog-bg', label: 'Background Color', target: 'tpl-google', type: 'color', default: '#202124', applyAs: 'backgroundColor' },
+                    { id: 'goog-text-color', label: 'Text Color', target: 'google-body', type: 'color', default: '#bdc1c6', applyAs: 'color' },
+                    { id: 'goog-suggestions', label: 'Suggestions (HTML <li> supported)', target: 'google-suggestions', default: '<li>Make sure all words are spelled correctly.</li><li>Try different keywords.</li><li>Try more general keywords.</li>', type: 'textarea', isHtml: true },
+                    { id: 'goog-width', label: 'Box Width (px)', target: 'tpl-google', type: 'number', default: '800', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            },
+            scratch: {
+                id: 'tpl-scratch',
+                fields: [
+                    { id: 'scr-title', label: 'Title', target: 'scratch-title', default: 'Oops! Something went wrong.' },
+                    { id: 'scr-text', label: 'Error Message (HTML <br> supported)', target: 'scratch-text', default: 'We are so sorry, but it looks like Scratch has crashed.<br>This bug has been automatically reported to the Scratch<br>Team. Please refresh your page to try again.', type: 'textarea', isHtml: true },
+                    { id: 'scr-btn', label: 'Button Text', target: 'scratch-btn', default: 'Reload' },
+                    { id: 'scr-bg', label: 'Background Color', target: 'tpl-scratch', type: 'color', default: '#4c97ff', applyAs: 'backgroundColor' },
+                    { id: 'scr-textcolor', label: 'Text Color', target: 'tpl-scratch', type: 'color', default: '#ffffff', applyAs: 'color' },
+                    { id: 'scr-width', label: 'Box Width (px)', target: 'tpl-scratch', type: 'number', default: '700', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            },
+            sprite: {
+                id: 'tpl-sprite',
+                fields: [
+                    { id: 'spr-char', label: 'Character', target: 'sprite-mark', default: '?', maxLength: 2 },
+                    { id: 'spr-size', label: 'Font Size (px)', target: 'sprite-mark', type: 'number', default: '150', applyAs: 'fontSize', suffix: 'px', step: '5' },
+                    { id: 'spr-bg', label: 'Background Color', target: 'tpl-sprite', type: 'color', default: '#cccccc', applyAs: 'backgroundColor' },
+                    { id: 'spr-color', label: 'Text Color', target: 'sprite-mark', type: 'color', default: '#000000', applyAs: 'color' },
+                    { id: 'spr-width', label: 'Box Width (px)', target: 'tpl-sprite', type: 'number', default: '200', applyAs: 'width', suffix: 'px', step: '10' },
+                    { id: 'spr-height', label: 'Box Height (px)', target: 'tpl-sprite', type: 'number', default: '200', applyAs: 'height', suffix: 'px', step: '10' }
+                ]
+            },
+            bsod: {
+                id: 'tpl-bsod',
+                fields: [
+                    { id: 'bsod-bg', label: 'Background Color', target: 'tpl-bsod', type: 'color', default: '#0078d7', applyAs: 'backgroundColor' },
+                    { id: 'bsod-textcolor', label: 'Text Color', target: 'tpl-bsod', type: 'color', default: '#ffffff', applyAs: 'color' },
+                    { id: 'bsod-face-input', label: 'Emoticon', target: 'bsod-face', default: ':(' },
+                    { id: 'bsod-main-input', label: 'Main Text', target: 'bsod-main', default: 'Your PC ran into a problem and needs to restart. We\'re just collecting some error info, and then we\'ll restart for you.', type: 'textarea' },
+                    { id: 'bsod-progress-input', label: 'Progress Text', target: 'bsod-progress', default: '20% complete' },
+                    { id: 'bsod-stopcode-input', label: 'Stop Code', target: 'bsod-stopcode', default: 'Stop code: CRITICAL_PROCESS_DIED' },
+                    { id: 'bsod-width', label: 'Box Width (px)', target: 'tpl-bsod', type: 'number', default: '800', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            },
+            android: {
+                id: 'tpl-android',
+                fields: [
+                    { id: 'and-bg', label: 'Background Color', target: 'tpl-android', type: 'color', default: '#00c4b5', applyAs: 'backgroundColor' },
+                    { id: 'and-top-input', label: 'Top Small Text', target: 'and-top', default: 'ODIN MODE' },
+                    { id: 'and-top-color', label: 'Top Text Color', target: 'and-top', type: 'color', default: '#ff5252', applyAs: 'color' },
+                    { id: 'and-icon-color', label: 'Icon Color', target: 'and-icon-svg', type: 'color', default: '#f8bbd0', applyAs: 'fill' },
+                    { id: 'and-msg-input', label: 'Error Message (HTML <br> supported)', target: 'and-msg', default: 'An error has occurred while updating the device software.<br>Use the Emergency recovery function in the Smart Switch PC software.', type: 'textarea', isHtml: true },
+                    { id: 'and-msg-color', label: 'Message Text Color', target: 'and-msg', type: 'color', default: '#ffffff', applyAs: 'color' }
+                ]
+            },
+            retro: {
+                id: 'tpl-retro',
+                fields: [
+                    { id: 'ret-bg', label: 'Background Color', target: 'tpl-retro', type: 'color', default: '#0000a8', applyAs: 'backgroundColor' },
+                    { id: 'ret-textcolor', label: 'Message Text Color', target: 'tpl-retro', type: 'color', default: '#ffffff', applyAs: 'color' },
+                    { id: 'ret-width', label: 'Box Width (px)', target: 'tpl-retro', type: 'number', default: '720', applyAs: 'width', suffix: 'px', step: '10' },
+                    { id: 'ret-title-input', label: 'Title Box', target: 'ret-title', default: 'Windows' },
+                    { id: 'ret-title-bg', label: 'Title Box Background', target: 'ret-title', type: 'color', default: '#a8a8a8', applyAs: 'backgroundColor' },
+                    { id: 'ret-title-color', label: 'Title Box Text Color', target: 'ret-title', type: 'color', default: '#0000a8', applyAs: 'color' },
+                    { id: 'ret-msg1-input', label: 'Message Line 1', target: 'ret-msg1', default: 'An error has occurred. To continue:' },
+                    { id: 'ret-msg2-input', label: 'Message Line 2', target: 'ret-msg2', default: 'Press Enter to return to Windows, or' },
+                    { id: 'ret-msg3-input', label: 'Message Line 3', target: 'ret-msg3', default: 'Press CTRL+ALT+DEL to restart your computer. If you do this,\nyou will lose any unsaved information in all open applications.', type: 'textarea' },
+                    { id: 'ret-err-input', label: 'Error Code', target: 'ret-err', default: 'Error: 0E : 016F : BFF9B3D4' },
+                    { id: 'ret-msg4-input', label: 'Footer Line', target: 'ret-msg4', default: 'Press any key to continue _' }
+                ]
+            },
+            chatgpt: {
+                id: 'tpl-chatgpt',
+                fields: [
+                    { id: 'gpt-user-icon-input', label: 'User Initials', target: 'gpt-user-icon', default: 'DE', maxLength: 2 },
+                    { id: 'gpt-user-icon-bg', label: 'User Icon Color', target: 'gpt-user-icon', type: 'color', default: '#f59e0b', applyAs: 'backgroundColor' },
+                    { id: 'gpt-user-msg-input', label: 'User Message', target: 'gpt-user-msg', default: 'what about having the title in a vertical orientation?', type: 'textarea' },
+                    { id: 'gpt-bot-icon-bg', label: 'Bot Icon Color', target: 'gpt-bot-icon', type: 'color', default: '#10a37f', applyAs: 'backgroundColor' },
+                    { id: 'gpt-err-msg-input', label: 'Error Bubble', target: 'gpt-err-msg', default: 'Hmm...something seems to have gone wrong.' },
+                    { id: 'gpt-bot-err-input', label: 'Bottom Error Text', target: 'gpt-bot-err', default: 'There was an error generating a response' },
+                    { id: 'gpt-btn-input', label: 'Button Text', target: 'gpt-btn', default: 'Regenerate' },
+                    { id: 'gpt-btn-bg', label: 'Button Color', target: 'gpt-btn', type: 'color', default: '#10a37f', applyAs: 'backgroundColor' }
+                ]
+            },
+            dino: {
+                id: 'tpl-dino',
+                fields: [
+                    { id: 'dino-title-input', label: 'Title', target: 'dino-title', default: 'No internet' },
+                    { id: 'dino-title-color', label: 'Title Color', target: 'dino-title', type: 'color', default: '#202124', applyAs: 'color' },
+                    { id: 'dino-icon-color', label: 'Icon Color', target: 'dino-icon-svg', type: 'color', default: '#535353', applyAs: 'fill' },
+                    { id: 'dino-sugg-title-input', label: 'Suggestions Title', target: 'dino-sugg-title', default: 'Try:' },
+                    { id: 'dino-sugg-input', label: 'Suggestions (HTML <li> supported)', target: 'dino-sugg', default: '<li>Checking the network cables, modem, and router</li><li>Reconnecting to Wi-Fi</li>', type: 'textarea', isHtml: true },
+                    { id: 'dino-err-input', label: 'Error Code', target: 'dino-err', default: 'ERR_INTERNET_DISCONNECTED' },
+                    { id: 'dino-width', label: 'Box Width (px)', target: 'tpl-dino', type: 'number', default: '700', applyAs: 'width', suffix: 'px', step: '10' }
+                ]
+            }
+        };
+
+        const templateSelect = document.getElementById('templateSelect');
+        const dynamicInputs = document.getElementById('dynamicInputs');
+        const exportBtn = document.getElementById('exportBtn');
+
+        function updatePreview() {
+            const currentTemplate = templateSelect.value;
+            const config = templates[currentTemplate];
+
+            config.fields.forEach(field => {
+                const inputEl = document.getElementById(field.id);
+                const targetEl = document.getElementById(field.target);
+                
+                if (inputEl && targetEl) {
+                    let val = inputEl.value;
+                    
+                    if (field.applyAs) {
+                        if (field.applyAs === 'src' || field.applyAs === 'placeholder') {
+                            targetEl[field.applyAs] = val;
+                        } else {
+                            if(field.prefix) val = field.prefix + val;
+                            if(field.suffix) val = val + field.suffix;
+                            targetEl.style[field.applyAs] = val;
+                        }
+                    } else if (field.isHtml) {
+                        targetEl.innerHTML = val;
+                    } else {
+                        targetEl.textContent = val;
+                    }
+
+                    // Special case: Mirror google query to the custom search bar display
+                    if (field.id === 'goog-query') {
+                        const searchBarInput = document.getElementById('google-query-input-display');
+                        if (searchBarInput) searchBarInput.textContent = val;
+                    }
+                    
+                    // Special case: Match Scratch button text color to the background color
+                    if (currentTemplate === 'scratch' && field.id === 'scr-bg') {
+                        const scratchBtn = document.getElementById('scratch-btn');
+                        if (scratchBtn) scratchBtn.style.color = val;
+                    }
+                }
+            });
+        }
+
+        function buildInputs(templateKey) {
+            dynamicInputs.innerHTML = '';
+            const config = templates[templateKey];
+
+            config.fields.forEach(field => {
+                const wrapper = document.createElement('div');
+                const label = document.createElement('label');
+                label.className = 'block text-sm font-medium text-gray-700 mb-1';
+                label.textContent = field.label;
+                label.htmlFor = field.id;
+                wrapper.appendChild(label);
+
+                let input;
+                if (field.type === 'textarea') {
+                    input = document.createElement('textarea');
+                    input.className = 'w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 h-24';
+                } else if (field.type === 'color') {
+                    input = document.createElement('input');
+                    input.type = 'color';
+                    input.className = 'h-10 w-full border border-gray-300 rounded-md p-1 cursor-pointer';
+                } else if (field.type === 'number') {
+                    input = document.createElement('input');
+                    input.type = 'number';
+                    if(field.step) input.step = field.step;
+                    input.className = 'w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500';
+                } else {
+                    input = document.createElement('input');
+                    input.type = 'text';
+                    if (field.maxLength) {
+                        input.maxLength = field.maxLength;
+                    }
+                    input.className = 'w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500';
+                }
+
+                input.id = field.id;
+                input.value = field.default;
+                
+                input.addEventListener('input', updatePreview);
+
+                wrapper.appendChild(input);
+                dynamicInputs.appendChild(wrapper);
+            });
+
+            updatePreview();
+        }
+
+        function switchTemplate() {
+            const selected = templateSelect.value;
+            
+            document.querySelectorAll('.error-template').forEach(el => {
+                el.classList.add('hidden');
+            });
+
+            document.getElementById(templates[selected].id).classList.remove('hidden');
+            buildInputs(selected);
+        }
+
+        const exportStatus = document.getElementById('exportStatus');
+        const exportBtnLabel = document.getElementById('exportBtnLabel');
+        const defaultExportStatus = exportStatus.textContent;
+
+        async function exportAsImage() {
+            const currentTemplateId = templates[templateSelect.value].id;
+            const activeTemplate = document.getElementById(currentTemplateId);
+            if (!activeTemplate) return;
+
+            if (typeof html2canvas === 'undefined') {
+                exportStatus.textContent = 'Export library failed to load — check your connection and try again.';
+                return;
+            }
+
+            exportBtn.disabled = true;
+            exportBtnLabel.textContent = 'Exporting…';
+
+            try {
+                // Wait for web fonts to finish loading so the capture matches what's on screen
+                if (document.fonts && document.fonts.ready) {
+                    await document.fonts.ready;
+                }
+
+                const canvas = await html2canvas(activeTemplate, {
+                    backgroundColor: null,
+                    scale: 2,
+                    useCORS: true,
+                    logging: false
+                });
+
+                const link = document.createElement('a');
+                link.download = `${templateSelect.value}-error.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+
+                exportStatus.textContent = 'Downloaded!';
+            } catch (err) {
+                console.error('Export failed:', err);
+                exportStatus.textContent = 'Export failed — please try again.';
+            } finally {
+                exportBtn.disabled = false;
+                exportBtnLabel.textContent = 'Download PNG';
+                setTimeout(() => { exportStatus.textContent = defaultExportStatus; }, 2500);
+            }
+        }
+
+        exportBtn.addEventListener('click', exportAsImage);
+
+        // Initialize
+        templateSelect.addEventListener('change', switchTemplate);
+        switchTemplate();
+    </script>
+</body>
+</html>

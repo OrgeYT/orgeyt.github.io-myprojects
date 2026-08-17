@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Get Me An Image Of...</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .glow-effect {
+            box-shadow: 0 0 50px -10px rgba(79, 70, 229, 0.3);
+        }
+        .mode-transition {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-900 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white flex flex-col justify-between relative overflow-x-hidden min-h-screen">
+
+    <!-- Background Animated Blobs -->
+    <div class="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div class="absolute -top-40 -left-40 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl animate-pulse-slow"></div>
+        <div class="absolute top-1/2 -right-40 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse-slow" style="animation-delay: 1.5s;"></div>
+        <div class="absolute -bottom-40 left-1/3 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl animate-pulse-slow" style="animation-delay: 3s;"></div>
+    </div>
+
+    <!-- Navigation / Header -->
+    <header class="relative z-10 w-full max-w-5xl mx-auto px-4 py-6 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid font-bold fa-layer-group text-lg"></i>
+            </div>
+            <span class="font-bold text-xl tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">MultiSearcher</span>
+        </div>
+        
+        <div class="flex items-center gap-2 text-xs font-medium text-slate-400 bg-slate-800/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-slate-700/50">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Smart Live Search
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-5xl mx-auto w-full">
+        
+        <!-- Hero Text & Input Form Box -->
+        <div class="w-full text-center space-y-6 mb-8">
+            <h1 class="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
+                Instant Multi-Search
+            </h1>
+            <p class="text-slate-400 text-base sm:text-lg max-w-xl mx-auto">
+                Find single images, bulk image galleries, or discover related websites instantly.
+            </p>
+
+            <!-- Search Form Card -->
+            <div class="glass-panel p-4 rounded-3xl shadow-2xl glow-effect max-w-3xl mx-auto transition-all duration-300">
+                
+                <!-- Mode Selector -->
+                <div class="flex flex-wrap justify-center mb-4 bg-slate-900/60 p-1.5 rounded-2xl w-fit mx-auto border border-slate-700/50">
+                    <label class="cursor-pointer relative px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                        <input type="radio" name="search-mode" value="single" class="peer sr-only" checked onchange="handleModeChange('single')">
+                        <span class="text-slate-400 peer-checked:text-white relative z-10 flex items-center gap-2"><i class="fa-regular fa-image"></i> Single</span>
+                        <div class="absolute inset-0 bg-indigo-500 rounded-xl opacity-0 peer-checked:opacity-100 transition-opacity z-0 shadow-lg shadow-indigo-500/30"></div>
+                    </label>
+                    <label class="cursor-pointer relative px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                        <input type="radio" name="search-mode" value="multi" class="peer sr-only" onchange="handleModeChange('multi')">
+                        <span class="text-slate-400 peer-checked:text-white relative z-10 flex items-center gap-2"><i class="fa-solid fa-images"></i> Multi Mode</span>
+                        <div class="absolute inset-0 bg-purple-500 rounded-xl opacity-0 peer-checked:opacity-100 transition-opacity z-0 shadow-lg shadow-purple-500/30"></div>
+                    </label>
+                    <label class="cursor-pointer relative px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                        <input type="radio" name="search-mode" value="website" class="peer sr-only" onchange="handleModeChange('website')">
+                        <span class="text-slate-400 peer-checked:text-white relative z-10 flex items-center gap-2"><i class="fa-solid fa-globe"></i> Website Mode</span>
+                        <div class="absolute inset-0 bg-emerald-500 rounded-xl opacity-0 peer-checked:opacity-100 transition-opacity z-0 shadow-lg shadow-emerald-500/30"></div>
+                    </label>
+                </div>
+
+                <form id="search-form" onsubmit="handleFormSubmit(event)" class="flex flex-col sm:flex-row items-stretch gap-3">
+                    
+                    <!-- Text Prefix + Input Box -->
+                    <div class="relative flex-1 flex items-center bg-slate-800/90 rounded-2xl border border-slate-700/60 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all duration-200 px-4 py-2 sm:py-3">
+                        <label id="input-prefix" for="search-input" class="text-slate-400 text-sm sm:text-base font-semibold mr-2 whitespace-nowrap select-none flex items-center gap-2">
+                            <i id="input-icon" class="fa-solid fa-magnifying-glass text-indigo-400 text-xs"></i>
+                            <span id="input-label-text">Get me an image of</span>
+                        </label>
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="a cute cat, Eiffel Tower..." 
+                            required
+                            autocomplete="off"
+                            class="w-full bg-transparent text-white placeholder-slate-500 text-sm sm:text-base focus:outline-none font-medium"
+                        />
+                        <button type="button" id="clear-btn" onclick="clearInput()" class="hidden text-slate-500 hover:text-slate-300 transition-colors p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <!-- Find Button -->
+                    <button 
+                        type="submit" 
+                        id="find-btn"
+                        class="px-7 py-3.5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 text-white font-bold rounded-2xl shadow-lg shadow-indigo-500/25 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2 text-base whitespace-nowrap group"
+                    >
+                        <span>Find</span>
+                        <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </form>
+
+                <!-- Quick Prompt Suggestions (Updated based on request) -->
+                <div class="flex flex-wrap items-center justify-center gap-2 mt-4 pt-3 border-t border-slate-700/40 text-xs text-slate-400">
+                    <span class="font-medium text-slate-500">Try searching:</span>
+                    <button onclick="setQuery('Golden Retriever puppy')" class="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 transition-colors">🐶 Golden Retriever</button>
+                    <button onclick="setQuery('Tropical sunset beach')" class="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 transition-colors">🏝️ Tropical Sunset</button>
+                    <button onclick="setQuery('Ferrari sports car')" class="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 transition-colors">🏎️ Sports Car</button>
+                    <button onclick="setQuery('Microsoft')" class="px-2.5 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-slate-300 transition-colors">🏢 Microsoft (Website)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Result Container -->
+        <div id="result-container" class="w-full max-w-4xl min-h-[300px] flex flex-col items-center justify-center transition-all duration-300">
+            
+            <!-- Default Placeholder State -->
+            <div id="empty-state" class="text-center p-8 rounded-3xl border border-dashed border-slate-700 bg-slate-900/50 w-full max-w-2xl mx-auto flex flex-col items-center justify-center">
+                <div class="w-16 h-16 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-600 mb-3">
+                    <i class="fa-solid fa-wand-magic-sparkles text-3xl"></i>
+                </div>
+                <h3 class="text-slate-300 font-semibold text-lg">Awaiting your query</h3>
+                <p class="text-slate-500 text-sm max-w-sm mt-1">Select a mode above, type something in the box, and click "Find" to get results instantly.</p>
+            </div>
+
+            <!-- Loading State -->
+            <div id="loading-state" class="hidden text-center p-12 rounded-3xl border border-slate-800 bg-slate-900/80 w-full max-w-2xl mx-auto flex flex-col items-center justify-center space-y-4">
+                <div class="relative w-16 h-16">
+                    <div class="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping"></div>
+                    <div class="w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin"></div>
+                </div>
+                <div>
+                    <h3 class="text-white font-semibold text-lg" id="loading-text">Searching the web...</h3>
+                    <p class="text-slate-400 text-sm mt-1">Fetching the best matches for you...</p>
+                </div>
+            </div>
+
+            <!-- SINGLE IMAGE VIEW -->
+            <div id="single-image-view" class="hidden w-full max-w-2xl mx-auto glass-panel rounded-3xl overflow-hidden shadow-2xl border border-slate-700/50 flex flex-col transition-all duration-300">
+                <div class="px-5 py-3.5 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center gap-2 text-slate-300 font-medium truncate">
+                        <i class="fa-solid fa-image text-indigo-400"></i>
+                        <span>Result for: <strong class="result-query-display text-white"></strong></span>
+                    </div>
+                </div>
+                <div class="relative bg-slate-950/80 group min-h-[250px] max-h-[500px] flex items-center justify-center overflow-hidden">
+                    <img id="single-result-image" src="" alt="Search Result" class="w-full h-auto max-h-[500px] object-contain transition-transform duration-300 group-hover:scale-[1.01]" />
+                </div>
+                <div class="p-4 sm:p-5 bg-slate-900/90 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs sm:text-sm">
+                    <div class="text-slate-400 text-center sm:text-left">
+                        <span id="single-image-source" class="block font-medium text-slate-300">Source: Web Image</span>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <a id="single-google-link" href="#" target="_blank" class="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 hover:text-white rounded-xl transition-all font-medium flex items-center gap-1.5"><i class="fa-brands fa-google"></i> Google</a>
+                        <a id="single-download-btn" href="#" target="_blank" download class="flex-1 sm:flex-initial px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl transition-colors font-medium flex items-center justify-center gap-2"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MULTI IMAGE VIEW -->
+            <div id="multi-image-view" class="hidden w-full transition-all duration-300">
+                <div class="flex items-center justify-between mb-4 px-2">
+                    <h3 class="text-white font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-images text-purple-400"></i> Top 5 Results for "<span class="result-query-display text-purple-300"></span>"
+                    </h3>
+                    <a id="multi-google-link" href="#" target="_blank" class="text-xs text-slate-400 hover:text-white bg-slate-800 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"><i class="fa-brands fa-google text-xs"></i> View all on Google</a>
+                </div>
+                <!-- Dynamic Grid Container -->
+                <div id="multi-grid-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <!-- Images will be injected here via JS -->
+                </div>
+            </div>
+
+            <!-- WEBSITE MODE VIEW -->
+            <div id="website-view" class="hidden w-full max-w-2xl mx-auto glass-panel rounded-3xl overflow-hidden shadow-2xl border border-emerald-500/30 flex flex-col transition-all duration-300">
+                <div class="px-5 py-3.5 bg-slate-800/80 border-b border-slate-700/50 flex items-center justify-between text-xs sm:text-sm">
+                    <div class="flex items-center gap-2 text-slate-300 font-medium truncate">
+                        <i class="fa-solid fa-globe text-emerald-400"></i>
+                        <span>Website Match for: <strong class="result-query-display text-white"></strong></span>
+                    </div>
+                </div>
+                
+                <div class="p-8 sm:p-12 bg-slate-900/60 flex flex-col items-center justify-center text-center space-y-6">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-emerald-500/20 blur-xl rounded-full"></div>
+                        <img id="website-favicon" src="" alt="Favicon" class="relative w-20 h-20 rounded-2xl bg-white p-2 shadow-lg object-contain border border-slate-700/50" onerror="this.src='https://via.placeholder.com/64/1e293b/ffffff?text=W'" />
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <h2 id="website-title" class="text-2xl font-bold text-white">Website Title</h2>
+                        <p id="website-url-text" class="text-emerald-400 font-medium text-sm sm:text-base break-all max-w-md mx-auto">https://example.com</p>
+                    </div>
+
+                    <div class="pt-4 w-full max-w-sm flex flex-col gap-3">
+                        <a id="website-visit-btn" href="#" target="_blank" rel="noopener noreferrer" class="w-full px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-lg shadow-emerald-600/25 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
+                            <span>Visit Website</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+                        </a>
+                        <button onclick="copyWebsiteUrl()" class="w-full px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium rounded-2xl transition-colors flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-copy"></i>
+                            <span id="copy-web-btn-text">Copy URL</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error State -->
+            <div id="error-state" class="hidden text-center p-8 rounded-3xl border border-red-900/50 bg-red-950/20 w-full max-w-2xl mx-auto flex flex-col items-center justify-center space-y-3">
+                <div class="w-12 h-12 rounded-full bg-red-900/30 text-red-400 flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <h3 class="text-white font-semibold text-base">Couldn't find what you're looking for</h3>
+                <p class="text-slate-400 text-sm max-w-md" id="error-message">We couldn't fetch results for this query. You can try viewing it on Google directly.</p>
+                <a id="error-google-btn" href="#" target="_blank" class="mt-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl transition-all shadow-lg flex items-center gap-2">
+                    <i class="fa-brands fa-google"></i>
+                    <span>Search on Google</span>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 w-full max-w-5xl mx-auto px-4 py-6 text-center text-slate-500 text-xs border-t border-slate-800/60 mt-auto">
+        <p>Utilizing public APIs to find the best images and official websites instantly.</p>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // DOM Elements
+        const searchInput = document.getElementById('search-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const inputLabelText = document.getElementById('input-label-text');
+        const inputIcon = document.getElementById('input-icon');
+        const queryDisplays = document.querySelectorAll('.result-query-display');
+        
+        // Containers
+        const emptyState = document.getElementById('empty-state');
+        const loadingState = document.getElementById('loading-state');
+        const errorState = document.getElementById('error-state');
+        const errorGoogleBtn = document.getElementById('error-google-btn');
+        
+        // Single View Elements
+        const singleView = document.getElementById('single-image-view');
+        const singleImg = document.getElementById('single-result-image');
+        const singleSource = document.getElementById('single-image-source');
+        const singleGoogleLink = document.getElementById('single-google-link');
+        const singleDownloadBtn = document.getElementById('single-download-btn');
+        
+        // Multi View Elements
+        const multiView = document.getElementById('multi-image-view');
+        const multiGridContainer = document.getElementById('multi-grid-container');
+        const multiGoogleLink = document.getElementById('multi-google-link');
+        
+        // Website View Elements
+        const websiteView = document.getElementById('website-view');
+        const websiteFavicon = document.getElementById('website-favicon');
+        const websiteTitle = document.getElementById('website-title');
+        const websiteUrlText = document.getElementById('website-url-text');
+        const websiteVisitBtn = document.getElementById('website-visit-btn');
+        const copyWebBtnText = document.getElementById('copy-web-btn-text');
+
+        // State Variables
+        let currentMode = 'single';
+        let currentWebsiteUrl = '';
+
+        // UI Listeners
+        searchInput.addEventListener('input', () => {
+            clearBtn.classList.toggle('hidden', searchInput.value.trim().length === 0);
+        });
+
+        function clearInput() {
+            searchInput.value = '';
+            clearBtn.classList.add('hidden');
+            searchInput.focus();
+        }
+
+        function setQuery(text) {
+            searchInput.value = text;
+            clearBtn.classList.remove('hidden');
+            handleSearch(text);
+        }
+
+        function handleModeChange(mode) {
+            currentMode = mode;
+            
+            // Update input label and placeholder based on mode
+            if (mode === 'single') {
+                inputLabelText.textContent = 'Get me an image of';
+                inputIcon.className = 'fa-solid fa-image text-indigo-400 text-xs';
+                searchInput.placeholder = 'a cute cat, Eiffel Tower...';
+            } else if (mode === 'multi') {
+                inputLabelText.textContent = 'Find 5 images of';
+                inputIcon.className = 'fa-solid fa-images text-purple-400 text-xs';
+                searchInput.placeholder = 'cats, fast cars, New York City...';
+            } else if (mode === 'website') {
+                inputLabelText.textContent = 'Find a website for';
+                inputIcon.className = 'fa-solid fa-globe text-emerald-400 text-xs';
+                searchInput.placeholder = 'Apple, NASA, Wikipedia, Microsoft...';
+            }
+            
+            // If there's already a search query, run the search again in the new mode
+            if (searchInput.value.trim()) {
+                handleSearch(searchInput.value.trim());
+            } else {
+                showState('empty');
+            }
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const query = searchInput.value.trim();
+            if (query) {
+                handleSearch(query);
+            }
+        }
+
+        function handleSearch(query) {
+            // Update all displays showing the search term
+            queryDisplays.forEach(el => el.textContent = query);
+            
+            // Generate Google fallback link
+            const googleSearchUrl = currentMode === 'website' 
+                ? `https://www.google.com/search?q=${encodeURIComponent(query)}`
+                : `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(query)}`;
+                
+            errorGoogleBtn.href = googleSearchUrl;
+            
+            if (currentMode === 'single') singleGoogleLink.href = googleSearchUrl;
+            if (currentMode === 'multi') multiGoogleLink.href = googleSearchUrl;
+
+            // Route to appropriate fetcher
+            if (currentMode === 'single') {
+                fetchSingleImage(query);
+            } else if (currentMode === 'multi') {
+                fetchMultiImages(query);
+            } else if (currentMode === 'website') {
+                fetchWebsite(query);
+            }
+        }
+
+        async function fetchSingleImage(query) {
+            showState('loading');
+            try {
+                // Using Wikipedia search API to find reliable images based on term
+                const wikiApiUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=5&prop=pageimages|info&piprop=original|thumbnail&pithumbsize=1000&format=json&origin=*`;
+                
+                const response = await fetch(wikiApiUrl);
+                const data = await response.json();
+
+                let foundImageUrl = null;
+                let foundTitle = null;
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    for (const page of pages) {
+                        if (page.original && page.original.source) {
+                            foundImageUrl = page.original.source;
+                            foundTitle = page.title;
+                            break;
+                        } else if (page.thumbnail && page.thumbnail.source) {
+                            foundImageUrl = page.thumbnail.source;
+                            foundTitle = page.title;
+                            break;
+                        }
+                    }
+                }
+
+                if (!foundImageUrl) {
+                    // Fallback generating generic Unsplash placeholder using their dynamic parameter
+                    foundImageUrl = `https://source.unsplash.com/1000x800/?${encodeURIComponent(query)}`;
+                    foundTitle = `Web Result for "${query}"`;
+                }
+
+                singleImg.src = foundImageUrl;
+                singleDownloadBtn.href = foundImageUrl;
+                singleSource.textContent = foundTitle ? `Source: ${foundTitle}` : `Search Result for "${query}"`;
+
+                singleImg.onload = () => showState('single');
+                singleImg.onerror = () => showState('error');
+
+            } catch (err) {
+                console.error("Single search error:", err);
+                showState('error');
+            }
+        }
+
+        async function fetchMultiImages(query) {
+            showState('loading');
+            try {
+                // Fetch more pages (gsrlimit 20) to filter down to 5 images
+                const wikiApiUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=20&prop=pageimages&piprop=original|thumbnail&pithumbsize=600&format=json&origin=*`;
+                
+                const response = await fetch(wikiApiUrl);
+                const data = await response.json();
+                
+                let imageResults = [];
+
+                if (data.query && data.query.pages) {
+                    const pages = Object.values(data.query.pages);
+                    for (const page of pages) {
+                        if (page.thumbnail && page.thumbnail.source) {
+                            imageResults.push({
+                                url: page.thumbnail.source,
+                                originalUrl: page.original ? page.original.source : page.thumbnail.source,
+                                title: page.title
+                            });
+                        }
+                        if (imageResults.length >= 5) break; // Limit to 5
+                    }
+                }
+
+                if (imageResults.length === 0) {
+                    throw new Error("No images found");
+                }
+
+                // Render grid
+                multiGridContainer.innerHTML = ''; // Clear old
+                
+                imageResults.forEach((img, index) => {
+                    // Make the first image span 2 columns on tablet or be a bit larger if needed
+                    const cardClass = (index === 0) ? "sm:col-span-2 md:col-span-2 row-span-2" : "";
+                    
+                    const cardHTML = `
+                        <div class="glass-panel border border-slate-700/50 rounded-2xl overflow-hidden group relative bg-slate-900 ${cardClass}">
+                            <a href="${img.originalUrl}" target="_blank" class="block w-full h-full min-h-[150px] relative">
+                                <img src="${img.url}" alt="${img.title}" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
+                                    <span class="text-white text-xs font-medium truncate w-full">${img.title}</span>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                    multiGridContainer.insertAdjacentHTML('beforeend', cardHTML);
+                });
+
+                showState('multi');
+
+            } catch (err) {
+                console.error("Multi search error:", err);
+                showState('error');
+            }
+        }
+
+        async function fetchWebsite(query) {
+            showState('loading');
+            try {
+                // Step 1: Query Wikipedia to get the wikibase item ID and full URL
+                const wikiApiUrl = `https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrlimit=1&prop=info|pageprops&inprop=url&ppprop=wikibase_item&format=json&origin=*`;
+                
+                const wikiRes = await fetch(wikiApiUrl);
+                const wikiData = await wikiRes.json();
+
+                let targetUrl = '';
+                let targetTitle = '';
+                let isOfficial = false;
+
+                if (wikiData.query && wikiData.query.pages) {
+                    const pages = Object.values(wikiData.query.pages);
+                    if (pages.length > 0) {
+                        const page = pages[0];
+                        targetUrl = page.fullurl;
+                        targetTitle = page.title;
+
+                        // Step 2: Try to get the official website from Wikidata if available
+                        if (page.pageprops && page.pageprops.wikibase_item) {
+                            const itemId = page.pageprops.wikibase_item;
+                            try {
+                                const wikidataUrl = `https://www.wikidata.org/w/api.php?action=wbgetclaims&entity=${itemId}&property=P856&format=json&origin=*`;
+                                const wdRes = await fetch(wikidataUrl);
+                                const wdData = await wdRes.json();
+                                
+                                // P856 is the property for "official website"
+                                if (wdData.claims && wdData.claims.P856 && wdData.claims.P856.length > 0) {
+                                    targetUrl = wdData.claims.P856[0].mainsnak.datavalue.value;
+                                    isOfficial = true;
+                                }
+                            } catch (wdError) {
+                                console.warn("Wikidata property fetch skipped or failed.");
+                            }
+                        }
+                    }
+                }
+
+                if (!targetUrl) {
+                    // Fallback to Google Search if neither Wikipedia nor Wikidata worked
+                    targetUrl = `https://www.google.com/search?q=${encodeURIComponent(query)}`;
+                    targetTitle = `${query} on Google`;
+                }
+
+                // Render the website details
+                currentWebsiteUrl = targetUrl;
+                
+                try {
+                    const urlObj = new URL(targetUrl);
+                    // Use Google's S2 Favicon service for high res favicons
+                    websiteFavicon.src = `https://www.google.com/s2/favicons?domain=${urlObj.hostname}&sz=128`;
+                } catch(e) {
+                    websiteFavicon.src = "https://via.placeholder.com/128/1e293b/ffffff?text=W";
+                }
+
+                websiteTitle.textContent = targetTitle + (isOfficial ? " (Official Website)" : "");
+                websiteUrlText.textContent = targetUrl;
+                websiteVisitBtn.href = targetUrl;
+
+                showState('website');
+
+            } catch (err) {
+                console.error("Website search error:", err);
+                showState('error');
+            }
+        }
+
+        function showState(stateName) {
+            // Hide all states
+            emptyState.classList.add('hidden');
+            loadingState.classList.add('hidden');
+            singleView.classList.add('hidden');
+            multiView.classList.add('hidden');
+            websiteView.classList.add('hidden');
+            errorState.classList.add('hidden');
+
+            // Show requested state
+            if (stateName === 'loading') {
+                loadingState.classList.remove('hidden');
+            } else if (stateName === 'single') {
+                singleView.classList.remove('hidden');
+                singleView.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (stateName === 'multi') {
+                multiView.classList.remove('hidden');
+                multiView.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (stateName === 'website') {
+                websiteView.classList.remove('hidden');
+                websiteView.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else if (stateName === 'error') {
+                errorState.classList.remove('hidden');
+            } else {
+                emptyState.classList.remove('hidden');
+            }
+        }
+
+        function copyWebsiteUrl() {
+            if (!currentWebsiteUrl) return;
+            
+            const tempInput = document.createElement('input');
+            tempInput.value = currentWebsiteUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            copyWebBtnText.textContent = 'Copied!';
+            setTimeout(() => {
+                copyWebBtnText.textContent = 'Copy URL';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
