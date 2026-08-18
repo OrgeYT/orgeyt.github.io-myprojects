@@ -240,7 +240,8 @@ const projects = [
     "imagefinder",
     "memorydrawing",
     "errormaker", // three new projects in a row! holy s\it bro!!
-    "translate scratch projects"
+    "translate scratch projects",
+    "oiiatranslator"
 ];
 
 const fileList = document.getElementById('file-list');
