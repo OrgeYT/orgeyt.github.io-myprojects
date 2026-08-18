@@ -1,0 +1,1345 @@
+  <!-- 👍 LIKE AND FAVORITE FOR MORE OBBY -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Roblox Obby - Infinite Fun</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #000010; font-family: 'Segoe UI', system-ui, sans-serif; }
+    #blocker {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.75);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: white; z-index: 100; cursor: pointer; text-align: center;
+    }
+    #blocker h1 { font-size: 3rem; margin-bottom: 0.5rem; text-shadow: 0 0 20px #00ff88; }
+    #blocker p { font-size: 1.1rem; opacity: 0.9; margin: 0.3rem 0; }
+    #blocker .start { margin-top: 1.5rem; padding: 12px 32px; background: #00c853; border: none; border-radius: 8px; color: white; font-size: 1.3rem; font-weight: bold; cursor: pointer; }
+    #blocker .start:hover { background: #00e676; }
+    #hud {
+      position: absolute; top: 12px; left: 12px; color: white; z-index: 10;
+      text-shadow: 1px 1px 3px black; font-size: 1.1rem; pointer-events: none;
+    }
+    #hud div { margin-bottom: 4px; }
+    #death {
+      position: absolute; inset: 0; background: rgba(180,0,0,0.6);
+      display: none; align-items: center; justify-content: center;
+      color: white; font-size: 2.5rem; font-weight: bold; z-index: 50; pointer-events: none;
+    }
+    canvas { display: block; }
+
+    /* Avatar Editor */
+    #avatarBtn {
+      margin-top: 1rem; padding: 10px 24px; background: #7c4dff; border: none;
+      border-radius: 8px; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+    }
+    #avatarBtn:hover { background: #9a6fff; }
+    #avatarEditor {
+      display: none; position: absolute; inset: 0; z-index: 200;
+      background: rgba(10,10,20,0.95); color: white;
+      flex-direction: column; align-items: center; justify-content: flex-start;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 24px 12px 40px;
+      box-sizing: border-box;
+    }
+    #avatarEditor.open { display: flex; }
+    #avatarEditor h2 { margin-bottom: 8px; flex-shrink: 0; }
+    #ae-toolbar {
+      display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; justify-content: center;
+    }
+    #ae-toolbar button, #ae-toolbar label {
+      padding: 8px 14px; border: none; border-radius: 6px; background: #333; color: white;
+      cursor: pointer; font-size: 0.95rem;
+    }
+    #ae-toolbar button:hover, #ae-toolbar label:hover { background: #555; }
+    #ae-toolbar button.active { background: #00c853; }
+    #ae-toolbar input[type="color"] { width: 40px; height: 36px; border: none; cursor: pointer; background: none; }
+    #ae-canvas-wrap {
+      position: relative; border: 3px solid #444; border-radius: 4px; background: #222;
+      box-shadow: 0 0 30px rgba(0,0,0,0.5);
+      max-width: min(512px, 92vw);
+      flex-shrink: 0;
+    }
+    #ae-canvas {
+      cursor: crosshair; image-rendering: pixelated;
+      width: 100%; height: auto; max-width: 512px; display: block;
+    }
+    #ae-overlay-img {
+      position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0.85;
+      border: 2px dashed #0f0; display: none;
+    }
+    #ae-actions { margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    #ae-actions button {
+      padding: 10px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;
+    }
+    #ae-apply { background: #00c853; color: white; }
+    #ae-apply:hover { background: #00e676; }
+    #ae-close { background: #666; color: white; }
+    #ae-close:hover { background: #888; }
+    #ae-hint { margin-top: 8px; opacity: 0.7; font-size: 0.9rem; text-align: center; max-width: 520px; }
+  </style>
+</head>
+<body>
+  <div id="blocker">
+    <h1>🌈 Infinite Roblox Obby</h1>
+    <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Space — Jump (double jump!) &nbsp;|&nbsp; Scroll — Zoom</p>
+    <p>Avoid lava • Climb ladders • Touch green spikes to checkpoint</p>
+    <p style="opacity:0.7;margin-top:1rem">Click to start / lock cursor &nbsp;|&nbsp; ESC then Avatar Editor to customize</p>
+    <p style="margin-top:0.6rem;font-size:1.15rem;font-weight:bold;color:#ffdd55;text-shadow:0 0 10px #ffaa00;">👍 LIKE AND FAVORITE FOR MORE OBBY!</p>
+    <button class="start" id="startBtn">PLAY</button>
+    <button id="avatarBtn">🎨 Avatar Editor</button>
+  </div>
+  <div id="hud">
+    <div>Level: <span id="levelNum">1</span></div>
+    <div>Distance: <span id="dist">0</span>m</div>
+    <div id="tip">Double jump • Scroll to zoom • Touch green spike = checkpoint</div>
+  </div>
+  <div id="death">OOF! Respawn...</div>
+
+  <!-- Avatar Editor Modal -->
+  <div id="avatarEditor">
+    <h2>🎨 Avatar Texture Editor</h2>
+    <div id="ae-toolbar">
+      <button data-tool="pen" class="active">✏️ Pen</button>
+      <button data-tool="fill">🪣 Fill</button>
+      <button data-tool="picker">🎨 Picker</button>
+      <button data-tool="square">⬜ Square</button>
+      <input type="color" id="ae-color" value="#ffcc00" title="Color" />
+      <label style="background:#444;">📁 Upload<input type="file" id="ae-upload" accept="image/*" hidden /></label>
+      <button id="ae-replace">🔄 Replace Texture</button>
+      <button id="ae-reset">♻️ Reset Default</button>
+      <button id="ae-download">⬇️ Download</button>
+    </div>
+    <div id="ae-canvas-wrap">
+      <canvas id="ae-canvas" width="512" height="512"></canvas>
+      <img id="ae-overlay-img" alt="" />
+    </div>
+    <div id="ae-actions">
+      <button id="ae-stamp" style="display:none;background:#2196f3;color:white;">✅ Accept Image Stamp</button>
+      <button id="ae-apply">APPLY & SAVE</button>
+      <button id="ae-close">Close</button>
+    </div>
+    <p id="ae-hint">Pen / filled Square • Fill bucket • Picker • Upload then drag &amp; scroll-wheel to scale, then Accept • Replace whole texture • Reset Default • APPLY saves &amp; updates avatar</p>
+  </div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+    // ========== CONFIG ==========
+    const PLAYER_SPEED = 8;
+    const JUMP_FORCE = 12;
+    const GRAVITY = 28;
+    const PLAYER_HEIGHT = 2.0;
+    const PLAYER_RADIUS = 0.4;
+    let cameraDist = 6;          // zoomable (mouse wheel)
+    const CAMERA_HEIGHT = 2.5;
+    const PLATFORM_SIZE = 4;
+    const LAVA_COLOR = 0xff2200;
+    const MIN_ZOOM = 0.15;       // first person
+    const MAX_ZOOM = 14;
+
+    // ========== SOUNDS ==========
+    const bgMusic = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/Top%2010%20NCS%20-%20Roblox%20OVERUSED%20Songs%20(NoCopyrightSongs).mp3');
+    bgMusic.loop = true;
+    bgMusic.volume = 0.5; // 50% quieter
+    bgMusic.preload = 'auto';
+
+    const sfxLand = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/orginal-roblox-land-sound.mp3');
+    const sfxDeath = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox-death-sound_ytkBL7X.mp3');
+    const sfxJump = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/action_jump.mp3');
+    [sfxLand, sfxDeath, sfxJump].forEach(a => { a.volume = 0.7; a.preload = 'auto'; });
+
+    function playSfx(audio) {
+      try {
+        const a = audio.cloneNode();
+        a.volume = audio.volume;
+        a.play().catch(() => {});
+      } catch (e) {}
+    }
+
+    let musicStarted = false;
+    function startMusic() {
+      if (musicStarted) return;
+      musicStarted = true;
+      bgMusic.play().catch(() => {});
+    }
+
+    // ========== SCENE ==========
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x000010); // night sky
+    scene.fog = new THREE.Fog(0x000018, 60, 140);
+
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.body.appendChild(renderer.domElement);
+
+    // Night sky with stars (but keep scene brightly lit)
+    const starGeo = new THREE.BufferGeometry();
+    const starCount = 2500;
+    const starPos = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const r = 80 + Math.random() * 100;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos(2 * Math.random() - 1);
+      starPos[i*3]     = r * Math.sin(phi) * Math.cos(theta);
+      starPos[i*3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      starPos[i*3 + 2] = r * Math.cos(phi);
+    }
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+      color: 0xffffff, size: 0.35, sizeAttenuation: true, transparent: true, opacity: 0.95
+    }));
+    scene.add(stars);
+
+    // Lights (kept bright so platforms stay well-lit at night)
+    const hemi = new THREE.HemisphereLight(0xb0c4ff, 0x222244, 1.0);
+    scene.add(hemi);
+    const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+    sun.position.set(30, 50, 20);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.camera.near = 1;
+    sun.shadow.camera.far = 150;
+    sun.shadow.camera.left = -50;
+    sun.shadow.camera.right = 50;
+    sun.shadow.camera.top = 50;
+    sun.shadow.camera.bottom = -50;
+    scene.add(sun);
+    // extra fill light so nothing is too dark
+    const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
+    fill.position.set(-20, 30, -10);
+    scene.add(fill);
+
+    // ========== PLAYER ==========
+    let playerModel = null;
+    let mixer = null;
+    let actions = {};
+    let currentAction = null;
+    let idleTimer = 0;
+    let isBored = false;
+
+    const player = new THREE.Object3D();
+    player.position.set(0, 5, 0);
+    scene.add(player);
+
+    // Invisible collider for physics (simple box)
+    const playerBox = new THREE.Box3();
+
+    // Velocity & state
+    const velocity = new THREE.Vector3();
+    let canJump = false;
+    let jumpsLeft = 2;           // double jump
+    let onGround = false;
+    let isDead = false;
+    let keys = { w: false, a: false, s: false, d: false, space: false };
+    const checkpoints = [];      // green flag cones
+    const particles = [];        // double-jump particles
+
+    // Camera orbit
+    let yaw = 0;
+    let pitch = 0.3;
+    const mouseSensitivity = 0.002;
+
+    // ========== LEVEL ==========
+    const platforms = []; // { mesh, type, bbox, checkpoint }
+    const ladders = [];   // { mesh, bbox, topY, bottomY }
+    let nextZ = 0;
+    let levelCount = 1;
+    let maxReached = 0;
+    let lastCheckpoint = new THREE.Vector3(0, 5, 0);
+    let spawnPos = new THREE.Vector3(0, 5, 0);
+    let isClimbing = false;
+
+    function createPlatform(x, y, z, w = PLATFORM_SIZE, h = 0.6, d = PLATFORM_SIZE, type = 'normal') {
+      let geo, mat;
+      if (type === 'lava') {
+        // thin deadly strip – not a big platform you land on
+        geo = new THREE.BoxGeometry(w, 0.35, d);
+        mat = new THREE.MeshStandardMaterial({
+          color: LAVA_COLOR,
+          emissive: LAVA_COLOR,
+          emissiveIntensity: 0.9,
+          roughness: 0.35
+        });
+      } else if (type === 'rainbow') {
+        geo = new THREE.BoxGeometry(w, h, d);
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL(Math.random(), 0.9, 0.55),
+          roughness: 0.3,
+          metalness: 0.2
+        });
+      } else if (type === 'glass') {
+        geo = new THREE.BoxGeometry(w, h * 0.4, d);
+        mat = new THREE.MeshPhysicalMaterial({
+          color: 0xaaddff,
+          transparent: true,
+          opacity: 0.5,
+          roughness: 0.1,
+          metalness: 0.1,
+          transmission: 0.55
+        });
+      } else {
+        const hue = (Math.random() * 0.35 + 0.05) % 1;
+        geo = new THREE.BoxGeometry(w, h, d);
+        mat = new THREE.MeshStandardMaterial({
+          color: new THREE.Color().setHSL(hue, 0.7, 0.52),
+          roughness: 0.55
+        });
+      }
+
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mesh.userData.type = type;
+      scene.add(mesh);
+
+      const bbox = new THREE.Box3().setFromObject(mesh);
+      bbox.min.y -= 0.05;
+      bbox.max.y += 0.12;
+
+      const p = { mesh, type, bbox, w, h, d, x, y, z };
+      platforms.push(p);
+      return p;
+    }
+
+    function createLadder(x, y, z, height = 8) {
+      // vertical ladder (brown poles + rungs)
+      const group = new THREE.Group();
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.7 });
+      const rungMat = new THREE.MeshStandardMaterial({ color: 0xA0522D, roughness: 0.6 });
+
+      const left = new THREE.Mesh(new THREE.BoxGeometry(0.15, height, 0.15), poleMat);
+      left.position.set(-0.45, height / 2, 0);
+      group.add(left);
+      const right = new THREE.Mesh(new THREE.BoxGeometry(0.15, height, 0.15), poleMat);
+      right.position.set(0.45, height / 2, 0);
+      group.add(right);
+
+      const rungCount = Math.floor(height / 0.7);
+      for (let i = 0; i < rungCount; i++) {
+        const rung = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.1, 0.12), rungMat);
+        rung.position.set(0, 0.4 + i * 0.7, 0);
+        group.add(rung);
+      }
+
+      group.position.set(x, y, z);
+      scene.add(group);
+
+      const bbox = new THREE.Box3(
+        new THREE.Vector3(x - 0.7, y, z - 0.4),
+        new THREE.Vector3(x + 0.7, y + height, z + 0.4)
+      );
+      const lad = { mesh: group, bbox, topY: y + height, bottomY: y, x, z };
+      ladders.push(lad);
+      return lad;
+    }
+
+    function createSpiralStairs(startX, startY, startZ, turns = 1.2, stepsPerTurn = 10) {
+      const radius = 4.5;
+      const stepH = 0.5;
+      const stepW = 2.0;
+      const stepD = 1.3;
+      let y = startY;
+      for (let t = 0; t < turns; t++) {
+        for (let i = 0; i < stepsPerTurn; i++) {
+          const angle = (i / stepsPerTurn) * Math.PI * 2 + t * Math.PI * 2;
+          const x = startX + Math.cos(angle) * radius;
+          const z = startZ + Math.sin(angle) * radius;
+          createPlatform(x, y, z, stepW, 0.32, stepD, i % 3 === 0 ? 'rainbow' : 'normal');
+          y += stepH;
+        }
+      }
+      createPlatform(startX, y, startZ + radius + 1.5, 5, 0.55, 5, 'normal');
+      return y;
+    }
+
+    function generateSection(startZ) {
+      let z = startZ;
+      // easier, more fair layouts for classic easy-obby feel
+      const sectionTypes = [
+        'easy_path', 'small_gaps', 'spiral', 'lava_strip', 'rainbow_path',
+        'zigzag', 'ladder_climb', 'mixed'
+      ];
+      const layout = sectionTypes[Math.floor(Math.random() * sectionTypes.length)];
+
+      if (layout === 'spiral') {
+        const topY = createSpiralStairs(0, 1.5, z + 5, 1.1 + Math.random() * 0.4, 9);
+        z += 16;
+        createPlatform(0, topY, z, 6, 0.55, 6, 'normal');
+        z += 7;
+      } else if (layout === 'lava_strip') {
+        // safe platforms with thin lava between – easy jumps
+        for (let i = 0; i < 6; i++) {
+          createPlatform(0, 1.8, z, 4, 0.5, 3.5, 'normal');
+          z += 4.2;
+          // thin lava hazard (not landable)
+          createPlatform(0, 0.8, z, 5, 0.3, 1.8, 'lava');
+          z += 3.2;
+        }
+      } else if (layout === 'rainbow_path') {
+        for (let i = 0; i < 9; i++) {
+          const px = Math.sin(i * 0.55) * 4.5;
+          createPlatform(px, 1.8 + Math.sin(i * 0.4) * 0.6, z, 3.6, 0.45, 3.2, 'rainbow');
+          z += 3.6;
+        }
+      } else if (layout === 'small_gaps') {
+        for (let i = 0; i < 8; i++) {
+          const gap = 1.8 + Math.random() * 1.4; // jumpable
+          createPlatform((Math.random() - 0.5) * 2.5, 1.9, z, 3.4, 0.5, 3.2,
+            Math.random() > 0.75 ? 'glass' : 'normal');
+          z += 3.4 + gap;
+        }
+      } else if (layout === 'zigzag') {
+        for (let i = 0; i < 8; i++) {
+          const side = (i % 2 === 0) ? -4 : 4;
+          createPlatform(side, 1.7 + i * 0.12, z, 3.8, 0.45, 3, i % 3 === 0 ? 'rainbow' : 'normal');
+          z += 3.9;
+        }
+      } else if (layout === 'ladder_climb') {
+        createPlatform(0, 1.5, z, 5, 0.5, 5, 'normal');
+        z += 4;
+        const h = 7 + Math.random() * 4;
+        createLadder(0, 1.5, z + 1.5, h);
+        createPlatform(0, 1.5 + h, z + 1.5, 5, 0.55, 5, 'rainbow');
+        z += 8;
+        // small follow-up
+        createPlatform(0, 1.5 + h, z, 4, 0.5, 3.5, 'normal');
+        z += 5;
+      } else if (layout === 'mixed') {
+        for (let i = 0; i < 5; i++) {
+          createPlatform((Math.random()-0.5)*2, 1.8, z, 3.8, 0.5, 3.5, Math.random()>0.6?'rainbow':'normal');
+          z += 4;
+          if (i === 2) {
+            createLadder(2, 1.5, z, 5);
+            createPlatform(2, 6.5, z, 3.5, 0.5, 3.5, 'normal');
+            z += 5;
+          }
+        }
+      } else {
+        // easy_path – very forgiving
+        for (let i = 0; i < 7; i++) {
+          const px = (Math.random() - 0.5) * 1.8;
+          const type = Math.random() > 0.7 ? 'rainbow' : 'normal';
+          createPlatform(px, 1.7 + Math.sin(i)*0.3, z, 4.2, 0.5, 3.8, type);
+          z += 4.0 + Math.random() * 0.8;
+        }
+      }
+
+      // always end with a generous checkpoint platform + green spike
+      createPlatform(0, 2.2, z, 8, 0.65, 8, 'normal');
+      const flag = new THREE.Mesh(
+        new THREE.ConeGeometry(0.45, 1.3, 4),
+        new THREE.MeshStandardMaterial({ color: 0x00ff66, emissive: 0x00aa44, emissiveIntensity: 0.6 })
+      );
+      flag.position.set(0, 3.8, z);
+      scene.add(flag);
+      checkpoints.push({
+        mesh: flag,
+        pos: new THREE.Vector3(0, 3.8, z),
+        activated: false
+      });
+
+      nextZ = z + 6;
+      levelCount++;
+      document.getElementById('levelNum').textContent = levelCount - 1;
+    }
+
+    function initLevel() {
+      // big starting platform
+      createPlatform(0, 0, 0, 12, 1, 12, 'normal');
+      createPlatform(0, 1.2, 9, 5, 0.5, 4, 'rainbow');
+      createPlatform(0, 2.0, 15, 4.5, 0.5, 4, 'normal');
+      // first ladder intro
+      createLadder(0, 2.0, 20, 5);
+      createPlatform(0, 7.0, 20, 5, 0.55, 5, 'rainbow');
+      nextZ = 28;
+      generateSection(nextZ);
+      generateSection(nextZ);
+      lastCheckpoint.set(0, 3, 0);
+      spawnPos.copy(lastCheckpoint);
+    }
+
+    // ========== LOAD MODEL ==========
+    const loader = new GLTFLoader();
+    loader.load(
+      'https://file.garden/Zj01o_oh-G9Y8APf/r6_roblox_noob_animated.glb',
+      (gltf) => {
+        playerModel = gltf.scene;
+        playerModel.scale.set(1.1, 1.1, 1.1);
+        playerModel.position.y = 0; // feet at origin roughly
+        playerModel.traverse((c) => {
+          if (c.isMesh) {
+            c.castShadow = true;
+            c.receiveShadow = true;
+          }
+        });
+        player.add(playerModel);
+
+        mixer = new THREE.AnimationMixer(playerModel);
+        const clips = gltf.animations;
+        console.log('Animations found:', clips.length, clips.map((c,i)=>`${i}: ${c.name || 'unnamed'}`));
+
+        // Map by index as specified
+        // 1: climb, 2: fall, 3: idle, 4: idle boredom, 5: jump, 6: walk, 7: sit
+        const names = ['climb', 'fall', 'idle', 'boredom', 'jump', 'walk', 'sit'];
+        for (let i = 0; i < Math.min(clips.length, 7); i++) {
+          const action = mixer.clipAction(clips[i]);
+          action.clampWhenFinished = true;
+          if (names[i] === 'sit') {
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+          }
+          actions[names[i]] = action;
+        }
+        // fallback
+        if (!actions.idle && clips[0]) actions.idle = mixer.clipAction(clips[0]);
+        if (!actions.walk && clips[1]) actions.walk = mixer.clipAction(clips[1]);
+
+        playAnim('idle');
+        // apply any saved custom texture
+        setTimeout(() => applyTextureFromStorage(), 100);
+      },
+      undefined,
+      (err) => {
+        console.error('Model load failed', err);
+        // fallback capsule
+        const body = new THREE.Mesh(
+          new THREE.CapsuleGeometry(0.4, 1.2, 4, 8),
+          new THREE.MeshStandardMaterial({ color: 0xffcc00 })
+        );
+        body.position.y = 1;
+        player.add(body);
+      }
+    );
+
+    function playAnim(name) {
+      if (!actions[name] || currentAction === actions[name]) return;
+      const next = actions[name];
+      if (currentAction) {
+        currentAction.fadeOut(0.15);
+      }
+      next.reset().fadeIn(0.15).play();
+      currentAction = next;
+      if (name === 'boredom') isBored = true;
+      else isBored = false;
+    }
+
+    // ========== CONTROLS ==========
+    const controls = new PointerLockControls(camera, document.body);
+    // we don't use the built-in move, just for lock + mouse delta
+
+    document.getElementById('startBtn').addEventListener('click', () => {
+      controls.lock();
+    });
+    document.getElementById('blocker').addEventListener('click', (e) => {
+      if (e.target.id !== 'startBtn') controls.lock();
+    });
+
+    controls.addEventListener('lock', () => {
+      document.getElementById('blocker').style.display = 'none';
+      startMusic();
+    });
+    controls.addEventListener('unlock', () => {
+      document.getElementById('blocker').style.display = 'flex';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!controls.isLocked) return;
+      yaw -= e.movementX * mouseSensitivity;
+      pitch += e.movementY * mouseSensitivity;  // fixed: was inverted
+      pitch = Math.max(-1.2, Math.min(1.4, pitch));
+    });
+
+    // Zoom in / out (scroll) — can go first-person
+    document.addEventListener('wheel', (e) => {
+      if (!controls.isLocked) return;
+      e.preventDefault();
+      cameraDist += e.deltaY * 0.008;
+      cameraDist = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, cameraDist));
+    }, { passive: false });
+
+    document.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w') keys.w = true;
+      if (k === 'a') keys.a = true;
+      if (k === 's') keys.s = true;
+      if (k === 'd') keys.d = true;
+      if (k === ' ') { keys.space = true; e.preventDefault(); }
+    });
+    document.addEventListener('keyup', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'w') keys.w = false;
+      if (k === 'a') keys.a = false;
+      if (k === 's') keys.s = false;
+      if (k === 'd') keys.d = false;
+      if (k === ' ') keys.space = false;
+    });
+
+    // ========== PHYSICS ==========
+    function updatePhysics(dt) {
+      if (isDead) return;
+
+      // movement direction relative to camera yaw
+      const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+      const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+
+      let moveX = 0, moveZ = 0;
+      if (keys.w) { moveZ -= 1; }
+      if (keys.s) { moveZ += 1; }
+      if (keys.a) { moveX -= 1; }
+      if (keys.d) { moveX += 1; }
+
+      const moving = moveX !== 0 || moveZ !== 0;
+
+      // ----- LADDER / CLIMB CHECK -----
+      isClimbing = false;
+      let nearLadder = null;
+      for (const lad of ladders) {
+        if (Math.abs(lad.z - player.position.z) > 8) continue;
+        const px = player.position.x;
+        const py = player.position.y;
+        const pz = player.position.z;
+        if (px > lad.bbox.min.x - 0.3 && px < lad.bbox.max.x + 0.3 &&
+            pz > lad.bbox.min.z - 0.3 && pz < lad.bbox.max.z + 0.3 &&
+            py >= lad.bottomY - 0.5 && py <= lad.topY + 0.3) {
+          nearLadder = lad;
+          break;
+        }
+      }
+
+      if (nearLadder && (keys.w || keys.s || keys.space)) {
+        isClimbing = true;
+        // snap a bit toward ladder center
+        player.position.x = THREE.MathUtils.lerp(player.position.x, nearLadder.x, 0.15);
+        player.position.z = THREE.MathUtils.lerp(player.position.z, nearLadder.z, 0.15);
+        velocity.x = 0;
+        velocity.z = 0;
+        velocity.y = 0;
+
+        if (keys.w || keys.space) {
+          player.position.y += 4.5 * dt; // climb up
+          playAnim('climb');
+        } else if (keys.s) {
+          player.position.y -= 4.5 * dt; // climb down
+          playAnim('climb');
+        }
+        // stay within ladder bounds
+        player.position.y = Math.max(nearLadder.bottomY, Math.min(nearLadder.topY, player.position.y));
+        onGround = false;
+        canJump = false;
+        idleTimer = 0;
+      } else {
+        // normal movement
+        if (moving) {
+          const len = Math.hypot(moveX, moveZ);
+          moveX /= len; moveZ /= len;
+          velocity.x = (forward.x * -moveZ + right.x * moveX) * PLAYER_SPEED;
+          velocity.z = (forward.z * -moveZ + right.z * moveX) * PLAYER_SPEED;
+          if (playerModel) {
+            const targetAngle = Math.atan2(velocity.x, velocity.z);
+            player.rotation.y = THREE.MathUtils.lerp(player.rotation.y, targetAngle, 0.18);
+          }
+        } else {
+          velocity.x *= 0.82;
+          velocity.z *= 0.82;
+        }
+
+        // gravity
+        velocity.y -= GRAVITY * dt;
+
+        // jump / double jump
+        if (keys.space && jumpsLeft > 0) {
+          const isDouble = !onGround;
+          // ground jump = full height, mid-air (double) jump = half height
+          const force = isDouble ? JUMP_FORCE * 0.5 : JUMP_FORCE;
+          velocity.y = force;
+          jumpsLeft--;
+          onGround = false;
+          canJump = false;
+          playAnim('jump');
+          idleTimer = 0;
+          playSfx(sfxJump);
+
+          // white particles only on the double (mid-air) jump
+          if (isDouble) {
+            spawnJumpParticles(player.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
+          }
+          // prevent holding space from multi-jumping instantly
+          keys.space = false;
+        }
+
+        // apply velocity
+        player.position.x += velocity.x * dt;
+        player.position.y += velocity.y * dt;
+        player.position.z += velocity.z * dt;
+      }
+
+      // ground / platform collision
+      if (!isClimbing) {
+        const wasOnGround = onGround;
+        onGround = false;
+        canJump = false;
+
+        let standingOnLava = false;
+        for (const p of platforms) {
+          if (Math.abs(p.z - player.position.z) > 14) continue;
+
+          const feetY = player.position.y;
+          const topY = p.bbox.max.y;
+
+          const px = player.position.x;
+          const pz = player.position.z;
+          if (px > p.bbox.min.x - PLAYER_RADIUS && px < p.bbox.max.x + PLAYER_RADIUS &&
+              pz > p.bbox.min.z - PLAYER_RADIUS && pz < p.bbox.max.z + PLAYER_RADIUS) {
+
+            // landing on top
+            if (velocity.y <= 0 && feetY <= topY + 0.18 && feetY >= topY - 0.7) {
+              const justLanded = !wasOnGround;
+              player.position.y = topY;
+              velocity.y = 0;
+              onGround = true;
+              canJump = true;
+              jumpsLeft = 2; // reset double jump
+              if (justLanded) playSfx(sfxLand);
+              if (p.type === 'lava') standingOnLava = true;
+            }
+          }
+        }
+
+        if (standingOnLava) {
+          die();
+          return;
+        }
+
+        // walked off a ledge → only one air jump remaining
+        if (wasOnGround && !onGround && jumpsLeft === 2) {
+          jumpsLeft = 1;
+        }
+      }
+
+      // fall death
+      if (player.position.y < -18) {
+        die();
+        return;
+      }
+
+      // animation state (only when not climbing)
+      if (!isClimbing) {
+        if (onGround) {
+          if (moving) {
+            playAnim('walk');
+            idleTimer = 0;
+          } else {
+            idleTimer += dt;
+            if (idleTimer > 5) playAnim('boredom');
+            else playAnim('idle');
+          }
+        } else {
+          if (velocity.y < -6) playAnim('fall');
+          else if (velocity.y > 1) playAnim('jump');
+          idleTimer = 0;
+        }
+      }
+
+      // update camera (supports first-person when zoomed all the way in)
+      if (cameraDist < 0.8) {
+        // first person
+        camera.position.set(
+          player.position.x,
+          player.position.y + 1.55,
+          player.position.z
+        );
+        const lookDir = new THREE.Vector3(
+          -Math.sin(yaw) * Math.cos(pitch),
+          -Math.sin(pitch),
+          -Math.cos(yaw) * Math.cos(pitch)
+        );
+        camera.lookAt(camera.position.clone().add(lookDir));
+        // hide player model in first person
+        if (playerModel) playerModel.visible = false;
+      } else {
+        if (playerModel) playerModel.visible = true;
+        const camOffset = new THREE.Vector3(
+          Math.sin(yaw) * cameraDist * Math.cos(pitch),
+          CAMERA_HEIGHT + Math.sin(pitch) * cameraDist * 0.55,
+          Math.cos(yaw) * cameraDist * Math.cos(pitch)
+        );
+        const desiredCam = player.position.clone().add(camOffset);
+        camera.position.lerp(desiredCam, 0.45);
+        camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
+      }
+
+      // progress
+      if (player.position.z > maxReached) {
+        maxReached = player.position.z;
+        document.getElementById('dist').textContent = Math.floor(maxReached);
+      }
+
+      // generate more
+      if (player.position.z > nextZ - 45) {
+        generateSection(nextZ);
+      }
+
+      // checkpoint — only when touching the green spike
+      for (const cp of checkpoints) {
+        if (cp.activated) continue;
+        const dist = player.position.distanceTo(cp.pos);
+        if (dist < 2.2) {
+          cp.activated = true;
+          lastCheckpoint.set(cp.pos.x, cp.pos.y + 0.5, cp.pos.z);
+          // flash the flag
+          cp.mesh.material.emissiveIntensity = 2;
+          setTimeout(() => { if (cp.mesh.material) cp.mesh.material.emissiveIntensity = 0.6; }, 400);
+        }
+      }
+
+      // update & cleanup particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.life -= dt;
+        pt.mesh.position.addScaledVector(pt.vel, dt);
+        pt.vel.y -= 6 * dt;
+        pt.mesh.material.opacity = Math.max(0, pt.life / pt.maxLife);
+        pt.mesh.scale.setScalar(Math.max(0.1, pt.life / pt.maxLife));
+        if (pt.life <= 0) {
+          scene.remove(pt.mesh);
+          particles.splice(i, 1);
+        }
+      }
+
+      // cleanup far objects
+      for (let i = platforms.length - 1; i >= 0; i--) {
+        if (platforms[i].z < player.position.z - 70) {
+          scene.remove(platforms[i].mesh);
+          platforms.splice(i, 1);
+        }
+      }
+      for (let i = ladders.length - 1; i >= 0; i--) {
+        if (ladders[i].z < player.position.z - 70) {
+          scene.remove(ladders[i].mesh);
+          ladders.splice(i, 1);
+        }
+      }
+      for (let i = checkpoints.length - 1; i >= 0; i--) {
+        if (checkpoints[i].pos.z < player.position.z - 70) {
+          scene.remove(checkpoints[i].mesh);
+          checkpoints.splice(i, 1);
+        }
+      }
+    }
+
+    function spawnJumpParticles(origin) {
+      for (let i = 0; i < 18; i++) {
+        const geo = new THREE.SphereGeometry(0.08 + Math.random() * 0.06, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 1
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(origin);
+        scene.add(mesh);
+        const vel = new THREE.Vector3(
+          (Math.random() - 0.5) * 6,
+          Math.random() * 4 + 1,
+          (Math.random() - 0.5) * 6
+        );
+        particles.push({
+          mesh,
+          vel,
+          life: 0.5 + Math.random() * 0.35,
+          maxLife: 0.7
+        });
+      }
+    }
+
+    function die() {
+      if (isDead) return;
+      isDead = true;
+      isClimbing = false;
+      document.getElementById('death').style.display = 'flex';
+      playAnim('fall');
+      playSfx(sfxDeath);
+      setTimeout(() => {
+        player.position.copy(lastCheckpoint);
+        velocity.set(0, 0, 0);
+        isDead = false;
+        isClimbing = false;
+        jumpsLeft = 2;
+        document.getElementById('death').style.display = 'none';
+        playAnim('idle');
+        idleTimer = 0;
+      }, 1200);
+    }
+
+    // ========== AVATAR EDITOR ==========
+    const aeCanvas = document.getElementById('ae-canvas');
+    const aeCtx = aeCanvas.getContext('2d');
+    const aeEditor = document.getElementById('avatarEditor');
+    const aeColor = document.getElementById('ae-color');
+    const aeOverlay = document.getElementById('ae-overlay-img');
+    const aeStampBtn = document.getElementById('ae-stamp');
+    let aeTool = 'pen';
+    let aeDrawing = false;
+    let aeLastX = 0, aeLastY = 0;
+    let aeSquareStart = null;
+    let aeStampImg = null;
+    let aeStampX = 0, aeStampY = 0, aeStampDragging = false, aeStampOffX = 0, aeStampOffY = 0;
+    const TEX_SIZE = 512;
+    const STORAGE_KEY = 'roblox_obby_avatar_tex';
+    const DEFAULT_TEX_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/Sizecomparationdummy1Mtl_baseColor.png';
+    // In-memory fallback when localStorage is blocked (sandbox)
+    let memoryTexStore = null;
+
+    function storageGet(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        return memoryTexStore;
+      }
+    }
+    function storageSet(key, val) {
+      try {
+        localStorage.setItem(key, val);
+      } catch (e) {
+        memoryTexStore = val;
+      }
+    }
+
+    // Draw image flipped vertically onto a canvas context
+    function drawFlippedY(ctx, img, w, h) {
+      ctx.save();
+      ctx.translate(0, h);
+      ctx.scale(1, -1);
+      ctx.drawImage(img, 0, 0, w, h);
+      ctx.restore();
+    }
+
+    // Load the real default texture, flipped upright for the editor
+    function loadDefaultTextureToEditor(cb) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+        // source is upside-down → flip so editor shows it correctly
+        drawFlippedY(aeCtx, img, TEX_SIZE, TEX_SIZE);
+        if (cb) cb();
+      };
+      img.onerror = () => {
+        // fallback solid if image fails
+        aeCtx.fillStyle = '#f5cd30';
+        aeCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
+        if (cb) cb();
+      };
+      img.src = DEFAULT_TEX_URL;
+    }
+
+    function loadEditorTexture() {
+      const saved = storageGet(STORAGE_KEY);
+      if (saved) {
+        const img = new Image();
+        img.onload = () => {
+          aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+          // saved data is stored in editor-upright orientation
+          aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
+        };
+        img.src = saved;
+      } else {
+        loadDefaultTextureToEditor();
+      }
+    }
+
+    // Create a canvas with the editor content flipped back (model UV orientation)
+    function getFlippedForModelCanvas() {
+      const off = document.createElement('canvas');
+      off.width = TEX_SIZE;
+      off.height = TEX_SIZE;
+      const octx = off.getContext('2d');
+      // flip editor (upright) → model (upside-down)
+      octx.save();
+      octx.translate(0, TEX_SIZE);
+      octx.scale(1, -1);
+      octx.drawImage(aeCanvas, 0, 0);
+      octx.restore();
+      return off;
+    }
+
+    function applyTextureToMeshes(tex) {
+      if (!playerModel) return;
+      playerModel.traverse((c) => {
+        if (c.isMesh && c.material) {
+          const mats = Array.isArray(c.material) ? c.material : [c.material];
+          mats.forEach((m) => {
+            if (m.map) m.map.dispose();
+            m.map = tex;
+            m.color.set(0xffffff);
+            m.needsUpdate = true;
+          });
+        }
+      });
+    }
+
+    function applyCanvasToModel() {
+      if (!playerModel) return;
+      // save editor-upright version
+      const dataUrl = aeCanvas.toDataURL('image/png');
+      storageSet(STORAGE_KEY, dataUrl);
+
+      // apply flipped version to the model
+      const flipped = getFlippedForModelCanvas();
+      const tex = new THREE.CanvasTexture(flipped);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.flipY = false;
+      tex.needsUpdate = true;
+      applyTextureToMeshes(tex);
+    }
+
+    function applyTextureFromStorage() {
+      const saved = storageGet(STORAGE_KEY);
+      if (!playerModel) return;
+
+      if (saved) {
+        const img = new Image();
+        img.onload = () => {
+          // saved is upright → paint to editor canvas, then flip for model
+          aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+          aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
+          const flipped = getFlippedForModelCanvas();
+          const tex = new THREE.CanvasTexture(flipped);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.flipY = false;
+          tex.needsUpdate = true;
+          applyTextureToMeshes(tex);
+        };
+        img.src = saved;
+      } else {
+        // load default (upside-down source), show upright in editor memory, apply original orientation to model
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          // model wants the original (upside-down) orientation
+          const off = document.createElement('canvas');
+          off.width = TEX_SIZE; off.height = TEX_SIZE;
+          const octx = off.getContext('2d');
+          octx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
+          const tex = new THREE.CanvasTexture(off);
+          tex.colorSpace = THREE.SRGBColorSpace;
+          tex.flipY = false;
+          tex.needsUpdate = true;
+          applyTextureToMeshes(tex);
+        };
+        img.src = DEFAULT_TEX_URL;
+      }
+    }
+
+    // open / close
+    document.getElementById('avatarBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      loadEditorTexture();
+      aeEditor.classList.add('open');
+    });
+    document.getElementById('ae-close').addEventListener('click', () => {
+      aeEditor.classList.remove('open');
+      cancelStamp();
+    });
+
+    // tools
+    document.querySelectorAll('#ae-toolbar [data-tool]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#ae-toolbar [data-tool]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        aeTool = btn.dataset.tool;
+        aeCanvas.style.cursor = aeTool === 'picker' ? 'copy' : 'crosshair';
+      });
+    });
+
+    function getPos(e) {
+      const r = aeCanvas.getBoundingClientRect();
+      const scaleX = TEX_SIZE / r.width;
+      const scaleY = TEX_SIZE / r.height;
+      return {
+        x: (e.clientX - r.left) * scaleX,
+        y: (e.clientY - r.top) * scaleY
+      };
+    }
+
+    // flood fill
+    function floodFill(x, y, fillColor) {
+      x = Math.floor(x); y = Math.floor(y);
+      const imgData = aeCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
+      const data = imgData.data;
+      const idx = (y * TEX_SIZE + x) * 4;
+      const target = [data[idx], data[idx+1], data[idx+2], data[idx+3]];
+      const fill = hexToRgba(fillColor);
+      if (colorsMatch(target, fill)) return;
+
+      const stack = [[x, y]];
+      while (stack.length) {
+        const [cx, cy] = stack.pop();
+        if (cx < 0 || cy < 0 || cx >= TEX_SIZE || cy >= TEX_SIZE) continue;
+        const i = (cy * TEX_SIZE + cx) * 4;
+        if (!colorsMatch([data[i], data[i+1], data[i+2], data[i+3]], target)) continue;
+        data[i] = fill[0]; data[i+1] = fill[1]; data[i+2] = fill[2]; data[i+3] = 255;
+        stack.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
+      }
+      aeCtx.putImageData(imgData, 0, 0);
+    }
+    function hexToRgba(hex) {
+      const h = hex.replace('#','');
+      return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16), 255];
+    }
+    function colorsMatch(a, b, tol = 8) {
+      return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol;
+    }
+
+    aeCanvas.addEventListener('mousedown', (e) => {
+      if (aeStampImg) return;
+      const p = getPos(e);
+      if (aeTool === 'fill') {
+        floodFill(p.x, p.y, aeColor.value);
+        return;
+      }
+      if (aeTool === 'picker') {
+        const d = aeCtx.getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
+        aeColor.value = '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
+        return;
+      }
+      if (aeTool === 'square') {
+        aeSquareStart = p;
+        aeDrawing = true;
+        return;
+      }
+      // pen
+      aeDrawing = true;
+      aeLastX = p.x; aeLastY = p.y;
+      aeCtx.strokeStyle = aeColor.value;
+      aeCtx.fillStyle = aeColor.value;
+      aeCtx.lineWidth = 6;
+      aeCtx.lineCap = 'round';
+      aeCtx.beginPath();
+      aeCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+      aeCtx.fill();
+    });
+
+    aeCanvas.addEventListener('mousemove', (e) => {
+      if (!aeDrawing || aeStampImg) return;
+      const p = getPos(e);
+      if (aeTool === 'pen') {
+        aeCtx.strokeStyle = aeColor.value;
+        aeCtx.lineWidth = 6;
+        aeCtx.lineCap = 'round';
+        aeCtx.beginPath();
+        aeCtx.moveTo(aeLastX, aeLastY);
+        aeCtx.lineTo(p.x, p.y);
+        aeCtx.stroke();
+        aeLastX = p.x; aeLastY = p.y;
+      }
+    });
+
+    aeCanvas.addEventListener('mouseup', (e) => {
+      if (aeTool === 'square' && aeSquareStart) {
+        const p = getPos(e);
+        aeCtx.fillStyle = aeColor.value;
+        aeCtx.fillRect(
+          aeSquareStart.x, aeSquareStart.y,
+          p.x - aeSquareStart.x, p.y - aeSquareStart.y
+        );
+        aeSquareStart = null;
+      }
+      aeDrawing = false;
+    });
+    aeCanvas.addEventListener('mouseleave', () => { aeDrawing = false; });
+
+    // upload for stamp
+    document.getElementById('ae-upload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          aeStampImg = img;
+          const maxSide = 200;
+          let w = img.width, h = img.height;
+          if (w > maxSide || h > maxSide) {
+            const s = maxSide / Math.max(w, h);
+            w *= s; h *= s;
+          }
+          aeStampBaseW = w;
+          aeStampBaseH = h;
+          aeStampScale = 1;
+          aeOverlay.src = ev.target.result;
+          aeOverlay.style.display = 'block';
+          aeOverlay.style.width = w + 'px';
+          aeOverlay.style.height = h + 'px';
+          aeOverlay.style.left = '40px';
+          aeOverlay.style.top = '40px';
+          aeStampX = 40; aeStampY = 40;
+          aeStampBtn.style.display = 'inline-block';
+          aeOverlay.style.pointerEvents = 'auto';
+          aeOverlay.style.cursor = 'move';
+        };
+        img.src = ev.target.result;
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    });
+
+    let aeStampBaseW = 200, aeStampBaseH = 200, aeStampScale = 1;
+
+    aeOverlay.addEventListener('mousedown', (e) => {
+      aeStampDragging = true;
+      aeStampOffX = e.offsetX;
+      aeStampOffY = e.offsetY;
+      e.preventDefault();
+    });
+    window.addEventListener('mousemove', (e) => {
+      if (!aeStampDragging || !aeStampImg) return;
+      const wrap = document.getElementById('ae-canvas-wrap').getBoundingClientRect();
+      let x = e.clientX - wrap.left - aeStampOffX;
+      let y = e.clientY - wrap.top - aeStampOffY;
+      aeOverlay.style.left = x + 'px';
+      aeOverlay.style.top = y + 'px';
+      aeStampX = x; aeStampY = y;
+    });
+    window.addEventListener('mouseup', () => { aeStampDragging = false; });
+
+    // Scroll wheel scales the stamp image
+    document.getElementById('ae-canvas-wrap').addEventListener('wheel', (e) => {
+      if (!aeStampImg) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const delta = e.deltaY > 0 ? 0.9 : 1.1;
+      aeStampScale = Math.max(0.1, Math.min(5, aeStampScale * delta));
+      const w = aeStampBaseW * aeStampScale;
+      const h = aeStampBaseH * aeStampScale;
+      // keep center roughly stable
+      const cx = aeStampX + parseFloat(aeOverlay.style.width) / 2;
+      const cy = aeStampY + parseFloat(aeOverlay.style.height) / 2;
+      aeOverlay.style.width = w + 'px';
+      aeOverlay.style.height = h + 'px';
+      aeStampX = cx - w / 2;
+      aeStampY = cy - h / 2;
+      aeOverlay.style.left = aeStampX + 'px';
+      aeOverlay.style.top = aeStampY + 'px';
+    }, { passive: false });
+
+    aeStampBtn.addEventListener('click', () => {
+      if (!aeStampImg) return;
+      const r = aeCanvas.getBoundingClientRect();
+      const scaleX = TEX_SIZE / r.width;
+      const scaleY = TEX_SIZE / r.height;
+      const dw = parseFloat(aeOverlay.style.width) * scaleX;
+      const dh = parseFloat(aeOverlay.style.height) * scaleY;
+      aeCtx.drawImage(aeStampImg, aeStampX * scaleX, aeStampY * scaleY, dw, dh);
+      cancelStamp();
+    });
+
+    function cancelStamp() {
+      aeStampImg = null;
+      aeOverlay.style.display = 'none';
+      aeOverlay.src = '';
+      aeStampBtn.style.display = 'none';
+      aeStampScale = 1;
+    }
+
+    // replace whole texture
+    document.getElementById('ae-replace').addEventListener('click', () => {
+      const inp = document.createElement('input');
+      inp.type = 'file';
+      inp.accept = 'image/*';
+      inp.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          const img = new Image();
+          img.onload = () => {
+            aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
+            aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
+          };
+          img.src = ev.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+      inp.click();
+    });
+
+    // reset to default texture
+    document.getElementById('ae-reset').addEventListener('click', () => {
+      if (!confirm('Reset canvas to the default noob texture?')) return;
+      cancelStamp();
+      loadDefaultTextureToEditor();
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+      memoryTexStore = null;
+    });
+
+    // download
+    document.getElementById('ae-download').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'obby_avatar_texture.png';
+      link.href = aeCanvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // apply
+    document.getElementById('ae-apply').addEventListener('click', () => {
+      applyCanvasToModel();
+      aeEditor.classList.remove('open');
+      cancelStamp();
+      alert('Avatar texture applied & saved locally!');
+    });
+
+    // ========== LOOP ==========
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      updatePhysics(dt);
+      if (mixer) mixer.update(dt);
+
+      // rainbow pulse
+      for (const p of platforms) {
+        if (p.type === 'rainbow' && p.mesh.material.color) {
+          const t = performance.now() * 0.001;
+          p.mesh.material.color.setHSL((t * 0.15 + p.z * 0.02) % 1, 0.85, 0.55);
+        }
+        if (p.type === 'lava') {
+          p.mesh.material.emissiveIntensity = 0.6 + Math.sin(performance.now() * 0.008) * 0.3;
+        }
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    // resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    // start
+    initLevel();
+    animate();
+  </script>
+</body>
+</html>
