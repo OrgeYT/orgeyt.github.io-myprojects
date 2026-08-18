@@ -1,5 +1,3 @@
-  <!-- 👍 LIKE AND FAVORITE FOR MORE OBBY -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -30,12 +28,27 @@
     }
     canvas { display: block; }
 
-    /* Avatar Editor */
-    #avatarBtn {
-      margin-top: 1rem; padding: 10px 24px; background: #7c4dff; border: none;
+    /* Title screen buttons layout container */
+    #menu-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* Avatar Editor & Export & Emotes Buttons */
+    #avatarBtn, #exportCurrentTextureBtn, #emotesBtn {
+      padding: 10px 24px; border: none;
       border-radius: 8px; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
     }
+    #avatarBtn { background: #7c4dff; }
     #avatarBtn:hover { background: #9a6fff; }
+    #exportCurrentTextureBtn { background: #00acc1; }
+    #exportCurrentTextureBtn:hover { background: #00bcd4; }
+    #emotesBtn { background: #ff6d00; }
+    #emotesBtn:hover { background: #ff9100; }
+
     #avatarEditor {
       display: none; position: absolute; inset: 0; z-index: 200;
       background: rgba(10,10,20,0.95); color: white;
@@ -80,24 +93,95 @@
     #ae-close { background: #666; color: white; }
     #ae-close:hover { background: #888; }
     #ae-hint { margin-top: 8px; opacity: 0.7; font-size: 0.9rem; text-align: center; max-width: 520px; }
+    #ae-note { margin-top: 4px; color: #ffaa00; font-size: 0.85rem; font-style: italic; text-align: center; }
+
+    /* Custom Confirm Popup Modal */
+    #customPopup {
+      display: none; position: absolute; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+    #customPopup.open { display: flex; }
+    .popup-box {
+      background: #1e1e2f; border: 2px solid #7c4dff; border-radius: 12px;
+      padding: 24px; max-width: 400px; width: 90%; text-align: center; color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .popup-box h3 { margin-bottom: 12px; font-size: 1.5rem; color: #ffcc00; }
+    .popup-box p { margin-bottom: 20px; font-size: 1.05rem; opacity: 0.9; line-height: 1.4; }
+    .popup-actions { display: flex; gap: 12px; justify-content: center; }
+    .popup-actions button {
+      padding: 10px 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem;
+    }
+    #popupYes { background: #00c853; color: white; }
+    #popupYes:hover { background: #00e676; }
+    #popupNo { background: #d32f2f; color: white; }
+    #popupNo:hover { background: #f44336; }
+
+    /* Emotes Menu Modal */
+    #emotesMenu {
+      display: none; position: absolute; inset: 0; z-index: 250;
+      background: rgba(10,10,25,0.92); color: white;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    #emotesMenu.open { display: flex; }
+    #emotesMenu h2 { margin-bottom: 1.2rem; font-size: 2.2rem; text-shadow: 0 0 15px #ff9100; }
+    #emotesGrid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px; max-width: 520px; width: 100%; margin-bottom: 1.5rem;
+    }
+    .emote-card {
+      background: #252540; border: 2px solid #ff9100; border-radius: 12px;
+      padding: 16px; text-align: center; font-size: 1.1rem; font-weight: bold;
+      cursor: pointer; transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      color: #fff;
+    }
+    .emote-card:hover { background: #ff9100; color: #111; transform: translateY(-3px); }
+    .emote-card.stop { background: #d32f2f; border-color: #f44336; }
+    .emote-card.stop:hover { background: #f44336; color: #fff; }
+    #emotesClose {
+      padding: 10px 28px; background: #555; border: none; border-radius: 8px;
+      color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+    }
+    #emotesClose:hover { background: #777; }
   </style>
 </head>
 <body>
   <div id="blocker">
     <h1>🌈 Infinite Roblox Obby</h1>
     <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Space — Jump (double jump!) &nbsp;|&nbsp; Scroll — Zoom</p>
-    <p>Avoid lava • Climb ladders • Touch green spikes to checkpoint</p>
+    <p>Avoid lava • Climb ladders • Touch green spikes to checkpoint • <b>Press E for Emotes</b></p>
     <p style="opacity:0.7;margin-top:1rem">Click to start / lock cursor &nbsp;|&nbsp; ESC then Avatar Editor to customize</p>
     <p style="margin-top:0.6rem;font-size:1.15rem;font-weight:bold;color:#ffdd55;text-shadow:0 0 10px #ffaa00;">👍 LIKE AND FAVORITE FOR MORE OBBY!</p>
     <button class="start" id="startBtn">PLAY</button>
-    <button id="avatarBtn">🎨 Avatar Editor</button>
+    <div id="menu-buttons">
+      <button id="avatarBtn">🎨 Avatar Editor</button>
+      <button id="exportCurrentTextureBtn">📥 Export Current Texture</button>
+      <button id="emotesBtn">🎭 Emotes (E)</button>
+    </div>
   </div>
   <div id="hud">
     <div>Level: <span id="levelNum">1</span></div>
     <div>Distance: <span id="dist">0</span>m</div>
-    <div id="tip">Double jump • Scroll to zoom • Touch green spike = checkpoint</div>
+    <div id="tip">Double jump • Scroll to zoom • Touch green spike = checkpoint • Press E for Emotes</div>
   </div>
   <div id="death">OOF! Respawn...</div>
+
+  <!-- Custom Popup Modal -->
+  <div id="customPopup">
+    <div class="popup-box">
+      <h3 id="popupTitle">Confirm</h3>
+      <p id="popupMessage">Are you sure?</p>
+      <div class="popup-actions">
+        <button id="popupYes">Yes</button>
+        <button id="popupNo">No</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Avatar Editor Modal -->
   <div id="avatarEditor">
@@ -122,7 +206,24 @@
       <button id="ae-apply">APPLY & SAVE</button>
       <button id="ae-close">Close</button>
     </div>
-    <p id="ae-hint">Pen / filled Square • Fill bucket • Picker • Upload then drag &amp; scroll-wheel to scale, then Accept • Replace whole texture • Reset Default • APPLY saves &amp; updates avatar</p>
+    <p id="ae-hint">Pen / filled Square • Fill bucket • Picker • Upload then drag &amp; scroll-wheel to scale, then Accept • Replace whole texture automatically stamps full image • Reset Default • APPLY updates avatar</p>
+    <p id="ae-note">Note: Texture is upside down because that's how it was originally.</p>
+  </div>
+
+  <!-- Emotes/Animations Menu Modal -->
+  <div id="emotesMenu">
+    <h2>🎭 Avatar Emotes</h2>
+    <div id="emotesGrid">
+      <div class="emote-card" data-emote="idle">🧍 Idle</div>
+      <div class="emote-card" data-emote="walk">🚶 Walk</div>
+      <div class="emote-card" data-emote="jump">🦘 Jump</div>
+      <div class="emote-card" data-emote="fall">🪂 Fall</div>
+      <div class="emote-card" data-emote="climb">🪜 Climb</div>
+      <div class="emote-card" data-emote="boredom">💤 Boredom</div>
+      <div class="emote-card" data-emote="sit">🪑 Sit</div>
+      <div class="emote-card stop" data-emote="stop">⏹️ Stop Emote</div>
+    </div>
+    <button id="emotesClose">Close (E / ESC)</button>
   </div>
 
   <script type="importmap">
@@ -144,17 +245,18 @@
     const GRAVITY = 28;
     const PLAYER_HEIGHT = 2.0;
     const PLAYER_RADIUS = 0.4;
-    let cameraDist = 6;          // zoomable (mouse wheel)
+    let cameraDist = 6;
     const CAMERA_HEIGHT = 2.5;
     const PLATFORM_SIZE = 4;
     const LAVA_COLOR = 0xff2200;
-    const MIN_ZOOM = 0.15;       // first person
+    const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 14;
+    const DEFAULT_TEXTURE_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/Sizecomparationdummy1Mtl_baseColor.png';
 
     // ========== SOUNDS ==========
     const bgMusic = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/Top%2010%20NCS%20-%20Roblox%20OVERUSED%20Songs%20(NoCopyrightSongs).mp3');
     bgMusic.loop = true;
-    bgMusic.volume = 0.5; // 50% quieter
+    bgMusic.volume = 0.5;
     bgMusic.preload = 'auto';
 
     const sfxLand = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/orginal-roblox-land-sound.mp3');
@@ -177,9 +279,8 @@
       bgMusic.play().catch(() => {});
     }
 
-    // ========== SCENE ==========
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x000010); // night sky
+    scene.background = new THREE.Color(0x000010);
     scene.fog = new THREE.Fog(0x000018, 60, 140);
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 200);
@@ -190,7 +291,7 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    // Night sky with stars (but keep scene brightly lit)
+    // Stars
     const starGeo = new THREE.BufferGeometry();
     const starCount = 2500;
     const starPos = new Float32Array(starCount * 3);
@@ -208,7 +309,6 @@
     }));
     scene.add(stars);
 
-    // Lights (kept bright so platforms stay well-lit at night)
     const hemi = new THREE.HemisphereLight(0xb0c4ff, 0x222244, 1.0);
     scene.add(hemi);
     const sun = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -222,44 +322,38 @@
     sun.shadow.camera.top = 50;
     sun.shadow.camera.bottom = -50;
     scene.add(sun);
-    // extra fill light so nothing is too dark
     const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
     fill.position.set(-20, 30, -10);
     scene.add(fill);
 
-    // ========== PLAYER ==========
+    // Player setup
     let playerModel = null;
     let mixer = null;
     let actions = {};
     let currentAction = null;
     let idleTimer = 0;
     let isBored = false;
+    let forcedEmote = null;
 
     const player = new THREE.Object3D();
     player.position.set(0, 5, 0);
     scene.add(player);
 
-    // Invisible collider for physics (simple box)
-    const playerBox = new THREE.Box3();
-
-    // Velocity & state
     const velocity = new THREE.Vector3();
     let canJump = false;
-    let jumpsLeft = 2;           // double jump
+    let jumpsLeft = 2;
     let onGround = false;
     let isDead = false;
     let keys = { w: false, a: false, s: false, d: false, space: false };
-    const checkpoints = [];      // green flag cones
-    const particles = [];        // double-jump particles
+    const checkpoints = [];
+    const particles = [];
 
-    // Camera orbit
     let yaw = 0;
     let pitch = 0.3;
     const mouseSensitivity = 0.002;
 
-    // ========== LEVEL ==========
-    const platforms = []; // { mesh, type, bbox, checkpoint }
-    const ladders = [];   // { mesh, bbox, topY, bottomY }
+    const platforms = [];
+    const ladders = [];
     let nextZ = 0;
     let levelCount = 1;
     let maxReached = 0;
@@ -270,7 +364,6 @@
     function createPlatform(x, y, z, w = PLATFORM_SIZE, h = 0.6, d = PLATFORM_SIZE, type = 'normal') {
       let geo, mat;
       if (type === 'lava') {
-        // thin deadly strip – not a big platform you land on
         geo = new THREE.BoxGeometry(w, 0.35, d);
         mat = new THREE.MeshStandardMaterial({
           color: LAVA_COLOR,
@@ -321,7 +414,6 @@
     }
 
     function createLadder(x, y, z, height = 8) {
-      // vertical ladder (brown poles + rungs)
       const group = new THREE.Group();
       const poleMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.7 });
       const rungMat = new THREE.MeshStandardMaterial({ color: 0xA0522D, roughness: 0.6 });
@@ -373,7 +465,6 @@
 
     function generateSection(startZ) {
       let z = startZ;
-      // easier, more fair layouts for classic easy-obby feel
       const sectionTypes = [
         'easy_path', 'small_gaps', 'spiral', 'lava_strip', 'rainbow_path',
         'zigzag', 'ladder_climb', 'mixed'
@@ -386,11 +477,9 @@
         createPlatform(0, topY, z, 6, 0.55, 6, 'normal');
         z += 7;
       } else if (layout === 'lava_strip') {
-        // safe platforms with thin lava between – easy jumps
         for (let i = 0; i < 6; i++) {
           createPlatform(0, 1.8, z, 4, 0.5, 3.5, 'normal');
           z += 4.2;
-          // thin lava hazard (not landable)
           createPlatform(0, 0.8, z, 5, 0.3, 1.8, 'lava');
           z += 3.2;
         }
@@ -402,7 +491,7 @@
         }
       } else if (layout === 'small_gaps') {
         for (let i = 0; i < 8; i++) {
-          const gap = 1.8 + Math.random() * 1.4; // jumpable
+          const gap = 1.8 + Math.random() * 1.4;
           createPlatform((Math.random() - 0.5) * 2.5, 1.9, z, 3.4, 0.5, 3.2,
             Math.random() > 0.75 ? 'glass' : 'normal');
           z += 3.4 + gap;
@@ -420,7 +509,6 @@
         createLadder(0, 1.5, z + 1.5, h);
         createPlatform(0, 1.5 + h, z + 1.5, 5, 0.55, 5, 'rainbow');
         z += 8;
-        // small follow-up
         createPlatform(0, 1.5 + h, z, 4, 0.5, 3.5, 'normal');
         z += 5;
       } else if (layout === 'mixed') {
@@ -434,7 +522,6 @@
           }
         }
       } else {
-        // easy_path – very forgiving
         for (let i = 0; i < 7; i++) {
           const px = (Math.random() - 0.5) * 1.8;
           const type = Math.random() > 0.7 ? 'rainbow' : 'normal';
@@ -443,7 +530,6 @@
         }
       }
 
-      // always end with a generous checkpoint platform + green spike
       createPlatform(0, 2.2, z, 8, 0.65, 8, 'normal');
       const flag = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 1.3, 4),
@@ -463,11 +549,9 @@
     }
 
     function initLevel() {
-      // big starting platform
       createPlatform(0, 0, 0, 12, 1, 12, 'normal');
       createPlatform(0, 1.2, 9, 5, 0.5, 4, 'rainbow');
       createPlatform(0, 2.0, 15, 4.5, 0.5, 4, 'normal');
-      // first ladder intro
       createLadder(0, 2.0, 20, 5);
       createPlatform(0, 7.0, 20, 5, 0.55, 5, 'rainbow');
       nextZ = 28;
@@ -477,14 +561,13 @@
       spawnPos.copy(lastCheckpoint);
     }
 
-    // ========== LOAD MODEL ==========
     const loader = new GLTFLoader();
     loader.load(
       'https://file.garden/Zj01o_oh-G9Y8APf/r6_roblox_noob_animated.glb',
       (gltf) => {
         playerModel = gltf.scene;
         playerModel.scale.set(1.1, 1.1, 1.1);
-        playerModel.position.y = 0; // feet at origin roughly
+        playerModel.position.y = 0;
         playerModel.traverse((c) => {
           if (c.isMesh) {
             c.castShadow = true;
@@ -495,10 +578,6 @@
 
         mixer = new THREE.AnimationMixer(playerModel);
         const clips = gltf.animations;
-        console.log('Animations found:', clips.length, clips.map((c,i)=>`${i}: ${c.name || 'unnamed'}`));
-
-        // Map by index as specified
-        // 1: climb, 2: fall, 3: idle, 4: idle boredom, 5: jump, 6: walk, 7: sit
         const names = ['climb', 'fall', 'idle', 'boredom', 'jump', 'walk', 'sit'];
         for (let i = 0; i < Math.min(clips.length, 7); i++) {
           const action = mixer.clipAction(clips[i]);
@@ -509,18 +588,14 @@
           }
           actions[names[i]] = action;
         }
-        // fallback
         if (!actions.idle && clips[0]) actions.idle = mixer.clipAction(clips[0]);
         if (!actions.walk && clips[1]) actions.walk = mixer.clipAction(clips[1]);
 
         playAnim('idle');
-        // apply any saved custom texture
-        setTimeout(() => applyTextureFromStorage(), 100);
       },
       undefined,
       (err) => {
         console.error('Model load failed', err);
-        // fallback capsule
         const body = new THREE.Mesh(
           new THREE.CapsuleGeometry(0.4, 1.2, 4, 8),
           new THREE.MeshStandardMaterial({ color: 0xffcc00 })
@@ -542,15 +617,73 @@
       else isBored = false;
     }
 
-    // ========== CONTROLS ==========
+    // Emotes Menu controls
+    const emotesMenu = document.getElementById('emotesMenu');
+    function openEmotesMenu() {
+      if (controls.isLocked) controls.unlock();
+      emotesMenu.classList.add('open');
+    }
+    function closeEmotesMenu() {
+      emotesMenu.classList.remove('open');
+    }
+
+    document.getElementById('emotesBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openEmotesMenu();
+    });
+    document.getElementById('emotesClose').addEventListener('click', () => {
+      closeEmotesMenu();
+    });
+
+    document.querySelectorAll('.emote-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const emote = card.dataset.emote;
+        if (emote === 'stop') {
+          forcedEmote = null;
+          playAnim('idle');
+        } else {
+          forcedEmote = emote;
+          playAnim(emote);
+        }
+        closeEmotesMenu();
+      });
+    });
+
+    // Custom Popup Dialog Handler
+    const customPopup = document.getElementById('customPopup');
+    const popupTitle = document.getElementById('popupTitle');
+    const popupMessage = document.getElementById('popupMessage');
+    const popupYes = document.getElementById('popupYes');
+    const popupNo = document.getElementById('popupNo');
+    let popupResolveCallback = null;
+
+    function showCustomPopup(title, message) {
+      return new Promise((resolve) => {
+        popupTitle.textContent = title;
+        popupMessage.textContent = message;
+        customPopup.classList.add('open');
+        popupResolveCallback = resolve;
+      });
+    }
+
+    popupYes.addEventListener('click', () => {
+      customPopup.classList.remove('open');
+      if (popupResolveCallback) popupResolveCallback(true);
+    });
+    popupNo.addEventListener('click', () => {
+      customPopup.classList.remove('open');
+      if (popupResolveCallback) popupResolveCallback(false);
+    });
+
     const controls = new PointerLockControls(camera, document.body);
-    // we don't use the built-in move, just for lock + mouse delta
 
     document.getElementById('startBtn').addEventListener('click', () => {
       controls.lock();
     });
     document.getElementById('blocker').addEventListener('click', (e) => {
-      if (e.target.id !== 'startBtn') controls.lock();
+      if (e.target.id !== 'startBtn' && e.target.tagName !== 'BUTTON' && !e.target.closest('#menu-buttons')) {
+        controls.lock();
+      }
     });
 
     controls.addEventListener('lock', () => {
@@ -564,11 +697,10 @@
     document.addEventListener('mousemove', (e) => {
       if (!controls.isLocked) return;
       yaw -= e.movementX * mouseSensitivity;
-      pitch += e.movementY * mouseSensitivity;  // fixed: was inverted
+      pitch += e.movementY * mouseSensitivity;
       pitch = Math.max(-1.2, Math.min(1.4, pitch));
     });
 
-    // Zoom in / out (scroll) — can go first-person
     document.addEventListener('wheel', (e) => {
       if (!controls.isLocked) return;
       e.preventDefault();
@@ -583,6 +715,24 @@
       if (k === 's') keys.s = true;
       if (k === 'd') keys.d = true;
       if (k === ' ') { keys.space = true; e.preventDefault(); }
+
+      if (k === 'e') {
+        const aeOpen = document.getElementById('avatarEditor').classList.contains('open');
+        const emotesOpen = document.getElementById('emotesMenu').classList.contains('open');
+        if (aeOpen) return;
+
+        if (emotesOpen) {
+          closeEmotesMenu();
+        } else {
+          openEmotesMenu();
+        }
+      }
+
+      if (e.key === 'Escape') {
+        if (document.getElementById('emotesMenu').classList.contains('open')) {
+          closeEmotesMenu();
+        }
+      }
     });
     document.addEventListener('keyup', (e) => {
       const k = e.key.toLowerCase();
@@ -593,11 +743,9 @@
       if (k === ' ') keys.space = false;
     });
 
-    // ========== PHYSICS ==========
     function updatePhysics(dt) {
       if (isDead) return;
 
-      // movement direction relative to camera yaw
       const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
       const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
 
@@ -609,7 +757,6 @@
 
       const moving = moveX !== 0 || moveZ !== 0;
 
-      // ----- LADDER / CLIMB CHECK -----
       isClimbing = false;
       let nearLadder = null;
       for (const lad of ladders) {
@@ -627,7 +774,6 @@
 
       if (nearLadder && (keys.w || keys.s || keys.space)) {
         isClimbing = true;
-        // snap a bit toward ladder center
         player.position.x = THREE.MathUtils.lerp(player.position.x, nearLadder.x, 0.15);
         player.position.z = THREE.MathUtils.lerp(player.position.z, nearLadder.z, 0.15);
         velocity.x = 0;
@@ -635,19 +781,17 @@
         velocity.y = 0;
 
         if (keys.w || keys.space) {
-          player.position.y += 4.5 * dt; // climb up
-          playAnim('climb');
+          player.position.y += 4.5 * dt;
+          if (!forcedEmote) playAnim('climb');
         } else if (keys.s) {
-          player.position.y -= 4.5 * dt; // climb down
-          playAnim('climb');
+          player.position.y -= 4.5 * dt;
+          if (!forcedEmote) playAnim('climb');
         }
-        // stay within ladder bounds
         player.position.y = Math.max(nearLadder.bottomY, Math.min(nearLadder.topY, player.position.y));
         onGround = false;
         canJump = false;
         idleTimer = 0;
       } else {
-        // normal movement
         if (moving) {
           const len = Math.hypot(moveX, moveZ);
           moveX /= len; moveZ /= len;
@@ -662,37 +806,30 @@
           velocity.z *= 0.82;
         }
 
-        // gravity
         velocity.y -= GRAVITY * dt;
 
-        // jump / double jump
         if (keys.space && jumpsLeft > 0) {
           const isDouble = !onGround;
-          // ground jump = full height, mid-air (double) jump = half height
           const force = isDouble ? JUMP_FORCE * 0.5 : JUMP_FORCE;
           velocity.y = force;
           jumpsLeft--;
           onGround = false;
           canJump = false;
-          playAnim('jump');
+          if (!forcedEmote) playAnim('jump');
           idleTimer = 0;
           playSfx(sfxJump);
 
-          // white particles only on the double (mid-air) jump
           if (isDouble) {
             spawnJumpParticles(player.position.clone().add(new THREE.Vector3(0, 0.5, 0)));
           }
-          // prevent holding space from multi-jumping instantly
           keys.space = false;
         }
 
-        // apply velocity
         player.position.x += velocity.x * dt;
         player.position.y += velocity.y * dt;
         player.position.z += velocity.z * dt;
       }
 
-      // ground / platform collision
       if (!isClimbing) {
         const wasOnGround = onGround;
         onGround = false;
@@ -710,14 +847,13 @@
           if (px > p.bbox.min.x - PLAYER_RADIUS && px < p.bbox.max.x + PLAYER_RADIUS &&
               pz > p.bbox.min.z - PLAYER_RADIUS && pz < p.bbox.max.z + PLAYER_RADIUS) {
 
-            // landing on top
             if (velocity.y <= 0 && feetY <= topY + 0.18 && feetY >= topY - 0.7) {
               const justLanded = !wasOnGround;
               player.position.y = topY;
               velocity.y = 0;
               onGround = true;
               canJump = true;
-              jumpsLeft = 2; // reset double jump
+              jumpsLeft = 2;
               if (justLanded) playSfx(sfxLand);
               if (p.type === 'lava') standingOnLava = true;
             }
@@ -729,21 +865,20 @@
           return;
         }
 
-        // walked off a ledge → only one air jump remaining
         if (wasOnGround && !onGround && jumpsLeft === 2) {
           jumpsLeft = 1;
         }
       }
 
-      // fall death
       if (player.position.y < -18) {
         die();
         return;
       }
 
-      // animation state (only when not climbing)
       if (!isClimbing) {
-        if (onGround) {
+        if (forcedEmote) {
+          idleTimer = 0;
+        } else if (onGround) {
           if (moving) {
             playAnim('walk');
             idleTimer = 0;
@@ -759,9 +894,7 @@
         }
       }
 
-      // update camera (supports first-person when zoomed all the way in)
       if (cameraDist < 0.8) {
-        // first person
         camera.position.set(
           player.position.x,
           player.position.y + 1.55,
@@ -773,7 +906,6 @@
           -Math.cos(yaw) * Math.cos(pitch)
         );
         camera.lookAt(camera.position.clone().add(lookDir));
-        // hide player model in first person
         if (playerModel) playerModel.visible = false;
       } else {
         if (playerModel) playerModel.visible = true;
@@ -787,31 +919,26 @@
         camera.lookAt(player.position.x, player.position.y + 1.4, player.position.z);
       }
 
-      // progress
       if (player.position.z > maxReached) {
         maxReached = player.position.z;
         document.getElementById('dist').textContent = Math.floor(maxReached);
       }
 
-      // generate more
       if (player.position.z > nextZ - 45) {
         generateSection(nextZ);
       }
 
-      // checkpoint — only when touching the green spike
       for (const cp of checkpoints) {
         if (cp.activated) continue;
         const dist = player.position.distanceTo(cp.pos);
         if (dist < 2.2) {
           cp.activated = true;
           lastCheckpoint.set(cp.pos.x, cp.pos.y + 0.5, cp.pos.z);
-          // flash the flag
           cp.mesh.material.emissiveIntensity = 2;
           setTimeout(() => { if (cp.mesh.material) cp.mesh.material.emissiveIntensity = 0.6; }, 400);
         }
       }
 
-      // update & cleanup particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const pt = particles[i];
         pt.life -= dt;
@@ -825,7 +952,6 @@
         }
       }
 
-      // cleanup far objects
       for (let i = platforms.length - 1; i >= 0; i--) {
         if (platforms[i].z < player.position.z - 70) {
           scene.remove(platforms[i].mesh);
@@ -857,16 +983,11 @@
         const mesh = new THREE.Mesh(geo, mat);
         mesh.position.copy(origin);
         scene.add(mesh);
-        const vel = new THREE.Vector3(
-          (Math.random() - 0.5) * 6,
-          Math.random() * 4 + 1,
-          (Math.random() - 0.5) * 6
-        );
         particles.push({
           mesh,
-          vel,
-          life: 0.5 + Math.random() * 0.35,
-          maxLife: 0.7
+          vel: new THREE.Vector3((Math.random()-0.5)*5, 3 + Math.random()*4, (Math.random()-0.5)*5),
+          life: 0.5 + Math.random()*0.4,
+          maxLife: 0.9
         });
       }
     }
@@ -874,472 +995,383 @@
     function die() {
       if (isDead) return;
       isDead = true;
-      isClimbing = false;
-      document.getElementById('death').style.display = 'flex';
-      playAnim('fall');
       playSfx(sfxDeath);
+      const deathEl = document.getElementById('death');
+      deathEl.style.display = 'flex';
+
       setTimeout(() => {
         player.position.copy(lastCheckpoint);
-        velocity.set(0, 0, 0);
+        velocity.set(0,0,0);
         isDead = false;
-        isClimbing = false;
-        jumpsLeft = 2;
-        document.getElementById('death').style.display = 'none';
-        playAnim('idle');
-        idleTimer = 0;
-      }, 1200);
+        deathEl.style.display = 'none';
+      }, 900);
     }
 
-    // ========== AVATAR EDITOR ==========
+    initLevel();
+
+    // ========== AVATAR TEXTURE EDITOR (2D Canvas) ==========
+    const avatarEditor = document.getElementById('avatarEditor');
     const aeCanvas = document.getElementById('ae-canvas');
-    const aeCtx = aeCanvas.getContext('2d');
-    const aeEditor = document.getElementById('avatarEditor');
-    const aeColor = document.getElementById('ae-color');
-    const aeOverlay = document.getElementById('ae-overlay-img');
-    const aeStampBtn = document.getElementById('ae-stamp');
-    let aeTool = 'pen';
-    let aeDrawing = false;
-    let aeLastX = 0, aeLastY = 0;
-    let aeSquareStart = null;
-    let aeStampImg = null;
-    let aeStampX = 0, aeStampY = 0, aeStampDragging = false, aeStampOffX = 0, aeStampOffY = 0;
-    const TEX_SIZE = 512;
-    const STORAGE_KEY = 'roblox_obby_avatar_tex';
-    const DEFAULT_TEX_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/Sizecomparationdummy1Mtl_baseColor.png';
-    // In-memory fallback when localStorage is blocked (sandbox)
-    let memoryTexStore = null;
+    const aeCtx = aeCanvas.getContext('2d', { willReadFrequently: true });
+    const aeColorInput = document.getElementById('ae-color');
+    const aeOverlayImg = document.getElementById('ae-overlay-img');
+    const aeUpload = document.getElementById('ae-upload');
 
-    function storageGet(key) {
-      try {
-        return localStorage.getItem(key);
-      } catch (e) {
-        return memoryTexStore;
-      }
-    }
-    function storageSet(key, val) {
-      try {
-        localStorage.setItem(key, val);
-      } catch (e) {
-        memoryTexStore = val;
-      }
+    let currentTool = 'pen';
+    let isDrawing = false;
+    let lastX = 0, lastY = 0;
+
+    let workingCanvas = document.createElement('canvas');
+    let workCtx = workingCanvas.getContext('2d');
+    let currentTextureWidth = 512;
+    let currentTextureHeight = 512;
+
+    function initTextureCanvas(imgWidth, imgHeight, imgElement) {
+      currentTextureWidth = imgWidth;
+      currentTextureHeight = imgHeight;
+      aeCanvas.width = imgWidth;
+      aeCanvas.height = imgHeight;
+      workingCanvas.width = imgWidth;
+      workingCanvas.height = imgHeight;
+
+      workCtx = workingCanvas.getContext('2d', { willReadFrequently: true });
+      workCtx.clearRect(0, 0, imgWidth, imgHeight);
+      workCtx.drawImage(imgElement, 0, 0, imgWidth, imgHeight);
+
+      redrawAeCanvas();
+      applyTextureToModel(workingCanvas.toDataURL('image/png'));
     }
 
-    // Draw image flipped vertically onto a canvas context
-    function drawFlippedY(ctx, img, w, h) {
-      ctx.save();
-      ctx.translate(0, h);
-      ctx.scale(1, -1);
-      ctx.drawImage(img, 0, 0, w, h);
-      ctx.restore();
+    // Load default texture image immediately and initialize editor and model
+    const defaultImg = new Image();
+    defaultImg.crossOrigin = 'anonymous';
+    defaultImg.onload = () => {
+      initTextureCanvas(defaultImg.width || 512, defaultImg.height || 512, defaultImg);
+    };
+    defaultImg.src = DEFAULT_TEXTURE_URL;
+
+    function redrawAeCanvas() {
+      aeCtx.clearRect(0, 0, aeCanvas.width, aeCanvas.height);
+      aeCtx.drawImage(workingCanvas, 0, 0);
     }
 
-    // Load the real default texture, flipped upright for the editor
-    function loadDefaultTextureToEditor(cb) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-        // source is upside-down → flip so editor shows it correctly
-        drawFlippedY(aeCtx, img, TEX_SIZE, TEX_SIZE);
-        if (cb) cb();
-      };
-      img.onerror = () => {
-        // fallback solid if image fails
-        aeCtx.fillStyle = '#f5cd30';
-        aeCtx.fillRect(0, 0, TEX_SIZE, TEX_SIZE);
-        if (cb) cb();
-      };
-      img.src = DEFAULT_TEX_URL;
-    }
+    let uploadedImg = null;
+    let upScale = 1;
+    let upX = 0, upY = 0;
+    let isDraggingImg = false;
+    let dragStartX = 0, dragStartY = 0;
+    let isReplaceMode = false;
 
-    function loadEditorTexture() {
-      const saved = storageGet(STORAGE_KEY);
-      if (saved) {
-        const img = new Image();
-        img.onload = () => {
-          aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-          // saved data is stored in editor-upright orientation
-          aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
-        };
-        img.src = saved;
-      } else {
-        loadDefaultTextureToEditor();
-      }
-    }
-
-    // Create a canvas with the editor content flipped back (model UV orientation)
-    function getFlippedForModelCanvas() {
-      const off = document.createElement('canvas');
-      off.width = TEX_SIZE;
-      off.height = TEX_SIZE;
-      const octx = off.getContext('2d');
-      // flip editor (upright) → model (upside-down)
-      octx.save();
-      octx.translate(0, TEX_SIZE);
-      octx.scale(1, -1);
-      octx.drawImage(aeCanvas, 0, 0);
-      octx.restore();
-      return off;
-    }
-
-    function applyTextureToMeshes(tex) {
-      if (!playerModel) return;
-      playerModel.traverse((c) => {
-        if (c.isMesh && c.material) {
-          const mats = Array.isArray(c.material) ? c.material : [c.material];
-          mats.forEach((m) => {
-            if (m.map) m.map.dispose();
-            m.map = tex;
-            m.color.set(0xffffff);
-            m.needsUpdate = true;
-          });
-        }
-      });
-    }
-
-    function applyCanvasToModel() {
-      if (!playerModel) return;
-      // save editor-upright version
-      const dataUrl = aeCanvas.toDataURL('image/png');
-      storageSet(STORAGE_KEY, dataUrl);
-
-      // apply flipped version to the model
-      const flipped = getFlippedForModelCanvas();
-      const tex = new THREE.CanvasTexture(flipped);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.flipY = false;
-      tex.needsUpdate = true;
-      applyTextureToMeshes(tex);
-    }
-
-    function applyTextureFromStorage() {
-      const saved = storageGet(STORAGE_KEY);
-      if (!playerModel) return;
-
-      if (saved) {
-        const img = new Image();
-        img.onload = () => {
-          // saved is upright → paint to editor canvas, then flip for model
-          aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-          aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
-          const flipped = getFlippedForModelCanvas();
-          const tex = new THREE.CanvasTexture(flipped);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.flipY = false;
-          tex.needsUpdate = true;
-          applyTextureToMeshes(tex);
-        };
-        img.src = saved;
-      } else {
-        // load default (upside-down source), show upright in editor memory, apply original orientation to model
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          // model wants the original (upside-down) orientation
-          const off = document.createElement('canvas');
-          off.width = TEX_SIZE; off.height = TEX_SIZE;
-          const octx = off.getContext('2d');
-          octx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
-          const tex = new THREE.CanvasTexture(off);
-          tex.colorSpace = THREE.SRGBColorSpace;
-          tex.flipY = false;
-          tex.needsUpdate = true;
-          applyTextureToMeshes(tex);
-        };
-        img.src = DEFAULT_TEX_URL;
-      }
-    }
-
-    // open / close
     document.getElementById('avatarBtn').addEventListener('click', (e) => {
       e.stopPropagation();
-      loadEditorTexture();
-      aeEditor.classList.add('open');
-    });
-    document.getElementById('ae-close').addEventListener('click', () => {
-      aeEditor.classList.remove('open');
-      cancelStamp();
+      if (controls.isLocked) controls.unlock();
+      avatarEditor.classList.add('open');
+      redrawAeCanvas();
     });
 
-    // tools
-    document.querySelectorAll('#ae-toolbar [data-tool]').forEach(btn => {
+    document.getElementById('ae-close').addEventListener('click', () => {
+      avatarEditor.classList.remove('open');
+    });
+
+    document.querySelectorAll('#ae-toolbar button[data-tool]').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('#ae-toolbar [data-tool]').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('#ae-toolbar button[data-tool]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        aeTool = btn.dataset.tool;
-        aeCanvas.style.cursor = aeTool === 'picker' ? 'copy' : 'crosshair';
+        currentTool = btn.dataset.tool;
+        isReplaceMode = false;
+        if (uploadedImg) hideUploadOverlay();
       });
     });
 
-    function getPos(e) {
-      const r = aeCanvas.getBoundingClientRect();
-      const scaleX = TEX_SIZE / r.width;
-      const scaleY = TEX_SIZE / r.height;
+    function getCanvasCoords(e) {
+      const rect = aeCanvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const scaleX = aeCanvas.width / rect.width;
+      const scaleY = aeCanvas.height / rect.height;
       return {
-        x: (e.clientX - r.left) * scaleX,
-        y: (e.clientY - r.top) * scaleY
+        x: Math.floor((clientX - rect.left) * scaleX),
+        y: Math.floor((clientY - rect.top) * scaleY)
       };
-    }
-
-    // flood fill
-    function floodFill(x, y, fillColor) {
-      x = Math.floor(x); y = Math.floor(y);
-      const imgData = aeCtx.getImageData(0, 0, TEX_SIZE, TEX_SIZE);
-      const data = imgData.data;
-      const idx = (y * TEX_SIZE + x) * 4;
-      const target = [data[idx], data[idx+1], data[idx+2], data[idx+3]];
-      const fill = hexToRgba(fillColor);
-      if (colorsMatch(target, fill)) return;
-
-      const stack = [[x, y]];
-      while (stack.length) {
-        const [cx, cy] = stack.pop();
-        if (cx < 0 || cy < 0 || cx >= TEX_SIZE || cy >= TEX_SIZE) continue;
-        const i = (cy * TEX_SIZE + cx) * 4;
-        if (!colorsMatch([data[i], data[i+1], data[i+2], data[i+3]], target)) continue;
-        data[i] = fill[0]; data[i+1] = fill[1]; data[i+2] = fill[2]; data[i+3] = 255;
-        stack.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
-      }
-      aeCtx.putImageData(imgData, 0, 0);
-    }
-    function hexToRgba(hex) {
-      const h = hex.replace('#','');
-      return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16), 255];
-    }
-    function colorsMatch(a, b, tol = 8) {
-      return Math.abs(a[0]-b[0])<=tol && Math.abs(a[1]-b[1])<=tol && Math.abs(a[2]-b[2])<=tol && Math.abs(a[3]-b[3])<=tol;
     }
 
     aeCanvas.addEventListener('mousedown', (e) => {
-      if (aeStampImg) return;
-      const p = getPos(e);
-      if (aeTool === 'fill') {
-        floodFill(p.x, p.y, aeColor.value);
+      if (uploadedImg && !isReplaceMode) {
+        isDraggingImg = true;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        dragStartX = clientX - upX;
+        dragStartY = clientY - upY;
         return;
       }
-      if (aeTool === 'picker') {
-        const d = aeCtx.getImageData(Math.floor(p.x), Math.floor(p.y), 1, 1).data;
-        aeColor.value = '#' + [d[0],d[1],d[2]].map(v => v.toString(16).padStart(2,'0')).join('');
-        return;
+
+      isDrawing = true;
+      const coords = getCanvasCoords(e);
+      lastX = coords.x;
+      lastY = coords.y;
+
+      if (currentTool === 'fill') {
+        floodFill(lastX, lastY, aeColorInput.value);
+        redrawAeCanvas();
+        isDrawing = false;
+      } else if (currentTool === 'picker') {
+        const p = aeCtx.getImageData(lastX, lastY, 1, 1).data;
+        const hex = '#' + ((1 << 24) + (p[0] << 16) + (p[1] << 8) + p[2]).toString(16).slice(1);
+        aeColorInput.value = hex;
+        isDrawing = false;
+      } else if (currentTool === 'pen') {
+        drawPen(lastX, lastY, lastX, lastY);
       }
-      if (aeTool === 'square') {
-        aeSquareStart = p;
-        aeDrawing = true;
-        return;
-      }
-      // pen
-      aeDrawing = true;
-      aeLastX = p.x; aeLastY = p.y;
-      aeCtx.strokeStyle = aeColor.value;
-      aeCtx.fillStyle = aeColor.value;
-      aeCtx.lineWidth = 6;
-      aeCtx.lineCap = 'round';
-      aeCtx.beginPath();
-      aeCtx.arc(p.x, p.y, 3, 0, Math.PI * 2);
-      aeCtx.fill();
     });
 
     aeCanvas.addEventListener('mousemove', (e) => {
-      if (!aeDrawing || aeStampImg) return;
-      const p = getPos(e);
-      if (aeTool === 'pen') {
-        aeCtx.strokeStyle = aeColor.value;
-        aeCtx.lineWidth = 6;
-        aeCtx.lineCap = 'round';
-        aeCtx.beginPath();
-        aeCtx.moveTo(aeLastX, aeLastY);
-        aeCtx.lineTo(p.x, p.y);
-        aeCtx.stroke();
-        aeLastX = p.x; aeLastY = p.y;
+      if (uploadedImg && isDraggingImg && !isReplaceMode) {
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        upX = clientX - dragStartX;
+        upY = clientY - dragStartY;
+        updateOverlayStyle();
+        return;
+      }
+
+      if (!isDrawing) return;
+      const coords = getCanvasCoords(e);
+      if (currentTool === 'pen') {
+        drawPen(lastX, lastY, coords.x, coords.y);
+        lastX = coords.x;
+        lastY = coords.y;
+      } else if (currentTool === 'square') {
+        redrawAeCanvas();
+        aeCtx.fillStyle = aeColorInput.value;
+        aeCtx.fillRect(Math.min(lastX, coords.x), Math.min(lastY, coords.y), Math.abs(coords.x - lastX), Math.abs(coords.y - lastY));
       }
     });
 
-    aeCanvas.addEventListener('mouseup', (e) => {
-      if (aeTool === 'square' && aeSquareStart) {
-        const p = getPos(e);
-        aeCtx.fillStyle = aeColor.value;
-        aeCtx.fillRect(
-          aeSquareStart.x, aeSquareStart.y,
-          p.x - aeSquareStart.x, p.y - aeSquareStart.y
-        );
-        aeSquareStart = null;
+    window.addEventListener('mouseup', () => {
+      if (isDrawing && currentTool === 'square') {
+        workCtx.drawImage(aeCanvas, 0, 0);
       }
-      aeDrawing = false;
+      isDrawing = false;
+      isDraggingImg = false;
     });
-    aeCanvas.addEventListener('mouseleave', () => { aeDrawing = false; });
 
-    // upload for stamp
-    document.getElementById('ae-upload').addEventListener('change', (e) => {
+    aeCanvas.addEventListener('wheel', (e) => {
+      if (uploadedImg && !isReplaceMode) {
+        e.preventDefault();
+        const delta = e.deltaY < 0 ? 1.1 : 0.9;
+        upScale = Math.max(0.1, Math.min(5, upScale * delta));
+        updateOverlayStyle();
+      }
+    }, { passive: false });
+
+    function drawPen(x1, y1, x2, y2) {
+      workCtx.strokeStyle = aeColorInput.value;
+      workCtx.fillStyle = aeColorInput.value;
+      workCtx.lineWidth = 12;
+      workCtx.lineCap = 'round';
+      workCtx.beginPath();
+      workCtx.moveTo(x1, y1);
+      workCtx.lineTo(x2, y2);
+      workCtx.stroke();
+      redrawAeCanvas();
+    }
+
+    function floodFill(startX, startY, fillColorHex) {
+      const imgData = workCtx.getImageData(0, 0, currentTextureWidth, currentTextureHeight);
+      const data = imgData.data;
+      const targetIdx = (startY * currentTextureWidth + startX) * 4;
+      const tr = data[targetIdx], tg = data[targetIdx+1], tb = data[targetIdx+2], ta = data[targetIdx+3];
+
+      const r = parseInt(fillColorHex.slice(1,3), 16);
+      const g = parseInt(fillColorHex.slice(3,5), 16);
+      const b = parseInt(fillColorHex.slice(5,7), 16);
+
+      if (tr === r && tg === g && tb === b && ta === 255) return;
+
+      const queue = [[startX, startY]];
+      const visited = new Uint8Array(currentTextureWidth * currentTextureHeight);
+
+      while (queue.length > 0) {
+        const [x, y] = queue.pop();
+        if (x < 0 || x >= currentTextureWidth || y < 0 || y >= currentTextureHeight) continue;
+        const idx = y * currentTextureWidth + x;
+        if (visited[idx]) continue;
+        visited[idx] = 1;
+
+        const curIdx = (y * currentTextureWidth + x) * 4;
+        if (data[curIdx] === tr && data[curIdx+1] === tg && data[curIdx+2] === tb && data[curIdx+3] === ta) {
+          data[curIdx]   = r;
+          data[curIdx+1] = g;
+          data[curIdx+2] = b;
+          data[curIdx+3] = 255;
+
+          queue.push([x+1, y], [x-1, y], [x, y+1], [x, y-1]);
+        }
+      }
+      workCtx.putImageData(imgData, 0, 0);
+    }
+
+    aeUpload.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (!file) return;
       const reader = new FileReader();
-      reader.onload = (ev) => {
-        const img = new Image();
-        img.onload = () => {
-          aeStampImg = img;
-          const maxSide = 200;
-          let w = img.width, h = img.height;
-          if (w > maxSide || h > maxSide) {
-            const s = maxSide / Math.max(w, h);
-            w *= s; h *= s;
+      reader.onload = (evt) => {
+        uploadedImg = new Image();
+        uploadedImg.onload = () => {
+          if (isReplaceMode) {
+            initTextureCanvas(uploadedImg.width || 512, uploadedImg.height || 512, uploadedImg);
+            uploadedImg = null;
+            isReplaceMode = false;
+          } else {
+            upScale = 1;
+            upX = 0;
+            upY = 0;
+            aeOverlayImg.src = uploadedImg.src;
+            aeOverlayImg.style.display = 'block';
+            document.getElementById('ae-stamp').style.display = 'inline-block';
+            updateOverlayStyle();
           }
-          aeStampBaseW = w;
-          aeStampBaseH = h;
-          aeStampScale = 1;
-          aeOverlay.src = ev.target.result;
-          aeOverlay.style.display = 'block';
-          aeOverlay.style.width = w + 'px';
-          aeOverlay.style.height = h + 'px';
-          aeOverlay.style.left = '40px';
-          aeOverlay.style.top = '40px';
-          aeStampX = 40; aeStampY = 40;
-          aeStampBtn.style.display = 'inline-block';
-          aeOverlay.style.pointerEvents = 'auto';
-          aeOverlay.style.cursor = 'move';
         };
-        img.src = ev.target.result;
+        uploadedImg.src = evt.target.result;
       };
       reader.readAsDataURL(file);
-      e.target.value = '';
     });
 
-    let aeStampBaseW = 200, aeStampBaseH = 200, aeStampScale = 1;
-
-    aeOverlay.addEventListener('mousedown', (e) => {
-      aeStampDragging = true;
-      aeStampOffX = e.offsetX;
-      aeStampOffY = e.offsetY;
-      e.preventDefault();
-    });
-    window.addEventListener('mousemove', (e) => {
-      if (!aeStampDragging || !aeStampImg) return;
-      const wrap = document.getElementById('ae-canvas-wrap').getBoundingClientRect();
-      let x = e.clientX - wrap.left - aeStampOffX;
-      let y = e.clientY - wrap.top - aeStampOffY;
-      aeOverlay.style.left = x + 'px';
-      aeOverlay.style.top = y + 'px';
-      aeStampX = x; aeStampY = y;
-    });
-    window.addEventListener('mouseup', () => { aeStampDragging = false; });
-
-    // Scroll wheel scales the stamp image
-    document.getElementById('ae-canvas-wrap').addEventListener('wheel', (e) => {
-      if (!aeStampImg) return;
-      e.preventDefault();
-      e.stopPropagation();
-      const delta = e.deltaY > 0 ? 0.9 : 1.1;
-      aeStampScale = Math.max(0.1, Math.min(5, aeStampScale * delta));
-      const w = aeStampBaseW * aeStampScale;
-      const h = aeStampBaseH * aeStampScale;
-      // keep center roughly stable
-      const cx = aeStampX + parseFloat(aeOverlay.style.width) / 2;
-      const cy = aeStampY + parseFloat(aeOverlay.style.height) / 2;
-      aeOverlay.style.width = w + 'px';
-      aeOverlay.style.height = h + 'px';
-      aeStampX = cx - w / 2;
-      aeStampY = cy - h / 2;
-      aeOverlay.style.left = aeStampX + 'px';
-      aeOverlay.style.top = aeStampY + 'px';
-    }, { passive: false });
-
-    aeStampBtn.addEventListener('click', () => {
-      if (!aeStampImg) return;
-      const r = aeCanvas.getBoundingClientRect();
-      const scaleX = TEX_SIZE / r.width;
-      const scaleY = TEX_SIZE / r.height;
-      const dw = parseFloat(aeOverlay.style.width) * scaleX;
-      const dh = parseFloat(aeOverlay.style.height) * scaleY;
-      aeCtx.drawImage(aeStampImg, aeStampX * scaleX, aeStampY * scaleY, dw, dh);
-      cancelStamp();
-    });
-
-    function cancelStamp() {
-      aeStampImg = null;
-      aeOverlay.style.display = 'none';
-      aeOverlay.src = '';
-      aeStampBtn.style.display = 'none';
-      aeStampScale = 1;
+    function updateOverlayStyle() {
+      if (!uploadedImg) return;
+      const w = uploadedImg.width * upScale;
+      const h = uploadedImg.height * upScale;
+      aeOverlayImg.style.width = w + 'px';
+      aeOverlayImg.style.height = h + 'px';
+      aeOverlayImg.style.transform = `translate(${upX}px, ${upY}px)`;
     }
 
-    // replace whole texture
+    function hideUploadOverlay() {
+      aeOverlayImg.style.display = 'none';
+      document.getElementById('ae-stamp').style.display = 'none';
+      uploadedImg = null;
+      isReplaceMode = false;
+    }
+
+    document.getElementById('ae-stamp').addEventListener('click', () => {
+      if (!uploadedImg) return;
+      const rect = aeCanvas.getBoundingClientRect();
+      const overlayRect = aeOverlayImg.getBoundingClientRect();
+      const scaleX = aeCanvas.width / rect.width;
+      const scaleY = aeCanvas.height / rect.height;
+
+      const drawX = (overlayRect.left - rect.left) * scaleX;
+      const drawY = (overlayRect.top - rect.top) * scaleY;
+      const drawW = overlayRect.width * scaleX;
+      const drawH = overlayRect.height * scaleY;
+
+      workCtx.drawImage(uploadedImg, drawX, drawY, drawW, drawH);
+      redrawAeCanvas();
+      hideUploadOverlay();
+    });
+
     document.getElementById('ae-replace').addEventListener('click', () => {
-      const inp = document.createElement('input');
-      inp.type = 'file';
-      inp.accept = 'image/*';
-      inp.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-          const img = new Image();
-          img.onload = () => {
-            aeCtx.clearRect(0, 0, TEX_SIZE, TEX_SIZE);
-            aeCtx.drawImage(img, 0, 0, TEX_SIZE, TEX_SIZE);
-          };
-          img.src = ev.target.result;
-        };
-        reader.readAsDataURL(file);
+      isReplaceMode = true;
+      aeUpload.click();
+    });
+
+    document.getElementById('ae-reset').addEventListener('click', async () => {
+      const confirmReset = await showCustomPopup("Reset Texture", "Are you sure you want to reset the texture to default?");
+      if (!confirmReset) return;
+
+      const freshDefaultImg = new Image();
+      freshDefaultImg.crossOrigin = 'anonymous';
+      freshDefaultImg.onload = () => {
+        initTextureCanvas(freshDefaultImg.width || 512, freshDefaultImg.height || 512, freshDefaultImg);
       };
-      inp.click();
+      freshDefaultImg.src = DEFAULT_TEXTURE_URL;
+      hideUploadOverlay();
     });
 
-    // reset to default texture
-    document.getElementById('ae-reset').addEventListener('click', () => {
-      if (!confirm('Reset canvas to the default noob texture?')) return;
-      cancelStamp();
-      loadDefaultTextureToEditor();
-      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-      memoryTexStore = null;
-    });
-
-    // download
     document.getElementById('ae-download').addEventListener('click', () => {
       const link = document.createElement('a');
-      link.download = 'obby_avatar_texture.png';
-      link.href = aeCanvas.toDataURL('image/png');
+      link.download = `roblox_obby_avatar_skin_${currentTextureWidth}x${currentTextureHeight}.png`;
+      link.href = workingCanvas.toDataURL('image/png');
       link.click();
     });
 
-    // apply
-    document.getElementById('ae-apply').addEventListener('click', () => {
-      applyCanvasToModel();
-      aeEditor.classList.remove('open');
-      cancelStamp();
-      alert('Avatar texture applied & saved locally!');
+    document.getElementById('exportCurrentTextureBtn').addEventListener('click', () => {
+      let activeDataUrl = workingCanvas.toDataURL('image/png');
+      let expW = currentTextureWidth;
+      let expH = currentTextureHeight;
+
+      if (playerModel) {
+        playerModel.traverse((c) => {
+          if (c.isMesh && c.material && c.material.map && c.material.map.image) {
+            const img = c.material.map.image;
+            if (img.tagName === 'CANVAS' || img.tagName === 'IMG') {
+              expW = img.width || currentTextureWidth;
+              expH = img.height || currentTextureHeight;
+              const exportCanvas = document.createElement('canvas');
+              exportCanvas.width = expW;
+              exportCanvas.height = expH;
+              const eCtx = exportCanvas.getContext('2d');
+              eCtx.drawImage(img, 0, 0);
+              activeDataUrl = exportCanvas.toDataURL('image/png');
+            }
+          }
+        });
+      }
+      const link = document.createElement('a');
+      link.download = `roblox_obby_current_skin_${expW}x${expH}.png`;
+      link.href = activeDataUrl;
+      link.click();
     });
 
-    // ========== LOOP ==========
-    const clock = new THREE.Clock();
+    document.getElementById('ae-apply').addEventListener('click', () => {
+      const dataUrl = workingCanvas.toDataURL('image/png');
+      applyTextureToModel(dataUrl);
+      avatarEditor.classList.remove('open');
+    });
+
+    function applyTextureToModel(dataUrl) {
+      const img = new Image();
+      img.onload = () => {
+        const texture = new THREE.CanvasTexture(img);
+        texture.flipY = false;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        if (playerModel) {
+          playerModel.traverse((c) => {
+            if (c.isMesh && c.material) {
+              c.material.map = texture;
+              c.material.needsUpdate = true;
+            }
+          });
+        }
+      };
+      img.src = dataUrl;
+    }
+
+    // Render loop
+    let clock = new THREE.Clock();
+
     function animate() {
       requestAnimationFrame(animate);
-      const dt = Math.min(clock.getDelta(), 0.05);
-      updatePhysics(dt);
+      const dt = Math.min(clock.getDelta(), 0.1);
+
       if (mixer) mixer.update(dt);
 
-      // rainbow pulse
-      for (const p of platforms) {
-        if (p.type === 'rainbow' && p.mesh.material.color) {
-          const t = performance.now() * 0.001;
-          p.mesh.material.color.setHSL((t * 0.15 + p.z * 0.02) % 1, 0.85, 0.55);
-        }
-        if (p.type === 'lava') {
-          p.mesh.material.emissiveIntensity = 0.6 + Math.sin(performance.now() * 0.008) * 0.3;
-        }
+      if (controls.isLocked) {
+        updatePhysics(dt);
       }
 
       renderer.render(scene, camera);
     }
 
-    // resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
-    // start
-    initLevel();
-    animate();
+    window.onload = function () {
+      animate();
+    };
   </script>
 </body>
 </html>
