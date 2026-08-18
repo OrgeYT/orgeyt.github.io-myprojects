@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OIIA Cat Translator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono&display=swap');
+
+        body {
+            margin: 0;
+            overflow-x: hidden;
+            font-family: 'Orbitron', sans-serif;
+            background-color: #050505; /* Deep dark background */
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* The blurred OIIA Cat background */
+        .bg-gif {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            background-image: url('https://images.wondershare.com/filmora/article-images/oiia-cat-02.gif');
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px) brightness(0.2); /* Blurred and dark tint */
+            transform: scale(1.1); /* Prevent blurred edges from showing the background */
+        }
+
+        /* Neon Green Theme Variables and utilities */
+        :root {
+            --neon-green: #39ff14;
+            --neon-glow: 0 0 10px rgba(57, 255, 20, 0.5), 0 0 20px rgba(57, 255, 20, 0.3);
+        }
+
+        .neon-text {
+            color: var(--neon-green);
+            text-shadow: var(--neon-glow);
+        }
+
+        .neon-border {
+            border: 1px solid var(--neon-green);
+            box-shadow: inset 0 0 10px rgba(57, 255, 20, 0.2), 0 0 10px rgba(57, 255, 20, 0.2);
+        }
+
+        .neon-button {
+            background-color: rgba(57, 255, 20, 0.1);
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 0 5px rgba(57, 255, 20, 0.2);
+        }
+
+        .neon-button:hover {
+            background-color: var(--neon-green);
+            color: #000;
+            box-shadow: 0 0 15px var(--neon-green);
+            transform: translateY(-2px);
+        }
+        
+        .neon-button:active {
+            transform: translateY(1px);
+        }
+
+        .neon-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background-color: transparent;
+            color: #555;
+            border-color: #555;
+            box-shadow: none;
+        }
+
+        .panel {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            border: 1px solid rgba(57, 255, 20, 0.3);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        textarea {
+            background: rgba(0, 0, 0, 0.6);
+            color: var(--neon-green);
+            border: 1px solid rgba(57, 255, 20, 0.5);
+            font-family: 'Roboto Mono', monospace;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--neon-green);
+            box-shadow: inset 0 0 5px rgba(57, 255, 20, 0.5);
+        }
+
+        /* Custom scrollbar for textareas */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.5); 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(57, 255, 20, 0.5); 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--neon-green); 
+        }
+
+        /* Range Slider styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--neon-green);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px var(--neon-green);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(57, 255, 20, 0.3);
+            border-radius: 2px;
+        }
+        
+        /* Checkbox styling */
+        .checkbox-wrapper-neon input[type="checkbox"] {
+            display: none;
+        }
+        .checkbox-wrapper-neon label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #ddd;
+            font-size: 0.9rem;
+        }
+        .checkbox-wrapper-neon label::before {
+            content: "";
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-right: 8px;
+            border: 1px solid var(--neon-green);
+            background-color: rgba(0,0,0,0.5);
+            border-radius: 3px;
+            transition: all 0.2s;
+        }
+        .checkbox-wrapper-neon input[type="checkbox"]:checked + label::before {
+            background-color: var(--neon-green);
+            box-shadow: inset 0 0 0 3px #000;
+        }
+
+        .audio-wave {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 30px;
+            gap: 4px;
+        }
+        .bar {
+            width: 6px;
+            height: 4px;
+            background: var(--neon-green);
+            border-radius: 3px;
+            transition: height 0.1s ease;
+        }
+        .playing .bar {
+            animation: bounce 0.5s infinite alternate;
+        }
+        
+        @keyframes bounce {
+            0% { height: 4px; }
+            100% { height: 25px; }
+        }
+        .bar:nth-child(1) { animation-delay: 0.1s; }
+        .bar:nth-child(2) { animation-delay: 0.2s; }
+        .bar:nth-child(3) { animation-delay: 0.3s; }
+        .bar:nth-child(4) { animation-delay: 0.4s; }
+        .bar:nth-child(5) { animation-delay: 0.5s; }
+
+        .oiia-char-span {
+            display: inline-block;
+            padding: 0 1px;
+            border-bottom: 3px solid transparent;
+            transition: border-color 0.1s ease, color 0.1s ease, text-shadow 0.1s ease;
+        }
+
+        .active-char {
+            color: #ffffff !important;
+            border-bottom: 3px solid var(--neon-green) !important;
+            text-shadow: 0 0 8px var(--neon-green), 0 0 15px var(--neon-green);
+            background-color: rgba(57, 255, 20, 0.15);
+            border-radius: 2px 2px 0 0;
+        }
+
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="bg-gif"></div>
+
+    <div class="max-w-4xl w-full mx-auto relative z-10 flex flex-col gap-6">
+        
+        <header class="text-center py-6">
+            <h1 class="text-4xl md:text-6xl font-bold neon-text mb-2">OIIA TRANSLATOR</h1>
+            <p class="text-gray-400 text-sm md:text-base tracking-widest uppercase">Convert your words into the ancient feline dialect</p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Input Section -->
+            <div class="panel p-5 flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl neon-text font-bold">Human Text</h2>
+                    <button id="speakHumanBtn" class="neon-button px-3 py-1 rounded text-sm flex items-center gap-2" title="Speak using standard TTS">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+                        Speak (EN)
+                    </button>
+                </div>
+                <textarea id="humanInput" class="w-full h-48 p-3 rounded-lg text-lg" placeholder="Enter text to translate...">Hello world, how are you today? I am the OIIA cat, the ancient feline spirit of the internet. Meow your secrets into the void and I shall answer in pure vowel song. Are you ready to transcend language itself?</textarea>
+                
+                <button id="translateBtn" class="neon-button w-full py-3 rounded-lg text-lg font-bold mt-auto">
+                    Translate to OIIA ➜
+                </button>
+            </div>
+
+            <!-- Output Section -->
+            <div class="panel p-5 flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl neon-text font-bold">OIIA Speech</h2>
+                    <div class="flex gap-2">
+                        <button id="speakOiiaBtn" class="neon-button px-3 py-1 rounded text-sm flex items-center gap-2" title="Play OIIA sounds">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                            Play OIIA
+                        </button>
+                        <button id="copyOiiaBtn" class="neon-button px-3 py-1 rounded text-sm flex items-center gap-2" title="Copy OIIA text" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                        <button id="stopBtn" class="neon-button px-3 py-1 rounded text-sm flex items-center gap-2" title="Stop playback" disabled>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="oiiaOutput" class="w-full h-48 p-3 rounded-lg text-lg overflow-y-auto font-mono leading-relaxed bg-black/60 border border-[var(--neon-green)]/50 text-[var(--neon-green)] select-text break-words">
+                    <span class="text-gray-600 italic">OIIA output will appear here...</span>
+                </div>
+                
+                <div class="flex items-center justify-between mt-auto">
+                     <div class="audio-wave" id="visualizer">
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                        <div class="bar"></div>
+                    </div>
+                    <button id="exportWavBtn" class="neon-button px-4 py-2 rounded-lg text-sm flex items-center gap-2" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Export .WAV
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Controls Section -->
+        <div class="panel p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col gap-3">
+                <h3 class="text-gray-300 font-bold mb-1">Playback Settings</h3>
+                
+                <div class="flex flex-col gap-1">
+                    <div class="flex justify-between">
+                        <label for="speedSlider" class="text-sm text-gray-400">Speech Speed (Delay ms)</label>
+                        <span id="speedValue" class="text-sm neon-text">200ms</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="50" max="600" value="200" step="10">
+                    <p class="text-xs text-gray-500 mt-1">Lower is faster, higher is slower pacing.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3 justify-center">
+                 <h3 class="text-gray-300 font-bold mb-1">Audio Engine</h3>
+                <div class="checkbox-wrapper-neon">
+                    <input type="checkbox" id="cutModeCheckbox" checked>
+                    <label for="cutModeCheckbox">
+                        <div>
+                            Cut Mode (Staccato)
+                            <div class="text-xs text-gray-500 mt-1">Stops previous sound when a new one plays. Uncheck for overlapping echoes.</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Log/Status area -->
+        <div id="statusMessage" class="text-center text-sm text-gray-400 h-6 transition-opacity duration-300 opacity-0">
+            Ready
+        </div>
+
+    </div>
+
+    <script>
+        // Data and State
+        const OIIA_MAPPING = {
+            'A': 'A',
+            'E': 'E',
+            'I': 'I',
+            'O': 'O',
+            'U': 'U',
+            '!': '!',
+            '.': '.',
+            ',': ',',
+            '?': '?',
+            ' ': ' ' // preserve spaces for pacing
+        };
+
+        const AUDIO_URLS = {
+            'A': 'https://file.garden/Zj01o_oh-G9Y8APf/oiiaa/a.mp3',
+            'E': 'https://file.garden/Zj01o_oh-G9Y8APf/oiiaa/e.mp3',
+            'I': 'https://file.garden/Zj01o_oh-G9Y8APf/oiiaa/i.mp3',
+            'O': 'https://file.garden/Zj01o_oh-G9Y8APf/oiiaa/o.mp3',
+            'U': 'https://file.garden/Zj01o_oh-G9Y8APf/oiiaa/u.mp3'
+        };
+
+        // Preload Audio Elements for quick playback
+        const audioCache = {};
+        let audioContext = null;
+        let audioBuffers = {}; // Used for generating the WAV file
+        let isPlaying = false;
+        let playbackQueue = [];
+        let currentTimeoutId = null;
+        let currentSourceNode = null; // Track Web Audio node for cut mode
+        let currentOiiaText = ''; // Track OIIA output text string
+
+        // DOM Elements
+        const humanInput = document.getElementById('humanInput');
+        const oiiaOutput = document.getElementById('oiiaOutput');
+        const translateBtn = document.getElementById('translateBtn');
+        const speakHumanBtn = document.getElementById('speakHumanBtn');
+        const speakOiiaBtn = document.getElementById('speakOiiaBtn');
+        const copyOiiaBtn = document.getElementById('copyOiiaBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const exportWavBtn = document.getElementById('exportWavBtn');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const cutModeCheckbox = document.getElementById('cutModeCheckbox');
+        const visualizer = document.getElementById('visualizer');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Show a brief status message
+        function showMessage(msg, isError = false) {
+            statusMessage.textContent = msg;
+            statusMessage.style.color = isError ? '#ff3333' : '#a0aec0';
+            statusMessage.style.opacity = '1';
+            setTimeout(() => {
+                statusMessage.style.opacity = '0';
+            }, 3000);
+        }
+
+        // Initialize Web Audio API
+        async function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+            return audioContext;
+        }
+
+        // Preload audio buffers for Web Audio API (needed for pitch shift and WAV export)
+        async function loadAudioBuffers() {
+            showMessage("Preloading audio assets...");
+            const ctx = await initAudioContext();
+            
+            for (const [vowel, url] of Object.entries(AUDIO_URLS)) {
+                try {
+                    const response = await fetch(url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+                    audioBuffers[vowel] = audioBuffer;
+                } catch (e) {
+                    console.error(`Failed to load ${vowel}:`, e);
+                    showMessage(`Error loading asset: ${vowel}`, true);
+                }
+            }
+            showMessage("Assets loaded ready.");
+        }
+
+        function renderOiiaOutput(text) {
+            currentOiiaText = text;
+            if (!text) {
+                oiiaOutput.innerHTML = '<span class="text-gray-600 italic">OIIA output will appear here...</span>';
+                exportWavBtn.disabled = true;
+                copyOiiaBtn.disabled = true;
+                return;
+            }
+            
+            exportWavBtn.disabled = false;
+            copyOiiaBtn.disabled = false;
+            oiiaOutput.innerHTML = '';
+            
+            for (let i = 0; i < text.length; i++) {
+                const span = document.createElement('span');
+                span.id = `oiia-char-${i}`;
+                span.className = 'oiia-char-span';
+                if (text[i] === ' ') {
+                    span.innerHTML = '&nbsp;';
+                } else {
+                    span.textContent = text[i];
+                }
+                oiiaOutput.appendChild(span);
+            }
+        }
+
+        function highlightChar(index) {
+            const activeElements = oiiaOutput.querySelectorAll('.active-char');
+            activeElements.forEach(el => el.classList.remove('active-char'));
+
+            if (index !== undefined && index !== null && index >= 0) {
+                const el = document.getElementById(`oiia-char-${index}`);
+                if (el) {
+                    el.classList.add('active-char');
+                    el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+                }
+            }
+        }
+
+        // Translate logic
+        function translateToOiia() {
+            const text = humanInput.value.toUpperCase();
+            let result = '';
+            
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                // Keep only A,E,I,O,U, spaces, and punctuation !.,?
+                if (['A', 'E', 'I', 'O', 'U', ' ', '!', '.', ',', '?'].includes(char)) {
+                    result += char;
+                }
+            }
+            
+            // Clean up multiple spaces
+            result = result.replace(/\s+/g, ' ').trim();
+            renderOiiaOutput(result);
+        }
+
+        function setVisualizerState(active) {
+            if (active) {
+                visualizer.classList.add('playing');
+            } else {
+                visualizer.classList.remove('playing');
+            }
+        }
+
+        function stopPlayback() {
+            isPlaying = false;
+            playbackQueue = [];
+            if (currentTimeoutId) clearTimeout(currentTimeoutId);
+            
+            if (currentSourceNode) {
+                try {
+                    currentSourceNode.stop();
+                } catch(e) {}
+                currentSourceNode = null;
+            }
+            
+            window.speechSynthesis.cancel();
+            highlightChar(-1);
+            
+            setVisualizerState(false);
+            stopBtn.disabled = true;
+            speakOiiaBtn.disabled = false;
+            speakHumanBtn.disabled = false;
+        }
+
+        // Play OIIA Sequence
+        async function playOiiaSequence() {
+            const text = currentOiiaText;
+            if (!text) return;
+
+            await initAudioContext();
+            
+            // If buffers aren't loaded yet, try loading them
+            if (Object.keys(audioBuffers).length === 0) {
+                await loadAudioBuffers();
+            }
+
+            stopPlayback(); // Reset state
+            isPlaying = true;
+            stopBtn.disabled = false;
+            speakOiiaBtn.disabled = true;
+            setVisualizerState(true);
+
+            // Parse text into playable tokens
+            playbackQueue = [];
+            let currentPitchMod = 1.0; // Default pitch rate
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (['A', 'E', 'I', 'O', 'U'].includes(char)) {
+                    playbackQueue.push({ type: 'sound', vowel: char, pitch: currentPitchMod, index: i });
+                } else if (char === ' ') {
+                    playbackQueue.push({ type: 'pause', duration: 1, index: i }); // 1x delay pause
+                } else if (['!', '.', ',', '?'].includes(char)) {
+                    playbackQueue.push({ type: 'pause', duration: 1.5, index: i });
+                }
+            }
+
+            playNextInQueue();
+        }
+
+        function playNextInQueue() {
+            if (!isPlaying || playbackQueue.length === 0) {
+                stopPlayback();
+                return;
+            }
+
+            const item = playbackQueue.shift();
+            const delayMs = parseInt(speedSlider.value);
+            const cutMode = cutModeCheckbox.checked;
+
+            highlightChar(item.index);
+
+            if (item.type === 'pause') {
+                currentTimeoutId = setTimeout(playNextInQueue, delayMs * item.duration);
+            } else if (item.type === 'sound') {
+                playSound(item.vowel, item.pitch, cutMode);
+                // Schedule next item
+                currentTimeoutId = setTimeout(playNextInQueue, delayMs);
+            }
+        }
+
+        function playSound(vowel, pitchRate, cutMode) {
+            const buffer = audioBuffers[vowel];
+            if (!buffer) return;
+
+            if (cutMode && currentSourceNode) {
+                try {
+                    currentSourceNode.stop();
+                } catch(e) {}
+            }
+
+            const source = audioContext.createBufferSource();
+            source.buffer = buffer;
+            source.playbackRate.value = pitchRate;
+            
+            // Add a slight gain node to prevent clipping
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.8;
+            
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            source.start(0);
+            
+            if (cutMode) {
+                currentSourceNode = source;
+            }
+        }
+
+        // Offline Audio Context to render the sequence to a buffer, then export as WAV
+        async function exportToWav() {
+            const text = currentOiiaText;
+            if (!text || Object.keys(audioBuffers).length === 0) {
+                showMessage("Translate text first and ensure audio is loaded.", true);
+                return;
+            }
+            
+            showMessage("Rendering WAV file...");
+            exportWavBtn.disabled = true;
+
+            const delaySecs = parseInt(speedSlider.value) / 1000;
+            
+            // 1. Calculate total duration
+            let totalDuration = 0.5; // Padding at end
+            let currentTime = 0;
+            
+            // Build pseudo queue to calculate time
+            let renderQueue = [];
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                if (['A', 'E', 'I', 'O', 'U'].includes(char)) {
+                    renderQueue.push({ type: 'sound', vowel: char, pitch: 1.0, time: currentTime });
+                    currentTime += delaySecs;
+                } else if (char === ' ') {
+                    currentTime += delaySecs;
+                } else if (['!', '.', ',', '?'].includes(char)) {
+                    currentTime += delaySecs * 1.5;
+                }
+            }
+            totalDuration += currentTime;
+
+            // 2. Create Offline Context
+            const sampleRate = 44100;
+            const offlineCtx = new OfflineAudioContext(2, sampleRate * totalDuration, sampleRate);
+            const cutMode = cutModeCheckbox.checked;
+
+            // 3. Schedule playback in offline context
+            for (let i = 0; i < renderQueue.length; i++) {
+                const item = renderQueue[i];
+                const buffer = audioBuffers[item.vowel];
+                if (!buffer) continue;
+
+                const source = offlineCtx.createBufferSource();
+                source.buffer = buffer;
+                source.playbackRate.value = item.pitch;
+                
+                source.connect(offlineCtx.destination);
+                
+                if (cutMode) {
+                    let stopTime = item.time + (buffer.duration / item.pitch);
+                    if (i < renderQueue.length - 1) {
+                        const nextItemTime = renderQueue[i+1].time;
+                        if (nextItemTime < stopTime) {
+                            stopTime = nextItemTime;
+                        }
+                    }
+                    source.start(item.time);
+                    source.stop(stopTime);
+                } else {
+                    source.start(item.time);
+                }
+            }
+
+            // 4. Render
+            try {
+                const renderedBuffer = await offlineCtx.startRendering();
+                const wavBlob = bufferToWave(renderedBuffer, renderedBuffer.length);
+                
+                // 5. Download
+                const url = URL.createObjectURL(wavBlob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = 'oiia_translation.wav';
+                document.body.appendChild(a);
+                a.click();
+                
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                showMessage("WAV Exported!");
+            } catch (e) {
+                console.error(e);
+                showMessage("Failed to render WAV.", true);
+            } finally {
+                exportWavBtn.disabled = false;
+            }
+        }
+
+        // Helper to convert AudioBuffer to WAV format (Blob)
+        function bufferToWave(abuffer, len) {
+            const numOfChan = abuffer.numberOfChannels;
+            const length = len * numOfChan * 2 + 44;
+            const buffer = new ArrayBuffer(length);
+            const view = new DataView(buffer);
+            const channels = [];
+            let i;
+            let sample;
+            let offset = 0;
+            let pos = 0;
+
+            // write WAVE header
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length - 8); // file length - 8
+            setUint32(0x45564157); // "WAVE"
+
+            setUint32(0x20746d66); // "fmt " chunk
+            setUint32(16); // length = 16
+            setUint16(1); // PCM (uncompressed)
+            setUint16(numOfChan);
+            setUint32(abuffer.sampleRate);
+            setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+            setUint16(numOfChan * 2); // block-align
+            setUint16(16); // 16-bit (hardcoded in this exporter)
+
+            setUint32(0x61746164); // "data" - chunk
+            setUint32(length - pos - 4); // chunk length
+
+            // write interleaved data
+            for (i = 0; i < abuffer.numberOfChannels; i++)
+                channels.push(abuffer.getChannelData(i));
+
+            while (pos < length) {
+                for (i = 0; i < numOfChan; i++) {
+                    sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+                offset++;
+            }
+
+            return new Blob([buffer], { type: "audio/wav" });
+
+            function setUint16(data) {
+                view.setUint16(pos, data, true);
+                pos += 2;
+            }
+
+            function setUint32(data) {
+                view.setUint32(pos, data, true);
+                pos += 4;
+            }
+        }
+
+        // Event Listeners
+        translateBtn.addEventListener('click', translateToOiia);
+
+        speedSlider.addEventListener('input', (e) => {
+            speedValue.textContent = `${e.target.value}ms`;
+        });
+
+        stopBtn.addEventListener('click', stopPlayback);
+
+        speakOiiaBtn.addEventListener('click', () => {
+            if (!currentOiiaText) {
+                translateToOiia();
+            }
+            playOiiaSequence();
+        });
+
+        exportWavBtn.addEventListener('click', () => {
+            exportToWav();
+        });
+
+        copyOiiaBtn.addEventListener('click', async () => {
+            if (!currentOiiaText) {
+                showMessage("Nothing to copy.", true);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(currentOiiaText);
+                showMessage("OIIA text copied to clipboard!");
+            } catch (err) {
+                // Fallback for older browsers
+                const textarea = document.createElement('textarea');
+                textarea.value = currentOiiaText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showMessage("OIIA text copied to clipboard!");
+            }
+        });
+
+        speakHumanBtn.addEventListener('click', () => {
+            const text = humanInput.value;
+            if (!text) return;
+            
+            stopPlayback();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.onstart = () => {
+                stopBtn.disabled = false;
+                setVisualizerState(true);
+            };
+            utterance.onend = () => {
+                stopBtn.disabled = true;
+                setVisualizerState(false);
+            };
+            window.speechSynthesis.speak(utterance);
+        });
+
+        // Initialize audio buffers on first interaction to comply with browser autoplay policies
+        const initInteraction = () => {
+            initAudioContext();
+            loadAudioBuffers();
+            document.removeEventListener('click', initInteraction);
+            document.removeEventListener('keydown', initInteraction);
+        };
+        
+        document.addEventListener('click', initInteraction);
+        document.addEventListener('keydown', initInteraction);
+
+        // Auto-translate the example text on load
+        translateToOiia();
+
+    </script>
+</body>
+</html>
