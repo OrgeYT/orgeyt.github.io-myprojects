@@ -225,6 +225,38 @@
       color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem;
     }
     #settingsClose:hover { background: #777; }
+
+    .settings-stage-tester {
+      background: #1e1e2f; border: 2px solid #455a64; border-radius: 12px;
+      padding: 18px 24px; max-width: 420px; width: 100%; margin-bottom: 1.2rem;
+      display: flex; flex-direction: column; gap: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .settings-stage-tester > span {
+      font-size: 1.15rem; font-weight: bold; text-align: center;
+    }
+    .settings-stage-tester select {
+      width: 100%; padding: 10px 12px; border-radius: 8px; border: 2px solid #555;
+      background: #2a2a3e; color: white; font-size: 1rem; cursor: pointer;
+    }
+    .settings-stage-tester select:focus { outline: none; border-color: #00c853; }
+    .settings-stage-tester .stage-run-row {
+      display: flex; gap: 10px; align-items: center; justify-content: center;
+    }
+    #forceStageBtn {
+      padding: 10px 20px; background: #00c853; border: none; border-radius: 8px;
+      color: white; font-size: 1rem; font-weight: bold; cursor: pointer;
+    }
+    #forceStageBtn:hover { background: #00e676; }
+    #clearForcedStageBtn {
+      padding: 10px 16px; background: #555; border: none; border-radius: 8px;
+      color: white; font-size: 0.95rem; font-weight: bold; cursor: pointer;
+    }
+    #clearForcedStageBtn:hover { background: #777; }
+    #forcedStageStatus {
+      font-size: 0.9rem; text-align: center; opacity: 0.9; min-height: 1.2em;
+      color: #ffcc00;
+    }
   </style>
 </head>
 <body>
@@ -367,6 +399,44 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
+    <div class="settings-group">
+      <span>🌈 Rainbow Mode</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="rainbowToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-group">
+      <span>🔇 Mute Background Music</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="muteMusicToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-stage-tester">
+      <span>🧪 Stage Tester (next section)</span>
+      <select id="stageSelect">
+        <option value="">— Random (default) —</option>
+        <option value="easy_path">Easy Path</option>
+        <option value="small_gaps">Small Gaps</option>
+        <option value="spiral">Spiral Stairs</option>
+        <option value="spiral_up">Spiral Up (raises course)</option>
+        <option value="lava_strip">Lava Strip</option>
+        <option value="rainbow_path">Rainbow Path</option>
+        <option value="zigzag">Zigzag</option>
+        <option value="ladder_climb">Ladder Climb</option>
+        <option value="mixed">Mixed</option>
+        <option value="moving_path">Moving Platforms</option>
+        <option value="disappear_path">Disappearing Platforms</option>
+        <option value="guess_path">Guess the Safe Path</option>
+        <option value="question">Question (Red/Blue)</option>
+      </select>
+      <div class="stage-run-row">
+        <button id="forceStageBtn">▶ Run (force next)</button>
+        <button id="clearForcedStageBtn">Clear</button>
+      </div>
+      <div id="forcedStageStatus">No stage forced</div>
+    </div>
     <button id="settingsClose">Close</button>
   </div>
 
@@ -401,6 +471,7 @@
     const DRESSED_NOOB_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox_obby_current_skin_1440x720.png';
     const GREAT_TEMPLATE_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/pixil-frame-0%20(3).png';
     const RED_CYAN_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox_obby_avatar_skin_1024x512%20(3).png';
+    const STUDS_TEXTURE_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/cb293d819c45f471372ce6abe9975205ffff063b_2_500x500.png';
 
     // ========== SOUNDS ==========
     const bgMusic = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/Top%2010%20NCS%20-%20Roblox%20OVERUSED%20Songs%20(NoCopyrightSongs).mp3');
@@ -408,6 +479,7 @@
     bgMusic.preload = 'auto';
 
     function playRandomMusic() {
+      if (isMusicMuted) return;
       const maxTime = 25 * 60; // 25 minutes
       const randomTime = Math.random() * maxTime;
       bgMusic.currentTime = randomTime;
@@ -507,6 +579,7 @@
     let keys = { w: false, a: false, s: false, d: false, space: false, shift: false };
     const checkpoints = [];
     const particles = [];
+    const textLabels = [];
 
     let yaw = 0;
     let pitch = 0.3;
@@ -519,12 +592,80 @@
     let maxReached = 0;
     let lastCheckpoint = new THREE.Vector3(0, 5, 0);
     let spawnPos = new THREE.Vector3(0, 5, 0);
+    let currentBaseY = 1.8; // tracks height so spiral_up can raise the whole course
     let isClimbing = false;
     let isFreecam = false;
+    let isRainbowMode = false;
+    let isMusicMuted = false;
+    let forcedNextLayout = null; // if set, next generateSection uses this layout once
     let currentCamTarget = new THREE.Vector3(0, 0, 0);
+    let originalPlayerTexture = null; // for rainbow reset
+    let rainbowHue = 0;
+    let gameTime = 0;
 
-    function createPlatform(x, y, z, w = PLATFORM_SIZE, h = 0.6, d = PLATFORM_SIZE, type = 'normal') {
+    // Studs texture is a transparent PNG (studs on clear). We composite it onto a
+    // solid-colored canvas so platforms stay opaque with classic Roblox studs on top.
+    let studsTexture = null;          // raw transparent texture (kept for reference)
+    let studsOpaqueTexture = null;    // composited solid version used on platforms
+
+    function makeStudsOpaqueTexture(baseColorHex = '#ffffff') {
+      if (!studsTexture || !studsTexture.image) return null;
+      const img = studsTexture.image;
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      // White base so material.color fully controls platform tint
+      ctx.fillStyle = baseColorHex;
+      ctx.fillRect(0, 0, size, size);
+      // Draw studs on top (alpha creates the stud pattern)
+      ctx.drawImage(img, 0, 0, size, size);
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(2, 2);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.needsUpdate = true;
+      return tex;
+    }
+
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load(STUDS_TEXTURE_URL, (tex) => {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      studsTexture = tex;
+      studsOpaqueTexture = makeStudsOpaqueTexture('#ffffff');
+      // Re-apply map only — keep each platform's existing color
+      platforms.forEach(p => {
+        if (p.type !== 'lava' && p.mesh.material) {
+          const apply = (m) => {
+            m.map = studsOpaqueTexture;
+            // do NOT reset color — preserve the platform's tint
+            if (p.type !== 'disappear') {
+              m.transparent = false;
+              m.opacity = 1;
+            }
+            m.needsUpdate = true;
+          };
+          if (Array.isArray(p.mesh.material)) p.mesh.material.forEach(apply);
+          else apply(p.mesh.material);
+        }
+      });
+    });
+
+    function createPlatform(x, y, z, w = PLATFORM_SIZE, h = 0.6, d = PLATFORM_SIZE, type = 'normal', moveData = null) {
       let geo, mat;
+      // Opaque studs material – texture already has solid base baked in
+      const studsMat = (extra = {}) => new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.55,
+        map: studsOpaqueTexture || null,
+        transparent: false,
+        ...extra
+      });
+
       if (type === 'lava') {
         geo = new THREE.BoxGeometry(w, 0.35, d);
         mat = new THREE.MeshStandardMaterial({
@@ -535,10 +676,10 @@
         });
       } else if (type === 'rainbow') {
         geo = new THREE.BoxGeometry(w, h, d);
-        mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL(Math.random(), 0.9, 0.55),
-          roughness: 0.3,
-          metalness: 0.2
+        mat = studsMat({
+          color: new THREE.Color().setHSL(Math.random(), 0.85, 0.55),
+          roughness: 0.35,
+          metalness: 0.15
         });
       } else if (type === 'glass') {
         geo = new THREE.BoxGeometry(w, h * 0.4, d);
@@ -550,11 +691,29 @@
           metalness: 0.1,
           transmission: 0.55
         });
-      } else {
-        const hue = (Math.random() * 0.35 + 0.05) % 1;
+      } else if (type === 'disappear') {
         geo = new THREE.BoxGeometry(w, h, d);
-        mat = new THREE.MeshStandardMaterial({
-          color: new THREE.Color().setHSL(hue, 0.7, 0.52),
+        mat = studsMat({
+          color: 0xffaa44,
+          roughness: 0.4,
+          transparent: true,  // needed for fade-out
+          opacity: 1
+        });
+      } else if (type === 'moving') {
+        geo = new THREE.BoxGeometry(w, h, d);
+        mat = studsMat({
+          color: 0x44c8e0,
+          roughness: 0.4
+        });
+      } else if (type === 'correct' || type === 'wrong') {
+        geo = new THREE.BoxGeometry(w, h, d);
+        mat = studsMat({ roughness: 0.45 });
+      } else {
+        // Classic Roblox plastic-style platform colors (vibrant)
+        const hue = (Math.random() * 0.4 + 0.02) % 1;
+        geo = new THREE.BoxGeometry(w, h, d);
+        mat = studsMat({
+          color: new THREE.Color().setHSL(hue, 0.7, 0.55),
           roughness: 0.55
         });
       }
@@ -570,7 +729,15 @@
       bbox.min.y -= 0.05;
       bbox.max.y += 0.12;
 
-      const p = { mesh, type, bbox, w, h, d, x, y, z };
+      const p = {
+        mesh, type, bbox, w, h, d, x, y, z,
+        baseX: x, baseY: y, baseZ: z,
+        moveData: moveData || null,
+        disappearing: false,
+        disappearTimer: 0,
+        fadeOpacity: 1,
+        active: true
+      };
       platforms.push(p);
       return p;
     }
@@ -606,7 +773,7 @@
       return lad;
     }
 
-    function createSpiralStairs(startX, startY, startZ, turns = 1.2, stepsPerTurn = 10) {
+    function createSpiralStairs(startX, startY, startZ, turns = 1.2, stepsPerTurn = 10, continueUp = false) {
       const radius = 4.5;
       const stepH = 0.5;
       const stepW = 2.0;
@@ -621,106 +788,372 @@
           y += stepH;
         }
       }
+      // Landing platform at the top
       createPlatform(startX, y, startZ + radius + 1.5, 5, 0.55, 5, 'normal');
-      return y;
+      return { topY: y, endZ: startZ + radius + 1.5 };
     }
+
+    // Floating 3D text using canvas texture
+    function createTextLabel(text, x, y, z, color = '#ffffff', scale = 1) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 1024;
+      canvas.height = 256;
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = 'bold 48px Segoe UI, Arial, sans-serif';
+      ctx.fillStyle = color;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      // Word wrap
+      const words = text.split(' ');
+      let lines = [];
+      let current = '';
+      words.forEach(w => {
+        const test = current ? current + ' ' + w : w;
+        if (ctx.measureText(test).width > 960) {
+          lines.push(current);
+          current = w;
+        } else current = test;
+      });
+      if (current) lines.push(current);
+      const lineH = 56;
+      const startY = canvas.height / 2 - ((lines.length - 1) * lineH) / 2;
+      lines.forEach((ln, i) => ctx.fillText(ln, canvas.width / 2, startY + i * lineH));
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide, depthWrite: false });
+      const geo = new THREE.PlaneGeometry(8 * scale, 2 * scale);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      // Face the camera direction the player approaches from (-Z)
+      mesh.rotation.y = Math.PI;
+      scene.add(mesh);
+      textLabels.push({ mesh, z });
+      return mesh;
+    }
+
+    // Question bank
+    const QUESTIONS = [
+      {
+        q: 'Is the noob from Roblox?',
+        red: 'Yes',
+        blue: 'No',
+        answer: 'red' // correct path is red
+      },
+      {
+        q: "Is OrgeYT's OC include red?",
+        red: 'Yes',
+        blue: 'No',
+        answer: 'red'
+      },
+      {
+        q: 'What does "idk" mean?',
+        red: "I don't know",
+        blue: 'I dinner ok',
+        answer: 'red'
+      },
+      {
+        q: 'Does Roblox have free items?',
+        red: 'Yes',
+        blue: 'No',
+        answer: 'red'
+      },
+      {
+        q: 'Is OOF the classic death sound?',
+        red: 'Yes',
+        blue: 'No',
+        answer: 'red'
+      },
+      {
+        q: 'Can you double jump in this obby?',
+        red: 'Yes',
+        blue: 'No',
+        answer: 'red'
+      }
+    ];
 
     function generateSection(startZ) {
       let z = startZ;
+      // Difficulty scales with levelCount (harder as you progress)
+      const difficulty = Math.min(1.0, (levelCount - 1) * 0.08); // 0 → 1 over ~12 levels
+      const gapScale = 1 + difficulty * 1.8;
+      const lavaChance = 0.15 + difficulty * 0.45;
+      const disappearChance = 0.08 + difficulty * 0.35;
+      const movingChance = 0.1 + difficulty * 0.3;
+      const platformShrink = 1 - difficulty * 0.35;
+
       const sectionTypes = [
-        'easy_path', 'small_gaps', 'spiral', 'lava_strip', 'rainbow_path',
-        'zigzag', 'ladder_climb', 'mixed'
+        'easy_path', 'small_gaps', 'spiral', 'spiral_up', 'lava_strip', 'rainbow_path',
+        'zigzag', 'ladder_climb', 'mixed', 'moving_path', 'disappear_path',
+        'guess_path', 'question'
       ];
-      const layout = sectionTypes[Math.floor(Math.random() * sectionTypes.length)];
+      // Force a specific stage for testing if set; otherwise random (with hard bias)
+      let layout;
+      if (forcedNextLayout && sectionTypes.includes(forcedNextLayout)) {
+        layout = forcedNextLayout;
+        forcedNextLayout = null;
+        const statusEl = document.getElementById('forcedStageStatus');
+        if (statusEl) statusEl.textContent = 'No stage forced';
+        const selectEl = document.getElementById('stageSelect');
+        if (selectEl) selectEl.value = '';
+      } else if (difficulty > 0.6 && Math.random() < 0.4) {
+        layout = ['lava_strip', 'small_gaps', 'moving_path', 'disappear_path', 'mixed', 'guess_path'][Math.floor(Math.random()*6)];
+      } else {
+        layout = sectionTypes[Math.floor(Math.random() * sectionTypes.length)];
+      }
 
       if (layout === 'spiral') {
-        const topY = createSpiralStairs(0, 1.5, z + 5, 1.1 + Math.random() * 0.4, 9);
-        z += 16;
-        createPlatform(0, topY, z, 6, 0.55, 6, 'normal');
+        const result = createSpiralStairs(0, currentBaseY - 0.3, z + 5, 1.1 + Math.random() * 0.4 + difficulty * 0.3, 9 + Math.floor(difficulty*3));
+        z = result.endZ + 6 + difficulty * 2;
+        createPlatform(0, result.topY, z, 6 * platformShrink, 0.55, 6 * platformShrink, 'normal');
+        // spiral returns to roughly same height area; keep currentBaseY
         z += 7;
-      } else if (layout === 'lava_strip') {
-        for (let i = 0; i < 6; i++) {
-          createPlatform(0, 1.8, z, 4, 0.5, 3.5, 'normal');
-          z += 4.2;
-          createPlatform(0, 0.8, z, 5, 0.3, 1.8, 'lava');
-          z += 3.2;
+      } else if (layout === 'spiral_up') {
+        // Spiral that goes significantly upward, then the obby continues at the higher height
+        const startY = currentBaseY;
+        const result = createSpiralStairs(0, startY, z + 4, 1.6 + difficulty * 0.5, 10 + Math.floor(difficulty * 2));
+        const highY = result.topY;
+        currentBaseY = highY; // raise the course permanently
+        z = result.endZ + 5;
+        // Continue at the elevated height
+        for (let i = 0; i < 4 + Math.floor(difficulty * 2); i++) {
+          const t = Math.random() < disappearChance ? 'disappear' : (Math.random() < 0.3 ? 'rainbow' : 'normal');
+          createPlatform((Math.random() - 0.5) * 2, highY + i * 0.12, z, 3.8 * platformShrink, 0.5, 3.4 * platformShrink, t);
+          z += 3.8 + gapScale * 0.3;
         }
-      } else if (layout === 'rainbow_path') {
-        for (let i = 0; i < 9; i++) {
-          const px = Math.sin(i * 0.55) * 4.5;
-          createPlatform(px, 1.8 + Math.sin(i * 0.4) * 0.6, z, 3.6, 0.45, 3.2, 'rainbow');
-          z += 3.6;
-        }
-      } else if (layout === 'small_gaps') {
-        for (let i = 0; i < 8; i++) {
-          const gap = 1.8 + Math.random() * 1.4;
-          createPlatform((Math.random() - 0.5) * 2.5, 1.9, z, 3.4, 0.5, 3.2,
-            Math.random() > 0.75 ? 'glass' : 'normal');
-          z += 3.4 + gap;
-        }
-      } else if (layout === 'zigzag') {
-        for (let i = 0; i < 8; i++) {
-          const side = (i % 2 === 0) ? -4 : 4;
-          createPlatform(side, 1.7 + i * 0.12, z, 3.8, 0.45, 3, i % 3 === 0 ? 'rainbow' : 'normal');
-          z += 3.9;
-        }
-      } else if (layout === 'ladder_climb') {
-        createPlatform(0, 1.5, z, 5, 0.5, 5, 'normal');
-        z += 4;
-        const h = 7 + Math.random() * 4;
-        createLadder(0, 1.5, z + 1.5, h);
-        createPlatform(0, 1.5 + h, z + 1.5, 5, 0.55, 5, 'rainbow');
-        z += 8;
-        createPlatform(0, 1.5 + h, z, 4, 0.5, 3.5, 'normal');
+        createPlatform(0, highY, z, 6, 0.55, 5, 'normal');
+        z += 6;
+      } else if (layout === 'guess_path') {
+        // "Guess the path" – several side-by-side platforms, only some are safe (rest are lava or disappear)
+        const by = currentBaseY;
+        createPlatform(0, by, z, 10, 0.5, 4, 'normal');
         z += 5;
-      } else if (layout === 'mixed') {
-        for (let i = 0; i < 5; i++) {
-          createPlatform((Math.random()-0.5)*2, 1.8, z, 3.8, 0.5, 3.5, Math.random()>0.6?'rainbow':'normal');
-          z += 4;
-          if (i === 2) {
-            createLadder(2, 1.5, z, 5);
-            createPlatform(2, 6.5, z, 3.5, 0.5, 3.5, 'normal');
-            z += 5;
+        createTextLabel('❓ Guess the safe path!', 0, by + 2.8, z - 1, '#ffee88', 1.1);
+        const cols = 4;
+        const rows = 5 + Math.floor(difficulty * 2);
+        for (let r = 0; r < rows; r++) {
+          const safeCount = Math.random() > 0.4 ? 1 : 2;
+          const safeCols = new Set();
+          while (safeCols.size < safeCount) safeCols.add(Math.floor(Math.random() * cols));
+          for (let c = 0; c < cols; c++) {
+            const px = (c - (cols - 1) / 2) * 3.2;
+            if (safeCols.has(c)) {
+              createPlatform(px, by, z, 2.6 * platformShrink, 0.45, 2.8 * platformShrink, Math.random() < 0.25 ? 'rainbow' : 'normal');
+            } else {
+              if (Math.random() < 0.55) {
+                createPlatform(px, by - 1.1, z, 2.6, 0.3, 2.4, 'lava');
+              } else {
+                createPlatform(px, by, z, 2.6 * platformShrink, 0.45, 2.8 * platformShrink, 'disappear');
+              }
+            }
+          }
+          z += 3.5 + difficulty * 0.3;
+        }
+        createPlatform(0, by, z, 8, 0.55, 5, 'normal');
+        z += 6;
+      } else if (layout === 'question') {
+        // Two-path question stage
+        const by = currentBaseY;
+        const qData = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
+        createPlatform(0, by, z, 10, 0.55, 5, 'normal');
+        z += 5;
+        createTextLabel(qData.q, 0, by + 3.5, z + 1, '#ffffff', 1.15);
+        createTextLabel(`🔴 Red = ${qData.red}    🔵 Blue = ${qData.blue}`, 0, by + 2.1, z + 1, '#ffdd55', 0.95);
+
+        const redX = -4.5;
+        const blueX = 4.5;
+        const pathLen = 5;
+        for (let i = 0; i < pathLen; i++) {
+          const redPlat = createPlatform(redX, by, z + i * 3.6, 3.2, 0.5, 3.0, 'normal');
+          if (redPlat.mesh.material) {
+            redPlat.mesh.material.color.setHex(0xff3333);
+            redPlat.mesh.material.emissive = new THREE.Color(0xaa0000);
+            redPlat.mesh.material.emissiveIntensity = 0.25;
+          }
+          const bluePlat = createPlatform(blueX, by, z + i * 3.6, 3.2, 0.5, 3.0, 'normal');
+          if (bluePlat.mesh.material) {
+            bluePlat.mesh.material.color.setHex(0x3399ff);
+            bluePlat.mesh.material.emissive = new THREE.Color(0x0044aa);
+            bluePlat.mesh.material.emissiveIntensity = 0.25;
           }
         }
-      } else {
-        for (let i = 0; i < 7; i++) {
-          const px = (Math.random() - 0.5) * 1.8;
-          const type = Math.random() > 0.7 ? 'rainbow' : 'normal';
-          createPlatform(px, 1.7 + Math.sin(i)*0.3, z, 4.2, 0.5, 3.8, type);
-          z += 4.0 + Math.random() * 0.8;
+        z += pathLen * 3.6;
+
+        if (qData.answer === 'red') {
+          createPlatform(redX, by, z, 4, 0.5, 4, 'normal');
+          createPlatform(blueX, by - 1.1, z, 4, 0.3, 3, 'lava');
+          createPlatform(blueX, by - 1.1, z + 3, 4, 0.3, 3, 'lava');
+        } else {
+          createPlatform(blueX, by, z, 4, 0.5, 4, 'normal');
+          createPlatform(redX, by - 1.1, z, 4, 0.3, 3, 'lava');
+          createPlatform(redX, by - 1.1, z + 3, 4, 0.3, 3, 'lava');
+        }
+        z += 5;
+        createPlatform(0, by, z, 9, 0.55, 5, 'normal');
+        z += 6;
+      } else if (layout === 'lava_strip') {
+        const by = currentBaseY;
+        const count = 5 + Math.floor(difficulty * 4);
+        for (let i = 0; i < count; i++) {
+          const pw = 4 * platformShrink;
+          createPlatform(0, by, z, pw, 0.5, 3.5 * platformShrink, Math.random() < disappearChance ? 'disappear' : 'normal');
+          z += 4.0 + difficulty * 0.8;
+          createPlatform(0, by - 1.0, z, 5, 0.3, 1.8 + difficulty, 'lava');
+          z += 2.8 + difficulty * 0.6;
+        }
+      } else if (layout === 'rainbow_path') {
+        const by = currentBaseY;
+        for (let i = 0; i < 8 + Math.floor(difficulty*3); i++) {
+          const px = Math.sin(i * 0.55) * (4.5 + difficulty * 2);
+          const t = Math.random() < movingChance ? 'moving' : (Math.random() < disappearChance ? 'disappear' : 'rainbow');
+          const moveD = t === 'moving' ? { axis: 'x', amp: 2 + difficulty * 2, speed: 1.2 + difficulty } : null;
+          createPlatform(px, by + Math.sin(i * 0.4) * 0.6, z, 3.6 * platformShrink, 0.45, 3.2 * platformShrink, t, moveD);
+          z += 3.4 + gapScale * 0.4;
+        }
+      } else if (layout === 'small_gaps') {
+        const by = currentBaseY;
+        for (let i = 0; i < 7 + Math.floor(difficulty*3); i++) {
+          const gap = (1.6 + Math.random() * 1.2) * gapScale;
+          const t = Math.random() > 0.7 - difficulty*0.3 ? 'glass' : (Math.random() < disappearChance ? 'disappear' : 'normal');
+          createPlatform((Math.random() - 0.5) * (2.5 + difficulty*2), by + 0.1, z, 3.2 * platformShrink, 0.5, 3.0 * platformShrink, t);
+          z += 3.2 * platformShrink + gap;
+        }
+      } else if (layout === 'zigzag') {
+        const by = currentBaseY;
+        for (let i = 0; i < 7 + Math.floor(difficulty*2); i++) {
+          const side = (i % 2 === 0) ? -(3.5 + difficulty*2) : (3.5 + difficulty*2);
+          const t = i % 3 === 0 ? 'rainbow' : (Math.random() < movingChance ? 'moving' : 'normal');
+          const moveD = t === 'moving' ? { axis: 'y', amp: 1.2 + difficulty, speed: 1.5 + difficulty } : null;
+          createPlatform(side, by - 0.1 + i * 0.12, z, 3.5 * platformShrink, 0.45, 2.8 * platformShrink, t, moveD);
+          z += 3.6 + difficulty * 0.5;
+        }
+      } else if (layout === 'ladder_climb') {
+        const by = currentBaseY;
+        createPlatform(0, by - 0.3, z, 5, 0.5, 5, 'normal');
+        z += 4;
+        const h = 7 + Math.random() * 4 + difficulty * 3;
+        createLadder(0, by - 0.3, z + 1.5, h);
+        createPlatform(0, by - 0.3 + h, z + 1.5, 5 * platformShrink, 0.55, 5 * platformShrink, 'rainbow');
+        currentBaseY = by - 0.3 + h; // raise course after ladder
+        z += 8;
+        createPlatform(0, currentBaseY, z, 4 * platformShrink, 0.5, 3.5 * platformShrink, Math.random() < disappearChance ? 'disappear' : 'normal');
+        z += 5;
+      } else if (layout === 'moving_path') {
+        const by = currentBaseY;
+        for (let i = 0; i < 6 + Math.floor(difficulty*3); i++) {
+          const amp = 2.5 + difficulty * 3;
+          const speed = 1.0 + difficulty * 1.5;
+          const axis = Math.random() > 0.5 ? 'x' : 'y';
+          createPlatform((Math.random()-0.5)*2, by + (axis==='y'?1.5:0), z, 3.5 * platformShrink, 0.5, 3.2 * platformShrink, 'moving', { axis, amp, speed });
+          z += 4.2 + gapScale * 0.5;
+          if (Math.random() < lavaChance) {
+            createPlatform(0, by - 1.1, z, 4, 0.3, 1.5, 'lava');
+            z += 2.5;
+          }
+        }
+      } else if (layout === 'disappear_path') {
+        const by = currentBaseY;
+        for (let i = 0; i < 7 + Math.floor(difficulty*2); i++) {
+          const t = Math.random() < 0.7 ? 'disappear' : (Math.random() < 0.3 ? 'moving' : 'normal');
+          const moveD = t === 'moving' ? { axis: 'x', amp: 2, speed: 1.5 } : null;
+          createPlatform((Math.random()-0.5)*3, by + 0.1, z, 3.3 * platformShrink, 0.5, 3.0 * platformShrink, t, moveD);
+          z += 3.5 + gapScale * 0.6;
+        }
+      } else if (layout === 'mixed') {
+        const by = currentBaseY;
+        for (let i = 0; i < 5 + Math.floor(difficulty*2); i++) {
+          let t = Math.random()>0.6?'rainbow':'normal';
+          if (Math.random() < disappearChance) t = 'disappear';
+          else if (Math.random() < movingChance) t = 'moving';
+          const moveD = t === 'moving' ? { axis: Math.random()>0.5?'x':'y', amp: 2+difficulty*2, speed: 1.2+difficulty } : null;
+          createPlatform((Math.random()-0.5)*2, by, z, 3.6 * platformShrink, 0.5, 3.3 * platformShrink, t, moveD);
+          z += 3.8 + difficulty * 0.4;
+          if (i === 2) {
+            createLadder(2, by - 0.3, z, 5 + difficulty*2);
+            createPlatform(2, by - 0.3 + 5 + difficulty*2, z, 3.5 * platformShrink, 0.5, 3.5 * platformShrink, 'normal');
+            z += 5;
+          }
+          if (Math.random() < lavaChance * 0.7) {
+            createPlatform(0, by - 1.1, z, 4, 0.3, 1.6, 'lava');
+            z += 2.2;
+          }
+        }
+      } else { // easy_path (still scales)
+        const by = currentBaseY;
+        for (let i = 0; i < 6 + Math.floor(difficulty*2); i++) {
+          const px = (Math.random() - 0.5) * (1.8 + difficulty*2);
+          let type = Math.random() > 0.7 ? 'rainbow' : 'normal';
+          if (Math.random() < disappearChance * 0.6) type = 'disappear';
+          else if (Math.random() < movingChance * 0.5) type = 'moving';
+          const moveD = type === 'moving' ? { axis: 'x', amp: 1.5 + difficulty, speed: 1 + difficulty } : null;
+          createPlatform(px, by - 0.1 + Math.sin(i)*0.3, z, 4.0 * platformShrink, 0.5, 3.6 * platformShrink, type, moveD);
+          z += 3.8 + Math.random() * 0.6 + difficulty * 0.5;
         }
       }
 
-      createPlatform(0, 2.2, z, 8, 0.65, 8, 'normal');
+      // Checkpoint platform (uses current height)
+      const cpY = currentBaseY + 0.4;
+      createPlatform(0, cpY, z, 8, 0.65, 8, 'normal');
       const flag = new THREE.Mesh(
         new THREE.ConeGeometry(0.45, 1.3, 4),
         new THREE.MeshStandardMaterial({ color: 0x00ff66, emissive: 0x00aa44, emissiveIntensity: 0.6 })
       );
-      flag.position.set(0, 3.8, z);
+      flag.position.set(0, cpY + 1.6, z);
       scene.add(flag);
       checkpoints.push({
         mesh: flag,
-        pos: new THREE.Vector3(0, 3.8, z),
+        pos: new THREE.Vector3(0, cpY + 1.6, z),
         activated: false
       });
 
       nextZ = z + 6;
       levelCount++;
       document.getElementById('levelNum').textContent = levelCount - 1;
+      saveProgress();
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem('robloxObby_maxReached', String(Math.floor(maxReached)));
+        localStorage.setItem('robloxObby_levelCount', String(levelCount));
+      } catch (e) {}
+    }
+
+    function loadProgress() {
+      try {
+        const savedDist = parseInt(localStorage.getItem('robloxObby_maxReached') || '0', 10);
+        const savedLevel = parseInt(localStorage.getItem('robloxObby_levelCount') || '1', 10);
+        if (savedDist > 0) {
+          maxReached = savedDist;
+          levelCount = Math.max(1, savedLevel);
+          document.getElementById('levelNum').textContent = levelCount - 1;
+          document.getElementById('dist').textContent = Math.floor(maxReached);
+        }
+      } catch (e) {}
     }
 
     function initLevel() {
+      loadProgress();
+
       createPlatform(0, 0, 0, 12, 1, 12, 'normal');
       createPlatform(0, 1.2, 9, 5, 0.5, 4, 'rainbow');
       createPlatform(0, 2.0, 15, 4.5, 0.5, 4, 'normal');
       createLadder(0, 2.0, 20, 5);
       createPlatform(0, 7.0, 20, 5, 0.55, 5, 'rainbow');
       nextZ = 28;
-      generateSection(nextZ);
-      generateSection(nextZ);
+
+      // Generate enough sections so the world is ready near the saved progress
+      // (player still starts at beginning, but high-score + difficulty already advanced)
+      const sectionsToGen = Math.min(8, Math.max(2, Math.floor(levelCount / 2)));
+      for (let i = 0; i < sectionsToGen; i++) {
+        generateSection(nextZ);
+      }
+
       lastCheckpoint.set(0, 3, 0);
       spawnPos.copy(lastCheckpoint);
+      player.position.copy(lastCheckpoint);
     }
 
     const loader = new GLTFLoader();
@@ -838,6 +1271,75 @@
       if (skeletonHelper) {
         skeletonHelper.visible = rigToggle.checked;
       }
+    });
+
+    // Rainbow mode toggle
+    const rainbowToggle = document.getElementById('rainbowToggle');
+    rainbowToggle.addEventListener('change', () => {
+      isRainbowMode = rainbowToggle.checked;
+      if (!isRainbowMode && playerModel) {
+        // Reset to normal (white/un-tinted)
+        playerModel.traverse((c) => {
+          if (c.isMesh && c.material) {
+            if (Array.isArray(c.material)) {
+              c.material.forEach(m => { m.color.setHex(0xffffff); m.needsUpdate = true; });
+            } else {
+              c.material.color.setHex(0xffffff);
+              c.material.needsUpdate = true;
+            }
+          }
+        });
+      }
+    });
+
+    // Mute music toggle
+    const muteMusicToggle = document.getElementById('muteMusicToggle');
+    muteMusicToggle.addEventListener('change', () => {
+      isMusicMuted = muteMusicToggle.checked;
+      if (isMusicMuted) {
+        bgMusic.pause();
+      } else if (musicStarted) {
+        bgMusic.play().catch(() => {});
+      }
+    });
+
+    // Stage Tester (force next layout for testing)
+    const stageSelect = document.getElementById('stageSelect');
+    const forceStageBtn = document.getElementById('forceStageBtn');
+    const clearForcedStageBtn = document.getElementById('clearForcedStageBtn');
+    const forcedStageStatus = document.getElementById('forcedStageStatus');
+
+    const STAGE_LABELS = {
+      easy_path: 'Easy Path',
+      small_gaps: 'Small Gaps',
+      spiral: 'Spiral Stairs',
+      spiral_up: 'Spiral Up',
+      lava_strip: 'Lava Strip',
+      rainbow_path: 'Rainbow Path',
+      zigzag: 'Zigzag',
+      ladder_climb: 'Ladder Climb',
+      mixed: 'Mixed',
+      moving_path: 'Moving Platforms',
+      disappear_path: 'Disappearing Platforms',
+      guess_path: 'Guess the Safe Path',
+      question: 'Question (Red/Blue)'
+    };
+
+    forceStageBtn.addEventListener('click', () => {
+      const val = stageSelect.value;
+      if (!val) {
+        forcedNextLayout = null;
+        forcedStageStatus.textContent = 'No stage forced';
+        return;
+      }
+      forcedNextLayout = val;
+      forcedStageStatus.textContent = `Queued: ${STAGE_LABELS[val] || val} (next section)`;
+    });
+
+    clearForcedStageBtn.addEventListener('click', () => {
+      forcedNextLayout = null;
+      stageSelect.value = '';
+      forcedStageStatus.textContent = 'No stage forced';
     });
 
     // Emotes Menu controls
@@ -1084,6 +1586,41 @@
         player.position.z += velocity.z * dt;
       }
 
+      // Update moving & disappearing platforms
+      for (const p of platforms) {
+        if (!p.active) continue;
+
+        if (p.type === 'moving' && p.moveData) {
+          const t = gameTime;
+          const { axis, amp, speed } = p.moveData;
+          if (axis === 'x') {
+            p.mesh.position.x = p.baseX + Math.sin(t * speed) * amp;
+          } else if (axis === 'y') {
+            p.mesh.position.y = p.baseY + Math.sin(t * speed) * amp;
+          } else {
+            p.mesh.position.z = p.baseZ + Math.sin(t * speed) * amp;
+          }
+          p.bbox.setFromObject(p.mesh);
+          p.bbox.min.y -= 0.05;
+          p.bbox.max.y += 0.12;
+        }
+
+        if (p.disappearing) {
+          p.disappearTimer -= dt;
+          if (p.disappearTimer <= 0) {
+            p.fadeOpacity -= dt * 2.5; // fade over ~0.4s
+            if (p.mesh.material) {
+              p.mesh.material.opacity = Math.max(0, p.fadeOpacity);
+              p.mesh.material.transparent = true;
+            }
+            if (p.fadeOpacity <= 0) {
+              p.active = false;
+              scene.remove(p.mesh);
+            }
+          }
+        }
+      }
+
       if (!isClimbing) {
         const wasOnGround = onGround;
         onGround = false;
@@ -1091,7 +1628,8 @@
 
         let standingOnLava = false;
         for (const p of platforms) {
-          if (Math.abs(p.z - player.position.z) > 14) continue;
+          if (!p.active) continue;
+          if (Math.abs(p.mesh.position.z - player.position.z) > 14) continue;
 
           const feetY = player.position.y;
           const topY = p.bbox.max.y;
@@ -1104,12 +1642,22 @@
             if (velocity.y <= 0 && feetY <= topY + 0.18 && feetY >= topY - 0.7) {
               const justLanded = !wasOnGround;
               player.position.y = topY;
+              // Carry moving platform velocity roughly
+              if (p.type === 'moving' && p.moveData) {
+                // slight stickiness
+              }
               velocity.y = 0;
               onGround = true;
               canJump = true;
               jumpsLeft = 2;
               if (justLanded) playSfx(sfxLand);
               if (p.type === 'lava') standingOnLava = true;
+
+              // Trigger disappear after 0.5s delay
+              if (p.type === 'disappear' && !p.disappearing) {
+                p.disappearing = true;
+                p.disappearTimer = 0.5;
+              }
             }
           }
         }
@@ -1178,6 +1726,7 @@
       if (player.position.z > maxReached) {
         maxReached = player.position.z;
         document.getElementById('dist').textContent = Math.floor(maxReached);
+        saveProgress();
       }
 
       if (player.position.z > nextZ - 45) {
@@ -1209,8 +1758,9 @@
       }
 
       for (let i = platforms.length - 1; i >= 0; i--) {
-        if (platforms[i].z < player.position.z - 70) {
-          scene.remove(platforms[i].mesh);
+        const pz = platforms[i].mesh ? platforms[i].mesh.position.z : platforms[i].z;
+        if (pz < player.position.z - 70 || !platforms[i].active) {
+          if (platforms[i].mesh && platforms[i].mesh.parent) scene.remove(platforms[i].mesh);
           platforms.splice(i, 1);
         }
       }
@@ -1224,6 +1774,14 @@
         if (checkpoints[i].pos.z < player.position.z - 70) {
           scene.remove(checkpoints[i].mesh);
           checkpoints.splice(i, 1);
+        }
+      }
+      for (let i = textLabels.length - 1; i >= 0; i--) {
+        if (textLabels[i].z < player.position.z - 70) {
+          scene.remove(textLabels[i].mesh);
+          if (textLabels[i].mesh.material.map) textLabels[i].mesh.material.map.dispose();
+          textLabels[i].mesh.material.dispose();
+          textLabels.splice(i, 1);
         }
       }
     }
@@ -1784,6 +2342,7 @@
     function animate() {
       requestAnimationFrame(animate);
       const dt = Math.min(clock.getDelta(), 0.1);
+      gameTime += dt;
 
       if (mixer) mixer.update(dt);
       if (previewMixer) previewMixer.update(dt);
@@ -1792,6 +2351,21 @@
 
       if (controls.isLocked) {
         updatePhysics(dt);
+      }
+
+      // Rainbow mode: cycle hue on player materials
+      if (isRainbowMode && playerModel) {
+        rainbowHue = (rainbowHue + dt * 0.6) % 1;
+        const rainbowColor = new THREE.Color().setHSL(rainbowHue, 0.95, 0.55);
+        playerModel.traverse((c) => {
+          if (c.isMesh && c.material) {
+            if (Array.isArray(c.material)) {
+              c.material.forEach(m => { m.color.copy(rainbowColor); });
+            } else {
+              c.material.color.copy(rainbowColor);
+            }
+          }
+        });
       }
 
       // Move stars with camera so they are infinite (skybox effect)
