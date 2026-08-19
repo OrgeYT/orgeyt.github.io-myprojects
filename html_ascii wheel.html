@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Spinning Wheel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Fira Code', monospace;
+            background-color: #0d1117;
+            color: #c9d1d9;
+        }
+
+        /* Monospace canvas text scaling and line-height tuning for ASCII precision */
+        .ascii-canvas {
+            font-family: 'Fira Code', 'Courier New', Courier, monospace;
+            line-height: 1.05;
+            letter-spacing: 0.05em;
+            white-space: pre;
+            user-select: none;
+        }
+
+        /* CRT Scanline Effect */
+        .crt-overlay {
+            position: relative;
+            overflow: hidden;
+        }
+        .crt-overlay::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        /* Phosphor Glow Themes */
+        .theme-green {
+            color: #39ff14;
+            text-shadow: 0 0 6px rgba(57, 255, 20, 0.6);
+        }
+        .theme-amber {
+            color: #ffb000;
+            text-shadow: 0 0 6px rgba(255, 176, 0, 0.6);
+        }
+        .theme-cyber {
+            color: #00f0ff;
+            text-shadow: 0 0 6px rgba(0, 240, 255, 0.6);
+        }
+        .theme-matrix {
+            color: #00ff66;
+            text-shadow: 0 0 8px rgba(0, 255, 102, 0.8);
+        }
+        .theme-classic {
+            color: #f0f6fc;
+            text-shadow: none;
+        }
+
+        /* Custom Scrollbar for ASCII UI */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #161b22;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6 bg-slate-950 text-slate-200">
+
+    <!-- Top ASCII Header -->
+    <header class="max-w-6xl w-full mx-auto mb-6">
+        <div class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 shadow-2xl flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="overflow-x-auto max-w-full">
+                <pre class="ascii-canvas text-[5.5px] sm:text-[7.5px] md:text-[9.5px] lg:text-[11px] font-bold text-emerald-400 leading-none">
+  ░███                            ░██░██                          ░██                      ░██                                            ░██                              ░██ 
+  ░██░██                                                                                                                                  ░██                              ░██ 
+░██  ░██   ░███████   ░███████  ░██░██    ░███████  ░████████  ░██░████████  ░████████  ░██░████████   ░████████    ░██    ░██    ░██ ░████████   ░███████   ░███████  ░██ 
+░█████████ ░██        ░██    ░██ ░██░██   ░██        ░██    ░██ ░██░██    ░██ ░██    ░██ ░██░██    ░██ ░██    ░██    ░██    ░██    ░██ ░██    ░██ ░██    ░██ ░██    ░██ ░██ 
+░██    ░██  ░███████  ░██        ░██░██    ░███████  ░██    ░██ ░██░██    ░██ ░██    ░██ ░██░██    ░██ ░██    ░██     ░██  ░████  ░██  ░██    ░██ ░█████████ ░█████████ ░██ 
+░██    ░██        ░██ ░██    ░██ ░██░██          ░██ ░███   ░██ ░██░██    ░██ ░██    ░██ ░██░██    ░██ ░██   ░███      ░██░██ ░██░██   ░██    ░██ ░██        ░██        ░██ 
+░██    ░██  ░███████   ░███████  ░██░██    ░███████  ░██░█████  ░██░██    ░██ ░██    ░██ ░██░██    ░██  ░█████░██        ░███   ░███    ░██    ░██  ░███████   ░███████  ░██ 
+                                                     ░██                                                  ░██                                                          
+                                                     ░██                                                ░███████                                                       </pre>
+                <p class="text-xs text-slate-400 mt-2 font-mono">100% Pure Text-Based ASCII Mechanics & Render Engine</p>
+            </div>
+            
+            <!-- Quick Header Controls -->
+            <div class="flex items-center gap-3">
+                <button id="soundToggleBtn" onclick="toggleSound()" class="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold transition">
+                    <span id="soundIcon">🔊</span> <span id="soundLabel">Sound ON</span>
+                </button>
+                <button onclick="triggerRandomSpin()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg text-xs transition shadow-lg shadow-emerald-950">
+                    ⚡ QUICK SPIN
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow">
+        
+        <!-- Left Column: ASCII Visual Engine (7 Columns) -->
+        <section class="lg:col-span-7 flex flex-col gap-4">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 sm:p-6 shadow-2xl flex flex-col items-center justify-between min-h-[520px] crt-overlay relative">
+                
+                <!-- Canvas Top Bar with Copy Action -->
+                <div class="w-full flex justify-between items-center mb-2 pb-2 border-b border-slate-800/80 text-xs font-mono">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-[11px] font-bold text-slate-300 uppercase tracking-wider">[ POINTER AT TOP CENTER ↓ ]</span>
+                    </div>
+                    <button id="copyWheelBtn" onclick="copyWheelToClipboard()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-semibold text-slate-300 transition flex items-center gap-1.5 active:scale-95">
+                        <span>📋</span> <span class="hidden sm:inline">Copy ASCII Art</span>
+                    </button>
+                </div>
+
+                <!-- Main ASCII Wheel Frame -->
+                <div class="w-full flex justify-center items-center overflow-x-auto py-2 my-auto">
+                    <pre id="asciiWheelDisplay" class="ascii-canvas theme-green text-[9px] sm:text-[11px] md:text-[12.5px] leading-none select-none font-bold">
+Loading ASCII Engine...
+                    </pre>
+                </div>
+
+                <!-- Status & Dynamic Winner Callout -->
+                <div class="w-full text-center mt-2">
+                    <div id="spinStatus" class="text-xs uppercase tracking-widest font-semibold text-emerald-400 mb-2">
+                        READY TO SPIN
+                    </div>
+                    
+                    <!-- Spin Action Button -->
+                    <div class="flex justify-center gap-3">
+                        <button id="spinBtn" onclick="startSpin()" class="w-full max-w-md py-3.5 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-emerald-950/50 text-base tracking-wider uppercase transition-all duration-150 transform active:scale-95">
+                            🎰 SPIN THE WHEEL 🎰
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Column: Settings, Presets, Controls & History (5 Columns) -->
+        <section class="lg:col-span-5 flex flex-col gap-4">
+            
+            <!-- Items Config Card -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl">
+                <div class="flex justify-between items-center mb-3">
+                    <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                        <span>📝</span> WHEEL ITEMS
+                    </h2>
+                    <span id="itemCountBadge" class="text-[11px] bg-slate-800 text-slate-400 px-2.5 py-0.5 rounded-full border border-slate-700">8 Items</span>
+                </div>
+
+                <!-- Presets Bar -->
+                <div class="mb-3 flex items-center gap-2">
+                    <label class="text-xs text-slate-400 whitespace-nowrap">Preset:</label>
+                    <select id="presetSelect" onchange="loadPreset(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                        <option value="prizes">🎁 Classic Prizes</option>
+                        <option value="decision">🤔 Yes / No / Maybe</option>
+                        <option value="food">🍕 What to Eat?</option>
+                        <option value="rpg">⚔️ RPG Loot Table</option>
+                        <option value="numbers">🎲 Numbers 1 - 8</option>
+                    </select>
+                </div>
+
+                <!-- Textarea Editor -->
+                <textarea id="itemsInput" rows="5" oninput="updateItemsFromInput()" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs text-emerald-400 font-mono focus:outline-none focus:border-emerald-500 transition resize-y uppercase" placeholder="Enter one item per line..."></textarea>
+                <p class="text-[10px] text-slate-500 mt-1">Tip: Keep item labels short (3-8 chars) for best ASCII rendering! (Forced Uppercase)</p>
+            </div>
+
+            <!-- Customization & Visual Style Card -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl">
+                <h2 class="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
+                    <span>🎨</span> ASCII ART STYLES
+                </h2>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Wheel Shape</label>
+                        <select id="shapeSelect" onchange="renderWheel()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                            <option value="circle">⭕ Circle (Classic)</option>
+                            <option value="square">🔲 Square Box</option>
+                            <option value="triangle">🔺 Triangle</option>
+                            <option value="star">⭐ 5-Point Star</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Color Palette</label>
+                        <select id="themeSelect" onchange="changeTheme(this.value)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                            <option value="theme-green">🟢 Phosphor Green</option>
+                            <option value="theme-amber">🟠 Amber Terminal</option>
+                            <option value="theme-cyber">🟦 Cyber Cyan</option>
+                            <option value="theme-matrix">🟩 Matrix Glitch</option>
+                            <option value="theme-classic">⚪ Clean Monochrome</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[11px] text-slate-400 block mb-1">Character Set</label>
+                        <select id="charsetSelect" onchange="renderWheel()" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-emerald-500">
+                            <option value="box">┌─┐ Box-Drawing</option>
+                            <option value="classic">+-| Classic ASCII</option>
+                            <option value="stars">*o. Stars & Dots</option>
+                            <option value="dense">#@% Dense Blocks</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Resolution & Quality Control -->
+                <div class="mt-4 pt-3 border-t border-slate-800/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[11px] text-slate-400">Wheel Quality & Size</label>
+                        <span id="qualityValueDisplay" class="text-[11px] text-emerald-400 font-mono">Standard (57x29)</span>
+                    </div>
+                    <input type="range" id="qualitySlider" min="1" max="7" value="2" oninput="updateQuality()" class="w-full accent-emerald-500 bg-slate-950 rounded-lg cursor-pointer h-1.5">
+                </div>
+
+                <!-- Physics Tuning -->
+                <div class="mt-3 pt-3 border-t border-slate-800/80">
+                    <div class="flex justify-between items-center mb-1">
+                        <label class="text-[11px] text-slate-400">Spin Force / Duration</label>
+                        <span id="speedValueDisplay" class="text-[11px] text-emerald-400 font-mono">Medium</span>
+                    </div>
+                    <input type="range" id="speedSlider" min="1" max="3" value="2" onchange="updateSpeedLabel()" class="w-full accent-emerald-500 bg-slate-950 rounded-lg cursor-pointer h-1.5">
+                </div>
+            </div>
+
+            <!-- History Log -->
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-4 shadow-xl flex-grow flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+                            <span>📜</span> WIN HISTORY
+                        </h2>
+                        <button onclick="clearHistory()" class="text-[10px] text-slate-500 hover:text-rose-400 transition">Clear Log</button>
+                    </div>
+                    <ul id="historyList" class="space-y-1.5 max-h-32 overflow-y-auto text-xs font-mono text-slate-400 pr-1">
+                        <li class="text-slate-600 italic">No spins yet...</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Winner Overlay Banner Modal -->
+    <div id="winnerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-6 sm:p-8 max-w-lg w-full text-center shadow-2xl shadow-emerald-950/80 transform transition-all scale-95 opacity-0 crt-overlay" id="winnerModalCard">
+            <pre class="ascii-canvas text-amber-400 text-[10px] sm:text-xs leading-none font-bold mb-3 mx-auto">
+      ___________
+     '._==_==_=_.'
+     .-\:      /-.
+    | (|:.     |) |
+     '-|:.     |-'
+       \::.    /
+        '::. .'
+          ) (
+        _.' '._
+       `-------`
+            </pre>
+            <p class="text-xs tracking-widest text-emerald-400 font-bold uppercase mb-1">=== WE HAVE A WINNER! ===</p>
+            <h3 id="winnerItemText" class="text-2xl sm:text-3xl font-extrabold text-white my-3 font-mono bg-slate-950 py-3 px-4 rounded-xl border border-emerald-500/30 text-amber-300 tracking-wider">
+                COFFEE
+            </h3>
+            <p class="text-xs text-slate-400 mb-6 font-mono">Selected by ASCII Physics Engine</p>
+            <button onclick="closeWinnerModal()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold rounded-xl text-sm transition tracking-wider shadow-lg">
+                CLAIM PRIZE & CLOSE [ESC]
+            </button>
+        </div>
+    </div>
+
+    <script>
+        /* Global Application State */
+        let items = ["COFFEE", "TACO", "100$", "JACKPOT", "LOSE", "RE-SPIN", "LUCK", "BONUS"];
+        let currentAngle = 0; // In radians
+        let angularVelocity = 0;
+        let isSpinning = false;
+        let soundEnabled = true;
+        let audioCtx = null;
+        let lastPassedSector = -1;
+        let animFrameId = null;
+        let lastRenderedAscii = "";
+
+        // Dynamic ASCII Spinning Symbols for character rotation during spins
+        const SPIN_SYMBOLS = ['▲','►','▼','◄','░','▒','▓','█','⊕','⊗','◈','◇','◆','★','⚡','#','@','$','%','&','*','§','¤'];
+
+        // Quality & Grid Resolution Configurations
+        const QUALITY_CONFIGS = {
+            1: { name: "Compact (43x23)", width: 43, height: 23, rx: 19, ry: 10, fontClass: "text-[9px] sm:text-[11px] md:text-[13px]" },
+            2: { name: "Standard (57x29)", width: 57, height: 29, rx: 26, ry: 13, fontClass: "text-[8px] sm:text-[10px] md:text-[11.5px]" },
+            3: { name: "High Quality (75x39)", width: 75, height: 39, rx: 35, ry: 18, fontClass: "text-[6.5px] sm:text-[8px] md:text-[9.5px]" },
+            4: { name: "Ultra HD (97x49)", width: 97, height: 49, rx: 46, ry: 23, fontClass: "text-[5px] sm:text-[6.2px] md:text-[7.5px]" },
+            5: { name: "Extreme HD (125x63)", width: 125, height: 63, rx: 60, ry: 30, fontClass: "text-[4px] sm:text-[5px] md:text-[6.2px]" },
+            6: { name: "Super 4K ASCII (155x79)", width: 155, height: 79, rx: 75, ry: 38, fontClass: "text-[3px] sm:text-[4px] md:text-[5px]" },
+            7: { name: "Giga Grid (189x95)", width: 189, height: 95, rx: 92, ry: 46, fontClass: "text-[2.5px] sm:text-[3.2px] md:text-[4px]" }
+        };
+
+        // Presets Library (Forced Uppercase)
+        const PRESETS = {
+            prizes: ["COFFEE", "TACO", "100$", "JACKPOT", "LOSE", "RE-SPIN", "LUCK", "BONUS"],
+            decision: ["YES!", "NO WAY", "MAYBE", "DEFINITELY", "ASK LATER", "TRY AGAIN"],
+            food: ["PIZZA", "BURGER", "SUSHI", "TACOS", "RAMEN", "SALAD", "ICE CREAM"],
+            rpg: ["SWORD", "SHIELD", "POTION", "GEM", "TRAP", "SCROLL", "CROWN"],
+            numbers: ["ONE (1)", "TWO (2)", "THREE (3)", "FOUR (4)", "FIVE (5)", "SIX (6)", "SEVEN (7)", "EIGHT (8)"]
+        };
+
+        // Character Sets for ASCII Wheels
+        const CHAR_SETS = {
+            box: {
+                top: '─', bottom: '─', left: '│', right: '│',
+                tl: '┌', tr: '┐', bl: '└', br: '┘',
+                hub: 'O', spoke: '·'
+            },
+            classic: {
+                top: '-', bottom: '-', left: '|', right: '|',
+                tl: '+', tr: '+', bl: '+', br: '+',
+                hub: '@', spoke: '.'
+            },
+            stars: {
+                top: '*', bottom: '*', left: '*', right: '*',
+                tl: '*', tr: '*', bl: '*', br: '*',
+                hub: '★', spoke: ':'
+            },
+            dense: {
+                top: '#', bottom: '#', left: '#', right: '#',
+                tl: '#', tr: '#', bl: '#', br: '#',
+                hub: '%', spoke: '+'
+            }
+        };
+
+        /* Initialize Audio Context on user action */
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundIcon').innerText = soundEnabled ? "🔊" : "🔇";
+            document.getElementById('soundLabel').innerText = soundEnabled ? "Sound ON" : "Muted";
+        }
+
+        // Web Audio Synthesizer for Wheel Tick Effect
+        function playTickSound(pitch = 580) {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(pitch, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, ctx.currentTime + 0.025);
+
+                gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.025);
+
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.start();
+                osc.stop(ctx.currentTime + 0.025);
+            } catch(e){}
+        }
+
+        // Victory Fanfare Audio
+        function playFanfare() {
+            if (!soundEnabled) return;
+            try {
+                const ctx = getAudioContext();
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + idx * 0.08);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + idx * 0.08 + 0.25);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start(ctx.currentTime + idx * 0.08);
+                    osc.stop(ctx.currentTime + idx * 0.08 + 0.25);
+                });
+            } catch(e){}
+        }
+
+        /* Rotate item characters during spin using dynamic ASCII symbols */
+        function getSpinningChar(origChar, charIndex, itemIndex) {
+            if (!isSpinning || angularVelocity < 0.003) {
+                return origChar;
+            }
+            // Higher velocity increases symbol chaos / character rotation effect
+            const glitchThreshold = Math.min(1.0, angularVelocity * 4.0);
+            const pseudoRandom = Math.sin(currentAngle * 12 + itemIndex * 7 + charIndex * 13 + Date.now() * 0.008);
+            
+            if (Math.abs(pseudoRandom) < glitchThreshold) {
+                const symbolIdx = Math.abs(Math.floor((currentAngle * 25 + itemIndex * 6 + charIndex * 4 + Date.now() * 0.04) % SPIN_SYMBOLS.length));
+                return SPIN_SYMBOLS[symbolIdx];
+            }
+            return origChar;
+        }
+
+        /* Pure ASCII Circle & Wheel Rendering Engine */
+        function renderWheel() {
+            const numItems = items.length;
+            if (numItems === 0) {
+                document.getElementById('asciiWheelDisplay').textContent = "Please add at least one item!";
+                return;
+            }
+
+            // Quality & Resolution Grid Calculations
+            const qualityVal = parseInt(document.getElementById('qualitySlider')?.value || 2);
+            const qConfig = QUALITY_CONFIGS[qualityVal] || QUALITY_CONFIGS[2];
+
+            const width = qConfig.width;
+            const height = qConfig.height;
+            const rx = qConfig.rx;
+            const ry = qConfig.ry;
+            const cx = Math.floor(width / 2);
+            const cy = Math.floor(height / 2);
+
+            const shapeKey = document.getElementById('shapeSelect')?.value || 'circle';
+            const charSetKey = document.getElementById('charsetSelect').value || 'box';
+            const style = CHAR_SETS[charSetKey];
+
+            // Construct empty 2D character matrix
+            let grid = Array.from({ length: height }, () => Array(width).fill(' '));
+
+            // Static pointer arrow placed at row 0, exact center column (cx)
+            grid[0][cx] = '↓';
+
+            const sectorAngle = (2 * Math.PI) / numItems;
+
+            // Helper to compute normalized radius distance (normR = 1.0 on shape boundary)
+            function getNormRadius(dx, dy) {
+                const r = Math.sqrt(dx * dx + dy * dy);
+                if (r === 0) return 0;
+                if (shapeKey === 'square') {
+                    return Math.max(Math.abs(dx), Math.abs(dy));
+                } else if (shapeKey === 'triangle') {
+                    const theta = Math.atan2(dy, dx);
+                    const thetaNorm = theta - Math.PI / 2;
+                    const thetaMod = ((thetaNorm % (2 * Math.PI / 3)) + (2 * Math.PI / 3)) % (2 * Math.PI / 3) - Math.PI / 3;
+                    const Rbound = 0.48 / Math.cos(thetaMod);
+                    return r / Math.max(0.1, Rbound);
+                } else if (shapeKey === 'star') {
+                    const theta = Math.atan2(dy, dx);
+                    const thetaNorm = theta + Math.PI / 2;
+                    const angleStep = (2 * Math.PI) / 5;
+                    const absT = Math.abs(((thetaNorm % angleStep) + angleStep) % angleStep - angleStep / 2);
+                    const Rbound = 0.42 / (0.42 * Math.cos(absT) + Math.sin(absT) * 1.32);
+                    return r / Math.max(0.1, Rbound);
+                }
+                return r; // Circle default
+            }
+
+            // 1. Draw Sector Spokes and Circle/Shape Fill
+            for (let y = 1; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const dx = (x - cx) / rx;
+                    const dy = (y - cy) / ry;
+                    const r = Math.sqrt(dx * dx + dy * dy);
+                    const normR = getNormRadius(dx, dy);
+                    const distSq = normR * normR;
+
+                    // Inside or on the shape boundary
+                    if (distSq <= 1.04) {
+                        // Center hub
+                        if (r < 0.22 && distSq < 0.06) {
+                            grid[y][x] = style.hub;
+                            continue;
+                        }
+
+                        // Outer Rim
+                        if (distSq >= 0.85 && distSq <= 1.04) {
+                            const angle = Math.atan2(dy, dx);
+                            const deg = Math.abs((angle * 180) / Math.PI);
+                            if (deg < 25 || deg > 155) {
+                                grid[y][x] = style.left;
+                            } else if (deg >= 65 && deg <= 115) {
+                                grid[y][x] = style.top;
+                            } else if (angle < 0) {
+                                grid[y][x] = (dx * dy > 0) ? '\\' : '/';
+                            } else {
+                                grid[y][x] = (dx * dy > 0) ? '/' : '\\';
+                            }
+                            continue;
+                        }
+
+                        // Wheel Interior: Spokes calculation
+                        let angle = Math.atan2(dy, dx);
+                        if (angle < 0) angle += 2 * Math.PI;
+
+                        let relativeAngle = (angle - currentAngle) % (2 * Math.PI);
+                        if (relativeAngle < 0) relativeAngle += 2 * Math.PI;
+
+                        const sectorIndex = Math.floor(relativeAngle / sectorAngle);
+                        const angleIntoSector = relativeAngle - (sectorIndex * sectorAngle);
+
+                        const edgeDist = Math.min(angleIntoSector, sectorAngle - angleIntoSector);
+                        if (edgeDist < 0.075 && distSq > 0.08) {
+                            grid[y][x] = style.spoke;
+                        }
+                    }
+                }
+            }
+
+            // 2. Overlay Labels inside each sector with character symbol rotation during spin
+            const maxLabelLen = Math.max(3, Math.floor(rx * 0.55));
+            for (let i = 0; i < numItems; i++) {
+                const midSectorAngle = currentAngle + (i + 0.5) * sectorAngle;
+                const label = items[i].toUpperCase();
+                const cleanLabel = label.trim().substring(0, maxLabelLen);
+
+                const labelLength = cleanLabel.length;
+                const minR = 0.25;
+                const maxR = 0.80;
+
+                for (let c = 0; c < labelLength; c++) {
+                    const frac = labelLength === 1 ? 0.5 : c / (labelLength - 1);
+                    const rFrac = minR + frac * (maxR - minR);
+
+                    const charX = Math.round(cx + rx * rFrac * Math.cos(midSectorAngle));
+                    const charY = Math.round(cy + ry * rFrac * Math.sin(midSectorAngle));
+
+                    if (charY >= 1 && charY < height && charX >= 0 && charX < width) {
+                        const dx = (charX - cx) / rx;
+                        const dy = (charY - cy) / ry;
+                        const normR = getNormRadius(dx, dy);
+                        if (normR * normR < 0.85) {
+                            // Apply spinning character symbol transformation
+                            const origChar = cleanLabel[c];
+                            grid[charY][charX] = getSpinningChar(origChar, c, i);
+                        }
+                    }
+                }
+            }
+
+            // Store pure raw text for accurate clipboard copying
+            lastRenderedAscii = grid.map(row => row.join('')).join('\n');
+
+            // Format HTML lines with highlighted pointer arrow at top row center
+            const htmlLines = grid.map((row, y) => {
+                const lineStr = escapeHtml(row.join(''));
+                if (y === 0) {
+                    return lineStr.replace('↓', '<span class="text-rose-500 font-extrabold text-base sm:text-lg inline-block transform scale-125">↓</span>');
+                }
+                return lineStr;
+            });
+
+            const displayEl = document.getElementById('asciiWheelDisplay');
+            // Apply font size class matching chosen quality level
+            const currentTheme = (displayEl.className.match(/theme-\w+/) || ['theme-green'])[0];
+            displayEl.className = `ascii-canvas ${currentTheme} ${qConfig.fontClass} leading-none select-none font-bold transition-all duration-150`;
+            displayEl.innerHTML = htmlLines.join('\n');
+
+            // Check tick collision with top pointer
+            checkPointerTick();
+        }
+
+        /* Check when a sector spoke passes the top pointer */
+        function checkPointerTick() {
+            const numItems = items.length;
+            if (numItems === 0) return;
+
+            const sectorAngle = (2 * Math.PI) / numItems;
+            // Pointer is at top: 3*PI/2 or -PI/2
+            const pointerAngle = (1.5 * Math.PI);
+            
+            let relPointer = (pointerAngle - currentAngle) % (2 * Math.PI);
+            if (relPointer < 0) relPointer += 2 * Math.PI;
+
+            const currentSector = Math.floor(relPointer / sectorAngle);
+
+            if (currentSector !== lastPassedSector) {
+                if (isSpinning) {
+                    playTickSound(620);
+                }
+                lastPassedSector = currentSector;
+            }
+        }
+
+        /* Copy ASCII Wheel to Clipboard */
+        function copyWheelToClipboard() {
+            const asciiText = lastRenderedAscii || document.getElementById('asciiWheelDisplay').textContent;
+            const tempInput = document.createElement('textarea');
+            tempInput.value = asciiText;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            try {
+                document.execCommand('copy');
+                const btn = document.getElementById('copyWheelBtn');
+                if (btn) {
+                    const origContent = btn.innerHTML;
+                    btn.innerHTML = '<span>✅</span> <span class="hidden sm:inline">Copied!</span>';
+                    setTimeout(() => {
+                        btn.innerHTML = origContent;
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error('Copy failed:', err);
+            }
+            document.body.removeChild(tempInput);
+        }
+
+        /* Physics Engine Loop */
+        function updatePhysics() {
+            if (!isSpinning) return;
+
+            // Apply friction
+            currentAngle += angularVelocity;
+            currentAngle = currentAngle % (2 * Math.PI);
+
+            const friction = 0.988; // Slow down rate
+            angularVelocity *= friction;
+
+            renderWheel();
+
+            // Check if wheel has come to rest
+            if (angularVelocity < 0.002) {
+                isSpinning = false;
+                angularVelocity = 0;
+                document.getElementById('spinBtn').disabled = false;
+                document.getElementById('spinStatus').innerText = "WHEEL STOPPED";
+                announceWinner();
+            } else {
+                animFrameId = requestAnimationFrame(updatePhysics);
+            }
+        }
+
+        /* Start Spinning with Random Speed Impulse */
+        function startSpin() {
+            if (isSpinning || items.length === 0) return;
+
+            getAudioContext(); // Enable audio context on interaction
+
+            const speedMultiplier = parseFloat(document.getElementById('speedSlider').value) || 2;
+            const baseImpulse = 0.35 + Math.random() * 0.25;
+            angularVelocity = baseImpulse * (speedMultiplier * 0.7);
+
+            isSpinning = true;
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinStatus').innerText = "🌀 SPINNING...";
+
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            updatePhysics();
+        }
+
+        function triggerRandomSpin() {
+            startSpin();
+        }
+
+        /* Calculate Winning Item based on Pointer Angle */
+        function announceWinner() {
+            const numItems = items.length;
+            const sectorAngle = (2 * Math.PI) / numItems;
+            const pointerAngle = 1.5 * Math.PI; // Top position
+
+            let relPointer = (pointerAngle - currentAngle) % (2 * Math.PI);
+            if (relPointer < 0) relPointer += 2 * Math.PI;
+
+            const winningIndex = Math.floor(relPointer / sectorAngle) % numItems;
+            const winningItem = items[winningIndex] || "UNKNOWN";
+
+            // Trigger Victory Sound & Modal
+            playFanfare();
+
+            document.getElementById('winnerItemText').innerText = winningItem;
+            const modal = document.getElementById('winnerModal');
+            const card = document.getElementById('winnerModalCard');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+
+            // Add to Log
+            addHistoryLog(winningItem);
+        }
+
+        function closeWinnerModal() {
+            const card = document.getElementById('winnerModalCard');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById('winnerModal').classList.add('hidden');
+            }, 200);
+        }
+
+        /* History Log Management */
+        function addHistoryLog(item) {
+            const list = document.getElementById('historyList');
+            if (list.querySelector('li.italic')) {
+                list.innerHTML = '';
+            }
+
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const li = document.createElement('li');
+            li.className = "flex justify-between items-center bg-slate-950 px-2.5 py-1.5 rounded border border-slate-800 text-emerald-400 font-bold";
+            li.innerHTML = `<span>🏆 ${escapeHtml(item)}</span><span class="text-[10px] text-slate-500 font-normal">${timeStr}</span>`;
+
+            list.insertBefore(li, list.firstChild);
+        }
+
+        function clearHistory() {
+            document.getElementById('historyList').innerHTML = '<li class="text-slate-600 italic">No spins yet...</li>';
+        }
+
+        /* Items Editor Functions */
+        function updateItemsFromInput() {
+            const inputEl = document.getElementById('itemsInput');
+            let text = inputEl.value;
+            const upperText = text.toUpperCase();
+            
+            // Force uppercase inside textarea while preserving cursor position
+            if (text !== upperText) {
+                const start = inputEl.selectionStart;
+                const end = inputEl.selectionEnd;
+                inputEl.value = upperText;
+                inputEl.setSelectionRange(start, end);
+            }
+
+            const lines = upperText.split('\n')
+                              .map(l => l.trim())
+                              .filter(l => l.length > 0);
+            if (lines.length > 0) {
+                items = lines;
+                document.getElementById('itemCountBadge').innerText = `${items.length} Items`;
+                renderWheel();
+            }
+        }
+
+        function loadPreset(key) {
+            if (PRESETS[key]) {
+                items = PRESETS[key].map(item => item.toUpperCase());
+                document.getElementById('itemsInput').value = items.join('\n');
+                document.getElementById('itemCountBadge').innerText = `${items.length} Items`;
+                renderWheel();
+            }
+        }
+
+        function updateQuality() {
+            const val = parseInt(document.getElementById('qualitySlider').value);
+            const cfg = QUALITY_CONFIGS[val] || QUALITY_CONFIGS[2];
+            document.getElementById('qualityValueDisplay').innerText = cfg.name;
+            renderWheel();
+        }
+
+        function changeTheme(themeClass) {
+            const display = document.getElementById('asciiWheelDisplay');
+            const qualityVal = parseInt(document.getElementById('qualitySlider')?.value || 2);
+            const qConfig = QUALITY_CONFIGS[qualityVal] || QUALITY_CONFIGS[2];
+            display.className = `ascii-canvas ${themeClass} ${qConfig.fontClass} leading-none select-none font-bold transition-all duration-150`;
+        }
+
+        function updateSpeedLabel() {
+            const val = document.getElementById('speedSlider').value;
+            const labels = { "1": "Gentle", "2": "Medium", "3": "Turbo" };
+            document.getElementById('speedValueDisplay').innerText = labels[val] || "Medium";
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        }
+
+        // Global Key Bindings
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeWinnerModal();
+            } else if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                startSpin();
+            }
+        });
+
+        // Initialize App on Page Load
+        window.onload = function() {
+            document.getElementById('itemsInput').value = items.join('\n');
+            renderWheel();
+        };
+    </script>
+</body>
+</html>
