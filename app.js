@@ -242,7 +242,8 @@ const projects = [
     "errormaker", // three new projects in a row! holy s\it bro!!
     "translate scratch projects", // when its japanese and you rlly want to understand it
     "oiiatranslator",
-    "classicrobloxobby" // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
+    "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
+    "ascii wheel" // wow
 ];
 
 const fileList = document.getElementById('file-list');
