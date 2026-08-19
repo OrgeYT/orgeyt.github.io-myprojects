@@ -16,11 +16,13 @@
     #blocker p { font-size: 1.1rem; opacity: 0.9; margin: 0.3rem 0; }
     #blocker .start { margin-top: 1.5rem; padding: 12px 32px; background: #00c853; border: none; border-radius: 8px; color: white; font-size: 1.3rem; font-weight: bold; cursor: pointer; }
     #blocker .start:hover { background: #00e676; }
+    
     #hud {
       position: absolute; top: 12px; left: 12px; color: white; z-index: 10;
       text-shadow: 1px 1px 3px black; font-size: 1.1rem; pointer-events: none;
     }
     #hud div { margin-bottom: 4px; }
+    
     #death {
       position: absolute; inset: 0; background: rgba(180,0,0,0.6);
       display: none; align-items: center; justify-content: center;
@@ -28,7 +30,6 @@
     }
     canvas { display: block; }
 
-    /* Title screen buttons layout container */
     #menu-buttons {
       display: flex;
       gap: 12px;
@@ -37,17 +38,19 @@
       justify-content: center;
     }
 
-    /* Avatar Editor & Export & Emotes Buttons */
-    #avatarBtn, #exportCurrentTextureBtn, #emotesBtn {
+    #avatarBtn, #exportCurrentTextureBtn, #emotesBtn, #settingsBtn {
       padding: 10px 24px; border: none;
       border-radius: 8px; color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
     }
     #avatarBtn { background: #7c4dff; }
-    #avatarBtn:hover { background: #9a6fff; }
+    #avatarBtn:hover { background: #9a6fff; transform: scale(1.05); }
     #exportCurrentTextureBtn { background: #00acc1; }
-    #exportCurrentTextureBtn:hover { background: #00bcd4; }
+    #exportCurrentTextureBtn:hover { background: #00bcd4; transform: scale(1.05); }
     #emotesBtn { background: #ff6d00; }
-    #emotesBtn:hover { background: #ff9100; }
+    #emotesBtn:hover { background: #ff9100; transform: scale(1.05); }
+    #settingsBtn { background: #37474f; }
+    #settingsBtn:hover { background: #455a64; transform: scale(1.05); }
 
     #avatarEditor {
       display: none; position: absolute; inset: 0; z-index: 200;
@@ -70,15 +73,27 @@
     #ae-toolbar button:hover, #ae-toolbar label:hover { background: #555; }
     #ae-toolbar button.active { background: #00c853; }
     #ae-toolbar input[type="color"] { width: 40px; height: 36px; border: none; cursor: pointer; background: none; }
+
+    #ae-presets {
+      display: flex; gap: 10px; margin-bottom: 12px; align-items: center; justify-content: center; flex-wrap: wrap;
+      background: #1a1a2e; padding: 8px 16px; border-radius: 8px; border: 1px solid #444;
+    }
+    #ae-presets span { font-size: 0.95rem; font-weight: bold; color: #ffcc00; }
+    .preset-skin-btn {
+      padding: 6px 12px; background: #4a148c; border: 1px solid #7c4dff; border-radius: 6px;
+      color: white; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.2s;
+    }
+    .preset-skin-btn:hover { background: #7c4dff; }
+
     #ae-canvas-wrap {
       position: relative; border: 3px solid #444; border-radius: 4px; background: #222;
       box-shadow: 0 0 30px rgba(0,0,0,0.5);
-      max-width: min(512px, 92vw);
+      max-width: min(960px, 98vw);
       flex-shrink: 0;
     }
     #ae-canvas {
       cursor: crosshair; image-rendering: pixelated;
-      width: 100%; height: auto; max-width: 512px; display: block;
+      width: 100%; height: auto; max-width: 768px; display: block;
     }
     #ae-overlay-img {
       position: absolute; top: 0; left: 0; pointer-events: none; opacity: 0.85;
@@ -92,10 +107,30 @@
     #ae-apply:hover { background: #00e676; }
     #ae-close { background: #666; color: white; }
     #ae-close:hover { background: #888; }
+    
+    #ae-main-content {
+      display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; width: 100%; max-width: 1200px;
+    }
+    #ae-preview-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+      background: #1a1a2e; padding: 16px; border-radius: 12px; border: 2px solid #444;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    #preview-container {
+      width: 300px; height: 350px; background: #111; border-radius: 8px; overflow: hidden; cursor: grab; flex-shrink: 0;
+    }
+    #preview-container:active { cursor: grabbing; }
+    #preview-emotes {
+      display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: 300px;
+    }
+    #preview-emotes button {
+      padding: 8px 12px; border: none; border-radius: 6px; background: #37474f; color: white; cursor: pointer; font-size: 1.1rem; transition: background 0.2s;
+    }
+    #preview-emotes button:hover { background: #546e7a; }
+
     #ae-hint { margin-top: 8px; opacity: 0.7; font-size: 0.9rem; text-align: center; max-width: 520px; }
     #ae-note { margin-top: 4px; color: #ffaa00; font-size: 0.85rem; font-style: italic; text-align: center; }
 
-    /* Custom Confirm Popup Modal */
     #customPopup {
       display: none; position: absolute; inset: 0; z-index: 300;
       background: rgba(0,0,0,0.8); align-items: center; justify-content: center;
@@ -118,7 +153,6 @@
     #popupNo { background: #d32f2f; color: white; }
     #popupNo:hover { background: #f44336; }
 
-    /* Emotes Menu Modal */
     #emotesMenu {
       display: none; position: absolute; inset: 0; z-index: 250;
       background: rgba(10,10,25,0.92); color: white;
@@ -148,6 +182,43 @@
       color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer;
     }
     #emotesClose:hover { background: #777; }
+
+    #settingsMenu {
+      display: none; position: absolute; inset: 0; z-index: 260;
+      background: rgba(10,10,25,0.92); color: white;
+      flex-direction: column; align-items: center; justify-content: center;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+    #settingsMenu.open { display: flex; }
+    #settingsMenu h2 { margin-bottom: 1.2rem; font-size: 2.2rem; text-shadow: 0 0 15px #37474f; }
+    .settings-group {
+      background: #1e1e2f; border: 2px solid #455a64; border-radius: 12px;
+      padding: 18px 24px; max-width: 420px; width: 100%; margin-bottom: 1.2rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .settings-group span { font-size: 1.15rem; font-weight: bold; }
+    .toggle-switch {
+      position: relative; display: inline-block; width: 56px; height: 28px; flex-shrink: 0;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; cursor: pointer; inset: 0; background-color: #444;
+      transition: .3s; border-radius: 28px; border: 2px solid #666;
+    }
+    .toggle-slider:before {
+      position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px;
+      background-color: white; transition: .3s; border-radius: 50%;
+    }
+    .toggle-switch input:checked + .toggle-slider { background-color: #00c853; border-color: #00e676; }
+    .toggle-switch input:checked + .toggle-slider:before { transform: translateX(28px); }
+    #settingsClose {
+      padding: 10px 28px; background: #555; border: none; border-radius: 8px;
+      color: white; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem;
+    }
+    #settingsClose:hover { background: #777; }
   </style>
 </head>
 <body>
@@ -155,15 +226,17 @@
     <h1>🌈 Infinite Roblox Obby</h1>
     <p>WASD — Move &nbsp;|&nbsp; Mouse — Look &nbsp;|&nbsp; Space — Jump (double jump!) &nbsp;|&nbsp; Scroll — Zoom</p>
     <p>Avoid lava • Climb ladders • Touch green spikes to checkpoint • <b>Press E for Emotes</b></p>
-    <p style="opacity:0.7;margin-top:1rem">Click to start / lock cursor &nbsp;|&nbsp; ESC then Avatar Editor to customize</p>
+    <p style="opacity:0.7;margin-top:1rem">Click to start / lock cursor &nbsp;|&nbsp; ESC to open cursor to customize</p>
     <p style="margin-top:0.6rem;font-size:1.15rem;font-weight:bold;color:#ffdd55;text-shadow:0 0 10px #ffaa00;">👍 LIKE AND FAVORITE FOR MORE OBBY!</p>
     <button class="start" id="startBtn">PLAY</button>
     <div id="menu-buttons">
       <button id="avatarBtn">🎨 Avatar Editor</button>
       <button id="exportCurrentTextureBtn">📥 Export Current Texture</button>
       <button id="emotesBtn">🎭 Emotes (E)</button>
+      <button id="settingsBtn">⚙️ Settings</button>
     </div>
   </div>
+  
   <div id="hud">
     <div>Level: <span id="levelNum">1</span></div>
     <div>Distance: <span id="dist">0</span>m</div>
@@ -186,6 +259,12 @@
   <!-- Avatar Editor Modal -->
   <div id="avatarEditor">
     <h2>🎨 Avatar Texture Editor</h2>
+    <div id="ae-presets">
+      <span>Example Skins:</span>
+      <button class="preset-skin-btn" id="presetDressedNoob">Dressed Noob</button>
+      <button class="preset-skin-btn" id="presetGreatTemplate">Great Template</button>
+      <button class="preset-skin-btn" id="presetRedCyan">Red/Cyan Clothed Noob</button>
+    </div>
     <div id="ae-toolbar">
       <button data-tool="pen" class="active">✏️ Pen</button>
       <button data-tool="fill">🪣 Fill</button>
@@ -197,17 +276,39 @@
       <button id="ae-reset">♻️ Reset Default</button>
       <button id="ae-download">⬇️ Download</button>
     </div>
-    <div id="ae-canvas-wrap">
-      <canvas id="ae-canvas" width="512" height="512"></canvas>
-      <img id="ae-overlay-img" alt="" />
+    
+    <div id="ae-main-content">
+      <div style="display: flex; flex-direction: column; align-items: center; max-width: 100%;">
+        <div id="ae-canvas-wrap">
+          <canvas id="ae-canvas" width="512" height="512"></canvas>
+          <img id="ae-overlay-img" alt="" />
+        </div>
+        <div id="ae-actions">
+          <button id="ae-stamp" style="display:none;background:#2196f3;color:white;">✅ Accept Image Stamp</button>
+          <button id="ae-apply">APPLY & SAVE</button>
+          <button id="ae-close">Close</button>
+        </div>
+      </div>
+      
+      <div id="ae-preview-wrap">
+        <div id="preview-container"></div>
+        <button id="ae-refresh-preview" style="margin-top: 4px; margin-bottom: 4px; padding: 6px 12px; background: #00acc1; border: none; border-radius: 6px; color: white; cursor: pointer; font-size: 0.9rem; font-weight: bold;">🔄 Manual Update Preview</button>
+        <div id="preview-emotes">
+          <button data-pemote="idle" title="Idle">🧍</button>
+          <button data-pemote="boredom" title="Bored">💤</button>
+          <button data-pemote="walk" title="Walk">🚶</button>
+          <button data-pemote="jump" title="Jump">🦘</button>
+          <button data-pemote="fall" title="Fall">🪂</button>
+          <button data-pemote="climb" title="Climb">🪜</button>
+          <button data-pemote="sit" title="Sit">🪑</button>
+        </div>
+        <p style="font-size:0.85rem; opacity:0.8; margin-top:4px;">Drag to rotate • Live Preview</p>
+      </div>
     </div>
-    <div id="ae-actions">
-      <button id="ae-stamp" style="display:none;background:#2196f3;color:white;">✅ Accept Image Stamp</button>
-      <button id="ae-apply">APPLY & SAVE</button>
-      <button id="ae-close">Close</button>
-    </div>
+
     <p id="ae-hint">Pen / filled Square • Fill bucket • Picker • Upload then drag &amp; scroll-wheel to scale, then Accept • Replace whole texture automatically stamps full image • Reset Default • APPLY updates avatar</p>
-    <p id="ae-note">Note: Texture is upside down because that's how it was originally.</p>
+    <p id="ae-note">Texture is upside down because that's how it was originally.</p>
+    <p style="margin-top: 4px; color: #4caf50; font-size: 0.9rem; font-style: italic; text-align: center;">I recommend Pixilart for when using the great template for reference, pixilart makes it easy.</p>
   </div>
 
   <!-- Emotes/Animations Menu Modal -->
@@ -226,6 +327,33 @@
     <button id="emotesClose">Close (E / ESC)</button>
   </div>
 
+  <!-- Settings Menu Modal -->
+  <div id="settingsMenu">
+    <h2>⚙️ Game Settings</h2>
+    <div class="settings-group">
+      <span>🕊️ Freecam / Noclip</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="freecamToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-group">
+      <span>📐 Toggle Wireframe</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="wireframeToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="settings-group">
+      <span>🦴 Show Character Rig / Skeleton</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="rigToggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <button id="settingsClose">Close</button>
+  </div>
+
   <script type="importmap">
   {
     "imports": {
@@ -234,10 +362,12 @@
     }
   }
   </script>
+  
   <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
     // ========== CONFIG ==========
     const PLAYER_SPEED = 8;
@@ -252,12 +382,25 @@
     const MIN_ZOOM = 0.15;
     const MAX_ZOOM = 14;
     const DEFAULT_TEXTURE_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/Sizecomparationdummy1Mtl_baseColor.png';
+    const DRESSED_NOOB_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox_obby_current_skin_1440x720.png';
+    const GREAT_TEMPLATE_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/pixil-frame-0%20(3).png';
+    const RED_CYAN_URL = 'https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox_obby_avatar_skin_1024x512%20(3).png';
 
     // ========== SOUNDS ==========
     const bgMusic = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/Top%2010%20NCS%20-%20Roblox%20OVERUSED%20Songs%20(NoCopyrightSongs).mp3');
-    bgMusic.loop = true;
     bgMusic.volume = 0.5;
     bgMusic.preload = 'auto';
+
+    function playRandomMusic() {
+      const maxTime = 25 * 60; // 25 minutes
+      const randomTime = Math.random() * maxTime;
+      bgMusic.currentTime = randomTime;
+      bgMusic.play().catch(() => {});
+    }
+
+    bgMusic.addEventListener('ended', () => {
+      playRandomMusic();
+    });
 
     const sfxLand = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/orginal-roblox-land-sound.mp3');
     const sfxDeath = new Audio('https://file.garden/Zj01o_oh-G9Y8APf/sounds/roblox-death-sound_ytkBL7X.mp3');
@@ -276,7 +419,7 @@
     function startMusic() {
       if (musicStarted) return;
       musicStarted = true;
-      bgMusic.play().catch(() => {});
+      playRandomMusic();
     }
 
     const scene = new THREE.Scene();
@@ -334,6 +477,7 @@
     let idleTimer = 0;
     let isBored = false;
     let forcedEmote = null;
+    let skeletonHelper = null;
 
     const player = new THREE.Object3D();
     player.position.set(0, 5, 0);
@@ -344,7 +488,7 @@
     let jumpsLeft = 2;
     let onGround = false;
     let isDead = false;
-    let keys = { w: false, a: false, s: false, d: false, space: false };
+    let keys = { w: false, a: false, s: false, d: false, space: false, shift: false };
     const checkpoints = [];
     const particles = [];
 
@@ -360,6 +504,7 @@
     let lastCheckpoint = new THREE.Vector3(0, 5, 0);
     let spawnPos = new THREE.Vector3(0, 5, 0);
     let isClimbing = false;
+    let isFreecam = false;
 
     function createPlatform(x, y, z, w = PLATFORM_SIZE, h = 0.6, d = PLATFORM_SIZE, type = 'normal') {
       let geo, mat;
@@ -576,6 +721,18 @@
         });
         player.add(playerModel);
 
+        // Create SkeletonHelper for showing the rig
+        skeletonHelper = new THREE.SkeletonHelper(playerModel);
+        // Important: Set depthTest to false so it renders ON TOP of the mesh body
+        if (skeletonHelper.material) {
+          skeletonHelper.material.depthTest = false; 
+          skeletonHelper.material.transparent = true;
+          skeletonHelper.material.opacity = 0.8;
+          skeletonHelper.material.color.setHex(0x00ff00); // Give it a bright color
+        }
+        skeletonHelper.visible = false;
+        scene.add(skeletonHelper);
+
         mixer = new THREE.AnimationMixer(playerModel);
         const clips = gltf.animations;
         const names = ['climb', 'fall', 'idle', 'boredom', 'jump', 'walk', 'sit'];
@@ -616,6 +773,55 @@
       if (name === 'boredom') isBored = true;
       else isBored = false;
     }
+
+    // Settings Menu Controls
+    const settingsMenu = document.getElementById('settingsMenu');
+    function openSettingsMenu() {
+      if (controls.isLocked) controls.unlock();
+      settingsMenu.classList.add('open');
+    }
+    function closeSettingsMenu() {
+      settingsMenu.classList.remove('open');
+    }
+
+    document.getElementById('settingsBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openSettingsMenu();
+    });
+    document.getElementById('settingsClose').addEventListener('click', () => {
+      closeSettingsMenu();
+    });
+
+    // Freecam toggle handler
+    const freecamToggle = document.getElementById('freecamToggle');
+    freecamToggle.addEventListener('change', () => {
+      isFreecam = freecamToggle.checked;
+    });
+
+    // Wireframe toggle handler
+    const wireframeToggle = document.getElementById('wireframeToggle');
+    wireframeToggle.addEventListener('change', () => {
+      const isWire = wireframeToggle.checked;
+      if (playerModel) {
+        playerModel.traverse((c) => {
+          if (c.isMesh && c.material) {
+            if (Array.isArray(c.material)) {
+              c.material.forEach(m => m.wireframe = isWire);
+            } else {
+              c.material.wireframe = isWire;
+            }
+          }
+        });
+      }
+    });
+
+    // Rig / Skeleton toggle handler
+    const rigToggle = document.getElementById('rigToggle');
+    rigToggle.addEventListener('change', () => {
+      if (skeletonHelper) {
+        skeletonHelper.visible = rigToggle.checked;
+      }
+    });
 
     // Emotes Menu controls
     const emotesMenu = document.getElementById('emotesMenu');
@@ -698,7 +904,7 @@
       if (!controls.isLocked) return;
       yaw -= e.movementX * mouseSensitivity;
       pitch += e.movementY * mouseSensitivity;
-      pitch = Math.max(-1.2, Math.min(1.4, pitch));
+      pitch = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, pitch));
     });
 
     document.addEventListener('wheel', (e) => {
@@ -714,12 +920,14 @@
       if (k === 'a') keys.a = true;
       if (k === 's') keys.s = true;
       if (k === 'd') keys.d = true;
+      if (k === 'shift') keys.shift = true;
       if (k === ' ') { keys.space = true; e.preventDefault(); }
 
       if (k === 'e') {
         const aeOpen = document.getElementById('avatarEditor').classList.contains('open');
         const emotesOpen = document.getElementById('emotesMenu').classList.contains('open');
-        if (aeOpen) return;
+        const settingsOpen = document.getElementById('settingsMenu').classList.contains('open');
+        if (aeOpen || settingsOpen) return;
 
         if (emotesOpen) {
           closeEmotesMenu();
@@ -729,21 +937,49 @@
       }
 
       if (e.key === 'Escape') {
-        if (document.getElementById('emotesMenu').classList.contains('open')) {
-          closeEmotesMenu();
-        }
+        if (document.getElementById('emotesMenu').classList.contains('open')) closeEmotesMenu();
+        if (document.getElementById('settingsMenu').classList.contains('open')) closeSettingsMenu();
       }
     });
+    
     document.addEventListener('keyup', (e) => {
       const k = e.key.toLowerCase();
       if (k === 'w') keys.w = false;
       if (k === 'a') keys.a = false;
       if (k === 's') keys.s = false;
       if (k === 'd') keys.d = false;
+      if (k === 'shift') keys.shift = false;
       if (k === ' ') keys.space = false;
     });
 
     function updatePhysics(dt) {
+      if (isFreecam) {
+        const speed = 25 * dt;
+        const forward = new THREE.Vector3(
+          -Math.sin(yaw) * Math.cos(pitch),
+          -Math.sin(pitch),
+          -Math.cos(yaw) * Math.cos(pitch)
+        ).normalize();
+        
+        const right = new THREE.Vector3(
+          Math.cos(yaw),
+          0,
+          -Math.sin(yaw)
+        ).normalize();
+        
+        const up = new THREE.Vector3(0, 1, 0);
+
+        if (keys.w) camera.position.addScaledVector(forward, speed);
+        if (keys.s) camera.position.addScaledVector(forward, -speed);
+        if (keys.a) camera.position.addScaledVector(right, -speed);
+        if (keys.d) camera.position.addScaledVector(right, speed);
+        if (keys.space) camera.position.addScaledVector(up, speed);
+        if (keys.shift) camera.position.addScaledVector(up, -speed);
+        
+        camera.lookAt(camera.position.clone().add(forward));
+        return;
+      }
+
       if (isDead) return;
 
       const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
@@ -1009,7 +1245,6 @@
 
     initLevel();
 
-    // ========== AVATAR TEXTURE EDITOR (2D Canvas) ==========
     const avatarEditor = document.getElementById('avatarEditor');
     const aeCanvas = document.getElementById('ae-canvas');
     const aeCtx = aeCanvas.getContext('2d', { willReadFrequently: true });
@@ -1025,6 +1260,129 @@
     let workCtx = workingCanvas.getContext('2d');
     let currentTextureWidth = 512;
     let currentTextureHeight = 512;
+
+    const previewContainer = document.getElementById('preview-container');
+    const previewScene = new THREE.Scene();
+    previewScene.background = new THREE.Color(0x1a1a2e);
+    const previewCamera = new THREE.PerspectiveCamera(45, 300 / 350, 0.1, 50);
+    previewCamera.position.set(0, 1.0, 4.5);
+    const previewRenderer = new THREE.WebGLRenderer({ antialias: true });
+    previewRenderer.setSize(300, 350);
+    previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    previewContainer.appendChild(previewRenderer.domElement);
+
+    const previewControls = new OrbitControls(previewCamera, previewRenderer.domElement);
+    previewControls.enableDamping = true;
+    previewControls.dampingFactor = 0.05;
+    previewControls.autoRotate = true;
+    previewControls.autoRotateSpeed = 2.0;
+
+    const previewHemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    previewScene.add(previewHemi);
+    const previewDir = new THREE.DirectionalLight(0xffffff, 1.2);
+    previewDir.position.set(2, 5, 3);
+    previewScene.add(previewDir);
+
+    let previewModel = null;
+    let previewMixer = null;
+    let previewActions = {};
+    let previewCurrentAction = null;
+    let previewTexture = new THREE.CanvasTexture(workingCanvas);
+    previewTexture.flipY = false;
+    previewTexture.colorSpace = THREE.SRGBColorSpace;
+    let lastPreviewWidth = workingCanvas.width;
+    let lastPreviewHeight = workingCanvas.height;
+
+    function updatePreviewTexture() {
+      if (!previewTexture || lastPreviewWidth !== workingCanvas.width || lastPreviewHeight !== workingCanvas.height) {
+        if (previewTexture) previewTexture.dispose();
+        previewTexture = new THREE.CanvasTexture(workingCanvas);
+        previewTexture.flipY = false;
+        previewTexture.colorSpace = THREE.SRGBColorSpace;
+        lastPreviewWidth = workingCanvas.width;
+        lastPreviewHeight = workingCanvas.height;
+        if (previewModel) {
+          previewModel.traverse((c) => {
+            if (c.isMesh && c.material) {
+              if (Array.isArray(c.material)) {
+                c.material.forEach(m => { m.map = previewTexture; m.needsUpdate = true; });
+              } else {
+                c.material.map = previewTexture;
+                c.material.needsUpdate = true;
+              }
+            }
+          });
+        }
+      } else {
+        previewTexture.needsUpdate = true;
+      }
+    }
+
+    loader.load(
+      'https://file.garden/Zj01o_oh-G9Y8APf/r6_roblox_noob_animated.glb',
+      (gltf) => {
+        previewModel = gltf.scene;
+        previewModel.scale.set(1.1, 1.1, 1.1);
+        
+        // Calculate the center of the loaded model
+        const box = new THREE.Box3().setFromObject(previewModel);
+        const center = new THREE.Vector3();
+        box.getCenter(center);
+        
+        // Make camera look exactly at the center of the model
+        previewControls.target.copy(center);
+        previewCamera.position.set(center.x, center.y, center.z + 4.5);
+        previewControls.update();
+
+        previewScene.add(previewModel);
+
+        previewModel.traverse((c) => {
+          if (c.isMesh && c.material) {
+            c.material = c.material.clone(); // Separate material for preview
+            c.material.map = previewTexture;
+            c.material.needsUpdate = true;
+          }
+        });
+
+        previewMixer = new THREE.AnimationMixer(previewModel);
+        const clips = gltf.animations;
+        const names = ['climb', 'fall', 'idle', 'boredom', 'jump', 'walk', 'sit'];
+        for (let i = 0; i < Math.min(clips.length, 7); i++) {
+          const action = previewMixer.clipAction(clips[i]);
+          if (names[i] === 'sit') action.setLoop(THREE.LoopOnce);
+          action.clampWhenFinished = true;
+          previewActions[names[i]] = action;
+        }
+        if (!previewActions.boredom && clips[3]) previewActions.boredom = previewMixer.clipAction(clips[3]);
+        
+        playPreviewAnim('boredom');
+      }
+    );
+
+    function playPreviewAnim(name) {
+      if (!previewActions[name] || previewCurrentAction === previewActions[name]) return;
+      const next = previewActions[name];
+      if (previewCurrentAction) previewCurrentAction.fadeOut(0.2);
+      next.reset().fadeIn(0.2).play();
+      previewCurrentAction = next;
+    }
+
+    document.querySelectorAll('#preview-emotes button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        playPreviewAnim(btn.dataset.pemote);
+      });
+    });
+
+    let resumeAutoRotateTimeout = null;
+    previewControls.addEventListener('start', () => {
+      previewControls.autoRotate = false;
+      clearTimeout(resumeAutoRotateTimeout);
+    });
+    previewControls.addEventListener('end', () => {
+      resumeAutoRotateTimeout = setTimeout(() => { 
+        previewControls.autoRotate = true; 
+      }, 2500);
+    });
 
     function initTextureCanvas(imgWidth, imgHeight, imgElement) {
       currentTextureWidth = imgWidth;
@@ -1042,7 +1400,6 @@
       applyTextureToModel(workingCanvas.toDataURL('image/png'));
     }
 
-    // Load default texture image immediately and initialize editor and model
     const defaultImg = new Image();
     defaultImg.crossOrigin = 'anonymous';
     defaultImg.onload = () => {
@@ -1053,6 +1410,7 @@
     function redrawAeCanvas() {
       aeCtx.clearRect(0, 0, aeCanvas.width, aeCanvas.height);
       aeCtx.drawImage(workingCanvas, 0, 0);
+      updatePreviewTexture();
     }
 
     let uploadedImg = null;
@@ -1081,6 +1439,45 @@
         isReplaceMode = false;
         if (uploadedImg) hideUploadOverlay();
       });
+    });
+
+    document.getElementById('presetDressedNoob').addEventListener('click', async () => {
+      const confirmPreset = await showCustomPopup("Load Example Skin", "Load 'Dressed Noob' skin? This will replace your current editor texture.");
+      if (!confirmPreset) return;
+
+      const skinImg = new Image();
+      skinImg.crossOrigin = 'anonymous';
+      skinImg.onload = () => {
+        initTextureCanvas(skinImg.width || 1440, skinImg.height || 720, skinImg);
+        hideUploadOverlay();
+      };
+      skinImg.src = DRESSED_NOOB_URL;
+    });
+
+    document.getElementById('presetGreatTemplate').addEventListener('click', async () => {
+      const confirmPreset = await showCustomPopup("Load Example Skin", "Load 'Great Template' skin? This will replace your current editor texture.");
+      if (!confirmPreset) return;
+
+      const skinImg = new Image();
+      skinImg.crossOrigin = 'anonymous';
+      skinImg.onload = () => {
+        initTextureCanvas(skinImg.width || 1024, skinImg.height || 512, skinImg);
+        hideUploadOverlay();
+      };
+      skinImg.src = GREAT_TEMPLATE_URL;
+    });
+
+    document.getElementById('presetRedCyan').addEventListener('click', async () => {
+      const confirmPreset = await showCustomPopup("Load Example Skin", "Load 'Red/Cyan Clothed Noob' skin? This will replace your current editor texture.");
+      if (!confirmPreset) return;
+
+      const skinImg = new Image();
+      skinImg.crossOrigin = 'anonymous';
+      skinImg.onload = () => {
+        initTextureCanvas(skinImg.width || 1024, skinImg.height || 512, skinImg);
+        hideUploadOverlay();
+      };
+      skinImg.src = RED_CYAN_URL;
     });
 
     function getCanvasCoords(e) {
@@ -1295,6 +1692,10 @@
       link.click();
     });
 
+    document.getElementById('ae-refresh-preview').addEventListener('click', () => {
+      updatePreviewTexture();
+    });
+
     document.getElementById('exportCurrentTextureBtn').addEventListener('click', () => {
       let activeDataUrl = workingCanvas.toDataURL('image/png');
       let expW = currentTextureWidth;
@@ -1355,12 +1756,19 @@
       const dt = Math.min(clock.getDelta(), 0.1);
 
       if (mixer) mixer.update(dt);
+      if (previewMixer) previewMixer.update(dt);
+
+      if (previewControls) previewControls.update();
 
       if (controls.isLocked) {
         updatePhysics(dt);
       }
 
       renderer.render(scene, camera);
+      
+      if (avatarEditor.classList.contains('open')) {
+        previewRenderer.render(previewScene, previewCamera);
+      }
     }
 
     window.addEventListener('resize', () => {
