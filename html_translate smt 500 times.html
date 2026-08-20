@@ -188,11 +188,9 @@
     <script>
         // --- State and Configuration ---
         
-        // We use MyMemory Translation API for free tier usage without API keys
-        // Note: It has a limit of 500 words/day for free anonymous use.
-        // For a true production app, you'd want a proxy or authenticated Google Cloud Translation API.
-        const TRANSLATE_API_URL = 'https://api.mymemory.translated.net/get';
-
+        // We use Google Translate's free API endpoint for better stability and rate limits.
+        // For a true production app, you'd want an authenticated Google Cloud Translation API.
+        
         // A curated list of highly-supported language codes to prevent API errors
         const LANGUAGES = {
             'ar': 'Arabic', 'bg': 'Bulgarian', 'zh': 'Chinese', 'cs': 'Czech', 'da': 'Danish',
@@ -356,8 +354,7 @@
         }
 
         /**
-         * Translates text using the MyMemory API.
-         * Note: In a real environment with high usage, a paid API (Google, DeepL) is required.
+         * Translates text using the Google Translate free proxy endpoint.
          */
         async function translateText(text, fromLang, toLang, signal) {
             // Prevent empty queries from causing API errors
@@ -366,12 +363,8 @@
                 return text;
             }
 
-            // MyMemory uses langpair=en|it format
-            const langpair = `${fromLang}|${toLang}`;
-            // Provide a dummy email as requested by MyMemory for better quotas
-            const email = 'demo.translate.chain@example.com'; 
-            
-            const url = `${TRANSLATE_API_URL}?q=${encodeURIComponent(text.trim())}&langpair=${langpair}&de=${email}`;
+            // Google Translate free endpoint
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${fromLang}&tl=${toLang}&dt=t&q=${encodeURIComponent(text.trim())}`;
 
             try {
                 const response = await fetch(url, { signal });
@@ -380,53 +373,27 @@
                 }
                 const data = await response.json();
                 
-                let translated = data.responseData ? data.responseData.translatedText : null;
-
-                if (translated !== null) {
-                    translated = translated.trim();
+                // Google Translate returns an array where data[0] contains the translation segments
+                let translated = '';
+                if (data && data[0]) {
+                    translated = data[0].map(item => item[0]).join('');
                 }
 
                 // If the translation returns completely empty, fallback to previous text
-                if (!translated) {
-                    console.warn(`Empty translation received for ${langpair}, keeping previous text.`);
+                if (!translated || translated.trim() === '') {
+                    console.warn(`Empty translation received for ${fromLang} -> ${toLang}, keeping previous text.`);
                     incrementErrorAvoided();
                     return text;
                 }
 
-                // Handle MyMemory specific errors that it passes as successful text strings
-                const upperTranslated = translated.toUpperCase();
-                
-                // Regex to catch the weird '0;"Amber [5013]"...' internal database leak format
-                const isInternalLogFormat = /^0;".*?";".*?"$/.test(translated) || /^0;"Amber \[\d+\]/.test(translated);
-
-                if (upperTranslated.includes('INVALID TARGET LANGUAGE') || 
-                    upperTranslated.includes('MYMEMORY WARNING') ||
-                    upperTranslated.includes('REQUEST NOT SPECIFIED') ||
-                    upperTranslated.includes('NO QUERY SPECIFIED') ||
-                    isInternalLogFormat) {
-                    console.warn(`API returned an error string or internal log for ${langpair}. Skipping this jump.`);
-                    incrementErrorAvoided();
-                    return text; // Return the previous text so the chain isn't polluted with error messages
-                }
-
-                if (data.responseStatus === 200) {
-                    return translated;
-                } else {
-                    // Handle quota limit or API errors
-                    console.warn("API Warning:", data.responseDetails);
-                    if (data.responseStatus === 429 || (data.responseDetails && data.responseDetails.includes("MYMEMORY WARNING"))) {
-                         throw new Error("Translation API rate limit reached. This free API allows ~500 words/day. Please try again later.");
-                    }
-                    incrementErrorAvoided();
-                    return translated || text; 
-                }
+                return translated;
             } catch (error) {
                 if (error.name === 'AbortError') {
                     throw new Error('Process stopped by user.');
                 }
                 console.error("Translation error details:", error);
                 // Instead of failing the whole chain on a random network glitch, just return the current text
-                console.warn(`Translation failed for ${langpair}, carrying over previous text.`);
+                console.warn(`Translation failed for ${fromLang} -> ${toLang}, carrying over previous text.`);
                 incrementErrorAvoided();
                 return text;
             }
