@@ -243,7 +243,8 @@ const projects = [
     "translate scratch projects", // when its japanese and you rlly want to understand it
     "oiiatranslator",
     "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
-    "ascii wheel" // wow
+    "ascii wheel", // wow
+    "translate smt 500 times" // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
 ];
 
 const fileList = document.getElementById('file-list');
