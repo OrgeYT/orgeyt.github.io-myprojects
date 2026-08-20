@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Translate Chain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3b82f6; /* blue-500 */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        .step-item {
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col text-gray-800 dark:text-gray-200 bg-[#f3f4f6] dark:bg-gray-900 transition-colors duration-300">
+    <button id="themeToggle" class="absolute top-4 right-4 p-2.5 rounded-full bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors shadow-sm focus:outline-none z-10">
+        <i id="themeIcon" class="fa-solid fa-moon"></i>
+    </button>
+    <main class="flex-grow container mx-auto px-4 py-8 max-w-4xl relative">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-600 dark:text-blue-400 mb-2"><i class="fa-solid fa-language mr-2"></i>Translation Chain</h1>
+            <p class="text-gray-600 dark:text-gray-400">Run your text through multiple languages and see how the meaning changes!</p>
+        </header>
+
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-8 border border-gray-200 dark:border-gray-700 transition-colors">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <!-- Source Language Selection -->
+                <div>
+                    <label for="sourceLang" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Original Language</label>
+                    <select id="sourceLang" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-2.5 focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                        <option value="en" selected>English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="it">Italian</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="ja">Japanese</option>
+                        <option value="ko">Korean</option>
+                        <option value="zh">Chinese (Simplified)</option>
+                        <option value="ru">Russian</option>
+                        <option value="ar">Arabic</option>
+                        <option value="hi">Hindi</option>
+                    </select>
+                </div>
+
+                <!-- Iteration Count Selection -->
+                <div>
+                    <label for="chainCount" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Translations Count (5-500)</label>
+                    <div class="flex items-center">
+                        <input type="range" id="chainCountRange" min="5" max="500" value="10" class="w-full h-2 bg-gray-200 dark:bg-gray-600 rounded-lg appearance-none cursor-pointer mr-4">
+                        <input type="number" id="chainCountInput" min="5" max="500" value="10" class="w-20 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-2 text-center focus:ring-blue-500 focus:border-blue-500 transition-colors">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Text Area -->
+            <div class="mb-6">
+                <label for="inputText" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Text to Translate</label>
+                <textarea id="inputText" rows="4" class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg p-3 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-y" placeholder="Enter the text you want to distort..."></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between items-center">
+                <button id="clearBtn" class="px-4 py-2 text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg font-medium transition-colors border border-gray-200 dark:border-gray-600">
+                    <i class="fa-solid fa-trash mr-2"></i>Clear
+                </button>
+                <button id="runBtn" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg font-semibold shadow-sm transition-colors flex items-center">
+                    <i class="fa-solid fa-play mr-2"></i>Run Translation Chain
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress and Output Section -->
+        <div id="outputSection" class="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 border border-gray-200 dark:border-gray-700 hidden transition-colors">
+            <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">Results</h2>
+            
+            <!-- Loading Indicator -->
+            <div id="loadingIndicator" class="flex flex-col items-center justify-center py-8">
+                <div class="loader mb-4"></div>
+                <p id="loadingStatus" class="text-gray-600 dark:text-gray-400 font-medium">Initializing...</p>
+                
+                <!-- Progress Bar -->
+                <div class="w-full max-w-md mt-4 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                  <div id="progressBar" class="bg-blue-600 dark:bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+                <div class="flex justify-between w-full max-w-md mt-2">
+                    <p id="progressText" class="text-xs text-gray-500 dark:text-gray-400">0 / 0 steps</p>
+                    <p id="errorCounter" class="text-xs font-semibold text-orange-500 dark:text-orange-400"><i class="fa-solid fa-shield-halved mr-1"></i>Errors Avoided: <span id="errorCounterValue">0</span></p>
+                </div>
+            </div>
+
+            <!-- Final Result Area -->
+            <div id="finalResultArea" class="hidden">
+                <div class="mb-6">
+                    <div class="flex justify-between items-end mb-2">
+                        <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Final Translated Text</h3>
+                        <span id="finalErrorBadge" class="hidden text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-1 rounded border border-orange-200 dark:border-orange-800/50">
+                            <i class="fa-solid fa-shield-halved mr-1"></i> <span id="finalErrorValue">0</span> Errors Avoided
+                        </span>
+                    </div>
+                    <div class="p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-lg text-lg text-gray-800 dark:text-gray-200 break-words" id="finalText">
+                        <!-- Result will appear here -->
+                    </div>
+                </div>
+
+                <!-- Comparison / Diff Area -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <h4 class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Original</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300" id="originalTextDisplay"></p>
+                    </div>
+                    <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/50 rounded-lg">
+                        <h4 class="text-xs font-semibold text-green-700 dark:text-green-500 uppercase tracking-wider mb-2">New Meaning?</h4>
+                        <p class="text-sm text-gray-700 dark:text-gray-300" id="finalTextComparison"></p>
+                    </div>
+                </div>
+                
+                <!-- Detailed Steps Log -->
+                <div>
+                    <div class="flex justify-between items-center mb-3">
+                        <button id="toggleStepsBtn" class="flex items-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 focus:outline-none transition-colors">
+                            <i id="toggleStepsIcon" class="fa-solid fa-chevron-right mr-2 transition-transform"></i> View Translation Journey
+                        </button>
+                        <button id="copyJourneyBtn" class="flex items-center text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none transition-colors px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm">
+                            <i class="fa-solid fa-copy mr-2"></i> Copy Report
+                        </button>
+                    </div>
+                    <div id="stepsLog" class="hidden max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg p-2 bg-gray-50 dark:bg-gray-900/50 text-sm">
+                        <!-- Steps will be dynamically injected here -->
+                        <ul id="stepsList" class="space-y-2"></ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Display -->
+            <div id="errorDisplay" class="hidden p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg mt-4 flex items-start">
+                <i class="fa-solid fa-circle-exclamation mt-1 mr-3 text-red-500 dark:text-red-400"></i>
+                <div id="errorMessage"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 text-center text-gray-500 dark:text-gray-400 text-sm mt-auto transition-colors">
+        <p>Uses a free translation API. Subject to rate limits.</p>
+    </footer>
+
+    <script>
+        // --- State and Configuration ---
+        
+        // We use MyMemory Translation API for free tier usage without API keys
+        // Note: It has a limit of 500 words/day for free anonymous use.
+        // For a true production app, you'd want a proxy or authenticated Google Cloud Translation API.
+        const TRANSLATE_API_URL = 'https://api.mymemory.translated.net/get';
+
+        // A curated list of highly-supported language codes to prevent API errors
+        const LANGUAGES = {
+            'ar': 'Arabic', 'bg': 'Bulgarian', 'zh': 'Chinese', 'cs': 'Czech', 'da': 'Danish',
+            'nl': 'Dutch', 'en': 'English', 'fi': 'Finnish', 'fr': 'French', 'de': 'German', 
+            'el': 'Greek', 'hi': 'Hindi', 'hu': 'Hungarian', 'id': 'Indonesian', 'it': 'Italian', 
+            'ja': 'Japanese', 'ko': 'Korean', 'no': 'Norwegian', 'pl': 'Polish', 'pt': 'Portuguese',
+            'ro': 'Romanian', 'ru': 'Russian', 'es': 'Spanish', 'sv': 'Swedish', 'th': 'Thai', 
+            'tr': 'Turkish', 'uk': 'Ukrainian', 'vi': 'Vietnamese'
+        };
+
+        const langCodes = Object.keys(LANGUAGES);
+
+        let abortController = null;
+        let errorsAvoidedCount = 0;
+        let journeyLogs = [];
+
+        // --- DOM Elements ---
+        const els = {
+            sourceLang: document.getElementById('sourceLang'),
+            chainCountRange: document.getElementById('chainCountRange'),
+            chainCountInput: document.getElementById('chainCountInput'),
+            inputText: document.getElementById('inputText'),
+            runBtn: document.getElementById('runBtn'),
+            clearBtn: document.getElementById('clearBtn'),
+            outputSection: document.getElementById('outputSection'),
+            loadingIndicator: document.getElementById('loadingIndicator'),
+            loadingStatus: document.getElementById('loadingStatus'),
+            progressBar: document.getElementById('progressBar'),
+            progressText: document.getElementById('progressText'),
+            errorCounter: document.getElementById('errorCounter'),
+            errorCounterValue: document.getElementById('errorCounterValue'),
+            finalResultArea: document.getElementById('finalResultArea'),
+            finalText: document.getElementById('finalText'),
+            finalErrorBadge: document.getElementById('finalErrorBadge'),
+            finalErrorValue: document.getElementById('finalErrorValue'),
+            originalTextDisplay: document.getElementById('originalTextDisplay'),
+            finalTextComparison: document.getElementById('finalTextComparison'),
+            toggleStepsBtn: document.getElementById('toggleStepsBtn'),
+            toggleStepsIcon: document.getElementById('toggleStepsIcon'),
+            copyJourneyBtn: document.getElementById('copyJourneyBtn'),
+            stepsLog: document.getElementById('stepsLog'),
+            stepsList: document.getElementById('stepsList'),
+            errorDisplay: document.getElementById('errorDisplay'),
+            errorMessage: document.getElementById('errorMessage'),
+            themeToggle: document.getElementById('themeToggle'),
+            themeIcon: document.getElementById('themeIcon')
+        };
+
+        // --- Theme Logic ---
+        // Check for saved theme preference, otherwise use system preference
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            els.themeIcon.classList.replace('fa-moon', 'fa-sun');
+            els.themeIcon.classList.add('text-yellow-400');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        els.themeToggle.addEventListener('click', () => {
+            // Toggle icon and class
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('color-theme', 'light');
+                els.themeIcon.classList.replace('fa-sun', 'fa-moon');
+                els.themeIcon.classList.remove('text-yellow-400');
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('color-theme', 'dark');
+                els.themeIcon.classList.replace('fa-moon', 'fa-sun');
+                els.themeIcon.classList.add('text-yellow-400');
+            }
+        });
+
+        // --- Event Listeners ---
+        // Sync Range and Number inputs
+        els.chainCountRange.addEventListener('input', (e) => {
+            els.chainCountInput.value = e.target.value;
+        });
+        els.chainCountInput.addEventListener('input', (e) => {
+            // Ensure within bounds
+            let val = parseInt(e.target.value);
+            if (val < 5) val = 5;
+            if (val > 500) val = 500;
+            if (!isNaN(val)) els.chainCountRange.value = val;
+        });
+
+        // Ensure bounds on blur for number input
+        els.chainCountInput.addEventListener('blur', (e) => {
+             let val = parseInt(e.target.value);
+             if (isNaN(val) || val < 5) { val = 5; e.target.value = 5; els.chainCountRange.value = 5; }
+             if (val > 500) { val = 500; e.target.value = 500; els.chainCountRange.value = 500; }
+        });
+
+        els.clearBtn.addEventListener('click', () => {
+            els.inputText.value = '';
+            els.outputSection.classList.add('hidden');
+            if (abortController) abortController.abort();
+        });
+
+        els.toggleStepsBtn.addEventListener('click', () => {
+            els.stepsLog.classList.toggle('hidden');
+            if (els.stepsLog.classList.contains('hidden')) {
+                els.toggleStepsIcon.classList.remove('rotate-90');
+            } else {
+                els.toggleStepsIcon.classList.add('rotate-90');
+            }
+        });
+
+        els.copyJourneyBtn.addEventListener('click', () => {
+            const totalSteps = journeyLogs.length;
+            if (totalSteps === 0) return;
+
+            let report = `🌐 Translation Chain Report\n`;
+            report += `Errors Avoided: ${errorsAvoidedCount}\n\n`;
+            report += `📝 Original Text: ${els.originalTextDisplay.textContent}\n`;
+            report += `✨ Final Text: ${els.finalText.textContent}\n\n`;
+            report += `--- Journey ---\n\n`;
+
+            journeyLogs.forEach((log, index) => {
+                const stepIdx = index + 1;
+                const percentage = Math.round((stepIdx / totalSteps) * 100);
+                
+                // Bar calculation: 20 blocks
+                const filledCount = Math.round((stepIdx / totalSteps) * 20);
+                const emptyCount = 20 - filledCount;
+                const bar = '█'.repeat(filledCount) + '░'.repeat(emptyCount);
+
+                const fromName = LANGUAGES[log.fromLang] || log.fromLang;
+                const toName = LANGUAGES[log.toLang] || log.toLang;
+
+                report += `Step ${stepIdx}/${totalSteps} - ${percentage}% ${bar}\n`;
+                report += `${fromName} -> ${toName}\n`;
+                report += `${log.text}\n\n`;
+            });
+
+            // Copy to clipboard using textarea fallback for best iFrame compatibility
+            const textArea = document.createElement("textarea");
+            textArea.value = report.trim();
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const originalHTML = els.copyJourneyBtn.innerHTML;
+                els.copyJourneyBtn.innerHTML = '<i class="fa-solid fa-check mr-2 text-green-500"></i> Copied!';
+                setTimeout(() => {
+                    els.copyJourneyBtn.innerHTML = originalHTML;
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy', err);
+            }
+            document.body.removeChild(textArea);
+        });
+
+        els.runBtn.addEventListener('click', runTranslationChain);
+
+        // --- Core Logic ---
+
+        function incrementErrorAvoided() {
+            errorsAvoidedCount++;
+            els.errorCounterValue.textContent = errorsAvoidedCount;
+        }
+
+        /**
+         * Translates text using the MyMemory API.
+         * Note: In a real environment with high usage, a paid API (Google, DeepL) is required.
+         */
+        async function translateText(text, fromLang, toLang, signal) {
+            // Prevent empty queries from causing API errors
+            if (!text || text.trim() === '') {
+                console.warn("Input text is empty. Skipping translation.");
+                return text;
+            }
+
+            // MyMemory uses langpair=en|it format
+            const langpair = `${fromLang}|${toLang}`;
+            // Provide a dummy email as requested by MyMemory for better quotas
+            const email = 'demo.translate.chain@example.com'; 
+            
+            const url = `${TRANSLATE_API_URL}?q=${encodeURIComponent(text.trim())}&langpair=${langpair}&de=${email}`;
+
+            try {
+                const response = await fetch(url, { signal });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                let translated = data.responseData ? data.responseData.translatedText : null;
+
+                if (translated !== null) {
+                    translated = translated.trim();
+                }
+
+                // If the translation returns completely empty, fallback to previous text
+                if (!translated) {
+                    console.warn(`Empty translation received for ${langpair}, keeping previous text.`);
+                    incrementErrorAvoided();
+                    return text;
+                }
+
+                // Handle MyMemory specific errors that it passes as successful text strings
+                const upperTranslated = translated.toUpperCase();
+                
+                // Regex to catch the weird '0;"Amber [5013]"...' internal database leak format
+                const isInternalLogFormat = /^0;".*?";".*?"$/.test(translated) || /^0;"Amber \[\d+\]/.test(translated);
+
+                if (upperTranslated.includes('INVALID TARGET LANGUAGE') || 
+                    upperTranslated.includes('MYMEMORY WARNING') ||
+                    upperTranslated.includes('REQUEST NOT SPECIFIED') ||
+                    upperTranslated.includes('NO QUERY SPECIFIED') ||
+                    isInternalLogFormat) {
+                    console.warn(`API returned an error string or internal log for ${langpair}. Skipping this jump.`);
+                    incrementErrorAvoided();
+                    return text; // Return the previous text so the chain isn't polluted with error messages
+                }
+
+                if (data.responseStatus === 200) {
+                    return translated;
+                } else {
+                    // Handle quota limit or API errors
+                    console.warn("API Warning:", data.responseDetails);
+                    if (data.responseStatus === 429 || (data.responseDetails && data.responseDetails.includes("MYMEMORY WARNING"))) {
+                         throw new Error("Translation API rate limit reached. This free API allows ~500 words/day. Please try again later.");
+                    }
+                    incrementErrorAvoided();
+                    return translated || text; 
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Process stopped by user.');
+                }
+                console.error("Translation error details:", error);
+                // Instead of failing the whole chain on a random network glitch, just return the current text
+                console.warn(`Translation failed for ${langpair}, carrying over previous text.`);
+                incrementErrorAvoided();
+                return text;
+            }
+        }
+
+        async function runTranslationChain() {
+            const originalText = els.inputText.value.trim();
+            const startLang = els.sourceLang.value;
+            const chainLength = parseInt(els.chainCountInput.value);
+
+            // Validation
+            if (!originalText) {
+                showError("Please enter some text to translate.");
+                return;
+            }
+            if (isNaN(chainLength) || chainLength < 5 || chainLength > 500) {
+                showError("Please set a valid counter between 5 and 500.");
+                return;
+            }
+
+            // Cancel any ongoing process
+            if (abortController) {
+                abortController.abort();
+            }
+            abortController = new AbortController();
+
+            // UI Reset
+            resetUI();
+            els.originalTextDisplay.textContent = originalText;
+            
+            let currentText = originalText;
+            let currentLang = startLang;
+            
+            // Generate sequence of random languages
+            const sequence = generateLanguageSequence(startLang, chainLength);
+            
+            try {
+                // Execute the chain
+                for (let i = 0; i < sequence.length; i++) {
+                    const nextLang = sequence[i];
+                    
+                    updateProgress(i, sequence.length, currentLang, nextLang);
+                    
+                    // Add intentional delay to respect API rate limits (1 sec per request is polite for free APIs)
+                    await new Promise(r => setTimeout(r, 1000));
+                    
+                    let translatedText = await translateText(currentText, currentLang, nextLang, abortController.signal);
+                    
+                    // Fallback safety if the text gets wiped completely
+                    if (!translatedText || translatedText.trim() === '') {
+                        translatedText = currentText;
+                    }
+                    
+                    // Log the step
+                    addStepLog(i + 1, currentLang, nextLang, translatedText);
+                    
+                    currentText = translatedText;
+                    currentLang = nextLang;
+                }
+                
+                // Final step: Translate back to original language
+                updateProgress(sequence.length, sequence.length, currentLang, startLang, true);
+                await new Promise(r => setTimeout(r, 1000));
+                
+                let finalText = await translateText(currentText, currentLang, startLang, abortController.signal);
+                
+                if (!finalText || finalText.trim() === '') {
+                    finalText = currentText;
+                }
+                
+                addStepLog('Final', currentLang, startLang, finalText);
+                
+                // Display success
+                showResult(finalText);
+
+            } catch (error) {
+                if (error.message !== 'Process stopped by user.') {
+                    showError(error.message);
+                }
+            } finally {
+                abortController = null;
+            }
+        }
+
+        function generateLanguageSequence(startLang, count) {
+            const seq = [];
+            let previousLang = startLang;
+            
+            for (let i = 0; i < count; i++) {
+                let nextLang;
+                // Pick a random language that isn't the previous one, and isn't the start language (to keep it changing)
+                do {
+                    nextLang = langCodes[Math.floor(Math.random() * langCodes.length)];
+                } while (nextLang === previousLang || nextLang === startLang);
+                
+                seq.push(nextLang);
+                previousLang = nextLang;
+            }
+            return seq;
+        }
+
+        function resetUI() {
+            els.outputSection.classList.remove('hidden');
+            els.loadingIndicator.classList.remove('hidden');
+            els.finalResultArea.classList.add('hidden');
+            els.errorDisplay.classList.add('hidden');
+            
+            els.stepsList.innerHTML = '';
+            els.progressBar.style.width = '0%';
+            els.progressText.textContent = '0 steps';
+            
+            errorsAvoidedCount = 0;
+            journeyLogs = [];
+            els.errorCounterValue.textContent = '0';
+            els.finalErrorBadge.classList.add('hidden');
+            
+            // Disable inputs during run
+            els.runBtn.disabled = true;
+            els.runBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            els.runBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i>Running...';
+        }
+
+        function updateProgress(currentStep, totalSteps, fromLang, toLang, isFinal = false) {
+            const percentage = ((currentStep) / (totalSteps + 1)) * 100; // +1 for the final translation back
+            els.progressBar.style.width = `${percentage}%`;
+            
+            els.progressText.textContent = `Step ${currentStep + 1} of ${totalSteps + 1}`;
+            
+            const fromName = LANGUAGES[fromLang] || fromLang;
+            const toName = LANGUAGES[toLang] || toLang;
+            
+            if (isFinal) {
+                els.loadingStatus.innerHTML = `Translating back home: <span class="font-bold text-blue-600 dark:text-blue-400">${fromName} &rarr; ${toName}</span>`;
+            } else {
+                els.loadingStatus.innerHTML = `Translating: <span class="font-bold text-gray-700 dark:text-gray-300">${fromName} &rarr; ${toName}</span>`;
+            }
+        }
+
+        function addStepLog(stepNum, fromLang, toLang, text) {
+            journeyLogs.push({ stepNum, fromLang, toLang, text });
+
+            const li = document.createElement('li');
+            li.className = "step-item p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-sm flex flex-col";
+            
+            const header = document.createElement('div');
+            header.className = "flex justify-between items-center mb-2 border-b border-gray-100 dark:border-gray-700 pb-1";
+            
+            const stepBadge = document.createElement('span');
+            stepBadge.className = "text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded";
+            stepBadge.textContent = typeof stepNum === 'number' ? `Step ${stepNum}` : stepNum;
+            
+            const langs = document.createElement('span');
+            langs.className = "text-xs text-gray-500 dark:text-gray-400";
+            langs.innerHTML = `${LANGUAGES[fromLang] || fromLang} <i class="fa-solid fa-arrow-right mx-1"></i> ${LANGUAGES[toLang] || toLang}`;
+            
+            header.appendChild(stepBadge);
+            header.appendChild(langs);
+            
+            const content = document.createElement('div');
+            content.className = "text-gray-800 dark:text-gray-200 text-sm";
+            content.textContent = text;
+            
+            li.appendChild(header);
+            li.appendChild(content);
+            
+            els.stepsList.appendChild(li);
+            
+            // Auto-scroll logic if visible
+            if (!els.stepsLog.classList.contains('hidden')) {
+                 els.stepsLog.scrollTop = els.stepsLog.scrollHeight;
+            }
+        }
+
+        function showResult(finalText) {
+            els.loadingIndicator.classList.add('hidden');
+            els.finalResultArea.classList.remove('hidden');
+            
+            els.finalText.textContent = finalText;
+            els.finalTextComparison.textContent = finalText;
+            
+            if (errorsAvoidedCount > 0) {
+                els.finalErrorBadge.classList.remove('hidden');
+                els.finalErrorValue.textContent = errorsAvoidedCount;
+            }
+            
+            reenableUI();
+        }
+
+        function showError(msg) {
+            els.loadingIndicator.classList.add('hidden');
+            els.errorDisplay.classList.remove('hidden');
+            els.errorMessage.textContent = msg;
+            reenableUI();
+        }
+
+        function reenableUI() {
+            els.runBtn.disabled = false;
+            els.runBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            els.runBtn.innerHTML = '<i class="fa-solid fa-play mr-2"></i>Run Translation Chain';
+        }
+    </script>
+</body>
+</html>
