@@ -245,7 +245,8 @@ const projects = [
     "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
     "ascii wheel", // wow
     "translate smt 500 times", // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
-    "bombparty offline" // my fav
+    "bombparty offline", // my fav
+    "bombparty practice"
 ];
 
 const fileList = document.getElementById('file-list');
