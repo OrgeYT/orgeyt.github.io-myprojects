@@ -244,7 +244,8 @@ const projects = [
     "oiiatranslator",
     "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
     "ascii wheel", // wow
-    "translate smt 500 times" // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
+    "translate smt 500 times", // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
+    "bombparty offline" // my fav
 ];
 
 const fileList = document.getElementById('file-list');
