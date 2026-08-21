@@ -1,0 +1,1923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BombParty Offline</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #4a423a;
+            color: #f8fafc;
+            overflow: hidden;
+            touch-action: none;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        .player-node {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .player-hints {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-top: 6px;
+            z-index: 60;
+            pointer-events: auto;
+            max-width: 150px;
+            align-items: center;
+        }
+
+        .player-hints button {
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .avatar-box {
+            width: 60px;
+            height: 60px;
+            background-color: #8c8c8c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .avatar-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar-icon {
+            font-size: 2rem;
+            color: #4a4a4a;
+        }
+
+        #exit-btn, #pause-btn {
+            z-index: 40;
+        }
+
+        #pause-overlay {
+            backdrop-filter: blur(6px);
+        }
+
+        #pfp-preview {
+            width: 64px;
+            height: 64px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #64748b;
+        }
+        
+        .active-player {
+            transform: scale(1.05);
+        }
+
+        .bomb-pulse {
+            animation: pulse 1s infinite;
+        }
+
+        .bomb-shake {
+            animation: shake 0.5s infinite;
+        }
+        
+        .bomb-fast-shake {
+            animation: shake 0.2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); filter: brightness(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+
+        .shake-input {
+            animation: input-shake 0.4s;
+            border-color: #ef4444 !important;
+        }
+
+        @keyframes input-shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+
+        .particle {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            pointer-events: none;
+            opacity: 1;
+        }
+
+        #turn-arrow {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 1em;
+            height: 1em;
+            margin: 0;
+            font-size: 2.75rem;
+            line-height: 1;
+            color: #facc15;
+            z-index: 15;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none;
+            transform-origin: center center;
+        }
+
+        #user-turn-arrow {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            width: 1em;
+            height: 1em;
+            margin: 0;
+            font-size: 3.25rem;
+            line-height: 1;
+            color: #ef4444;
+            z-index: 16;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.25s ease, opacity 0.25s ease;
+            text-shadow: 0 0 12px rgba(239,68,68,0.7);
+            pointer-events: none;
+            transform-origin: center center;
+            animation: user-arrow-pulse 0.6s ease-in-out infinite;
+        }
+        @keyframes user-arrow-pulse {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.35); }
+        }
+
+        .central-bomb {
+            width: 120px;
+            height: 120px;
+            background-color: #333;
+            border-radius: 50%;
+            border: 4px solid #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8), 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        .bomb-fuse {
+            position: absolute;
+            top: -20px;
+            right: 10px;
+            width: 40px;
+            height: 40px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23facc15"><path d="M12 2L15 8L22 9L17 14L18 21L12 17L6 21L7 14L2 9L9 8L12 2Z"/></svg>');
+            background-size: cover;
+            animation: flicker 0.1s infinite alternate;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.8; transform: scale(0.9); }
+            100% { opacity: 1; transform: scale(1.1); }
+        }
+
+        .modal-overlay {
+            backdrop-filter: blur(8px);
+        }
+        
+        .hidden { display: none !important; }
+        
+        .highlight-match {
+            color: #86efac;
+        }
+        .dead-word {
+            text-decoration: line-through;
+            color: #9ca3af;
+        }
+
+        .typing-cursor::after {
+            content: '|';
+            animation: blink 0.7s step-end infinite;
+            color: #facc15;
+            margin-left: 1px;
+        }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        .player-typing {
+            color: #e2e8f0;
+            max-width: 110px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex items-center justify-center relative">
+
+    <!-- LOADING / MENU SCREEN -->
+    <div id="loading-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#4a423a] transition-opacity duration-500">
+        <div class="bg-slate-900/80 backdrop-blur-md p-8 rounded-2xl shadow-2xl border border-slate-700 w-full max-w-md mx-4">
+            <h1 class="text-4xl font-black text-center mb-2 tracking-tight text-white">BOMB PARTY</h1>
+            <p class="text-center text-slate-400 text-sm mb-6">Offline Edition</p>
+
+            <div class="space-y-4 mb-6 max-h-[70vh] overflow-y-auto pr-1">
+
+                <!-- 1. YOU -->
+                <div class="space-y-3">
+                    <div class="text-[11px] font-bold tracking-widest uppercase text-slate-500 px-0.5">You</div>
+                    <div class="flex items-center gap-4 p-3 bg-slate-800/60 rounded-xl border border-slate-700">
+                        <div class="relative shrink-0">
+                            <img id="pfp-preview" src="" alt="PFP" class="hidden">
+                            <div id="pfp-placeholder" class="w-16 h-16 rounded-lg bg-slate-600 flex items-center justify-center">
+                                <i class="fa-solid fa-user text-2xl text-slate-400"></i>
+                            </div>
+                            <label for="pfp-upload" class="absolute -bottom-1 -right-1 w-6 h-6 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center cursor-pointer shadow">
+                                <i class="fa-solid fa-camera text-[10px] text-white"></i>
+                            </label>
+                            <input type="file" id="pfp-upload" accept="image/*" class="hidden">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <label class="text-xs font-semibold text-slate-400 block mb-1">Username</label>
+                            <input type="text" id="username-input" maxlength="16" placeholder="You"
+                                class="w-full bg-slate-700 border border-slate-600 text-white text-sm font-bold py-2 px-3 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between px-0.5">
+                        <label class="text-sm font-semibold text-slate-300">Play as Human</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="play-human" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700/80"></div>
+
+                <!-- 2. LOBBY -->
+                <div class="space-y-3">
+                    <div class="text-[11px] font-bold tracking-widest uppercase text-slate-500 px-0.5">Lobby</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-slate-300">Number of Bots</label>
+                            <span id="bot-count-display" class="text-emerald-400 font-bold mono">3</span>
+                        </div>
+                        <input type="range" id="bot-count" min="1" max="20" value="3" 
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-slate-300">Difficulty</label>
+                            <span id="difficulty-display" class="text-emerald-400 font-bold mono">Normal</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" data-diff="easy" class="diff-btn py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition border-2 border-transparent">Easy</button>
+                            <button type="button" data-diff="normal" class="diff-btn py-2 rounded-lg text-sm font-bold bg-emerald-600 text-white border-2 border-emerald-400 transition">Normal</button>
+                            <button type="button" data-diff="hard" class="diff-btn py-2 rounded-lg text-sm font-bold bg-slate-700 text-slate-300 hover:bg-slate-600 transition border-2 border-transparent">Hard</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700/80"></div>
+
+                <!-- 3. HELPERS -->
+                <div class="space-y-3">
+                    <div class="text-[11px] font-bold tracking-widest uppercase text-slate-500 px-0.5">Helpers</div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-semibold text-slate-300">Word Searcher</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="word-searcher" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-slate-300">Hint Count</label>
+                            <span id="hint-count-display" class="text-emerald-400 font-bold mono">2</span>
+                        </div>
+                        <input type="range" id="hint-count" min="1" max="5" value="2" step="1"
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-semibold text-slate-300">Long Word Hints</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="long-word-hints" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-semibold text-slate-300">Auto Correct</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="auto-correct" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700/80"></div>
+
+                <!-- 4. BOTS -->
+                <div class="space-y-3">
+                    <div class="text-[11px] font-bold tracking-widest uppercase text-slate-500 px-0.5">Bots</div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-slate-300">Typing Speed</label>
+                            <span id="bot-speed-display" class="text-emerald-400 font-bold mono">Normal</span>
+                        </div>
+                        <input type="range" id="bot-speed" min="0" max="4" value="1" step="1"
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>Slow</span><span>Normal</span><span>Fast</span><span>Insane</span><span>God</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="text-sm font-semibold text-slate-300">Skill</label>
+                            <span id="bot-skill-display" class="text-emerald-400 font-bold mono">Default</span>
+                        </div>
+                        <input type="range" id="bot-skill" min="0" max="3" value="1" step="1"
+                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                        <div class="flex justify-between text-xs text-slate-500 mt-1">
+                            <span>Noob</span><span>Default</span><span>Pro</span><span>Godly</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-300">Long Word Bots</label>
+                            <p class="text-[11px] text-slate-500">Prefer longer words</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="long-word-bots" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label class="text-sm font-semibold text-slate-300">Wiki Bot PFPs</label>
+                            <p class="text-[11px] text-slate-500">Random Wikipedia images</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="wiki-bot-pfps" class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700/80"></div>
+
+                <!-- 5. AUDIO -->
+                <div class="space-y-3">
+                    <div class="text-[11px] font-bold tracking-widest uppercase text-slate-500 px-0.5">Audio</div>
+                    <div class="flex items-center justify-between">
+                        <label class="text-sm font-semibold text-slate-300">Sound Effects</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="sound-toggle" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+
+            <button id="start-btn" disabled class="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-400 hover:to-emerald-500 text-white font-black text-xl rounded-xl shadow-lg transform transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                LOADING...
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME CONTAINER -->
+    <div id="game-container" class="w-full h-full relative hidden">
+        
+        <div class="absolute top-4 right-4 z-40 flex gap-2">
+            <button id="pause-btn" type="button" class="px-4 py-2 bg-slate-700/90 hover:bg-slate-600 text-white text-sm font-bold rounded-lg shadow-lg transition active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-pause"></i> Pause
+            </button>
+            <button id="exit-btn" type="button" class="px-4 py-2 bg-red-600/90 hover:bg-red-500 text-white text-sm font-bold rounded-lg shadow-lg transition active:scale-95 flex items-center gap-2">
+                <i class="fa-solid fa-right-from-bracket"></i> Exit
+            </button>
+        </div>
+
+        <!-- Pause overlay -->
+        <div id="pause-overlay" class="absolute inset-0 z-50 hidden flex flex-col items-center justify-center bg-black/60">
+            <div class="bg-slate-900/95 border border-slate-600 rounded-2xl p-8 shadow-2xl text-center max-w-sm mx-4">
+                <h2 class="text-3xl font-black text-white mb-2">PAUSED</h2>
+                <p class="text-slate-400 text-sm mb-6">Bomb timer is frozen</p>
+                <div class="flex flex-col gap-3">
+                    <button id="resume-btn" type="button" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition active:scale-95">
+                        <i class="fa-solid fa-play mr-2"></i>Resume
+                    </button>
+                    <button id="pause-exit-btn" type="button" class="w-full py-3 bg-red-600/90 hover:bg-red-500 text-white font-bold rounded-xl transition active:scale-95">
+                        <i class="fa-solid fa-right-from-bracket mr-2"></i>Exit to Menu
+                    </button>
+                </div>
+                <p class="text-slate-500 text-xs mt-4">Press Esc to resume</p>
+            </div>
+        </div>
+
+        <div class="absolute top-4 left-0 w-full text-center z-10 pointer-events-none">
+            <div id="round-status" class="text-slate-400 text-sm font-semibold tracking-widest uppercase mb-1">Waiting to start</div>
+        </div>
+
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center z-20">
+            <div id="bomb-container" class="relative">
+                <i id="turn-arrow" class="fas fa-arrow-up hidden"></i>
+                <i id="user-turn-arrow" class="fas fa-arrow-up hidden"></i>
+                <div id="bomb-visual" class="central-bomb">
+                    <div class="bomb-fuse"></div>
+                    <div id="prompt-display" class="mono text-4xl font-black text-white tracking-widest">
+                        ---
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="players-circle" class="absolute inset-0 pointer-events-none">
+            <!-- Players generated dynamically -->
+        </div>
+
+        <div class="absolute bottom-6 left-0 w-full flex flex-col items-center justify-center z-30 px-4 pointer-events-auto">
+            <div id="input-error" class="mb-2 text-center text-red-500 font-bold text-sm opacity-0 transition-opacity drop-shadow-md">
+                Invalid Word!
+            </div>
+            <div id="word-hints" class="flex gap-2 flex-wrap justify-center max-w-2xl hidden">
+                <!-- Hints injected here -->
+            </div>
+            <div id="turn-hint" class="text-slate-500 text-xs mt-2 hidden">Your turn — type on your keyboard, Enter to submit</div>
+        </div>
+        
+    </div>
+
+    <script>
+        const CONFIG = {
+            baseLives: 2,
+            bombTimeMin: 8000,
+            bombTimeMax: 20000
+        };
+
+        let dictionary = [];
+        let prompts = { easy: [], medium: [], hard: [] };
+        let dictionarySet = new Set();
+
+        // Bot speed: index -> { thinkMin, thinkMax, charMs }  (charMs = typing delay per letter)
+        // God Speed (4): instant — no think delay, no typing animation
+        const BOT_SPEED_PRESETS = [
+            { thinkMin: 1800, thinkMax: 3500, charMs: 90 },  // Slow
+            { thinkMin: 900,  thinkMax: 2000, charMs: 55 },  // Normal
+            { thinkMin: 400,  thinkMax: 1100, charMs: 30 },  // Fast
+            { thinkMin: 100,  thinkMax: 350,  charMs: 12 },  // Insane
+            { thinkMin: 0,    thinkMax: 0,    charMs: 0 }    // God — instant
+        ];
+        const BOT_SPEED_LABELS = ['Slow', 'Normal', 'Fast', 'Insane', 'God'];
+
+        // Bot skill: how long they "think" before typing + how clean their typing is
+        // thinkMult multiplies speed preset think times; typoRate for human-like mistakes
+        const BOT_SKILL_PRESETS = [
+            { thinkMult: 2.4, typoRate: 0.38, pauseRate: 0.32, knowWord: false }, // Noob
+            { thinkMult: 1.0, typoRate: 0.22, pauseRate: 0.18, knowWord: false }, // Default
+            { thinkMult: 0.35, typoRate: 0.08, pauseRate: 0.08, knowWord: false }, // Pro
+            { thinkMult: 0, typoRate: 0, pauseRate: 0, knowWord: true }           // Godly — already knows
+        ];
+        const BOT_SKILL_LABELS = ['Noob', 'Default', 'Pro', 'Godly'];
+
+        // Bomb duration ranges per difficulty [min, max] ms
+        const DIFFICULTY_BOMB_TIME = {
+            easy:   [10000, 24000],
+            normal: [8000, 20000],
+            hard:   [5000, 14000]
+        };
+
+        const BOT_EMOJIS = [
+            '😀','😎','🤖','🐱','🐶','🦊','🐼','🐸','🐵','🦁','🐯','🦄','🐲','🔥','⚡','🌟',
+            '🎮','🎯','🚀','💎','🍕','🌮','🍩','🎧','🕹️','👾','💀','👻','🎃','👑','🍀','🌈',
+            '🏀','⚽','🎸','🎹','🍩','🐧','🦉','🐝','🐙','🦈','🦖','🌵','🌙','☀️','🌊','🧊'
+        ];
+        const BOT_AVATAR_COLORS = [
+            '#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#6366f1',
+            '#a855f7','#ec4899','#f43f5e','#06b6d4','#84cc16','#d946ef','#0ea5e9'
+        ];
+
+        function makeBotAvatar() {
+            const emoji = BOT_EMOJIS[Math.floor(Math.random() * BOT_EMOJIS.length)];
+            const color = BOT_AVATAR_COLORS[Math.floor(Math.random() * BOT_AVATAR_COLORS.length)];
+            return { emoji, color };
+        }
+
+        // Random image from a random Wikipedia article summary (CORS-friendly REST API)
+        async function fetchRandomWikiImage(retries) {
+            const maxTries = retries != null ? retries : 4;
+            for (let t = 0; t < maxTries; t++) {
+                try {
+                    const res = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary', {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    if (!res.ok) continue;
+                    const data = await res.json();
+                    const url = (data.thumbnail && data.thumbnail.source)
+                        || (data.originalimage && data.originalimage.source)
+                        || null;
+                    if (url) return url;
+                } catch (e) {
+                    // try again
+                }
+            }
+            return null;
+        }
+
+        async function assignWikiPfps(bots) {
+            // Fetch in small batches to avoid hammering the API
+            const batchSize = 4;
+            for (let i = 0; i < bots.length; i += batchSize) {
+                const slice = bots.slice(i, i + batchSize);
+                const results = await Promise.all(slice.map(() => fetchRandomWikiImage()));
+                slice.forEach((bot, j) => {
+                    if (results[j]) bot.pfp = results[j];
+                });
+            }
+        }
+
+        const BOT_NAMES = [
+            "jakeplaysgames","alex_the_gamer","ethanisback","noahgaming","itsjustmason","tylerplays",
+            "dylan_here","lucasgaming12","justanotherguy","randomperson123","probablynotme","idkwhattoput",
+            "ihatehomework","tiredallthetime","imjustchillin","whyamihere","dontaskmepls","justpassingby",
+            "notsurebro","okaythenden","browhatnow","literallynobody","someone_random","averageplayer",
+            "regularperson","normalguy123","just_a_person","totallynormal","nothinginteresting","username_taken",
+            "thisisfine123","igotbored","hereforfun","justplayinglol","dontknowman","probablyhuman",
+            "definitelyreal","not_a_bot_lol","trustmeimreal","actuallyhuman","realpersonhere","noobinthegame",
+            "stilllearninglol","tryingmybest","imnotgood","kindaokay","almostwon","maybeillwin",
+            "betterlucknext","one_more_game","lastgamefr","whydidilose","thatwasclose","iwasntready",
+            "give_me_a_sec","waitwhatwasthat","forgotmyturn","missedagainlol","typingfastish","fingershurt",
+            "keyboardgaming","justtypinglol","wordsarehard","cantspelltoday","mykeyboardworks","definitelynotjake",
+            "notthe_real_jake","jakefromschool","alexfromhome","ethanonline","noahonthepc","tylerwas_here",
+            "masonwas_here","dylanonline","lucas_irl","connor_online","sammyisback","itsactuallyryan",
+            "heyitscaleb","kyleisplaying","nickjustjoined","mattwas_here","jordanisreal","coleonline123",
+            "drewplaysstuff","blakeisback","finnontheinternet","sleepyplayer","boredplayer123","late_night_gamer",
+            "weekendplayer","afterschoolgaming","playinginstead","shouldbedoinghw","procrastinatingrn",
+            "imsupposedtobestudying","justgotback","camebacklol","haventplayedinages","firstgameoftheday",
+            "hereagainlol","stillawake","whyam_i_awake","probablysleeping","eatingwhileplaying",
+            "playingonlaptop","playingonmyphone","schoolisboring","waitingforclass","boredinclass123"
+        ];
+
+        // ---- Sound system (Web Audio API, no external files) ----
+        let audioCtx = null;
+        let soundsEnabled = true;
+        let lastTickTime = 0;
+        let lastWarnTime = 0;
+
+        function ensureAudio() {
+            if (!audioCtx) {
+                try {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    return null;
+                }
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            return audioCtx;
+        }
+
+        function playTone(freq, duration, type, volume, slideTo) {
+            if (!soundsEnabled) return;
+            const ctx = ensureAudio();
+            if (!ctx) return;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = type || 'square';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+            if (slideTo != null) {
+                osc.frequency.linearRampToValueAtTime(slideTo, ctx.currentTime + duration);
+            }
+            gain.gain.setValueAtTime(volume != null ? volume : 0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + duration);
+        }
+
+        function playNoise(duration, volume) {
+            if (!soundsEnabled) return;
+            const ctx = ensureAudio();
+            if (!ctx) return;
+            const bufferSize = Math.floor(ctx.sampleRate * duration);
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const src = ctx.createBufferSource();
+            src.buffer = buffer;
+            const gain = ctx.createGain();
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 800;
+            gain.gain.setValueAtTime(volume != null ? volume : 0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+            src.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+            src.start();
+        }
+
+        const SFX = {
+            type: () => playTone(520 + Math.random() * 80, 0.04, 'square', 0.04),
+            correct: () => {
+                playTone(523, 0.08, 'sine', 0.1);
+                setTimeout(() => playTone(659, 0.08, 'sine', 0.1), 70);
+                setTimeout(() => playTone(784, 0.12, 'sine', 0.1), 140);
+            },
+            incorrect: () => playTone(180, 0.25, 'sawtooth', 0.1, 90),
+            tick: () => playTone(880, 0.03, 'square', 0.05),
+            warning: () => playTone(440, 0.08, 'square', 0.09, 220),
+            explode: () => {
+                playNoise(0.4, 0.25);
+                playTone(120, 0.35, 'sawtooth', 0.15, 40);
+            }
+        };
+
+        let playerProfile = {
+            name: 'You',
+            pfpDataUrl: null
+        };
+
+        let gameState = {
+            players: [],
+            activePlayerIndex: -1,
+            currentPrompt: "",
+            usedWords: new Set(),
+            recentPrompts: [],
+            difficulty: 'normal',   // easy | normal | hard (user-selected)
+            roundNumber: 0,
+            bombEndTime: 0,
+            isPlaying: false,
+            isPaused: false,
+            pauseStartedAt: 0,
+            gameLoop: null,
+            useHints: false,
+            hintCount: 2,
+            autoCorrect: true,
+            botSpeedIndex: 1,
+            botSkillIndex: 1,
+            longWordBots: false,
+            longWordHints: false,
+            wikiBotPfps: false,
+            humanCanType: false,
+            currentTyped: ''   // text currently being typed under active player's avatar
+        };
+
+        const els = {
+            menu: document.getElementById('loading-screen'),
+            game: document.getElementById('game-container'),
+            promptDisplay: document.getElementById('prompt-display'),
+            roundStatus: document.getElementById('round-status'),
+            bombVisual: document.getElementById('bomb-visual'),
+            turnArrow: document.getElementById('turn-arrow'),
+            userTurnArrow: document.getElementById('user-turn-arrow'),
+            playersCircle: document.getElementById('players-circle'),
+            wordForm: null,
+            wordInput: null,
+            inputError: document.getElementById('input-error'),
+            wordHints: document.getElementById('word-hints'),
+            turnHint: document.getElementById('turn-hint'),
+            botCount: document.getElementById('bot-count'),
+            botCountDisplay: document.getElementById('bot-count-display'),
+            botSpeed: document.getElementById('bot-speed'),
+            botSpeedDisplay: document.getElementById('bot-speed-display'),
+            botSkill: document.getElementById('bot-skill'),
+            botSkillDisplay: document.getElementById('bot-skill-display'),
+            difficultyDisplay: document.getElementById('difficulty-display'),
+            playHuman: document.getElementById('play-human'),
+            wordSearcherToggle: document.getElementById('word-searcher'),
+            hintCount: document.getElementById('hint-count'),
+            hintCountDisplay: document.getElementById('hint-count-display'),
+            autoCorrectToggle: document.getElementById('auto-correct'),
+            soundToggle: document.getElementById('sound-toggle'),
+            longWordBots: document.getElementById('long-word-bots'),
+            longWordHints: document.getElementById('long-word-hints'),
+            wikiBotPfps: document.getElementById('wiki-bot-pfps'),
+            startBtn: document.getElementById('start-btn'),
+            exitBtn: document.getElementById('exit-btn'),
+            pauseBtn: document.getElementById('pause-btn'),
+            pauseOverlay: document.getElementById('pause-overlay'),
+            resumeBtn: document.getElementById('resume-btn'),
+            pauseExitBtn: document.getElementById('pause-exit-btn'),
+            usernameInput: document.getElementById('username-input'),
+            pfpUpload: document.getElementById('pfp-upload'),
+            pfpPreview: document.getElementById('pfp-preview'),
+            pfpPlaceholder: document.getElementById('pfp-placeholder'),
+            menuTitle: null
+        };
+
+        // Safe helper to update the menu title
+        function setMenuTitle(text) {
+            if (!els.menuTitle) {
+                els.menuTitle = els.menu ? els.menu.querySelector('h1') : null;
+            }
+            if (els.menuTitle) {
+                els.menuTitle.textContent = text;
+            }
+        }
+
+        async function initDictionary() {
+            setMenuTitle("LOADING DICTIONARY...");
+            if (els.startBtn) {
+                els.startBtn.disabled = true;
+                els.startBtn.textContent = "LOADING...";
+            }
+
+            try {
+                const res = await fetch('https://raw.githubusercontent.com/DO-Ui/bombparty-bot/refs/heads/master/wordlist.txt');
+                if (!res.ok) throw new Error('Failed to fetch wordlist');
+                const text = await res.text();
+                dictionary = text.split('\n').map(w => w.trim().toLowerCase()).filter(w => w.length > 1);
+                dictionarySet = new Set(dictionary);
+                generatePrompts();
+                
+                setMenuTitle("BOMB PARTY");
+                if (els.startBtn) {
+                    els.startBtn.disabled = false;
+                    els.startBtn.textContent = "START GAME";
+                }
+            } catch (e) {
+                console.error(e);
+                setMenuTitle("ERROR LOADING DICTIONARY");
+                if (els.startBtn) {
+                    els.startBtn.disabled = true;
+                    els.startBtn.textContent = "RETRY LATER";
+                }
+            }
+        }
+
+        function generatePrompts() {
+            const syllableCounts = {};
+            dictionary.forEach(word => {
+                if (word.length >= 3) {
+                    for (let i = 0; i <= word.length - 2; i++) {
+                        const syl = word.substring(i, i + 2);
+                        syllableCounts[syl] = (syllableCounts[syl] || 0) + 1;
+                    }
+                    for (let i = 0; i <= word.length - 3; i++) {
+                        const syl = word.substring(i, i + 3);
+                        syllableCounts[syl] = (syllableCounts[syl] || 0) + 1;
+                    }
+                }
+            });
+
+            for (const [syl, count] of Object.entries(syllableCounts)) {
+                if (count > 500) prompts.easy.push(syl);
+                else if (count > 100) prompts.medium.push(syl);
+                else if (count > 20) prompts.hard.push(syl);
+            }
+        }
+
+        if (els.botCount) {
+            els.botCount.addEventListener('input', (e) => {
+                if (els.botCountDisplay) els.botCountDisplay.textContent = e.target.value;
+            });
+        }
+
+        if (els.botSpeed) {
+            els.botSpeed.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.value, 10);
+                if (els.botSpeedDisplay) els.botSpeedDisplay.textContent = BOT_SPEED_LABELS[idx] || 'Normal';
+            });
+        }
+
+        if (els.botSkill) {
+            els.botSkill.addEventListener('input', (e) => {
+                const idx = parseInt(e.target.value, 10);
+                if (els.botSkillDisplay) els.botSkillDisplay.textContent = BOT_SKILL_LABELS[idx] || 'Default';
+            });
+        }
+
+        if (els.hintCount) {
+            els.hintCount.addEventListener('input', (e) => {
+                if (els.hintCountDisplay) els.hintCountDisplay.textContent = e.target.value;
+            });
+        }
+
+        // Difficulty buttons
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const diff = btn.getAttribute('data-diff');
+                if (!diff) return;
+                gameState.difficulty = diff;
+                if (els.difficultyDisplay) {
+                    els.difficultyDisplay.textContent = diff.charAt(0).toUpperCase() + diff.slice(1);
+                }
+                document.querySelectorAll('.diff-btn').forEach(b => {
+                    b.classList.remove('bg-emerald-600', 'text-white', 'border-emerald-400');
+                    b.classList.add('bg-slate-700', 'text-slate-300', 'border-transparent');
+                });
+                btn.classList.remove('bg-slate-700', 'text-slate-300', 'border-transparent');
+                btn.classList.add('bg-emerald-600', 'text-white', 'border-emerald-400');
+            });
+        });
+
+        if (els.startBtn) {
+            els.startBtn.addEventListener('click', () => {
+                ensureAudio(); // unlock audio on user gesture
+                startGame();
+            });
+        }
+
+        if (els.exitBtn) {
+            els.exitBtn.addEventListener('click', exitToMenu);
+        }
+        if (els.pauseBtn) {
+            els.pauseBtn.addEventListener('click', pauseGame);
+        }
+        if (els.resumeBtn) {
+            els.resumeBtn.addEventListener('click', resumeGame);
+        }
+        if (els.pauseExitBtn) {
+            els.pauseExitBtn.addEventListener('click', () => {
+                resumeGame(true); // clear pause state without restarting turn
+                exitToMenu();
+            });
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && gameState.isPlaying) {
+                if (gameState.isPaused) resumeGame();
+                else pauseGame();
+                return;
+            }
+
+            // Human typing goes under their avatar (no bottom text box)
+            if (!gameState.isPlaying || gameState.isPaused || !gameState.humanCanType) return;
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            if (!activePlayer || activePlayer.isBot || activePlayer.dead) return;
+
+            // Ignore when focused on menu inputs (shouldn't happen in-game)
+            const tag = (e.target && e.target.tagName) || '';
+            if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleWordSubmission(gameState.currentTyped.trim());
+                return;
+            }
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                if (gameState.currentTyped.length > 0) {
+                    gameState.currentTyped = gameState.currentTyped.slice(0, -1);
+                    SFX.type();
+                    updateActiveTypingDisplay();
+                }
+                return;
+            }
+            // Single letter / number
+            if (e.key.length === 1 && /[a-zA-Z']/.test(e.key)) {
+                e.preventDefault();
+                if (gameState.currentTyped.length < 32) {
+                    gameState.currentTyped += e.key.toLowerCase();
+                    SFX.type();
+                    updateActiveTypingDisplay();
+                }
+            }
+        });
+
+        function updateActiveTypingDisplay() {
+            const p = gameState.players[gameState.activePlayerIndex];
+            if (!p) return;
+            const wordEl = document.getElementById(`${p.id}-word`);
+            if (!wordEl) return;
+            const text = gameState.currentTyped.toUpperCase();
+            wordEl.classList.remove('dead-word');
+            wordEl.classList.add('player-typing', 'typing-cursor');
+            wordEl.textContent = text;
+        }
+
+        function clearTypingDisplay(playerId) {
+            const wordEl = document.getElementById(`${playerId}-word`);
+            if (!wordEl) return;
+            wordEl.classList.remove('typing-cursor', 'player-typing');
+            wordEl.textContent = '';
+        }
+
+        if (els.soundToggle) {
+            els.soundToggle.addEventListener('change', (e) => {
+                soundsEnabled = e.target.checked;
+                if (soundsEnabled) ensureAudio();
+            });
+        }
+
+        if (els.pfpUpload) {
+            els.pfpUpload.addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = () => {
+                    playerProfile.pfpDataUrl = reader.result;
+                    if (els.pfpPreview) {
+                        els.pfpPreview.src = reader.result;
+                        els.pfpPreview.classList.remove('hidden');
+                    }
+                    if (els.pfpPlaceholder) els.pfpPlaceholder.classList.add('hidden');
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function pickBotNames(count) {
+            const pool = BOT_NAMES.slice();
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            return pool.slice(0, count);
+        }
+
+        function pauseGame() {
+            if (!gameState.isPlaying || gameState.isPaused) return;
+            gameState.isPaused = true;
+            gameState.pauseStartedAt = Date.now();
+            clearBotTimers();
+            if (els.pauseOverlay) els.pauseOverlay.classList.remove('hidden');
+            if (els.pauseBtn) {
+                els.pauseBtn.innerHTML = '<i class="fa-solid fa-play"></i> Resume';
+            }
+        }
+
+        function resumeGame(skipTurnRestart) {
+            if (!gameState.isPaused) return;
+            const pausedFor = Date.now() - (gameState.pauseStartedAt || Date.now());
+            // Freeze bomb timer while paused
+            if (gameState.bombEndTime !== Infinity && gameState.bombEndTime > 0) {
+                gameState.bombEndTime += pausedFor;
+            }
+            gameState.isPaused = false;
+            gameState.pauseStartedAt = 0;
+            if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
+            if (els.pauseBtn) {
+                els.pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+            }
+            if (skipTurnRestart || !gameState.isPlaying) return;
+            // Restart the active player's turn (bots need timers again)
+            prepareTurn();
+        }
+
+        function exitToMenu() {
+            gameState.isPlaying = false;
+            gameState.isPaused = false;
+            gameState.pauseStartedAt = 0;
+            clearBotTimers();
+            if (gameState.gameLoop) {
+                cancelAnimationFrame(gameState.gameLoop);
+                gameState.gameLoop = null;
+            }
+            if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
+            if (els.pauseBtn) {
+                els.pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+            }
+            if (els.game) els.game.classList.add('hidden');
+            if (els.menu) {
+                els.menu.classList.remove('hidden');
+                setMenuTitle('BOMB PARTY');
+                if (els.startBtn) {
+                    els.startBtn.disabled = false;
+                    els.startBtn.textContent = 'START GAME';
+                }
+            }
+            if (els.wordHints) {
+                els.wordHints.innerHTML = '';
+                els.wordHints.classList.add('hidden');
+            }
+            if (els.turnHint) els.turnHint.classList.add('hidden');
+            gameState.currentTyped = '';
+        }
+
+        async function startGame() {
+            soundsEnabled = els.soundToggle ? els.soundToggle.checked : true;
+            lastTickTime = 0;
+            lastWarnTime = 0;
+            gameState.isPaused = false;
+            gameState.pauseStartedAt = 0;
+            if (els.pauseOverlay) els.pauseOverlay.classList.add('hidden');
+            if (els.pauseBtn) {
+                els.pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Pause';
+            }
+
+            let numBots = els.botCount ? parseInt(els.botCount.value) : 3;
+            let hasHuman = els.playHuman ? els.playHuman.checked : true;
+
+            // Profile
+            if (els.usernameInput && els.usernameInput.value.trim()) {
+                playerProfile.name = els.usernameInput.value.trim().slice(0, 16);
+            } else {
+                playerProfile.name = 'You';
+            }
+            gameState.useHints = els.wordSearcherToggle ? els.wordSearcherToggle.checked : false;
+            gameState.hintCount = els.hintCount ? parseInt(els.hintCount.value, 10) : 2;
+            if (isNaN(gameState.hintCount) || gameState.hintCount < 1 || gameState.hintCount > 5) {
+                gameState.hintCount = 2;
+            }
+            gameState.autoCorrect = els.autoCorrectToggle ? els.autoCorrectToggle.checked : true;
+            gameState.longWordBots = els.longWordBots ? els.longWordBots.checked : false;
+            gameState.longWordHints = els.longWordHints ? els.longWordHints.checked : false;
+            gameState.wikiBotPfps = els.wikiBotPfps ? els.wikiBotPfps.checked : false;
+            gameState.botSpeedIndex = els.botSpeed ? parseInt(els.botSpeed.value, 10) : 1;
+            if (isNaN(gameState.botSpeedIndex) || gameState.botSpeedIndex < 0 || gameState.botSpeedIndex > 4) {
+                gameState.botSpeedIndex = 1;
+            }
+            gameState.botSkillIndex = els.botSkill ? parseInt(els.botSkill.value, 10) : 1;
+            if (isNaN(gameState.botSkillIndex) || gameState.botSkillIndex < 0 || gameState.botSkillIndex > 3) {
+                gameState.botSkillIndex = 1;
+            }
+            
+            gameState.players = [];
+            gameState.recentPrompts = [];
+            gameState.roundNumber = 0;
+
+            const botNameList = pickBotNames(numBots + 1);
+            
+            if (hasHuman) {
+                gameState.players.push({
+                    id: 'player-human',
+                    name: playerProfile.name,
+                    isBot: false,
+                    lives: CONFIG.baseLives,
+                    dead: false,
+                    lastWord: '',
+                    pfp: playerProfile.pfpDataUrl
+                });
+            }
+            
+            for (let i = 0; i < numBots; i++) {
+                const av = makeBotAvatar();
+                gameState.players.push({
+                    id: `player-bot-${i}`,
+                    name: botNameList[i] || `Bot ${i+1}`,
+                    isBot: true,
+                    lives: CONFIG.baseLives,
+                    dead: false,
+                    lastWord: '',
+                    pfp: null,
+                    botEmoji: av.emoji,
+                    botColor: av.color
+                });
+            }
+
+            // Need at least 2 players
+            if (gameState.players.length < 2) {
+                const av = makeBotAvatar();
+                gameState.players.push({
+                    id: 'player-bot-extra',
+                    name: botNameList[numBots] || 'Bot Extra',
+                    isBot: true,
+                    lives: CONFIG.baseLives,
+                    dead: false,
+                    lastWord: '',
+                    pfp: null,
+                    botEmoji: av.emoji,
+                    botColor: av.color
+                });
+            }
+
+            // Random seat on the circle
+            for (let i = gameState.players.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [gameState.players[i], gameState.players[j]] = [gameState.players[j], gameState.players[i]];
+            }
+
+            // Optional: load random Wikipedia images for bot avatars
+            if (gameState.wikiBotPfps) {
+                if (els.startBtn) {
+                    els.startBtn.disabled = true;
+                    els.startBtn.textContent = 'LOADING WIKI PFPs...';
+                }
+                const bots = gameState.players.filter(p => p.isBot);
+                try {
+                    await assignWikiPfps(bots);
+                } catch (e) {
+                    console.warn('Wiki PFP load failed', e);
+                }
+                if (els.startBtn) {
+                    els.startBtn.disabled = false;
+                    els.startBtn.textContent = 'START GAME';
+                }
+            }
+
+            if (els.menu) els.menu.classList.add('hidden');
+            if (els.game) els.game.classList.remove('hidden');
+
+            renderPlayers();
+            gameState.usedWords.clear();
+            if (els.wordHints) els.wordHints.innerHTML = '';
+            gameState.isPlaying = true;
+            
+            startRound();
+        }
+
+        function renderPlayers() {
+            if (!els.playersCircle) return;
+            els.playersCircle.innerHTML = '';
+            const total = gameState.players.length;
+            
+            // Scale circle & avatars for crowded lobbies (up to 21)
+            const scale = total > 12 ? 0.72 : total > 8 ? 0.85 : 1;
+            const rx = Math.min(window.innerWidth * 0.38, 280) * (total > 10 ? 1.05 : 1);
+            const ry = Math.min(window.innerHeight * 0.34, 220) * (total > 10 ? 1.05 : 1);
+            const avatarSize = Math.round(60 * scale);
+
+            gameState.players.forEach((p, i) => {
+                const angle = (i / total) * (2 * Math.PI) - (Math.PI / 2);
+                const x = Math.cos(angle) * rx;
+                const y = Math.sin(angle) * ry;
+                
+                const node = document.createElement('div');
+                node.id = p.id;
+                node.className = `player-node ${p.dead ? 'opacity-20 grayscale' : 'opacity-100'}`;
+                node.style.left = `calc(50% + ${x}px)`;
+                node.style.top = `calc(50% + ${y}px)`;
+                node.style.transform = `translate(-50%, -50%)`;
+                
+                const nameEl = document.createElement('div');
+                nameEl.className = 'text-white font-semibold truncate text-center';
+                nameEl.style.fontSize = scale < 0.8 ? '0.65rem' : '0.75rem';
+                nameEl.style.maxWidth = `${Math.round(100 * scale)}px`;
+                nameEl.style.marginBottom = '2px';
+                nameEl.title = p.name;
+                nameEl.textContent = p.name;
+                
+                const livesEl = document.createElement('div');
+                livesEl.id = `${p.id}-lives`;
+                livesEl.className = 'text-red-500 flex gap-0.5 justify-center';
+                livesEl.style.fontSize = scale < 0.8 ? '0.65rem' : '0.8rem';
+                livesEl.style.marginBottom = '2px';
+                livesEl.innerHTML = '<i class="fa-solid fa-heart"></i>'.repeat(p.lives);
+
+                const avatarBox = document.createElement('div');
+                avatarBox.className = 'avatar-box shadow-md';
+                avatarBox.style.width = `${avatarSize}px`;
+                avatarBox.style.height = `${avatarSize}px`;
+                if (p.pfp) {
+                    const img = document.createElement('img');
+                    img.src = p.pfp;
+                    img.alt = p.name;
+                    avatarBox.appendChild(img);
+                } else if (p.isBot && p.botEmoji) {
+                    avatarBox.style.backgroundColor = p.botColor || '#8c8c8c';
+                    avatarBox.style.fontSize = `${1.75 * scale}rem`;
+                    avatarBox.style.lineHeight = '1';
+                    avatarBox.textContent = p.botEmoji;
+                } else {
+                    avatarBox.innerHTML = '<i class="fa-solid fa-user avatar-icon"></i>';
+                    const icon = avatarBox.querySelector('.avatar-icon');
+                    if (icon) icon.style.fontSize = `${2 * scale}rem`;
+                }
+                
+                const wordEl = document.createElement('div');
+                wordEl.id = `${p.id}-word`;
+                wordEl.className = 'text-white mono font-bold uppercase text-center player-typing';
+                wordEl.style.fontSize = scale < 0.8 ? '0.65rem' : '0.8rem';
+                wordEl.style.minHeight = '16px';
+                wordEl.style.marginTop = '4px';
+                wordEl.style.maxWidth = `${Math.round(110 * scale)}px`;
+                
+                node.appendChild(nameEl);
+                node.appendChild(livesEl);
+                node.appendChild(avatarBox);
+                node.appendChild(wordEl);
+                els.playersCircle.appendChild(node);
+            });
+        }
+
+        function updatePlayerVisuals() {
+            gameState.players.forEach((p, i) => {
+                const el = document.getElementById(p.id);
+                if (!el) return;
+                
+                const livesEl = document.getElementById(`${p.id}-lives`);
+                const wordEl = document.getElementById(`${p.id}-word`);
+                
+                if (p.dead) {
+                    el.classList.add('opacity-40', 'grayscale');
+                    el.classList.remove('active-player');
+                    if (livesEl) livesEl.innerHTML = '<i class="fa-solid fa-skull text-white"></i>';
+                    if (wordEl && p.lastWord) {
+                        wordEl.classList.add('dead-word');
+                        wordEl.textContent = p.lastWord;
+                    }
+                } else {
+                    el.classList.remove('opacity-40', 'grayscale');
+                    if (livesEl) livesEl.innerHTML = '<i class="fa-solid fa-heart"></i>'.repeat(p.lives);
+                    if (wordEl) wordEl.classList.remove('dead-word');
+                    
+                    if (i === gameState.activePlayerIndex) el.classList.add('active-player');
+                    else el.classList.remove('active-player');
+                    
+                    if (wordEl && p.lastWord) {
+                        // Highlight using the prompt that was active when they submitted
+                        const promptStr = (p.submittedPrompt || gameState.currentPrompt || '').toLowerCase();
+                        const lowerWord = p.lastWord.toLowerCase();
+                        const promptIdx = promptStr ? lowerWord.indexOf(promptStr) : -1;
+                        
+                        if (promptIdx > -1) {
+                            const before = p.lastWord.substring(0, promptIdx);
+                            const match = p.lastWord.substring(promptIdx, promptIdx + promptStr.length);
+                            const after = p.lastWord.substring(promptIdx + promptStr.length);
+                            wordEl.innerHTML = `${before}<span class="highlight-match font-black text-green-400">${match}</span>${after}`;
+                        } else {
+                            wordEl.textContent = p.lastWord;
+                        }
+                    } else if (wordEl) {
+                        wordEl.textContent = '';
+                    }
+                }
+            });
+
+            if (els.turnArrow) {
+                if (gameState.activePlayerIndex >= 0 && !gameState.players[gameState.activePlayerIndex].dead) {
+                    pointArrowAtPlayer(els.turnArrow, gameState.activePlayerIndex, 95);
+                } else {
+                    els.turnArrow.classList.add('hidden');
+                }
+            }
+        }
+
+        function startRound() {
+            if (!gameState.isPlaying) return;
+            
+            const aliveIndexes = [];
+            gameState.players.forEach((p, i) => { if (!p.dead) aliveIndexes.push(i); });
+            
+            if (aliveIndexes.length <= 1) {
+                endGame();
+                return;
+            }
+
+            gameState.roundNumber += 1;
+
+            gameState.activePlayerIndex = aliveIndexes[Math.floor(Math.random() * aliveIndexes.length)];
+            gameState.players.forEach(p => {
+                p.lastWord = '';
+                p.submittedPrompt = '';
+            });
+            
+            setNewPrompt();
+            
+            const bombRange = DIFFICULTY_BOMB_TIME[gameState.difficulty] || DIFFICULTY_BOMB_TIME.normal;
+            const duration = Math.floor(Math.random() * (bombRange[1] - bombRange[0]) + bombRange[0]);
+            gameState.bombEndTime = Date.now() + duration;
+            
+            if (els.bombVisual) {
+                els.bombVisual.className = 'central-bomb bomb-pulse';
+                els.bombVisual.style.backgroundColor = '#333';
+            }
+            if (els.promptDisplay) els.promptDisplay.textContent = gameState.currentPrompt.toUpperCase();
+            if (els.roundStatus) els.roundStatus.textContent = `Round ${gameState.roundNumber}`;
+            
+            prepareTurn();
+            
+            if (!gameState.gameLoop) {
+                gameState.gameLoop = requestAnimationFrame(gameTick);
+            }
+        }
+
+        function setNewPrompt() {
+            // Build candidate pool based on user difficulty
+            let pool = [];
+            const diff = gameState.difficulty;
+
+            if (diff === 'easy') {
+                // Mostly common syllables, occasional medium
+                pool = (prompts.easy || []).slice();
+                if (Math.random() < 0.15 && (prompts.medium || []).length) {
+                    pool = pool.concat(prompts.medium.slice(0, Math.min(80, prompts.medium.length)));
+                }
+            } else if (diff === 'hard') {
+                // Mostly rare/hard syllables, some medium
+                pool = (prompts.hard || []).slice();
+                if ((prompts.medium || []).length) {
+                    pool = pool.concat(prompts.medium);
+                }
+                if (Math.random() < 0.1 && (prompts.easy || []).length) {
+                    pool = pool.concat(prompts.easy.slice(0, 40));
+                }
+            } else {
+                // Normal: mix of easy + medium, light hard
+                pool = (prompts.easy || []).slice();
+                if ((prompts.medium || []).length) pool = pool.concat(prompts.medium);
+                if (Math.random() < 0.2 && (prompts.hard || []).length) {
+                    pool = pool.concat(prompts.hard.slice(0, Math.min(60, prompts.hard.length)));
+                }
+            }
+
+            if (pool.length < 10) {
+                pool = pool.concat(prompts.easy || [], prompts.medium || [], prompts.hard || []);
+            }
+
+            // Exclude recently used prompts (avoid repeating the same syllable)
+            const recent = new Set(gameState.recentPrompts.map(p => p.toLowerCase()));
+            let candidates = pool.filter(syl => !recent.has(syl.toLowerCase()));
+
+            if (candidates.length < 5) {
+                const strictRecent = new Set(gameState.recentPrompts.slice(-3).map(p => p.toLowerCase()));
+                candidates = pool.filter(syl => !strictRecent.has(syl.toLowerCase()));
+            }
+            if (candidates.length === 0) {
+                candidates = pool.length ? pool : ['th', 'in', 'er', 'on', 'an'];
+            }
+
+            const pick = candidates[Math.floor(Math.random() * candidates.length)].toUpperCase();
+            gameState.currentPrompt = pick;
+
+            gameState.recentPrompts.push(pick);
+            if (gameState.recentPrompts.length > 12) {
+                gameState.recentPrompts.shift();
+            }
+        }
+
+        let botTimeout = null;
+        let typingInterval = null;
+        let userTurnTimeout = null;
+
+        function clearBotTimers() {
+            if (botTimeout) {
+                clearTimeout(botTimeout);
+                botTimeout = null;
+            }
+            if (typingInterval) {
+                clearInterval(typingInterval);
+                typingInterval = null;
+            }
+            if (userTurnTimeout) {
+                clearTimeout(userTurnTimeout);
+                userTurnTimeout = null;
+            }
+        }
+
+        function pointArrowAtPlayer(arrowEl, playerIndex, distancePx) {
+            if (!arrowEl || playerIndex < 0) return;
+            const total = gameState.players.length;
+            if (!total) return;
+            const angle = (playerIndex / total) * (2 * Math.PI) - (Math.PI / 2);
+            const rotationDeg = (angle * 180 / Math.PI) + 90;
+            const dist = distancePx != null ? distancePx : 95;
+            arrowEl.style.transform =
+                `translate(-50%, -50%) rotate(${rotationDeg}deg) translateY(-${dist}px)`;
+            arrowEl.classList.remove('hidden');
+        }
+
+        function hideUserTurnArrow() {
+            if (els.userTurnArrow) els.userTurnArrow.classList.add('hidden');
+        }
+
+        function prepareTurn() {
+            updatePlayerVisuals();
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            if (!activePlayer) return;
+            
+            clearBotTimers();
+            gameState.currentTyped = '';
+            // Clear in-progress typing under everyone (last submitted words stay via updatePlayerVisuals)
+            gameState.players.forEach(p => {
+                if (!p.lastWord) clearTypingDisplay(p.id);
+            });
+            // Re-apply last words after any clear
+            updatePlayerVisuals();
+
+            clearPlayerHints();
+            hideUserTurnArrow();
+            gameState.humanCanType = false;
+            
+            if (!activePlayer.isBot) {
+                // Red arrow points at you before your turn starts
+                pointArrowAtPlayer(els.userTurnArrow, gameState.activePlayerIndex, 110);
+                if (els.turnHint) {
+                    els.turnHint.textContent = 'Your turn soon...';
+                    els.turnHint.classList.remove('hidden');
+                }
+
+                userTurnTimeout = setTimeout(() => {
+                    if (!gameState.isPlaying || gameState.isPaused) return;
+                    hideUserTurnArrow();
+                    gameState.humanCanType = true;
+                    if (els.turnHint) {
+                        els.turnHint.textContent = 'Your turn — type on your keyboard, Enter to submit';
+                        els.turnHint.classList.remove('hidden');
+                    }
+                    updateActiveTypingDisplay();
+                    if (gameState.useHints) showHints();
+                }, 750);
+            } else {
+                if (els.turnHint) els.turnHint.classList.add('hidden');
+                
+                const preset = BOT_SPEED_PRESETS[gameState.botSpeedIndex] || BOT_SPEED_PRESETS[1];
+                const skill = BOT_SKILL_PRESETS[gameState.botSkillIndex] || BOT_SKILL_PRESETS[1];
+                let thinkTime;
+                if (skill.knowWord) {
+                    // Godly: already knows what to type
+                    thinkTime = 40 + Math.random() * 80;
+                } else {
+                    const base = preset.thinkMin + Math.random() * Math.max(0, preset.thinkMax - preset.thinkMin);
+                    thinkTime = Math.max(80, base * skill.thinkMult);
+                }
+
+                botTimeout = setTimeout(() => {
+                    if (!gameState.isPlaying || gameState.isPaused) return;
+                    botSubmitWord();
+                }, thinkTime);
+            }
+        }
+
+        function clearPlayerHints() {
+            document.querySelectorAll('.player-hints').forEach(el => el.remove());
+            // Reset z-index / pointer events on player nodes
+            gameState.players.forEach(p => {
+                const node = document.getElementById(p.id);
+                if (node) {
+                    node.style.zIndex = '';
+                    node.style.pointerEvents = '';
+                }
+            });
+            if (els.wordHints) {
+                els.wordHints.innerHTML = '';
+                els.wordHints.classList.add('hidden');
+            }
+        }
+
+        function showHints() {
+            clearPlayerHints();
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            if (!activePlayer || activePlayer.isBot) return;
+
+            const node = document.getElementById(activePlayer.id);
+            if (!node) return;
+
+            const promptStr = gameState.currentPrompt.toLowerCase();
+            let valid = [];
+            for (let i = 0; i < dictionary.length; i++) {
+                if (dictionary[i].includes(promptStr) && !gameState.usedWords.has(dictionary[i])) {
+                    valid.push(dictionary[i]);
+                }
+            }
+
+            // Shortest → longest by default; longest → shortest if Long Word Hints is on
+            if (gameState.longWordHints) {
+                valid.sort((a, b) => b.length - a.length || a.localeCompare(b));
+            } else {
+                valid.sort((a, b) => a.length - b.length || a.localeCompare(b));
+            }
+            const count = Math.max(1, Math.min(5, gameState.hintCount || 2));
+            const hints = valid.slice(0, count);
+            if (hints.length === 0) return;
+
+            // Bring this player in front of others so hints aren't covered
+            node.style.zIndex = '55';
+            node.style.pointerEvents = 'auto';
+
+            const container = document.createElement('div');
+            container.className = 'player-hints';
+
+            hints.forEach(word => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-2.5 py-1 bg-slate-800/95 hover:bg-slate-600 text-slate-200 text-xs rounded-lg transition uppercase mono border border-slate-600';
+
+                const promptIdx = word.indexOf(promptStr);
+                const before = word.substring(0, promptIdx);
+                const match = word.substring(promptIdx, promptIdx + promptStr.length);
+                const after = word.substring(promptIdx + promptStr.length);
+
+                btn.innerHTML = `${before}<span class="text-blue-400 font-bold">${match}</span>${after}`;
+
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    gameState.currentTyped = word;
+                    updateActiveTypingDisplay();
+                    handleWordSubmission(word);
+                };
+                container.appendChild(btn);
+            });
+
+            // Place under the typing text (last child of the player node)
+            node.appendChild(container);
+        }
+
+        // Human-like bot typing: typos, mid-word rethinks, pauses
+        function botSubmitWord() {
+            const word = getValidBotWord(gameState.currentPrompt);
+            if (!word) return;
+
+            const preset = BOT_SPEED_PRESETS[gameState.botSpeedIndex] || BOT_SPEED_PRESETS[1];
+            const skill = BOT_SKILL_PRESETS[gameState.botSkillIndex] || BOT_SKILL_PRESETS[1];
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            if (!activePlayer) return;
+
+            // God *speed* only: instant type+submit (skill godly still types at set speed)
+            if (preset.charMs <= 0 || gameState.botSpeedIndex >= 4) {
+                gameState.currentTyped = word;
+                updateActiveTypingDisplay();
+                handleWordSubmission(word);
+                return;
+            }
+
+            // Short words: sit and think (unless godly already "knew" it in prepareTurn), then appear + submit
+            // Skip extra wait for short words when godly — they already had near-zero think time
+            if (word.length < 5 && !skill.knowWord) {
+                const baseWait = preset.thinkMin + Math.random() * Math.max(200, preset.thinkMax - preset.thinkMin);
+                const wait = Math.max(120, baseWait * skill.thinkMult * 0.5);
+                botTimeout = setTimeout(() => {
+                    if (!gameState.isPlaying || gameState.isPaused) return;
+                    gameState.currentTyped = word;
+                    updateActiveTypingDisplay();
+                    botTimeout = setTimeout(() => {
+                        if (!gameState.isPlaying || gameState.isPaused) return;
+                        handleWordSubmission(word);
+                    }, 150 + Math.random() * 250);
+                }, wait);
+                return;
+            }
+
+            // Godly / longer words: type at bot speed (godly = clean typing, no typos)
+            // Build a sequence of typing actions (type char / backspace / pause)
+            const actions = buildHumanTypingActions(word, preset, skill);
+            let step = 0;
+            gameState.currentTyped = '';
+            updateActiveTypingDisplay();
+
+            function runNext() {
+                if (!gameState.isPlaying || gameState.isPaused) {
+                    clearBotTimers();
+                    return;
+                }
+                if (step >= actions.length) {
+                    botTimeout = setTimeout(() => {
+                        if (!gameState.isPlaying || gameState.isPaused) return;
+                        handleWordSubmission(word);
+                    }, 120 + Math.random() * 200);
+                    return;
+                }
+                const action = actions[step++];
+                if (action.type === 'char') {
+                    gameState.currentTyped += action.ch;
+                    SFX.type();
+                    updateActiveTypingDisplay();
+                } else if (action.type === 'back') {
+                    gameState.currentTyped = gameState.currentTyped.slice(0, -1);
+                    SFX.type();
+                    updateActiveTypingDisplay();
+                }
+                const delay = action.delay != null ? action.delay : (preset.charMs + Math.random() * preset.charMs);
+                botTimeout = setTimeout(runNext, delay);
+            }
+            runNext();
+        }
+
+        function buildHumanTypingActions(word, preset, skill) {
+            const actions = [];
+            const letters = 'abcdefghijklmnopqrstuvwxyz';
+            const typoRate = skill ? skill.typoRate : 0.22;
+            const pauseRate = skill ? skill.pauseRate : 0.18;
+            let i = 0;
+            while (i < word.length) {
+                if (i > 1 && i < word.length - 1 && Math.random() < pauseRate) {
+                    actions.push({ type: 'pause', delay: 280 + Math.random() * 500 });
+                }
+                if (i > 0 && i < word.length - 1 && Math.random() < typoRate) {
+                    const wrong = letters[Math.floor(Math.random() * 26)];
+                    actions.push({ type: 'char', ch: wrong, delay: preset.charMs * (0.7 + Math.random()) });
+                    if (Math.random() < 0.35) {
+                        actions.push({ type: 'char', ch: letters[Math.floor(Math.random() * 26)], delay: preset.charMs });
+                        actions.push({ type: 'back', delay: 80 + Math.random() * 120 });
+                    }
+                    actions.push({ type: 'pause', delay: 120 + Math.random() * 280 });
+                    actions.push({ type: 'back', delay: 90 + Math.random() * 150 });
+                    actions.push({ type: 'char', ch: word[i], delay: preset.charMs * (0.8 + Math.random() * 0.5) });
+                } else {
+                    actions.push({ type: 'char', ch: word[i], delay: preset.charMs * (0.6 + Math.random() * 0.9) });
+                }
+                i++;
+            }
+            actions.push({ type: 'pause', delay: 80 + Math.random() * 160 });
+            return actions;
+        }
+
+        function getValidBotWord(promptStr) {
+            promptStr = promptStr.toLowerCase();
+            const validWords = [];
+            // Sample from different regions of the dictionary for variety
+            const chunk = Math.max(200, Math.floor(dictionary.length / 8));
+            const start = Math.floor(Math.random() * Math.max(1, dictionary.length - chunk));
+            for (let i = start; i < dictionary.length && validWords.length < 40; i++) {
+                if (dictionary[i].includes(promptStr) && !gameState.usedWords.has(dictionary[i])) {
+                    validWords.push(dictionary[i]);
+                }
+            }
+            if (validWords.length < 10) {
+                for (let i = 0; i < start && validWords.length < 40; i++) {
+                    if (dictionary[i].includes(promptStr) && !gameState.usedWords.has(dictionary[i])) {
+                        validWords.push(dictionary[i]);
+                    }
+                }
+            }
+            if (validWords.length === 0) return null;
+
+            const short = validWords.filter(w => w.length <= 5);
+            const medium = validWords.filter(w => w.length >= 6 && w.length <= 9);
+            const long = validWords.filter(w => w.length >= 10);
+
+            let pool;
+            if (gameState.longWordBots) {
+                // Prefer long words, then medium
+                if (long.length) pool = long;
+                else if (medium.length) pool = medium;
+                else pool = validWords;
+            } else {
+                // Default: focus on short words
+                if (short.length) pool = short;
+                else if (medium.length) pool = medium;
+                else pool = validWords;
+            }
+
+            // Prefer shortest (or longest) within the pool
+            pool = pool.slice().sort((a, b) =>
+                gameState.longWordBots ? b.length - a.length : a.length - b.length
+            );
+            // Weighted pick toward the preferred end of the list
+            const top = pool.slice(0, Math.min(12, pool.length));
+            return top[Math.floor(Math.random() * top.length)];
+        }
+
+        // Levenshtein distance (edit distance)
+        function editDistance(a, b) {
+            if (a === b) return 0;
+            if (!a.length) return b.length;
+            if (!b.length) return a.length;
+            // Early exit if length gap is already too big
+            if (Math.abs(a.length - b.length) > 2) return 99;
+
+            const prev = new Array(b.length + 1);
+            const curr = new Array(b.length + 1);
+            for (let j = 0; j <= b.length; j++) prev[j] = j;
+
+            for (let i = 1; i <= a.length; i++) {
+                curr[0] = i;
+                for (let j = 1; j <= b.length; j++) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    curr[j] = Math.min(
+                        prev[j] + 1,       // deletion
+                        curr[j - 1] + 1,   // insertion
+                        prev[j - 1] + cost // substitution
+                    );
+                }
+                for (let j = 0; j <= b.length; j++) prev[j] = curr[j];
+            }
+            return prev[b.length];
+        }
+
+        // Find closest valid unused word that contains the prompt
+        function findAutoCorrect(typed, promptStr) {
+            typed = typed.toLowerCase();
+            promptStr = promptStr.toLowerCase();
+            // Allow up to 2 edits for longer words, 1 for short ones
+            const maxDist = typed.length <= 4 ? 1 : 2;
+
+            let best = null;
+            let bestDist = maxDist + 1;
+
+            // Only consider words near the typed length that contain the prompt
+            for (let i = 0; i < dictionary.length; i++) {
+                const w = dictionary[i];
+                if (Math.abs(w.length - typed.length) > maxDist) continue;
+                if (!w.includes(promptStr)) continue;
+                if (gameState.usedWords.has(w)) continue;
+
+                const d = editDistance(typed, w);
+                if (d < bestDist) {
+                    bestDist = d;
+                    best = w;
+                    if (d === 0) break; // exact match (shouldn't reach here normally)
+                }
+            }
+
+            return bestDist <= maxDist ? best : null;
+        }
+
+        function handleWordSubmission(word) {
+            word = word.toLowerCase().trim();
+            if (!word) return;
+
+            const lowerPrompt = gameState.currentPrompt.toLowerCase();
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            const isHuman = activePlayer && !activePlayer.isBot;
+            
+            let isValid = word.includes(lowerPrompt) && dictionarySet.has(word) && !gameState.usedWords.has(word);
+
+            // Auto-correct for humans when enabled and the typed word isn't valid
+            if (!isValid && isHuman && gameState.autoCorrect) {
+                const corrected = findAutoCorrect(word, lowerPrompt);
+                if (corrected) {
+                    word = corrected;
+                    isValid = true;
+                    gameState.currentTyped = corrected;
+                    updateActiveTypingDisplay();
+                }
+            }
+            
+            if (isValid) {
+                gameState.usedWords.add(word);
+                activePlayer.lastWord = word.toUpperCase();
+                activePlayer.submittedPrompt = gameState.currentPrompt;
+                gameState.currentTyped = '';
+                SFX.correct();
+                
+                // Show final word under avatar (no cursor) with prompt letters in green
+                const wordEl = document.getElementById(`${activePlayer.id}-word`);
+                if (wordEl) {
+                    wordEl.classList.remove('typing-cursor', 'player-typing');
+                    const promptStr = lowerPrompt;
+                    const upper = word.toUpperCase();
+                    const promptIdx = word.toLowerCase().indexOf(promptStr);
+                    if (promptIdx > -1) {
+                        const before = upper.substring(0, promptIdx);
+                        const match = upper.substring(promptIdx, promptIdx + promptStr.length);
+                        const after = upper.substring(promptIdx + promptStr.length);
+                        wordEl.innerHTML = `${before}<span class="highlight-match font-black text-green-400">${match}</span>${after}`;
+                    } else {
+                        wordEl.textContent = upper;
+                    }
+                }
+
+                clearPlayerHints();
+                if (els.turnHint) els.turnHint.classList.add('hidden');
+                
+                passBomb();
+            } else {
+                if (isHuman) {
+                    SFX.incorrect();
+                    if (els.inputError) {
+                        els.inputError.style.opacity = '1';
+                        setTimeout(() => { if (els.inputError) els.inputError.style.opacity = '0'; }, 1500);
+                    }
+                }
+            }
+        }
+
+        function passBomb() {
+            let aliveIndexes = [];
+            gameState.players.forEach((p, i) => { if (!p.dead) aliveIndexes.push(i); });
+            
+            if (aliveIndexes.length <= 1) return;
+            
+            let currentIndexInAlive = aliveIndexes.indexOf(gameState.activePlayerIndex);
+            let nextIndexInAlive = (currentIndexInAlive + 1) % aliveIndexes.length;
+            
+            gameState.activePlayerIndex = aliveIndexes[nextIndexInAlive];
+
+            // New letters every time someone (bot or human) successfully plays a word
+            setNewPrompt();
+            if (els.promptDisplay) {
+                els.promptDisplay.textContent = gameState.currentPrompt.toUpperCase();
+            }
+
+            prepareTurn();
+        }
+
+        function triggerExplosion() {
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            if (!activePlayer || activePlayer.dead) return;
+
+            SFX.explode();
+            activePlayer.lives -= 1;
+            
+            if (activePlayer.lives <= 0) {
+                activePlayer.dead = true;
+                if (!activePlayer.lastWord) activePlayer.lastWord = "BOOM";
+            }
+
+            if (els.bombVisual) {
+                els.bombVisual.className = 'central-bomb';
+                els.bombVisual.style.backgroundColor = '#ef4444';
+            }
+            if (els.promptDisplay) els.promptDisplay.textContent = '💥';
+            if (els.turnArrow) els.turnArrow.classList.add('hidden');
+            
+            gameState.currentTyped = '';
+            clearPlayerHints();
+            hideUserTurnArrow();
+            if (els.turnHint) els.turnHint.classList.add('hidden');
+            clearBotTimers();
+            
+            updatePlayerVisuals();
+            
+            setTimeout(() => {
+                let aliveCount = 0;
+                gameState.players.forEach(p => { if (!p.dead) aliveCount++; });
+                
+                if (aliveCount <= 1) endGame();
+                else {
+                    gameState.usedWords.clear();
+                    startRound();
+                }
+            }, 2500);
+        }
+
+        function gameTick() {
+            if (!gameState.isPlaying) return;
+            // Keep the animation frame running, but freeze bomb logic while paused
+            if (gameState.isPaused) {
+                gameState.gameLoop = requestAnimationFrame(gameTick);
+                return;
+            }
+            
+            const now = Date.now();
+            const activePlayer = gameState.players[gameState.activePlayerIndex];
+            
+            if (activePlayer && !activePlayer.dead && now >= gameState.bombEndTime) {
+                triggerExplosion();
+                gameState.bombEndTime = Infinity; 
+            } else if (activePlayer && !activePlayer.dead) {
+                const timeRemaining = gameState.bombEndTime - now;
+                
+                if (els.bombVisual) {
+                    if (timeRemaining < 3000) {
+                        if (!els.bombVisual.classList.contains('bomb-fast-shake')) {
+                            els.bombVisual.className = 'central-bomb bomb-fast-shake';
+                        }
+                        // About-to-explode warning (faster beeps)
+                        if (now - lastWarnTime > 250) {
+                            SFX.warning();
+                            lastWarnTime = now;
+                        }
+                    } else if (timeRemaining < 7000) {
+                        if (!els.bombVisual.classList.contains('bomb-shake')) {
+                            els.bombVisual.className = 'central-bomb bomb-shake';
+                        }
+                        // Bomb tick
+                        if (now - lastTickTime > 700) {
+                            SFX.tick();
+                            lastTickTime = now;
+                        }
+                    }
+                }
+            }
+            gameState.gameLoop = requestAnimationFrame(gameTick);
+        }
+
+        function endGame() {
+            gameState.isPlaying = false;
+            if (gameState.gameLoop) {
+                cancelAnimationFrame(gameState.gameLoop);
+                gameState.gameLoop = null;
+            }
+            clearBotTimers();
+            
+            const winner = gameState.players.find(p => !p.dead);
+            
+            if (els.promptDisplay) els.promptDisplay.textContent = 'END';
+            if (els.bombVisual) {
+                els.bombVisual.className = 'central-bomb';
+                els.bombVisual.style.backgroundColor = '#333';
+            }
+            if (els.roundStatus) els.roundStatus.textContent = winner ? `${winner.name} wins!` : 'Draw!';
+            
+            setTimeout(() => {
+                if (els.menu) {
+                    els.menu.classList.remove('hidden');
+                    setMenuTitle(winner ? `${winner.name} WINS!` : "DRAW!");
+                    if (els.startBtn) {
+                        els.startBtn.disabled = false;
+                        els.startBtn.textContent = "PLAY AGAIN";
+                    }
+                }
+                if (els.game) els.game.classList.add('hidden');
+            }, 3000);
+        }
+
+        // Start loading dictionary when page is ready
+        window.addEventListener('load', initDictionary);
+    </script>
+</body>
+</html>
