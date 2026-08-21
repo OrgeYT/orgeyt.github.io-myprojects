@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>💣 BombParty Word Trainer</title>
+  <style>
+    /* BombParty-inspired palette: warm taupe room, cartoon bomb yellow, green join buttons */
+    :root {
+      --bg: #4a4038;
+      --bg-deep: #3a322c;
+      --bg-panel: #5c5046;
+      --bg-panel-inner: #4f443b;
+      --bg-input: #3d342c;
+      --border: #6e6256;
+      --border-soft: #7a6e60;
+      --border-focus: #f5c842;
+      --text: #f2ebe3;
+      --text-muted: #b8a99a;
+      --accent: #f5c842;
+      --accent-bright: #ffe066;
+      --accent-dim: #d4a82e;
+      --accent-glow: rgba(245, 200, 66, 0.35);
+      --green: #5ecf6a;
+      --green-btn: #3db84a;
+      --green-btn-hover: #4ad058;
+      --green-bg: rgba(61, 184, 74, 0.18);
+      --red: #e85a5a;
+      --red-bg: rgba(232, 90, 90, 0.18);
+      --blue-btn: #5b9bd5;
+      --radius: 14px;
+      --shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+      --font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% 20%, #5a4e44 0%, transparent 55%),
+        linear-gradient(180deg, #564a42 0%, #463d36 45%, #37302b 100%);
+      background-attachment: fixed;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 2.5rem;
+    }
+
+    /* Header — cartoon logo energy */
+    header {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      padding: 1.25rem 1rem 0.75rem;
+    }
+
+    header h1 {
+      font-size: clamp(1.75rem, 5vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: #f5f0e8;
+      text-shadow:
+        0 2px 0 #2a241e,
+        0 3px 0 #1a1612,
+        0 0 24px rgba(245, 200, 66, 0.4);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15em;
+    }
+
+    header h1 .bomb-o {
+      display: inline-block;
+      width: 0.85em;
+      height: 0.85em;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #5a5a5a, #1a1a1a 70%);
+      border: 3px solid #2a2a2a;
+      box-shadow:
+        inset 0 -3px 6px rgba(0,0,0,0.5),
+        0 2px 0 #1a1612;
+      position: relative;
+      vertical-align: middle;
+      margin: 0 0.02em;
+    }
+
+    header h1 .bomb-o::after {
+      content: "✦";
+      position: absolute;
+      top: -0.45em;
+      right: -0.35em;
+      font-size: 0.45em;
+      color: var(--accent-bright);
+      text-shadow: 0 0 8px var(--accent-glow);
+      animation: spark 1.4s ease-in-out infinite;
+    }
+
+    @keyframes spark {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.15); }
+    }
+
+    header .logo-underline {
+      width: min(280px, 70%);
+      height: 8px;
+      margin: 0.35rem auto 0;
+      background: linear-gradient(90deg, transparent, var(--accent) 15%, var(--accent-bright) 50%, var(--accent) 85%, transparent);
+      border-radius: 4px;
+      position: relative;
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+
+    header .logo-underline::after {
+      content: "";
+      position: absolute;
+      right: 8%;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 8px solid transparent;
+      border-left-color: var(--accent-bright);
+      filter: drop-shadow(0 0 4px var(--accent-glow));
+    }
+
+    header .tagline {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.85rem;
+      font-weight: 500;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      justify-content: center;
+      align-items: center;
+      margin-top: 0.9rem;
+      font-size: 0.82rem;
+    }
+
+    .status-pill {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 0.28rem 0.85rem;
+      color: var(--text-muted);
+      backdrop-filter: blur(4px);
+    }
+
+    .status-pill.ok { color: var(--green); border-color: rgba(94, 207, 106, 0.45); }
+    .status-pill.err { color: var(--red); border-color: rgba(232, 90, 90, 0.45); }
+    .status-pill.loading { color: var(--accent-bright); }
+
+    /* Layout grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.15rem;
+    }
+
+    @media (min-width: 900px) {
+      .main-grid {
+        grid-template-columns: 290px 1fr;
+        align-items: start;
+      }
+      .side-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 1.15rem;
+      }
+    }
+
+    /* Panels — wooden table / card feel */
+    .panel {
+      background: linear-gradient(165deg, #62564c 0%, #54493f 100%);
+      border: 2px solid var(--border-soft);
+      border-radius: var(--radius);
+      padding: 1.15rem 1.25rem;
+      box-shadow:
+        var(--shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    .panel h2 {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.85rem;
+      font-weight: 700;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .panel h3 {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-muted);
+      margin: 1rem 0 0.5rem;
+      font-weight: 600;
+    }
+
+    .panel p.desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* Form controls */
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.35rem;
+    }
+
+    select,
+    input[type="text"],
+    textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 2px solid #2e2822;
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.95rem;
+      padding: 0.6rem 0.75rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
+    }
+
+    select:focus,
+    input[type="text"]:focus,
+    textarea:focus {
+      outline: none;
+      border-color: var(--border-focus);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.25), 0 0 0 3px var(--accent-glow);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+      font-size: 0.85rem;
+      line-height: 1.4;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      padding: 0.55rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s, filter 0.15s;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.15);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Green Join-style primary */
+    .btn-primary {
+      background: linear-gradient(180deg, #4ecf5c 0%, var(--green-btn) 100%);
+      color: #fff;
+      border: 2px solid #2e8a38;
+      box-shadow: 0 3px 0 #2a7a32, 0 4px 8px rgba(0,0,0,0.25);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(180deg, #5ce06a 0%, var(--green-btn-hover) 100%);
+      filter: brightness(1.05);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      box-shadow: 0 1px 0 #2a7a32;
+      transform: translateY(2px);
+    }
+
+    .btn-secondary {
+      background: linear-gradient(180deg, #6b5f54 0%, #564b42 100%);
+      color: var(--text);
+      border: 2px solid #3d342c;
+      box-shadow: 0 3px 0 #2e2822;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      border-color: var(--accent-dim);
+      color: var(--accent-bright);
+    }
+
+    .btn-secondary:active:not(:disabled) {
+      box-shadow: 0 1px 0 #2e2822;
+      transform: translateY(2px);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--red);
+      border: 2px solid rgba(232, 90, 90, 0.5);
+      box-shadow: none;
+      text-shadow: none;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: var(--red-bg);
+    }
+
+    .btn-small {
+      font-size: 0.75rem;
+      padding: 0.32rem 0.65rem;
+      border-radius: 8px;
+    }
+
+    /* Practice area — the “bomb” stage */
+    .practice-panel {
+      text-align: center;
+      background: linear-gradient(165deg, #5e5248 0%, #4a4038 50%, #3f362f 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .practice-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 70% 50% at 50% 40%, rgba(245, 200, 66, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .prompt-label {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+      font-weight: 600;
+      position: relative;
+    }
+
+    .prompt-display {
+      font-size: clamp(2.75rem, 9vw, 4.4rem);
+      font-weight: 900;
+      letter-spacing: 0.06em;
+      color: #fffef8;
+      text-shadow:
+        0 2px 0 #2a241e,
+        0 4px 0 #1a1612,
+        0 0 40px rgba(245, 200, 66, 0.35);
+      min-height: 1.2em;
+      word-break: break-all;
+      padding: 0.6rem 0.25rem 1.1rem;
+      line-height: 1.1;
+      position: relative;
+    }
+
+    .prompt-display.pattern {
+      letter-spacing: 0.18em;
+      color: var(--accent-bright);
+      text-shadow:
+        0 2px 0 #3a3010,
+        0 4px 0 #2a2208,
+        0 0 50px var(--accent-glow),
+        0 0 80px rgba(245, 200, 66, 0.25);
+    }
+
+    .answer-area {
+      max-width: 440px;
+      margin: 0 auto;
+      position: relative;
+    }
+
+    .answer-area input {
+      font-size: 1.3rem;
+      text-align: center;
+      padding: 0.9rem 1rem;
+      letter-spacing: 0.03em;
+      font-weight: 600;
+      border-radius: 12px;
+      border-width: 3px;
+    }
+
+    .answer-area .btn-row {
+      justify-content: center;
+      margin-top: 0.85rem;
+      gap: 0.65rem;
+    }
+
+    .answer-area .btn-primary,
+    .answer-area .btn-secondary {
+      min-width: 120px;
+      padding: 0.75rem 1.35rem;
+      font-size: 1.05rem;
+    }
+
+    .feedback {
+      margin-top: 1rem;
+      min-height: 1.6em;
+      font-size: 1.08rem;
+      font-weight: 700;
+      border-radius: 10px;
+      padding: 0.55rem 0.85rem;
+      transition: background 0.2s, color 0.2s;
+      position: relative;
+    }
+
+    .feedback.correct {
+      color: #b8f5c0;
+      background: var(--green-bg);
+      border: 1px solid rgba(94, 207, 106, 0.35);
+    }
+
+    .feedback.incorrect {
+      color: #ffb0b0;
+      background: var(--red-bg);
+      border: 1px solid rgba(232, 90, 90, 0.35);
+    }
+
+    .feedback.neutral {
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid transparent;
+    }
+
+    /* Stats */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 2px solid rgba(0,0,0,0.2);
+      position: relative;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat .value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--accent-bright);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+    }
+
+    .stat .label {
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    /* Mode-specific controls */
+    .mode-controls {
+      margin-top: 0.75rem;
+    }
+
+    .mode-controls.hidden {
+      display: none;
+    }
+
+    .search-list {
+      max-height: 180px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+      border: 2px solid #2e2822;
+      border-radius: 10px;
+      background: var(--bg-input);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .search-list button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      color: var(--text);
+      border: none;
+      border-radius: 0;
+      padding: 0.45rem 0.75rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+      box-shadow: none;
+      text-shadow: none;
+    }
+
+    .search-list button:last-child {
+      border-bottom: none;
+    }
+
+    .search-list button:hover {
+      background: rgba(245, 200, 66, 0.12);
+      color: var(--accent-bright);
+    }
+
+    .search-list button.selected {
+      background: rgba(245, 200, 66, 0.22);
+      color: var(--accent-bright);
+    }
+
+    .pattern-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin-top: 0.5rem;
+    }
+
+    .pattern-options label.radio-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .pattern-options input[type="radio"] {
+      accent-color: var(--accent);
+      width: 1.05em;
+      height: 1.05em;
+    }
+
+    /* Finder results */
+    .finder-results {
+      margin-top: 0.75rem;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .finder-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.4rem 0;
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+      font-size: 0.9rem;
+    }
+
+    .finder-item:last-child {
+      border-bottom: none;
+    }
+
+    .finder-item span {
+      word-break: break-all;
+      font-weight: 500;
+    }
+
+    .finder-meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.4rem;
+    }
+
+    /* Custom combos list */
+    .combo-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: 0.5rem;
+    }
+
+    .combo-chip {
+      background: var(--bg-input);
+      border: 2px solid #2e2822;
+      border-radius: 8px;
+      padding: 0.28rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-bright);
+      cursor: pointer;
+      box-shadow: none;
+      text-shadow: none;
+    }
+
+    .combo-chip:hover {
+      border-color: var(--accent);
+      background: rgba(245, 200, 66, 0.15);
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-deep);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>B<span class="bomb-o" title="bomb"></span>MBPARTY</h1>
+      <div class="logo-underline" aria-hidden="true"></div>
+      <p class="tagline">Word Trainer — practice the cursed letter combinations</p>
+      <div class="status-bar">
+        <span id="statusPill" class="status-pill loading">Loading word list…</span>
+        <span id="wordCountPill" class="status-pill hidden">0 words</span>
+      </div>
+    </header>
+
+    <div class="main-grid">
+      <!-- Left / side column -->
+      <div class="side-stack">
+        <!-- Mode selector -->
+        <div class="panel">
+          <h2>Practice Mode</h2>
+          <label for="modeSelect">Mode</label>
+          <select id="modeSelect">
+            <option value="random">Random Word</option>
+            <option value="repeat">Repeat One Word</option>
+            <option value="pattern">BombParty-style Pattern</option>
+          </select>
+          <p class="desc" id="modeDesc">Pick a random word from the list and type it exactly.</p>
+
+          <!-- Random: nothing extra -->
+
+          <!-- Repeat mode controls -->
+          <div id="repeatControls" class="mode-controls hidden">
+            <label for="wordSearch">Search / select a word</label>
+            <input type="text" id="wordSearch" placeholder="Type to filter…" autocomplete="off" />
+            <div id="wordSearchList" class="search-list"></div>
+            <p class="desc" style="margin-top:0.5rem">Selected: <strong id="selectedWordDisplay" style="color:var(--accent)">—</strong></p>
+          </div>
+
+          <!-- Pattern mode controls -->
+          <div id="patternControls" class="mode-controls hidden">
+            <div class="pattern-options">
+              <label class="radio-label">
+                <input type="radio" name="patternSource" value="random" checked />
+                Random 2-letter pattern (from word list)
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="patternSource" value="custom" />
+                Custom pattern
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="patternSource" value="saved" />
+                Saved letter combination
+              </label>
+            </div>
+            <div id="customPatternBox" class="hidden" style="margin-top:0.5rem">
+              <label for="customPatternInput">Your pattern (e.g. ph, tion, xyl)</label>
+              <input type="text" id="customPatternInput" placeholder="ph" autocomplete="off" maxlength="20" />
+            </div>
+            <div id="savedComboBox" class="hidden" style="margin-top:0.5rem">
+              <label>Your saved combinations</label>
+              <div id="savedComboList" class="combo-list"></div>
+              <p class="desc" id="noSavedCombos" style="margin-top:0.35rem">No saved combinations yet.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Custom stuff -->
+        <div class="panel">
+          <h2>Your Custom Stuff</h2>
+          <h3>Custom Words</h3>
+          <p class="desc">One word per line. Added to the practice pool &amp; saved in this browser.</p>
+          <textarea id="customWordsArea" placeholder="xylophone&#10;quizzical&#10;…"></textarea>
+          <div class="btn-row">
+            <button type="button" class="btn-primary btn-small" id="saveCustomWords">Save Words</button>
+            <button type="button" class="btn-danger btn-small" id="clearCustomWords">Clear</button>
+          </div>
+
+          <h3>Custom Letter Combinations</h3>
+          <p class="desc">One per line. Use them as patterns in Pattern Mode.</p>
+          <textarea id="customCombosArea" placeholder="ph&#10;qu&#10;xyl&#10;tion&#10;ough"></textarea>
+          <div class="btn-row">
+            <button type="button" class="btn-primary btn-small" id="saveCustomCombos">Save Combinations</button>
+          </div>
+        </div>
+
+        <!-- Word Finder -->
+        <div class="panel">
+          <h2>Quick Word Finder</h2>
+          <p class="desc">Find all loaded words containing a letter combination.</p>
+          <label for="finderInput">Combination</label>
+          <input type="text" id="finderInput" placeholder="ph" autocomplete="off" />
+          <div class="btn-row">
+            <button type="button" class="btn-primary btn-small" id="finderBtn">Find</button>
+          </div>
+          <p class="finder-meta" id="finderMeta"></p>
+          <div id="finderResults" class="finder-results"></div>
+        </div>
+      </div>
+
+      <!-- Main practice panel -->
+      <div class="panel practice-panel">
+        <p class="prompt-label" id="promptLabel">Type this word exactly</p>
+        <div class="prompt-display" id="promptDisplay">—</div>
+
+        <div class="answer-area">
+          <input type="text" id="answerInput" placeholder="Type your answer…" autocomplete="off" spellcheck="false" disabled />
+          <div class="btn-row">
+            <button type="button" class="btn-primary" id="submitBtn" disabled>Submit</button>
+            <button type="button" class="btn-secondary" id="nextBtn" disabled>Next</button>
+          </div>
+        </div>
+
+        <div class="feedback neutral" id="feedback"></div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="value" id="statAttempts">0</div>
+            <div class="label">Attempts</div>
+          </div>
+          <div class="stat">
+            <div class="value" id="statCorrect">0</div>
+            <div class="label">Correct</div>
+          </div>
+          <div class="stat">
+            <div class="value" id="statAccuracy">—</div>
+            <div class="label">Accuracy</div>
+          </div>
+          <div class="stat">
+            <div class="value" id="statStreak">0</div>
+            <div class="label">Streak</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+(function () {
+  "use strict";
+
+  // ---------- State ----------
+  const WORDLIST_URL = "https://raw.githubusercontent.com/DO-Ui/bombparty-bot/refs/heads/master/wordlist.txt";
+  const LS_CUSTOM_WORDS = "bp_trainer_custom_words";
+  const LS_CUSTOM_COMBOS = "bp_trainer_custom_combos";
+
+  let baseWords = [];           // from GitHub
+  let customWords = [];         // user-added
+  let validWords = [];          // merged unique Set as array
+  let validWordSet = new Set(); // for O(1) lookup
+  let customCombos = [];
+
+  let mode = "random";
+  let currentPrompt = "";       // the word or pattern shown
+  let selectedRepeatWord = "";
+  let currentPattern = "";
+  let patternSource = "random"; // random | custom | saved
+  let selectedSavedCombo = "";
+  let waitingForNext = false;
+
+  let stats = { attempts: 0, correct: 0, streak: 0 };
+
+  // ---------- DOM ----------
+  const $ = (id) => document.getElementById(id);
+
+  const statusPill = $("statusPill");
+  const wordCountPill = $("wordCountPill");
+  const modeSelect = $("modeSelect");
+  const modeDesc = $("modeDesc");
+  const repeatControls = $("repeatControls");
+  const patternControls = $("patternControls");
+  const wordSearch = $("wordSearch");
+  const wordSearchList = $("wordSearchList");
+  const selectedWordDisplay = $("selectedWordDisplay");
+  const customPatternBox = $("customPatternBox");
+  const customPatternInput = $("customPatternInput");
+  const savedComboBox = $("savedComboBox");
+  const savedComboList = $("savedComboList");
+  const noSavedCombos = $("noSavedCombos");
+  const promptLabel = $("promptLabel");
+  const promptDisplay = $("promptDisplay");
+  const answerInput = $("answerInput");
+  const submitBtn = $("submitBtn");
+  const nextBtn = $("nextBtn");
+  const feedback = $("feedback");
+  const customWordsArea = $("customWordsArea");
+  const customCombosArea = $("customCombosArea");
+  const finderInput = $("finderInput");
+  const finderBtn = $("finderBtn");
+  const finderMeta = $("finderMeta");
+  const finderResults = $("finderResults");
+
+  // ---------- Helpers ----------
+  function normalizeWord(w) {
+    return String(w).trim().toLowerCase();
+  }
+
+  function isValidWord(w) {
+    return /^[a-z]+$/.test(w);
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function mergeWordPools() {
+    const set = new Set();
+    for (const w of baseWords) {
+      if (isValidWord(w)) set.add(w);
+    }
+    for (const w of customWords) {
+      if (isValidWord(w)) set.add(w);
+    }
+    validWordSet = set;
+    validWords = Array.from(set);
+  }
+
+  function updateWordCount() {
+    wordCountPill.textContent = validWords.length.toLocaleString() + " words loaded";
+    wordCountPill.classList.remove("hidden");
+  }
+
+  function setStatus(text, type) {
+    statusPill.textContent = text;
+    statusPill.className = "status-pill " + (type || "");
+  }
+
+  function updateStatsUI() {
+    $("statAttempts").textContent = stats.attempts;
+    $("statCorrect").textContent = stats.correct;
+    $("statStreak").textContent = stats.streak;
+    if (stats.attempts === 0) {
+      $("statAccuracy").textContent = "—";
+    } else {
+      const pct = Math.round((stats.correct / stats.attempts) * 100);
+      $("statAccuracy").textContent = pct + "%";
+    }
+  }
+
+  function setFeedback(msg, type) {
+    feedback.textContent = msg;
+    feedback.className = "feedback " + (type || "neutral");
+  }
+
+  function focusAnswer() {
+    setTimeout(() => {
+      answerInput.focus();
+      answerInput.select();
+    }, 30);
+  }
+
+  // ---------- Load word list ----------
+  async function loadWordList() {
+    setStatus("Loading word list…", "loading");
+    try {
+      const res = await fetch(WORDLIST_URL);
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const text = await res.text();
+      const lines = text.split(/\r?\n/);
+      const cleaned = [];
+      for (const line of lines) {
+        const w = normalizeWord(line);
+        if (isValidWord(w)) cleaned.push(w);
+      }
+      baseWords = cleaned;
+      mergeWordPools();
+      updateWordCount();
+      setStatus("Word list ready", "ok");
+      enablePractice(true);
+      startRound();
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to load word list", "err");
+      // Still allow custom words only
+      mergeWordPools();
+      updateWordCount();
+      if (validWords.length > 0) {
+        enablePractice(true);
+        startRound();
+      } else {
+        enablePractice(false);
+        setFeedback("Could not load the word list. Add custom words to practice.", "incorrect");
+      }
+    }
+  }
+
+  function enablePractice(on) {
+    answerInput.disabled = !on;
+    submitBtn.disabled = !on;
+    nextBtn.disabled = !on;
+  }
+
+  // ---------- LocalStorage ----------
+  function loadCustomFromStorage() {
+    try {
+      const w = localStorage.getItem(LS_CUSTOM_WORDS);
+      if (w) {
+        customWords = w.split("\n").map(normalizeWord).filter(isValidWord);
+        customWordsArea.value = customWords.join("\n");
+      }
+      const c = localStorage.getItem(LS_CUSTOM_COMBOS);
+      if (c) {
+        customCombos = c.split("\n").map((s) => s.trim().toLowerCase()).filter((s) => /^[a-z]+$/.test(s));
+        customCombosArea.value = customCombos.join("\n");
+      }
+    } catch (e) {
+      console.warn("localStorage read failed", e);
+    }
+    renderSavedCombos();
+  }
+
+  function saveCustomWords() {
+    const raw = customWordsArea.value.split(/\r?\n/);
+    customWords = [];
+    const seen = new Set();
+    for (const line of raw) {
+      const w = normalizeWord(line);
+      if (isValidWord(w) && !seen.has(w)) {
+        seen.add(w);
+        customWords.push(w);
+      }
+    }
+    try {
+      localStorage.setItem(LS_CUSTOM_WORDS, customWords.join("\n"));
+    } catch (e) {
+      console.warn(e);
+    }
+    customWordsArea.value = customWords.join("\n");
+    mergeWordPools();
+    updateWordCount();
+    setFeedback("Custom words saved (" + customWords.length + ").", "correct");
+    if (mode === "repeat") refreshWordSearchList();
+  }
+
+  function clearCustomWords() {
+    customWords = [];
+    customWordsArea.value = "";
+    try {
+      localStorage.removeItem(LS_CUSTOM_WORDS);
+    } catch (e) {}
+    mergeWordPools();
+    updateWordCount();
+    setFeedback("Custom words cleared.", "neutral");
+    if (mode === "repeat") refreshWordSearchList();
+  }
+
+  function saveCustomCombos() {
+    const raw = customCombosArea.value.split(/\r?\n/);
+    customCombos = [];
+    const seen = new Set();
+    for (const line of raw) {
+      const s = line.trim().toLowerCase();
+      if (/^[a-z]+$/.test(s) && !seen.has(s)) {
+        seen.add(s);
+        customCombos.push(s);
+      }
+    }
+    try {
+      localStorage.setItem(LS_CUSTOM_COMBOS, customCombos.join("\n"));
+    } catch (e) {}
+    customCombosArea.value = customCombos.join("\n");
+    renderSavedCombos();
+    setFeedback("Letter combinations saved (" + customCombos.length + ").", "correct");
+  }
+
+  function renderSavedCombos() {
+    savedComboList.innerHTML = "";
+    if (customCombos.length === 0) {
+      noSavedCombos.classList.remove("hidden");
+      return;
+    }
+    noSavedCombos.classList.add("hidden");
+    for (const combo of customCombos) {
+      const chip = document.createElement("button");
+      chip.type = "button";
+      chip.className = "combo-chip";
+      chip.textContent = combo;
+      if (combo === selectedSavedCombo) {
+        chip.style.borderColor = "var(--accent)";
+        chip.style.background = "rgba(240,193,75,0.15)";
+      }
+      chip.addEventListener("click", () => {
+        selectedSavedCombo = combo;
+        renderSavedCombos();
+        if (mode === "pattern" && patternSource === "saved") {
+          startRound();
+        }
+      });
+      savedComboList.appendChild(chip);
+    }
+  }
+
+  // ---------- Mode UI ----------
+  const MODE_DESCS = {
+    random: "Pick a random word from the list and type it exactly.",
+    repeat: "Practice the same word over and over. Great for tough ones.",
+    pattern: "Type ANY valid word that contains the shown letter pattern."
+  };
+
+  function onModeChange() {
+    mode = modeSelect.value;
+    modeDesc.textContent = MODE_DESCS[mode] || "";
+    repeatControls.classList.toggle("hidden", mode !== "repeat");
+    patternControls.classList.toggle("hidden", mode !== "pattern");
+    if (mode === "repeat") refreshWordSearchList();
+    if (mode === "pattern") updatePatternSourceUI();
+    startRound();
+  }
+
+  function updatePatternSourceUI() {
+    const src = document.querySelector('input[name="patternSource"]:checked');
+    patternSource = src ? src.value : "random";
+    customPatternBox.classList.toggle("hidden", patternSource !== "custom");
+    savedComboBox.classList.toggle("hidden", patternSource !== "saved");
+  }
+
+  // ---------- Repeat word search ----------
+  function refreshWordSearchList() {
+    const q = normalizeWord(wordSearch.value);
+    wordSearchList.innerHTML = "";
+    if (!q) {
+      // show a few recent / first matches empty = hint
+      const hint = document.createElement("div");
+      hint.style.padding = "0.5rem 0.75rem";
+      hint.style.color = "var(--text-muted)";
+      hint.style.fontSize = "0.85rem";
+      hint.textContent = "Start typing to search words…";
+      wordSearchList.appendChild(hint);
+      return;
+    }
+    const matches = [];
+    for (const w of validWords) {
+      if (w.includes(q)) {
+        matches.push(w);
+        if (matches.length >= 40) break;
+      }
+    }
+    if (matches.length === 0) {
+      const empty = document.createElement("div");
+      empty.style.padding = "0.5rem 0.75rem";
+      empty.style.color = "var(--text-muted)";
+      empty.style.fontSize = "0.85rem";
+      empty.textContent = "No matches.";
+      wordSearchList.appendChild(empty);
+      return;
+    }
+    for (const w of matches) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = w;
+      if (w === selectedRepeatWord) btn.classList.add("selected");
+      btn.addEventListener("click", () => {
+        selectedRepeatWord = w;
+        selectedWordDisplay.textContent = w;
+        refreshWordSearchList();
+        startRound();
+      });
+      wordSearchList.appendChild(btn);
+    }
+  }
+
+  // ---------- Pattern generation ----------
+  function generateRandomPattern() {
+    // Prefer 2-letter patterns that exist in at least one word.
+    // Sample random words and extract random bigrams until we find a valid one.
+    if (validWords.length === 0) return null;
+    const maxTries = 80;
+    for (let i = 0; i < maxTries; i++) {
+      const word = validWords[Math.floor(Math.random() * validWords.length)];
+      if (word.length < 2) continue;
+      const pos = Math.floor(Math.random() * (word.length - 1));
+      const pat = word.slice(pos, pos + 2);
+      // Confirm it exists (it does, by construction)
+      return pat;
+    }
+    // Fallback: take first 2 letters of a long-enough word
+    for (const w of validWords) {
+      if (w.length >= 2) return w.slice(0, 2);
+    }
+    return null;
+  }
+
+  function getCurrentPattern() {
+    if (patternSource === "custom") {
+      const p = customPatternInput.value.trim().toLowerCase();
+      if (/^[a-z]+$/.test(p) && p.length >= 1) return p;
+      return null;
+    }
+    if (patternSource === "saved") {
+      if (selectedSavedCombo && /^[a-z]+$/.test(selectedSavedCombo)) return selectedSavedCombo;
+      return null;
+    }
+    return generateRandomPattern();
+  }
+
+  // ---------- Round logic ----------
+  function startRound() {
+    waitingForNext = false;
+    answerInput.value = "";
+    setFeedback("", "neutral");
+    submitBtn.disabled = validWords.length === 0;
+    nextBtn.disabled = false;
+
+    if (validWords.length === 0) {
+      promptDisplay.textContent = "—";
+      promptLabel.textContent = "No words available";
+      answerInput.disabled = true;
+      return;
+    }
+
+    answerInput.disabled = false;
+
+    if (mode === "random") {
+      promptLabel.textContent = "Type this word exactly";
+      promptDisplay.classList.remove("pattern");
+      const w = validWords[Math.floor(Math.random() * validWords.length)];
+      currentPrompt = w;
+      promptDisplay.textContent = w;
+    } else if (mode === "repeat") {
+      promptLabel.textContent = "Type this word exactly";
+      promptDisplay.classList.remove("pattern");
+      if (!selectedRepeatWord || !validWordSet.has(selectedRepeatWord)) {
+        promptDisplay.textContent = "—";
+        setFeedback("Select a word from the list on the left.", "neutral");
+        answerInput.disabled = true;
+        submitBtn.disabled = true;
+        currentPrompt = "";
+        return;
+      }
+      currentPrompt = selectedRepeatWord;
+      promptDisplay.textContent = selectedRepeatWord;
+    } else {
+      // pattern
+      promptLabel.textContent = "Type ANY word containing this pattern";
+      promptDisplay.classList.add("pattern");
+      const pat = getCurrentPattern();
+      if (!pat) {
+        promptDisplay.textContent = "—";
+        if (patternSource === "custom") {
+          setFeedback("Enter a valid alphabetic pattern above.", "neutral");
+        } else if (patternSource === "saved") {
+          setFeedback("Select a saved combination above.", "neutral");
+        } else {
+          setFeedback("Could not generate a pattern.", "incorrect");
+        }
+        answerInput.disabled = true;
+        submitBtn.disabled = true;
+        currentPrompt = "";
+        return;
+      }
+      currentPrompt = pat;
+      currentPattern = pat;
+      promptDisplay.textContent = pat;
+    }
+
+    focusAnswer();
+  }
+
+  function submitAnswer() {
+    if (waitingForNext || answerInput.disabled) return;
+    const answer = normalizeWord(answerInput.value);
+    if (!answer) {
+      setFeedback("Please type an answer.", "incorrect");
+      focusAnswer();
+      return;
+    }
+
+    stats.attempts += 1;
+    let correct = false;
+    let msg = "";
+
+    if (mode === "random" || mode === "repeat") {
+      if (answer === currentPrompt) {
+        correct = true;
+        msg = "Correct!";
+      } else {
+        msg = "Incorrect — expected “" + currentPrompt + "”";
+      }
+    } else {
+      // pattern mode: must be in word list AND contain the pattern
+      if (!validWordSet.has(answer)) {
+        msg = "Not in the word list.";
+      } else if (!answer.includes(currentPattern)) {
+        msg = "Doesn’t contain the pattern “" + currentPattern + "”.";
+      } else {
+        correct = true;
+        msg = "Correct! “" + answer + "” contains “" + currentPattern + "”.";
+      }
+    }
+
+    if (correct) {
+      stats.correct += 1;
+      stats.streak += 1;
+      setFeedback(msg, "correct");
+    } else {
+      stats.streak = 0;
+      setFeedback(msg, "incorrect");
+    }
+    updateStatsUI();
+    waitingForNext = true;
+    // Keep input enabled so user can still edit if they want, but Next is the main path
+    focusAnswer();
+  }
+
+  function nextRound() {
+    startRound();
+  }
+
+  // ---------- Word Finder ----------
+  function runFinder() {
+    const q = normalizeWord(finderInput.value);
+    finderResults.innerHTML = "";
+    finderMeta.textContent = "";
+    if (!q || !/^[a-z]+$/.test(q)) {
+      finderMeta.textContent = "Enter a letter combination (a–z only).";
+      return;
+    }
+    const matches = [];
+    const LIMIT = 80;
+    for (const w of validWords) {
+      if (w.includes(q)) {
+        matches.push(w);
+        if (matches.length >= LIMIT) break;
+      }
+    }
+    // Count total more carefully only if under limit (approx)
+    let totalNote = matches.length + (matches.length >= LIMIT ? "+" : "");
+    finderMeta.textContent = "Showing " + matches.length + (matches.length >= LIMIT ? " (capped)" : "") + " result(s) for “" + q + "”.";
+
+    if (matches.length === 0) {
+      const empty = document.createElement("p");
+      empty.style.color = "var(--text-muted)";
+      empty.style.fontSize = "0.9rem";
+      empty.textContent = "No words found.";
+      finderResults.appendChild(empty);
+      return;
+    }
+
+    for (const w of matches) {
+      const row = document.createElement("div");
+      row.className = "finder-item";
+      const span = document.createElement("span");
+      span.textContent = w;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn-secondary btn-small";
+      btn.textContent = "Practice";
+      btn.addEventListener("click", () => {
+        modeSelect.value = "repeat";
+        onModeChange();
+        selectedRepeatWord = w;
+        selectedWordDisplay.textContent = w;
+        wordSearch.value = w;
+        refreshWordSearchList();
+        startRound();
+      });
+      row.appendChild(span);
+      row.appendChild(btn);
+      finderResults.appendChild(row);
+    }
+  }
+
+  // ---------- Events ----------
+  modeSelect.addEventListener("change", onModeChange);
+
+  document.querySelectorAll('input[name="patternSource"]').forEach((r) => {
+    r.addEventListener("change", () => {
+      updatePatternSourceUI();
+      if (mode === "pattern") startRound();
+    });
+  });
+
+  customPatternInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (mode === "pattern") startRound();
+    }
+  });
+
+  wordSearch.addEventListener("input", () => {
+    refreshWordSearchList();
+  });
+
+  answerInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (waitingForNext) {
+        nextRound();
+      } else {
+        submitAnswer();
+      }
+    }
+  });
+
+  submitBtn.addEventListener("click", submitAnswer);
+  nextBtn.addEventListener("click", nextRound);
+
+  $("saveCustomWords").addEventListener("click", saveCustomWords);
+  $("clearCustomWords").addEventListener("click", clearCustomWords);
+  $("saveCustomCombos").addEventListener("click", saveCustomCombos);
+
+  finderBtn.addEventListener("click", runFinder);
+  finderInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runFinder();
+    }
+  });
+
+  // ---------- Init ----------
+  loadCustomFromStorage();
+  mergeWordPools();
+  updateStatsUI();
+  onModeChange();
+  loadWordList();
+})();
+  </script>
+</body>
+</html>
