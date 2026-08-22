@@ -1,0 +1,2025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Physics Quest</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;600;700&display=swap');
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background-color: #0b0f19;
+            color: #e2e8f0;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #game-wrapper {
+            cursor: none; /* Hide default cursor inside the game only */
+        }
+
+        .title-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        .glow-green {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.6);
+        }
+
+        .glow-yellow {
+            box-shadow: 0 0 20px rgba(234, 179, 8, 0.8);
+        }
+
+        .glow-lava {
+            box-shadow: 0 -10px 25px rgba(239, 68, 68, 0.7);
+        }
+
+        /* UI Overlays cursor restore */
+        .interactive-ui {
+            cursor: pointer !important;
+        }
+
+        /* Custom scrollbar for level selector */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 4px;
+        }
+
+        /* Bot Thinking Animation */
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
+            100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+
+        .thinking-animation {
+            animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+
+        .thinking-dot {
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between items-center bg-slate-950 text-slate-100 relative">
+
+    <!-- Top HUD Bar -->
+    <header class="w-full max-w-6xl px-6 py-3 flex justify-between items-center z-20 border-b border-slate-800 bg-slate-900/80 backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 bg-emerald-500 rounded flex items-center justify-center font-bold text-slate-950 title-font">PQ</div>
+            <h1 class="text-2xl font-extrabold tracking-wider title-font bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-teal-300 to-amber-400">
+                PHYSICS QUEST
+            </h1>
+        </div>
+
+        <div class="flex items-center space-x-6 text-sm md:text-base">
+            <div class="flex items-center space-x-2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+                <span class="text-slate-400">LEVEL:</span>
+                <span id="level-display" class="font-bold text-amber-400 title-font">01 / 13</span>
+            </div>
+            <div class="flex items-center space-x-2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
+                <span class="text-slate-400">DEATHS:</span>
+                <span id="deaths-display" class="font-bold text-rose-500 title-font">0</span>
+            </div>
+            <button id="btn-restart" class="interactive-ui bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 px-3 py-1.5 rounded-lg flex items-center space-x-1 transition font-semibold text-xs md:text-sm">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Reset (R)</span>
+            </button>
+            <button id="btn-levels" class="interactive-ui bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg flex items-center space-x-1 transition font-semibold text-xs md:text-sm shadow-md">
+                <i class="fa-solid fa-list"></i>
+                <span>Levels</span>
+            </button>
+            <button id="btn-camera" class="interactive-ui bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-emerald-500 px-3 py-1.5 rounded-lg flex items-center space-x-1 transition font-semibold text-xs md:text-sm shadow-md">
+                <i class="fa-solid fa-video"></i>
+                <span class="hidden md:inline">Cam: On</span>
+            </button>
+            <button id="btn-bot" class="interactive-ui bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1 transition font-semibold text-xs md:text-sm">
+                <i class="fa-solid fa-robot"></i>
+                <span class="hidden md:inline">Bot: Off</span>
+            </button>
+            <button id="btn-audio" class="interactive-ui bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700">
+                <i id="audio-icon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Game Container -->
+    <main class="relative flex-1 w-full flex items-center justify-center p-2 md:p-4 overflow-hidden">
+        <div id="game-wrapper" class="relative w-full max-w-5xl h-full max-h-[700px] bg-slate-900 rounded-2xl border-2 border-slate-800 shadow-2xl overflow-hidden flex items-center justify-center">
+            
+            <canvas id="gameCanvas" class="w-full h-full block bg-slate-950"></canvas>
+
+            <!-- Bot Thinking Overlay -->
+            <div id="thinking-overlay" class="hidden absolute inset-0 bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center z-25">
+                <div class="thinking-animation bg-blue-900/80 border-2 border-blue-500 rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center space-y-4">
+                    <div class="text-5xl mb-2">
+                        <i class="fa-solid fa-brain text-blue-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-blue-300 title-font">Bot is thinking...</h3>
+                    <div class="flex justify-center space-x-2">
+                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full" style="animation-delay: 0.2s;"></div>
+                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full" style="animation-delay: 0.4s;"></div>
+                    </div>
+                    <div class="text-sm text-blue-300 mt-4">
+                        Calculating optimal moves...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attempt Counter -->
+            <div id="attempt-display" class="hidden absolute top-4 right-4 bg-purple-900/90 border-2 border-purple-500 rounded-lg px-4 py-2 z-24 text-center">
+                <div class="text-xs text-purple-300 font-semibold">ATTEMPTS</div>
+                <div class="text-2xl font-black text-purple-300 title-font" id="attempt-count">0</div>
+            </div>
+
+            <!-- Onscreen Guide Overlay -->
+            <div id="start-overlay" class="absolute top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-emerald-500/50 text-slate-200 px-6 py-3 rounded-xl text-center pointer-events-none transition-opacity duration-300 backdrop-blur-md shadow-lg">
+                <p id="guide-text" class="text-sm md:text-base font-semibold text-emerald-400">
+                    <i class="fa-solid fa-mouse-pointer mr-2 animate-bounce"></i> Move mouse to wake the Green Square! Bounce it into the Yellow Portal!
+                </p>
+            </div>
+
+            <!-- Level Complete Overlay -->
+            <div id="victory-modal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center z-30 p-6 text-center">
+                <div class="bg-slate-900 border-2 border-amber-500/80 p-8 rounded-2xl max-w-md w-full shadow-2xl space-y-6">
+                    <div class="text-amber-400 text-5xl mb-2">
+                        <i class="fa-solid fa-trophy animate-pulse"></i>
+                    </div>
+                    <h2 class="text-3xl font-black title-font text-white tracking-wide">LEVEL COMPLETE!</h2>
+                    <p id="victory-desc" class="text-slate-300 text-base">You successfully juggled through the hazard course!</p>
+                    <div class="flex justify-center space-x-4 pt-2">
+                        <button id="btn-next-level" class="interactive-ui bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl transition shadow-lg flex items-center space-x-2 text-lg">
+                            <span>Next Level</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Select Modal -->
+            <div id="level-modal" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center z-40 p-6">
+                <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl max-w-2xl w-full shadow-2xl space-y-6 flex flex-col max-h-[85vh]">
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                        <h2 class="text-2xl font-bold title-font text-indigo-400 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group"></i> SELECT LEVEL
+                        </h2>
+                        <button id="btn-close-modal" class="interactive-ui text-slate-400 hover:text-white p-2 text-xl">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div id="level-grid" class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 overflow-y-auto p-2">
+                        <!-- Dynamic Level Buttons injected here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Complete Screen -->
+            <div id="game-over-modal" class="hidden absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6 text-center">
+                <div class="bg-slate-900 border-2 border-emerald-500 p-8 rounded-2xl max-w-lg w-full shadow-2xl space-y-6">
+                    <div class="text-emerald-400 text-6xl">
+                        <i class="fa-solid fa-crown animate-bounce"></i>
+                    </div>
+                    <h2 class="text-4xl font-black title-font text-white tracking-wider">QUEST COMPLETED!</h2>
+                    <p class="text-slate-300">You mastered all 13 levels of precise physics balancing!</p>
+                    <div class="bg-slate-800 p-4 rounded-xl text-left space-y-2 border border-slate-700 text-sm">
+                        <div class="flex justify-between text-slate-300">
+                            <span>Total Deaths:</span>
+                            <span id="final-deaths" class="font-bold text-rose-400">0</span>
+                        </div>
+                        <div class="flex justify-between text-slate-300">
+                            <span>Physics Bounces:</span>
+                            <span id="final-bounces" class="font-bold text-emerald-400">0</span>
+                        </div>
+                    </div>
+                    <button id="btn-restart-game" class="interactive-ui w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 rounded-xl transition shadow-xl text-lg">
+                        PLAY AGAIN
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bottom Instruction Bar -->
+    <footer class="w-full max-w-6xl px-6 py-3 flex flex-wrap justify-between items-center text-xs md:text-sm text-slate-400 border-t border-slate-800 bg-slate-900/50 backdrop-blur">
+        <div class="flex items-center space-x-4">
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-black border border-cyan-400 rounded-sm"></span> Bounce Pad</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-slate-700 border border-slate-400 rounded-sm"></span> (Click) Platform</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-emerald-500 rounded-sm"></span> Green Square = Juggled Hero</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-amber-400 rounded-sm"></span> Yellow = Portal</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-rose-600 rounded-sm"></span> Red Bottom = Lava</span>
+        </div>
+        <div>
+            <span>Press <kbd class="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">R</kbd> to restart anytime</span>
+        </div>
+    </footer>
+
+    <script>
+        // Audio Engine with Tone.js
+        let soundEnabled = true;
+        let synth = null;
+        let bounceSynth = null;
+        let lavaSynth = null;
+
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -12;
+
+                bounceSynth = new Tone.MembraneSynth({
+                    pitchDecay: 0.05,
+                    octaves: 4,
+                    oscillator: { type: "sine" },
+                    envelope: { attack: 0.001, decay: 0.2, sustain: 0, release: 0.1 }
+                }).toDestination();
+                bounceSynth.volume.value = -6;
+
+                lavaSynth = new Tone.NoiseSynth({
+                    noise: { type: 'brown' },
+                    envelope: { attack: 0.01, decay: 0.3, sustain: 0 }
+                }).toDestination();
+                lavaSynth.volume.value = -8;
+            }
+        }
+
+        function playBounceSound(intensity = 1) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const note = intensity > 1.5 ? "C4" : "G3";
+                bounceSynth.triggerAttackRelease(note, "16n");
+            } catch (e) {}
+        }
+
+        function playGoalSound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const now = Tone.now();
+                synth.triggerAttackRelease("C5", "8n", now);
+                synth.triggerAttackRelease("E5", "8n", now + 0.1);
+                synth.triggerAttackRelease("G5", "8n", now + 0.2);
+                synth.triggerAttackRelease("C6", "4n", now + 0.3);
+            } catch (e) {}
+        }
+
+        function playDeathSound() {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                lavaSynth.triggerAttackRelease("8n");
+            } catch (e) {}
+        }
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const wrapper = document.getElementById('game-wrapper');
+
+        // Game Settings & Virtual Resolution
+        const GAME_WIDTH = 1000;
+        const GAME_HEIGHT = 650;
+        let scale = 1;
+
+        // Camera & Mouse Tracking
+        let cameraFollowEnabled = true;
+        let cameraX = 0;
+        let cameraY = 0;
+        let currentZoom = 1.0;
+        let rawMouseX = GAME_WIDTH / 2;
+        let rawMouseY = GAME_HEIGHT / 2;
+
+        // Game State
+        let currentLevelIdx = 0;
+        let totalDeaths = 0;
+        let totalBounces = 0;
+        let isStarted = false;
+        let isVictorious = false;
+        let animationFrameId = null;
+        let botMode = false;
+        
+        // Bot Thinking State
+        let isThinking = false;
+        let botThinkAttempts = 0;
+        let thinkingStartTime = 0;
+
+        // Mouse Cursor Paddle (Black Block)
+        const paddle = {
+            x: 100,
+            y: 100,
+            width: 70,
+            height: 24,
+            vx: 0,
+            vy: 0,
+            prevX: 100,
+            prevY: 100,
+        mode: 'bounce' // 'bounce' or 'platform'
+    };
+
+    // Green Square Player (Physics Body)
+    const player = {
+        x: 0,
+        y: 0,
+        width: 28,
+        height: 28,
+        vx: 0,
+        vy: 0,
+        rotation: 0,
+        angularVelocity: 0,
+        gravity: 0.45,
+        bounceFriction: 0.98,
+        walkSpeed: 2.2,
+        isGrounded: false,
+        color: '#22c55e'
+    };
+
+    // Goal Portal
+        let goal = { x: 0, y: 0, width: 45, height: 55 };
+
+        // Level Elements
+        let platforms = [];
+        let enemies = [];
+        let particles = [];
+
+        // Design of 13 Levels
+        const LEVELS = [
+            // Level 1: Gentle Introduction
+            {
+                title: "First Steps",
+                guide: "Move mouse to start! Bounce the green square off your cursor into the yellow goal.",
+                spawn: { x: 120, y: 300 },
+                goal: { x: 850, y: 320, w: 45, h: 55 },
+                platforms: [
+                    { x: 80, y: 350, w: 180, h: 25 },
+                    { x: 780, y: 380, w: 180, h: 25 }
+                ],
+                enemies: []
+            },
+            // Level 2: The Gap Juggler
+            {
+                title: "The Abyss Juggler",
+                guide: "Keep it up! Keep the square above the lava as you move right.",
+                spawn: { x: 100, y: 200 },
+                goal: { x: 880, y: 200, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 250, w: 140, h: 25 },
+                    { x: 840, y: 260, w: 120, h: 25 }
+                ],
+                enemies: []
+            },
+            // Level 3: Introducing Sentinel Enemies
+            {
+                title: "Sentinel Patrol",
+                guide: "Watch out for Red Patrol Enemies! Touch them and you restart.",
+                spawn: { x: 100, y: 180 },
+                goal: { x: 880, y: 480, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 230, w: 150, h: 25 },
+                    { x: 500, y: 350, w: 120, h: 25 },
+                    { x: 840, y: 540, w: 120, h: 25 }
+                ],
+                enemies: [
+                    { x: 300, y: 220, w: 26, h: 26, vx: 2, vy: 0, rangeX: [250, 450], type: 'patrol' }
+                ]
+            },
+            // Level 4: High Bounce Tower
+            {
+                title: "Vertical Bounce",
+                guide: "Fling the green square upward with fast upward cursor flicks!",
+                spawn: { x: 120, y: 500 },
+                goal: { x: 850, y: 120, w: 45, h: 55 },
+                platforms: [
+                    { x: 80, y: 550, w: 160, h: 25 },
+                    { x: 400, y: 380, w: 200, h: 25 },
+                    { x: 800, y: 180, w: 160, h: 25 }
+                ],
+                enemies: [
+                    { x: 420, y: 350, w: 24, h: 24, vx: 2.5, vy: 0, rangeX: [410, 570], type: 'patrol' }
+                ]
+            },
+            // Level 5: Double Threat Wall
+            {
+                title: "Narrow Passage",
+                guide: "Steer the square carefully through the mid passage.",
+                spawn: { x: 90, y: 150 },
+                goal: { x: 880, y: 150, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 200, w: 130, h: 25 },
+                    { x: 350, y: 100, w: 30, h: 320 }, // Vertical barrier
+                    { x: 650, y: 250, w: 30, h: 350 }, // Vertical barrier
+                    { x: 840, y: 210, w: 130, h: 25 }
+                ],
+                enemies: [
+                    { x: 200, y: 300, w: 26, h: 26, vx: 0, vy: 3, rangeY: [150, 450], type: 'vertical' }
+                ]
+            },
+            // Level 6: Floating Chaser Enemy
+            {
+                title: "The Chaser",
+                guide: "Yellow Chasers drift towards your square! Stay quick!",
+                spawn: { x: 100, y: 400 },
+                goal: { x: 880, y: 400, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 450, w: 150, h: 25 },
+                    { x: 840, y: 450, w: 140, h: 25 }
+                ],
+                enemies: [
+                    { x: 500, y: 200, w: 28, h: 28, vx: 0, vy: 0, speed: 1.2, type: 'chaser' }
+                ]
+            },
+            // Level 7: The Zig Zag Climb
+            {
+                title: "Zig-Zag Ascent",
+                guide: "Guide the hero through multiple elevation levels.",
+                spawn: { x: 80, y: 520 },
+                goal: { x: 80, y: 100, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 570, w: 150, h: 25 },
+                    { x: 320, y: 440, w: 180, h: 25 },
+                    { x: 680, y: 310, w: 180, h: 25 },
+                    { x: 320, y: 180, w: 180, h: 25 },
+                    { x: 50, y: 160, w: 150, h: 25 }
+                ],
+                enemies: [
+                    { x: 350, y: 410, w: 24, h: 24, vx: 2, vy: 0, rangeX: [330, 470], type: 'patrol' },
+                    { x: 710, y: 280, w: 24, h: 24, vx: 2.5, vy: 0, rangeX: [690, 830], type: 'patrol' }
+                ]
+            },
+            // Level 8: Low Ceiling Gauntlet
+            {
+                title: "Low Ceiling",
+                guide: "Precision bouncing required! Avoid hit top wall spikes/ceiling.",
+                spawn: { x: 100, y: 350 },
+                goal: { x: 880, y: 350, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 400, w: 140, h: 25 },
+                    { x: 0, y: 0, w: 1000, h: 180 }, // Low ceiling overhang block
+                    { x: 840, y: 400, w: 140, h: 25 }
+                ],
+                enemies: [
+                    { x: 300, y: 280, w: 26, h: 26, vx: 3, vy: 0, rangeX: [250, 700], type: 'patrol' }
+                ]
+            },
+            // Level 9: Double Chaser Swarm
+            {
+                title: "Double Heat",
+                guide: "Two chasers are hunting! Keep moving fast!",
+                spawn: { x: 100, y: 200 },
+                goal: { x: 880, y: 200, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 250, w: 140, h: 25 },
+                    { x: 450, y: 400, w: 100, h: 25 },
+                    { x: 840, y: 250, w: 140, h: 25 }
+                ],
+                enemies: [
+                    { x: 400, y: 100, w: 26, h: 26, speed: 1.1, type: 'chaser' },
+                    { x: 600, y: 500, w: 26, h: 26, speed: 1.3, type: 'chaser' }
+                ]
+            },
+            // Level 10: Slalom Course
+            {
+                title: "The Slalom",
+                guide: "Weave under and over obstacles.",
+                spawn: { x: 80, y: 120 },
+                goal: { x: 900, y: 500, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 170, w: 120, h: 25 },
+                    { x: 250, y: 0, w: 30, h: 380 },
+                    { x: 480, y: 250, w: 30, h: 400 },
+                    { x: 700, y: 0, w: 30, h: 380 },
+                    { x: 860, y: 560, w: 120, h: 25 }
+                ],
+                enemies: [
+                    { x: 320, y: 450, w: 28, h: 28, vx: 0, vy: 2.5, rangeY: [250, 550], type: 'vertical' },
+                    { x: 560, y: 150, w: 28, h: 28, vx: 0, vy: 2.5, rangeY: [100, 400], type: 'vertical' }
+                ]
+            },
+            // Level 11: Floating Island Hop
+            {
+                title: "Island Hopping",
+                guide: "No big platforms! Rely on brief bounces or precise landing.",
+                spawn: { x: 80, y: 300 },
+                goal: { x: 900, y: 300, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 350, w: 100, h: 25 },
+                    { x: 280, y: 420, w: 70, h: 25 },
+                    { x: 480, y: 250, w: 70, h: 25 },
+                    { x: 680, y: 420, w: 70, h: 25 },
+                    { x: 860, y: 350, w: 100, h: 25 }
+                ],
+                enemies: [
+                    { x: 380, y: 180, w: 26, h: 26, speed: 1.4, type: 'chaser' }
+                ]
+            },
+            // Level 12: Enemy Fortress
+            {
+                title: "Enemy Fortress",
+                guide: "Multiple sentinels guard the tunnel!",
+                spawn: { x: 80, y: 500 },
+                goal: { x: 880, y: 120, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 550, w: 130, h: 25 },
+                    { x: 250, y: 420, w: 500, h: 25 },
+                    { x: 250, y: 260, w: 500, h: 25 },
+                    { x: 840, y: 170, w: 130, h: 25 }
+                ],
+                enemies: [
+                    { x: 280, y: 390, w: 26, h: 26, vx: 3, vy: 0, rangeX: [260, 720], type: 'patrol' },
+                    { x: 700, y: 230, w: 26, h: 26, vx: -3.5, vy: 0, rangeX: [260, 720], type: 'patrol' }
+                ]
+            },
+            // Level 13: Grand Master Juggler
+            {
+                title: "Grand Master Test",
+                guide: "The ultimate trial! Juggler mastery required to finish Physics Quest!",
+                spawn: { x: 70, y: 200 },
+                goal: { x: 900, y: 200, w: 45, h: 55 },
+                platforms: [
+                    { x: 40, y: 250, w: 110, h: 25 },
+                    { x: 300, y: 120, w: 30, h: 420 },
+                    { x: 600, y: 200, w: 30, h: 450 },
+                    { x: 860, y: 250, w: 110, h: 25 }
+                ],
+                enemies: [
+                    { x: 180, y: 350, w: 28, h: 28, speed: 1.3, type: 'chaser' },
+                    { x: 450, y: 300, w: 28, h: 28, vx: 0, vy: 3.5, rangeY: [100, 500], type: 'vertical' },
+                    { x: 740, y: 250, w: 28, h: 28, speed: 1.5, type: 'chaser' }
+                ]
+            }
+        ];
+
+        function resizeCanvas() {
+            const rect = wrapper.getBoundingClientRect();
+            const width = rect.width || 800; // Fallback to prevent 0 width
+            const height = rect.height || 600; // Fallback to prevent 0 height
+            canvas.width = width;
+            canvas.height = height;
+            scale = Math.max(0.1, Math.min(width / GAME_WIDTH, height / GAME_HEIGHT));
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function updatePaddlePosition(e) {
+            const rect = canvas.getBoundingClientRect();
+            rawMouseX = (e.clientX ?? 0) - rect.left;
+            rawMouseY = (e.clientY ?? 0) - rect.top;
+
+            // Trigger level wake up if user moves mouse for first time
+            if (!isStarted) {
+                const isModalOpen = isVictorious || 
+                    !document.getElementById('level-modal').classList.contains('hidden') || 
+                    !document.getElementById('game-over-modal').classList.contains('hidden');
+                
+                if (isModalOpen) return; // Prevent game start while modals are active
+
+                isStarted = true;
+                const guideElem = document.getElementById('start-overlay');
+                if (guideElem) guideElem.classList.add('opacity-0');
+            }
+        }
+
+        window.addEventListener('mousemove', updatePaddlePosition);
+
+        // Touch support for mobile devices
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                updatePaddlePosition(e.touches[0]);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchstart', (e) => {
+            if (e.target.closest('.interactive-ui')) return;
+            if (e.touches.length > 0) {
+                updatePaddlePosition(e.touches[0]);
+            }
+        }, { passive: true });
+
+        // Toggle paddle mode on click
+        window.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.interactive-ui')) return; // Ignore UI clicks
+            if (botMode) return; // Bot controls the paddle mode
+            
+            const isModalOpen = isVictorious || 
+                !document.getElementById('level-modal').classList.contains('hidden') || 
+                !document.getElementById('game-over-modal').classList.contains('hidden');
+            if (isModalOpen) return; // Ignore clicks if modal is open
+
+            paddle.mode = paddle.mode === 'bounce' ? 'platform' : 'bounce';
+            if (soundEnabled && synth) {
+                try {
+                    initAudio();
+                    // Play a distinct note based on the newly selected mode
+                    synth.triggerAttackRelease(paddle.mode === 'platform' ? "E4" : "A4", "32n");
+                } catch (err) {}
+            }
+        });
+
+        function createParticles(x, y, color, count = 10) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    size: Math.random() * 5 + 2,
+                    color: color,
+                    life: 1.0,
+                    decay: Math.random() * 0.05 + 0.02
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function loadLevel(idx) {
+            currentLevelIdx = idx;
+            const lvl = LEVELS[idx];
+
+            document.getElementById('level-display').innerText = `${String(idx + 1).padStart(2, '0')} / ${LEVELS.length}`;
+            document.getElementById('guide-text').innerHTML = `<i class="fa-solid fa-circle-info mr-2"></i> ${lvl.guide}`;
+            
+            const guideElem = document.getElementById('start-overlay');
+            guideElem.classList.remove('opacity-0');
+
+            isStarted = false;
+            isVictorious = false;
+
+            // Reset player position & velocities
+        player.x = lvl.spawn.x;
+        player.y = lvl.spawn.y;
+        player.vx = 0;
+        player.vy = 0;
+        player.rotation = 0;
+        player.angularVelocity = 0;
+        player.isGrounded = false;
+
+        // Setup Goal
+            goal = { ...lvl.goal };
+
+            // Setup Platforms
+            platforms = lvl.platforms.map(p => ({ ...p }));
+
+            // Setup Enemies with original state copies
+            enemies = lvl.enemies.map(e => ({ ...e, startX: e.x, startY: e.y }));
+
+            particles = [];
+            document.getElementById('victory-modal').classList.add('hidden');
+            
+            // Reset bot state for new level
+            isPaddleTeleported = false;
+            lastTrajectoryWasSuccess = false;
+            waitingForBounceVerification = false;
+            ballTouchedPaddle = false;
+            ballLeftPaddleAfterTouch = false;
+            
+            // Start thinking if bot is enabled
+            if (botMode) {
+                startBotThinking();
+            }
+        }
+
+        // Track if paddle is currently teleported and last success status
+        let isPaddleTeleported = false;
+        let lastTrajectoryWasSuccess = false;
+        
+        // Track the bounce verification process
+        let waitingForBounceVerification = false;
+        let ballTouchedPaddle = false;
+        let ballLeftPaddleAfterTouch = false;
+
+        function startBotThinking() {
+            isThinking = true;
+            botThinkAttempts = 0;
+            thinkingStartTime = Date.now();
+
+            document.getElementById('thinking-overlay').classList.remove('hidden');
+            document.getElementById('attempt-display').classList.remove('hidden');
+
+            // Intelligent bot strategy evaluation
+            setTimeout(() => {
+                const savedPaddleX = paddle.x;
+                const savedPaddleY = paddle.y;
+                const savedPaddleMode = paddle.mode;
+                
+                let foundSolution = false;
+                let attempts = 0;
+                const maxAttempts = Math.floor(Math.random() * 15) + 12; // 12-27 attempts
+                
+                // Analyze level characteristics
+                const playerCenterX = player.x + player.width / 2;
+                const playerCenterY = player.y + player.height / 2;
+                const goalCenterX = goal.x + (goal.w / 2);
+                const goalCenterY = goal.y + (goal.h / 2);
+                const distToGoalX = Math.abs(goalCenterX - playerCenterX);
+                const distToGoalY = Math.abs(goalCenterY - playerCenterY);
+                const goalIsHigher = goalCenterY < playerCenterY;
+                const goalIsLower = goalCenterY > playerCenterY + 100;
+                
+                // Generate intelligent test positions based on level analysis
+                const testPositions = [];
+                
+                // Strategy 1: Platform mode positions (grounded support)
+                if (goalIsLower) {
+                    // If goal is lower, use platforms as support
+                    for (let plat of platforms) {
+                        // Test positions on platforms
+                        const platformCenterX = plat.x + plat.w / 2;
+                        for (let offset of [-60, -30, 0, 30, 60]) {
+                            testPositions.push({
+                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, platformCenterX + offset - paddle.width / 2)),
+                                y: plat.y - paddle.height - 5,
+                                mode: 'platform'
+                            });
+                        }
+                    }
+                }
+                
+                // Strategy 2: Bounce mode - high trajectory
+                if (goalIsHigher) {
+                    // If goal is higher, launch with bounce
+                    for (let height of [GAME_HEIGHT - 300, GAME_HEIGHT - 280, GAME_HEIGHT - 260, GAME_HEIGHT - 240]) {
+                        for (let xPos of [100, GAME_WIDTH / 3, GAME_WIDTH / 2, GAME_WIDTH * 2 / 3, GAME_WIDTH - 150]) {
+                            testPositions.push({
+                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
+                                y: height,
+                                mode: 'bounce'
+                            });
+                        }
+                    }
+                }
+                
+                // Strategy 3: Medium height positions with both modes (50/50 split)
+                for (let height of [GAME_HEIGHT - 90, GAME_HEIGHT - 110, GAME_HEIGHT - 130, GAME_HEIGHT - 150, GAME_HEIGHT - 170]) {
+                    for (let xPos of [80, GAME_WIDTH / 4, GAME_WIDTH / 2, GAME_WIDTH * 3 / 4, GAME_WIDTH - 120]) {
+                        const useMode = Math.random() > 0.5 ? 'platform' : 'bounce';
+                        testPositions.push({
+                            x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
+                            y: height,
+                            mode: useMode
+                        });
+                    }
+                }
+                
+                // Strategy 4: Directional guidance toward goal
+                if (distToGoalX > 200) {
+                    // Goal is far horizontally - test positions leading toward it
+                    const direction = goalCenterX > playerCenterX ? 1 : -1;
+                    for (let i = 1; i <= 3; i++) {
+                        const xPos = playerCenterX + (direction * i * 150);
+                        for (let mode of ['bounce', 'platform']) {
+                            testPositions.push({
+                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
+                                y: GAME_HEIGHT - 100 - (i * 20),
+                                mode: mode
+                            });
+                        }
+                    }
+                }
+                
+                // Strategy 5: Defensive positions (avoid lava)
+                for (let height of [GAME_HEIGHT - 70, GAME_HEIGHT - 85]) {
+                    for (let xPos of [150, GAME_WIDTH / 2, GAME_WIDTH - 200]) {
+                        testPositions.push({
+                            x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
+                            y: height,
+                            mode: 'bounce'
+                        });
+                    }
+                }
+                
+                // Shuffle array for variety in testing order
+                for (let i = testPositions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [testPositions[i], testPositions[j]] = [testPositions[j], testPositions[i]];
+                }
+                
+                // Try each position
+                for (let i = 0; i < testPositions.length && attempts < maxAttempts; i++) {
+                    const pos = testPositions[i];
+                    paddle.x = pos.x;
+                    paddle.y = Math.max(35, Math.min(GAME_HEIGHT - 50, pos.y));
+                    paddle.mode = pos.mode || 'bounce';
+                    
+                    // Check if this position leads to success
+                    const traj = getTrajectory();
+                    attempts++;
+                    
+                    if (traj.status === 'success') {
+                        foundSolution = true;
+                        botThinkAttempts = attempts;
+                        break;
+                    }
+                }
+                
+                // If no solution found, try emergency strategies
+                if (!foundSolution && attempts < maxAttempts * 1.5) {
+                    // Try random positions as last resort
+                    for (let i = 0; i < 10 && !foundSolution && attempts < maxAttempts * 1.5; i++) {
+                        paddle.x = Math.random() * (GAME_WIDTH - paddle.width);
+                        paddle.y = 100 + Math.random() * (GAME_HEIGHT - 150);
+                        paddle.mode = Math.random() > 0.5 ? 'platform' : 'bounce';
+                        
+                        const traj = getTrajectory();
+                        attempts++;
+                        
+                        if (traj.status === 'success') {
+                            foundSolution = true;
+                            botThinkAttempts = Math.min(attempts, maxAttempts);
+                            break;
+                        }
+                    }
+                }
+                
+                // If still no solution, use best educated guess
+                if (!foundSolution) {
+                    botThinkAttempts = maxAttempts;
+                    // Position toward goal with balanced approach
+                    paddle.x = Math.max(0, Math.min(GAME_WIDTH - paddle.width, goalCenterX - paddle.width / 2));
+                    paddle.y = GAME_HEIGHT - 110;
+                    paddle.mode = goalIsHigher ? 'bounce' : 'platform';
+                }
+                
+                // Restore paddle state
+                paddle.x = savedPaddleX;
+                paddle.y = savedPaddleY;
+                paddle.mode = savedPaddleMode;
+                
+                // Update attempt display
+                document.getElementById('attempt-count').innerText = botThinkAttempts;
+
+                // Hide thinking overlay after brief delay
+                setTimeout(() => {
+                    document.getElementById('thinking-overlay').classList.add('hidden');
+                    isThinking = false;
+                    
+                    // Auto-start the level
+                    if (!isStarted && !isVictorious) {
+                        isStarted = true;
+                        const guideElem = document.getElementById('start-overlay');
+                        if (guideElem) guideElem.classList.add('opacity-0');
+                    }
+                }, 500);
+            }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
+        }
+
+        function restartCurrentLevel() {
+            totalDeaths++;
+            document.getElementById('deaths-display').innerText = totalDeaths;
+            playDeathSound();
+            createParticles(player.x + player.width / 2, player.y + player.height / 2, '#ef4444', 25);
+            loadLevel(currentLevelIdx);
+        }
+
+        function updateBotPaddle() {
+            const playerCenterX = player.x + player.width / 2;
+            const playerBottom = player.y + player.height;
+            const playerCenterY = player.y + player.height / 2;
+            const goalCenterX = (goal.x || 0) + ((goal.w || goal.width || 45) / 2);
+            const goalCenterY = (goal.y || 0) + ((goal.h || goal.height || 55) / 2);
+            const LAVA_Y = GAME_HEIGHT - 35;
+            const distToGoalX = goalCenterX - playerCenterX;
+            const distToGoalY = goalCenterY - playerCenterY;
+            const absDistGoalX = Math.abs(distToGoalX);
+            const goalIsHigher = goalCenterY < playerCenterY - 40;
+
+            // --- Trajectory awareness ---
+            const traj = getTrajectory();
+            
+            // Check if ball is currently colliding with paddle
+            const ballCollidingWithPaddle = (player.x + player.width > paddle.x &&
+                player.x < paddle.x + paddle.width &&
+                player.y + player.height > paddle.y &&
+                player.y < paddle.y + paddle.height);
+            
+            // If trajectory shows success and we're not already waiting, start verification
+            if (traj.status === 'success' && !waitingForBounceVerification && !isPaddleTeleported) {
+                waitingForBounceVerification = true;
+                ballTouchedPaddle = false;
+                ballLeftPaddleAfterTouch = false;
+                // Continue guiding - don't teleport yet!
+            }
+            
+            // Track if ball touched the paddle during verification
+            if (waitingForBounceVerification && ballCollidingWithPaddle) {
+                ballTouchedPaddle = true;
+            }
+            
+            // Check if ball left the paddle after touching it
+            if (waitingForBounceVerification && ballTouchedPaddle && !ballCollidingWithPaddle) {
+                ballLeftPaddleAfterTouch = true;
+                
+                // Recheck trajectory after the bounce
+                const recheckTraj = getTrajectory();
+                
+                if (recheckTraj.status === 'success') {
+                    // Still going to goal - teleport away!
+                    isPaddleTeleported = true;
+                    paddle.x = -1000;
+                    paddle.y = -1000;
+                    waitingForBounceVerification = false;
+                    return;
+                } else {
+                    // Bounce didn't work as expected - reset verification and guide again
+                    waitingForBounceVerification = false;
+                    ballTouchedPaddle = false;
+                    ballLeftPaddleAfterTouch = false;
+                }
+            }
+            
+            // If we were teleported but trajectory is no longer successful, teleport back!
+            if (isPaddleTeleported && traj.status !== 'success') {
+                isPaddleTeleported = false;
+                lastTrajectoryWasSuccess = false;
+                waitingForBounceVerification = false;
+                ballTouchedPaddle = false;
+                ballLeftPaddleAfterTouch = false;
+                // Continue with normal logic below to guide the ball back to goal
+            }
+
+            // Time-to-lava estimate
+            let framesToLava = 999;
+            if (player.vy > 0) {
+                const dy = LAVA_Y - playerBottom;
+                const disc = player.vy * player.vy + 2 * player.gravity * dy;
+                if (disc >= 0) framesToLava = (-player.vy + Math.sqrt(disc)) / player.gravity;
+            } else if (playerBottom > LAVA_Y - 90) {
+                framesToLava = 18;
+            }
+
+            const danger = traj.status === 'danger' || framesToLava < 40 || playerBottom > GAME_HEIGHT * 0.70 || player.vy > 7;
+            
+            // Smart mode selection: 50/50 between bounce and platform
+            let needStablePlatform = player.isGrounded ||
+                (player.vy < 2.5 && playerBottom > GAME_HEIGHT * 0.60 && absDistGoalX > 70) ||
+                (framesToLava < 22 && player.vy > 1.5 && absDistGoalX < 140);
+            
+            // Add randomness to mode selection for variety
+            const useRandomMode = Math.random() > 0.5;
+            if (useRandomMode && !danger && !player.isGrounded) {
+                // Mix up the strategy - randomly prefer one mode
+                needStablePlatform = Math.random() > 0.5;
+            }
+            
+            paddle.mode = needStablePlatform ? 'platform' : 'bounce';
+
+            // ---- Primary target ----
+            let targetX, targetY;
+
+            if (danger) {
+                // Hard rescue: intercept under the player with lead
+                targetX = playerCenterX - paddle.width / 2 + player.vx * 6;
+                targetY = Math.min(playerBottom + 5, LAVA_Y - 36);
+            } else if (player.isGrounded) {
+                // Walk support: stay slightly ahead toward goal
+                const lead = Math.sign(distToGoalX || 1) * 45;
+                targetX = playerCenterX - paddle.width / 2 + lead;
+                targetY = playerBottom + 3;
+            } else {
+                // Juggle toward goal
+                const lookAhead = Math.min(22, Math.max(10, framesToLava * 0.5));
+                let predX = playerCenterX + player.vx * lookAhead;
+                let predY = playerBottom + player.vy * lookAhead + 0.5 * player.gravity * lookAhead * lookAhead;
+
+                // Contact offset to impart velocity toward goal
+                const desiredDirX = Math.sign(distToGoalX || 1);
+                let contactOffsetX = desiredDirX * Math.min(26, absDistGoalX * 0.14);
+
+                // If goal is much higher, aim a bit more centered for pure vertical boost
+                if (goalIsHigher && absDistGoalX < 180) {
+                    contactOffsetX *= 0.55;
+                }
+
+                targetX = predX - paddle.width / 2 + contactOffsetX;
+                targetY = predY + 3;
+
+                // Meet lower and prepare upward flick when height is needed
+                if (goalIsHigher) {
+                    targetY = Math.min(targetY, playerBottom + 16);
+                }
+            }
+
+            // ---- Enemy avoidance with prediction ----
+            for (const enemy of enemies) {
+                const ew = enemy.w || 26;
+                const eh = enemy.h || 26;
+                let ex = enemy.x + ew / 2;
+                let ey = enemy.y + eh / 2;
+                if (enemy.type === 'patrol' && enemy.vx) {
+                    ex += enemy.vx * 10;
+                } else if (enemy.type === 'vertical' && enemy.vy) {
+                    ey += enemy.vy * 10;
+                } else if (enemy.type === 'chaser') {
+                    const edx = playerCenterX - ex;
+                    const edy = playerCenterY - ey;
+                    const ed = Math.hypot(edx, edy) || 1;
+                    const spd = enemy.speed || 1.2;
+                    ex += (edx / ed) * spd * 8;
+                    ey += (edy / ed) * spd * 8;
+                }
+
+                const distE = Math.hypot((targetX + paddle.width / 2) - ex, targetY - ey);
+                if (distE < 120) {
+                    const strength = (120 - distE) / 120;
+                    const awayX = (targetX + paddle.width / 2 > ex) ? 1 : -1;
+                    targetX += awayX * strength * 60;
+                    targetY -= strength * 28;
+                }
+            }
+
+            // ---- Enhanced micro-search: test multiple positions and BOTH modes ----
+            // (finds optimal paddle position and mode for current trajectory)
+            if (!danger && !player.isGrounded) {
+                const candidates = [
+                    { x: targetX, mode: paddle.mode },
+                    { x: targetX - 28, mode: paddle.mode },
+                    { x: targetX + 28, mode: paddle.mode },
+                    { x: targetX - 50, mode: paddle.mode },
+                    { x: targetX + 50, mode: paddle.mode },
+                    // Also try the alternate mode!
+                    { x: targetX, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
+                    { x: targetX - 35, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
+                    { x: targetX + 35, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
+                ];
+                
+                let bestX = targetX;
+                let bestMode = paddle.mode;
+                let bestScore = -Infinity;
+                let bestY = targetY;
+
+                const savedPx = paddle.x, savedPy = paddle.y, savedMode = paddle.mode;
+                
+                for (const candidate of candidates) {
+                    const clamped = Math.max(0, Math.min(GAME_WIDTH - paddle.width, candidate.x));
+                    
+                    // Test multiple heights for platform mode
+                    const heightsToTest = candidate.mode === 'platform' 
+                        ? [targetY, targetY - 15, targetY + 15]
+                        : [targetY];
+                    
+                    for (const testY of heightsToTest) {
+                        paddle.x = clamped;
+                        paddle.y = Math.max(28, Math.min(LAVA_Y - 40, testY));
+                        paddle.mode = candidate.mode;
+                        
+                        const probe = getTrajectory();
+                        let score = 0;
+                        
+                        // Heavy reward for success
+                        if (probe.status === 'success') {
+                            score = 2000;
+                        } else if (probe.status === 'danger') {
+                            score = -1000;
+                        } else {
+                            score = 100;
+                        }
+                        
+                        // Trajectory quality metrics
+                        if (probe.points && probe.points.length > 2) {
+                            const last = probe.points[probe.points.length - 1];
+                            
+                            // How close to goal?
+                            const distToGoal = Math.hypot(last.x - goalCenterX, last.y - goalCenterY);
+                            score -= distToGoal * 0.3;
+                            
+                            // Prefer higher final position (safer)
+                            score += Math.max(0, LAVA_Y - last.y) * 0.1;
+                            
+                            // Bonus for smooth trajectories (more points = longer flight)
+                            score += Math.min(50, probe.points.length * 2);
+                        }
+                        
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestX = clamped;
+                            bestMode = candidate.mode;
+                            bestY = paddle.y;
+                        }
+                    }
+                }
+                
+                // Restore and apply best solution
+                paddle.mode = savedMode;
+                targetX = bestX;
+                targetY = bestY;
+                paddle.mode = bestMode; // Update mode for current frame
+            }
+
+            // ---- Clamps ----
+            targetX = Math.max(0, Math.min(GAME_WIDTH - paddle.width, targetX));
+            targetY = Math.max(28, Math.min(LAVA_Y - 40, targetY));
+
+            // ---- Pursuit ----
+            const maxSpeed = danger ? 34 : 27;
+            const dx = targetX - paddle.x;
+            const dy = targetY - paddle.y;
+            const dist = Math.hypot(dx, dy) || 1;
+            if (dist > maxSpeed) {
+                paddle.x += (dx / dist) * maxSpeed;
+                paddle.y += (dy / dist) * maxSpeed;
+            } else {
+                paddle.x = targetX;
+                paddle.y = targetY;
+            }
+
+            // Upward flick for extra height when contacting and goal is above
+            if (paddle.mode === 'bounce' &&
+                Math.abs(playerCenterX - (paddle.x + paddle.width / 2)) < paddle.width * 0.75 &&
+                playerBottom < paddle.y + 22 && playerBottom > paddle.y - 28 &&
+                player.vy > -1 && goalIsHigher) {
+                paddle.y = Math.max(25, paddle.y - 10);
+            }
+        }
+
+        function updatePhysics() {
+            // --- Camera & Paddle Sync ---
+            const targetZoom = cameraFollowEnabled ? 1.4 : 1.0;
+            currentZoom += (targetZoom - currentZoom) * 0.1;
+
+            const viewportW = (canvas.width / scale) / currentZoom;
+            const viewportH = (canvas.height / scale) / currentZoom;
+
+            const isModalOpen = isVictorious || 
+                !document.getElementById('level-modal').classList.contains('hidden') || 
+                !document.getElementById('game-over-modal').classList.contains('hidden');
+
+            // Restore the standard mouse pointer when a UI modal is active
+            wrapper.style.cursor = isModalOpen ? 'default' : 'none';
+
+            if (!isModalOpen) {
+                paddle.prevX = paddle.x;
+                paddle.prevY = paddle.y;
+
+                if (botMode) {
+                    // Don't update paddle while thinking
+                    if (isThinking) {
+                        // Keep paddle still while thinking
+                    } else {
+                        // Auto-start the level when bot is active
+                        if (!isStarted && !isVictorious) {
+                            isStarted = true;
+                            const guideElem = document.getElementById('start-overlay');
+                            if (guideElem) guideElem.classList.add('opacity-0');
+                        }
+                        if (isStarted && !isVictorious) {
+                            updateBotPaddle();
+                        }
+                    }
+                } else {
+                    let mousePercentX = canvas.width > 0 ? (rawMouseX / canvas.width) : 0.5;
+                    let mousePercentY = canvas.height > 0 ? (rawMouseY / canvas.height) : 0.5;
+                    
+                    // Constrain percentages
+                    mousePercentX = Math.max(0, Math.min(1, mousePercentX || 0.5));
+                    mousePercentY = Math.max(0, Math.min(1, mousePercentY || 0.5));
+
+                    // Map absolute mouse position to absolute level position
+                    paddle.x = mousePercentX * GAME_WIDTH - paddle.width / 2;
+                    paddle.y = mousePercentY * GAME_HEIGHT - paddle.height / 2;
+
+                    paddle.x = Math.max(0, Math.min(GAME_WIDTH - paddle.width, paddle.x));
+                    paddle.y = Math.max(0, Math.min(GAME_HEIGHT - paddle.height, paddle.y));
+                }
+
+                paddle.vx = paddle.x - paddle.prevX;
+                paddle.vy = paddle.y - paddle.prevY;
+
+                if (cameraFollowEnabled) {
+                    // Exact follow: literally go to exact platform x,y
+                    cameraX = paddle.x + paddle.width / 2 - viewportW / 2;
+                    cameraY = paddle.y + paddle.height / 2 - viewportH / 2;
+                } else {
+                    cameraX = -(viewportW - GAME_WIDTH) / 2;
+                    cameraY = -(viewportH - GAME_HEIGHT) / 2;
+                }
+            } else {
+                // Freeze the cursor block & camera movement when a modal is active
+                paddle.vx = 0;
+                paddle.vy = 0;
+            }
+            // -----------------------------
+
+            if (!isStarted || isVictorious) return;
+
+            // 1. Walk off platform logic once active
+            if (player.isGrounded) {
+                // Determine direction to the goal
+                const goalCenterX = goal.x + (goal.w / 2);
+                const playerCenterX = player.x + (player.width / 2);
+                
+                // Set velocity based on goal direction
+                if (playerCenterX < goalCenterX) {
+                    player.vx = player.walkSpeed; // Walk right
+                } else {
+                    player.vx = -player.walkSpeed; // Walk left
+                }
+            }
+
+            // Apply gravity
+            player.vy += player.gravity;
+
+            // Update Position
+            player.x += player.vx;
+            player.y += player.vy;
+
+            player.isGrounded = false;
+
+            // 2. Platform Collisions
+            platforms.forEach(plat => {
+                if (player.x + player.width > plat.x &&
+                    player.x < plat.x + plat.w &&
+                    player.y + player.height > plat.y &&
+                    player.y < plat.y + plat.h) {
+
+                    // Calculate overlap depths
+                    const overlapX = Math.min((player.x + player.width) - plat.x, (plat.x + plat.w) - player.x);
+                    const overlapY = Math.min((player.y + player.height) - plat.y, (plat.y + plat.h) - player.y);
+
+                    if (overlapY < overlapX) {
+                    // Vertical Collision
+                    if (player.vy > 0 && player.y < plat.y) {
+                        // Top collision (landing)
+                        player.y = plat.y - player.height;
+                        player.vy = 0;
+                        player.isGrounded = true;
+                    } else if (player.vy < 0 && player.y > plat.y) {
+                        // Bottom head bonk
+                        player.y = plat.y + plat.h;
+                        player.vy = 0;
+                    }
+                } else {
+                    // Horizontal Collision
+                    const overlapLeft = (player.x + player.width) - plat.x;
+                    const overlapRight = (plat.x + plat.w) - player.x;
+
+                    if (overlapLeft < overlapRight) {
+                        player.x = plat.x - player.width;
+                        player.vx = -Math.abs(player.vx) * 0.5;
+                        player.angularVelocity = player.vy * 0.05;
+                    } else {
+                        player.x = plat.x + plat.w;
+                        player.vx = Math.abs(player.vx) * 0.5;
+                        player.angularVelocity = -player.vy * 0.05;
+                    }
+                }
+            }
+        });
+
+        // 3. Black Cursor Block Collisions (Paddle Physics)
+            // Note: Rotation of green square is intentionally disabled per design requirements!
+            if (player.x + player.width > paddle.x &&
+                player.x < paddle.x + paddle.width &&
+                player.y + player.height > paddle.y &&
+                player.y < paddle.y + paddle.height) {
+
+                // Push out of collision box based on shortest axis
+                const overlapLeft = (player.x + player.width) - paddle.x;
+                const overlapRight = (paddle.x + paddle.width) - player.x;
+                const overlapTop = (player.y + player.height) - paddle.y;
+                const overlapBottom = (paddle.y + paddle.height) - player.y;
+
+                const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                if (paddle.mode === 'bounce') {
+                    // Bounce Pad Logic
+                    // Impact Impulse from Cursor Velocity
+                    const paddleImpulseX = paddle.vx * 0.8;
+                    const paddleImpulseY = paddle.vy * 0.85;
+
+                    if (minOverlap === overlapTop) {
+                        player.y = paddle.y - player.height;
+                        player.vy = Math.min(-6, -Math.abs(player.vy) * 0.75 + paddleImpulseY);
+                        player.vx += paddleImpulseX;
+                    } else if (minOverlap === overlapBottom) {
+                        player.y = paddle.y + paddle.height;
+                        player.vy = Math.max(4, Math.abs(player.vy) * 0.75 + paddleImpulseY);
+                        player.vx += paddleImpulseX;
+                    } else if (minOverlap === overlapLeft) {
+                        player.x = paddle.x - player.width;
+                        player.vx = -Math.abs(player.vx) * 0.8 + paddleImpulseX - 2;
+                    } else if (minOverlap === overlapRight) {
+                        player.x = paddle.x + paddle.width;
+                        player.vx = Math.abs(player.vx) * 0.8 + paddleImpulseX + 2;
+                    }
+
+                    totalBounces++;
+                playBounceSound(Math.abs(player.vy) + Math.abs(paddle.vy));
+                createParticles(player.x + player.width/2, player.y + player.height/2, '#4ade80', 6);
+                
+                // Add rotational bounce spin
+                player.angularVelocity = (player.vx - paddle.vx * 0.2) * 0.04;
+            } else {
+                // Platform Logic (Solid, movable platform)
+                if (minOverlap === overlapTop) {
+                    player.y = paddle.y - player.height;
+                    player.vy = paddle.vy < 0 ? paddle.vy : 0; // Carry up if moving up
+                    player.isGrounded = true;
+                } else if (minOverlap === overlapBottom) {
+                    player.y = paddle.y + paddle.height;
+                    player.vy = paddle.vy > 0 ? paddle.vy : 0;
+                } else if (minOverlap === overlapLeft) {
+                    player.x = paddle.x - player.width;
+                    player.vx = paddle.vx < 0 ? paddle.vx : 0;
+                } else if (minOverlap === overlapRight) {
+                    player.x = paddle.x + paddle.width;
+                    player.vx = paddle.vx > 0 ? paddle.vx : 0;
+                }
+            }
+        }
+
+        // Air resistance on horizontal speed
+        player.vx *= 0.985;
+
+        // Handle Rotation & Stand upright when landed
+        player.rotation += player.angularVelocity;
+        if (player.isGrounded) {
+            player.rotation %= (Math.PI * 2);
+            player.angularVelocity *= 0.6;
+            const PI_2 = Math.PI / 2;
+            const targetRotation = Math.round(player.rotation / PI_2) * PI_2;
+            player.rotation += (targetRotation - player.rotation) * 0.25;
+        } else {
+            player.angularVelocity *= 0.99; // Air resistance on spin
+        }
+
+        // 4. Enemy Updates & Collision
+            enemies.forEach(enemy => {
+                // Movement updates
+                if (enemy.type === 'patrol') {
+                    enemy.x += enemy.vx;
+                    if (enemy.x <= enemy.rangeX[0] || enemy.x + enemy.w >= enemy.rangeX[1]) {
+                        enemy.vx *= -1;
+                    }
+                } else if (enemy.type === 'vertical') {
+                    enemy.y += enemy.vy;
+                    if (enemy.y <= enemy.rangeY[0] || enemy.y + enemy.h >= enemy.rangeY[1]) {
+                        enemy.vy *= -1;
+                    }
+                } else if (enemy.type === 'chaser') {
+                    // Seek Green Square
+                    const dx = (player.x + player.width/2) - (enemy.x + enemy.w/2);
+                    const dy = (player.y + player.height/2) - (enemy.y + enemy.h/2);
+                    const dist = Math.hypot(dx, dy) || 1;
+                    enemy.x += (dx / dist) * enemy.speed;
+                    enemy.y += (dy / dist) * enemy.speed;
+                }
+
+                // Check collision with Player
+                if (player.x + player.width > enemy.x &&
+                    player.x < enemy.x + enemy.w &&
+                    player.y + player.height > enemy.y &&
+                    player.y < enemy.y + enemy.h) {
+                    restartCurrentLevel();
+                }
+            });
+
+            // 5. Lava Floor Hazard Collision
+            const LAVA_Y = GAME_HEIGHT - 35;
+            if (player.y + player.height >= LAVA_Y) {
+                restartCurrentLevel();
+            }
+
+            // Outer Bounds Left/Right/Top Soft bounce
+        if (player.x < 0) { player.x = 0; player.vx = Math.abs(player.vx) * 0.5; player.angularVelocity = -player.vy * 0.05; }
+        if (player.x + player.width > GAME_WIDTH) { player.x = GAME_WIDTH - player.width; player.vx = -Math.abs(player.vx) * 0.5; player.angularVelocity = player.vy * 0.05; }
+        if (player.y < 0) { player.y = 0; player.vy = Math.abs(player.vy) * 0.5; }
+
+        // 6. Victory Goal Gate Collision
+            if (player.x + player.width > goal.x &&
+                player.x < goal.x + goal.w &&
+                player.y + player.height > goal.y &&
+                player.y < goal.y + goal.h) {
+                
+                isVictorious = true;
+                playGoalSound();
+                createParticles(goal.x + goal.w/2, goal.y + goal.h/2, '#facc15', 40);
+
+                setTimeout(() => {
+                    if (currentLevelIdx < LEVELS.length - 1) {
+                        document.getElementById('victory-desc').innerText = `Level ${currentLevelIdx + 1} Cleared!`;
+                        document.getElementById('victory-modal').classList.remove('hidden');
+                    } else {
+                        // Game Complete!
+                        document.getElementById('final-deaths').innerText = totalDeaths;
+                        document.getElementById('final-bounces').innerText = totalBounces;
+                        document.getElementById('game-over-modal').classList.remove('hidden');
+                    }
+                }, 300);
+            }
+        }
+
+        function getTrajectory() {
+            if (isVictorious) return { points: [], status: 'normal' };
+            
+            let simX = player.x;
+            let simY = player.y;
+            let simVx = player.vx;
+            let simVy = player.vy;
+            let simGrounded = player.isGrounded;
+            const points = [];
+            let status = 'normal';
+            
+            points.push({ x: simX + player.width/2, y: simY + player.height/2 });
+            
+            for (let i = 0; i < 280; i++) {
+                if (simGrounded) {
+                    const goalCenterX = goal.x + (goal.w / 2);
+                    const playerCenterX = simX + (player.width / 2);
+                    if (playerCenterX < goalCenterX) {
+                        simVx = player.walkSpeed;
+                    } else {
+                        simVx = -player.walkSpeed;
+                    }
+                }
+
+                simVy += player.gravity;
+                simX += simVx;
+                simY += simVy;
+                simGrounded = false;
+                let hitWall = false;
+
+                // Simulated Platform Collisions
+                for (let plat of platforms) {
+                    if (simX + player.width > plat.x && simX < plat.x + plat.w &&
+                        simY + player.height > plat.y && simY < plat.y + plat.h) {
+                        
+                        const overlapX = Math.min((simX + player.width) - plat.x, (plat.x + plat.w) - simX);
+                        const overlapY = Math.min((simY + player.height) - plat.y, (plat.y + plat.h) - simY);
+
+                        if (overlapY < overlapX) {
+                        if (simVy > 0 && simY < plat.y) {
+                            simY = plat.y - player.height;
+                            simVy = 0;
+                            simGrounded = true;
+                        } else if (simVy < 0 && simY > plat.y) {
+                            simY = plat.y + plat.h;
+                            simVy = 0;
+                            hitWall = true; // End line at ceilings
+                        }
+                    } else {
+                        // Horizontal fix for simulation
+                        const overlapLeft = (simX + player.width) - plat.x;
+                        const overlapRight = (plat.x + plat.w) - simX;
+
+                        if (overlapLeft < overlapRight) {
+                            simX = plat.x - player.width;
+                            simVx = -Math.abs(simVx) * 0.5;
+                        } else {
+                            simX = plat.x + plat.w;
+                            simVx = Math.abs(simVx) * 0.5;
+                        }
+                        hitWall = true; // End line at side walls
+                    }
+                }
+            }
+
+            // Simulated Paddle Collision
+                if (simX + player.width > paddle.x && simX < paddle.x + paddle.width &&
+                    simY + player.height > paddle.y && simY < paddle.y + paddle.height) {
+                    
+                    const overlapLeft = (simX + player.width) - paddle.x;
+                    const overlapRight = (paddle.x + paddle.width) - simX;
+                    const overlapTop = (simY + player.height) - paddle.y;
+                    const overlapBottom = (paddle.y + paddle.height) - simY;
+                    const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+                    if (paddle.mode === 'bounce') {
+                        // Apply current paddle impulse to simulation
+                        const paddleImpulseX = paddle.vx * 0.8;
+                        const paddleImpulseY = paddle.vy * 0.85;
+                        if (minOverlap === overlapTop) {
+                            simY = paddle.y - player.height;
+                            simVy = Math.min(-6, -Math.abs(simVy) * 0.75 + paddleImpulseY);
+                            simVx += paddleImpulseX;
+                        } else if (minOverlap === overlapBottom) {
+                            simY = paddle.y + paddle.height;
+                            simVy = Math.max(4, Math.abs(simVy) * 0.75 + paddleImpulseY);
+                            simVx += paddleImpulseX;
+                        } else if (minOverlap === overlapLeft) {
+                            simX = paddle.x - player.width;
+                            simVx = -Math.abs(simVx) * 0.8 + paddleImpulseX - 2;
+                        } else if (minOverlap === overlapRight) {
+                            simX = paddle.x + paddle.width;
+                            simVx = Math.abs(simVx) * 0.8 + paddleImpulseX + 2;
+                        }
+                    } else {
+                        // Platform Mode paddle collision
+                        if (minOverlap === overlapTop) {
+                            simY = paddle.y - player.height;
+                            simVy = paddle.vy < 0 ? paddle.vy : 0;
+                            simGrounded = true;
+                        } else {
+                            hitWall = true;
+                        }
+                    }
+                }
+
+                simVx *= 0.985; // Air resistance
+
+                // Simulated Lava Collision
+                const LAVA_Y = GAME_HEIGHT - 35;
+                if (simY + player.height >= LAVA_Y) {
+                    simY = LAVA_Y - player.height;
+                    points.push({ x: simX + player.width/2, y: simY + player.height/2 });
+                    status = 'danger';
+                    break;
+                }
+
+                // Bounds Collision
+                if (simX < 0 || simX + player.width > GAME_WIDTH || simY < 0) {
+                    hitWall = true;
+                }
+
+                // Simulated Enemy Check
+                let hitEnemy = false;
+                for (let enemy of enemies) {
+                    if (simX + player.width > enemy.x && simX < enemy.x + enemy.w &&
+                        simY + player.height > enemy.y && simY < enemy.y + enemy.h) {
+                        hitEnemy = true;
+                        status = 'danger';
+                    }
+                }
+                
+                // Simulated Goal Check
+                if (simX + player.width > goal.x && simX < goal.x + goal.w &&
+                    simY + player.height > goal.y && simY < goal.y + goal.h) {
+                    points.push({ x: simX + player.width/2, y: simY + player.height/2 });
+                    status = 'success';
+                    break;
+                }
+
+                points.push({ x: simX + player.width/2, y: simY + player.height/2 });
+
+                if (hitWall || hitEnemy) break;
+            }
+            return { points, status };
+        }
+
+        function render() {
+            // Fill pure black for off-screen areas
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            // Apply Dynamic Scaling and Camera Translation
+            ctx.scale(scale * currentZoom, scale * currentZoom);
+            ctx.translate(-cameraX, -cameraY);
+
+            // Fill game area with standard background
+            ctx.fillStyle = '#0b0f19'; 
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // A. Grid Background
+            ctx.strokeStyle = 'rgba(51, 65, 85, 0.25)';
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for (let x = 0; x < GAME_WIDTH; x += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, GAME_HEIGHT);
+                ctx.stroke();
+            }
+            for (let y = 0; y < GAME_HEIGHT; y += gridSize) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(GAME_WIDTH, y);
+                ctx.stroke();
+            }
+
+            // B. Draw Lava Hazard Floor
+            const lavaY = GAME_HEIGHT - 35;
+            const lavaGradient = ctx.createLinearGradient(0, lavaY, 0, GAME_HEIGHT);
+            lavaGradient.addColorStop(0, '#ef4444');
+            lavaGradient.addColorStop(0.5, '#dc2626');
+            lavaGradient.addColorStop(1, '#7f1d1d');
+            
+            ctx.fillStyle = lavaGradient;
+            ctx.fillRect(0, lavaY, GAME_WIDTH, 35);
+
+            // Lava Animated Waves
+            ctx.fillStyle = '#f87171';
+            const time = Date.now() * 0.005;
+            ctx.beginPath();
+            ctx.moveTo(0, lavaY);
+            for (let x = 0; x <= GAME_WIDTH; x += 20) {
+                const yWave = lavaY + Math.sin(time + x * 0.05) * 4;
+                ctx.lineTo(x, yWave);
+            }
+            ctx.lineTo(GAME_WIDTH, GAME_HEIGHT);
+            ctx.lineTo(0, GAME_HEIGHT);
+            ctx.closePath();
+            ctx.fill();
+
+            // C. Draw Platforms
+            platforms.forEach(plat => {
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(plat.x, plat.y, plat.w, plat.h);
+                
+                // Platform Top Highlight
+                ctx.fillStyle = '#64748b';
+                ctx.fillRect(plat.x, plat.y, plat.w, 4);
+
+                // Platform Borders
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
+            });
+
+            // D. Draw Goal Gate (Yellow Portal)
+            ctx.save();
+            ctx.fillStyle = 'rgba(234, 179, 8, 0.25)';
+            ctx.strokeStyle = '#eab308';
+            ctx.lineWidth = 3;
+            ctx.fillRect(goal.x, goal.y, goal.w, goal.h);
+            ctx.strokeRect(goal.x, goal.y, goal.w, goal.h);
+
+            // Inner Portal Glow Effect
+            const pTime = Date.now() * 0.003;
+            const glowSize = Math.sin(pTime) * 6;
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(goal.x + 5 - glowSize/2, goal.y + 5 - glowSize/2, goal.w - 10 + glowSize, goal.h - 10 + glowSize);
+            ctx.restore();
+
+            // E. Draw Enemies
+            enemies.forEach(enemy => {
+                ctx.save();
+                if (enemy.type === 'chaser') {
+                    // Yellow/Orange Spike Chaser
+                    ctx.fillStyle = '#f97316';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x + enemy.w/2, enemy.y + enemy.h/2, enemy.w/2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Chaser Eye
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x + enemy.w/2, enemy.y + enemy.h/2, 5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#000000';
+                    ctx.beginPath();
+                    ctx.arc(enemy.x + enemy.w/2, enemy.y + enemy.h/2, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    // Red Sentinel Square
+                    ctx.fillStyle = '#e11d48';
+                    ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h);
+                    ctx.strokeStyle = '#fda4af';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(enemy.x, enemy.y, enemy.w, enemy.h);
+
+                    // Sentinel Inner Pattern
+                    ctx.fillStyle = '#9f1239';
+                    ctx.fillRect(enemy.x + 4, enemy.y + 4, enemy.w - 8, enemy.h - 8);
+                }
+                ctx.restore();
+            });
+
+            // F. Draw Particles
+            drawParticles();
+
+            // Draw Trajectory Prediction Line
+            const trajectoryData = getTrajectory();
+            const trajectory = trajectoryData.points;
+            if (trajectory.length > 1) {
+                ctx.save();
+                ctx.beginPath();
+                ctx.moveTo(trajectory[0].x, trajectory[0].y);
+                for (let i = 1; i < trajectory.length; i++) {
+                    ctx.lineTo(trajectory[i].x, trajectory[i].y);
+                }
+                
+                let lineColor = 'rgba(255, 255, 255, 0.4)';
+                let dotColor = 'rgba(255, 255, 255, 0.6)';
+                
+                // Color code trajectory outcomes
+                if (trajectoryData.status === 'danger') {
+                    lineColor = 'rgba(239, 68, 68, 0.6)';
+                    dotColor = 'rgba(239, 68, 68, 0.9)';
+                } else if (trajectoryData.status === 'success') {
+                    lineColor = 'rgba(234, 179, 8, 0.7)';
+                    dotColor = 'rgba(234, 179, 8, 1.0)';
+                }
+
+                ctx.strokeStyle = lineColor;
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 6]);
+                ctx.stroke();
+
+                // Draw end marker point
+                const lastPoint = trajectory[trajectory.length - 1];
+                if (lastPoint) {
+                    ctx.fillStyle = dotColor;
+                    ctx.beginPath();
+                    ctx.arc(lastPoint.x, lastPoint.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            // G. Draw Player Green Square (Now with Rotation!)
+            ctx.save();
+            ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+            ctx.rotate(player.rotation);
+            
+            const pw = player.width;
+            const ph = player.height;
+            const hx = -pw / 2;
+            const hy = -ph / 2;
+            
+            ctx.fillStyle = player.color;
+            ctx.fillRect(hx, hy, pw, ph);
+        
+        // Player Top Accent
+        ctx.fillStyle = '#86efac';
+        ctx.fillRect(hx + 3, hy + 3, pw - 6, 4);
+
+        // Player Outline
+        ctx.strokeStyle = '#15803d';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(hx, hy, pw, ph);
+
+        // Cute Eyes on Green Square
+        ctx.fillStyle = '#052e16';
+        ctx.fillRect(hx + 6, hy + 8, 4, 6);
+        ctx.fillRect(hx + 18, hy + 8, 4, 6);
+        ctx.restore();
+
+        // H. Draw Mouse Cursor Black Block
+            ctx.save();
+            if (paddle.mode === 'bounce') {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+                
+                ctx.strokeStyle = '#38bdf8'; // Soft cyan border glow for contrast against dark bg
+                ctx.lineWidth = 2;
+                ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
+
+                // Highlight top bar of paddle
+                ctx.fillStyle = '#0ea5e9';
+                ctx.fillRect(paddle.x + 2, paddle.y + 2, paddle.width - 4, 3);
+
+                // Bounces counter (white text centered on the paddle)
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Rajdhani, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(String(totalBounces), paddle.x + paddle.width / 2, paddle.y + paddle.height / 2 + 1);
+            } else {
+                // Platform mode visual
+                ctx.fillStyle = '#6366f1'; // Vibrant indigo to distinguish from normal platforms
+                ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);
+                
+                // Platform Top Highlight
+                ctx.fillStyle = '#818cf8';
+                ctx.fillRect(paddle.x, paddle.y, paddle.width, 4);
+
+                // Platform Borders (Distinct white/blue glow for player cursor)
+                ctx.strokeStyle = '#c7d2fe'; 
+                ctx.lineWidth = 2;
+                ctx.strokeRect(paddle.x, paddle.y, paddle.width, paddle.height);
+            }
+            ctx.restore();
+
+            // I. Draw Arrow pointing to Goal if off-screen and camera on
+            if (cameraFollowEnabled) {
+                const viewportW = (canvas.width / scale) / currentZoom;
+                const viewportH = (canvas.height / scale) / currentZoom;
+                
+                // Helper function to draw off-screen indicator arrows
+                const drawOffscreenArrow = (targetX, targetY, fillColor, strokeColor) => {
+                    if (targetX < cameraX || targetX > cameraX + viewportW || targetY < cameraY || targetY > cameraY + viewportH) {
+                        const cx = cameraX + viewportW / 2;
+                        const cy = cameraY + viewportH / 2;
+                        const dx = targetX - cx;
+                        const dy = targetY - cy;
+                        const angle = Math.atan2(dy, dx);
+                        
+                        const margin = 40;
+                        const hw = (viewportW / 2) - margin;
+                        const hh = (viewportH / 2) - margin;
+                        
+                        let edgeX, edgeY;
+                        if (Math.abs(dx) > 0.001) {
+                            const slope = dy / dx;
+                            edgeX = dx > 0 ? hw : -hw;
+                            edgeY = edgeX * slope;
+                            if (Math.abs(edgeY) > hh) {
+                                edgeY = dy > 0 ? hh : -hh;
+                                edgeX = edgeY / slope;
+                            }
+                        } else {
+                            edgeX = 0;
+                            edgeY = dy > 0 ? hh : -hh;
+                        }
+                        
+                        ctx.save();
+                        ctx.translate(cx + edgeX, cy + edgeY);
+                        ctx.rotate(angle);
+                        
+                        ctx.fillStyle = fillColor;
+                        ctx.beginPath();
+                        ctx.moveTo(15, 0);
+                        ctx.lineTo(-10, 12);
+                        ctx.lineTo(-4, 0);
+                        ctx.lineTo(-10, -12);
+                        ctx.closePath();
+                        ctx.fill();
+                        
+                        ctx.strokeStyle = strokeColor;
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        ctx.restore();
+                    }
+                };
+
+                // Draw Goal Arrow
+                const gx = goal.x + goal.w / 2;
+                const gy = goal.y + goal.h / 2;
+                drawOffscreenArrow(gx, gy, '#eab308', '#fef08a');
+
+                // Draw Player Arrow
+                const px = player.x + player.width / 2;
+                const py = player.y + player.height / 2;
+                drawOffscreenArrow(px, py, '#22c55e', '#86efac');
+
+                // Draw Enemy Arrows
+                enemies.forEach(enemy => {
+                    const ex = enemy.x + enemy.w / 2;
+                    const ey = enemy.y + enemy.h / 2;
+                    drawOffscreenArrow(ex, ey, '#ef4444', '#fda4af');
+                });
+            }
+
+            ctx.restore(); // Restore global scaling
+        }
+
+        function gameLoop() {
+            updatePhysics();
+            updateParticles();
+            render();
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        function setupUI() {
+            // Restart Level Button
+            document.getElementById('btn-restart').addEventListener('click', () => {
+                restartCurrentLevel();
+            });
+
+            // Keyboard Shortcuts
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    restartCurrentLevel();
+                }
+            });
+
+            // Next Level Button
+            document.getElementById('btn-next-level').addEventListener('click', () => {
+                if (currentLevelIdx < LEVELS.length - 1) {
+                    loadLevel(currentLevelIdx + 1);
+                }
+            });
+
+            // Restart Entire Game Button
+            document.getElementById('btn-restart-game').addEventListener('click', () => {
+                totalDeaths = 0;
+                totalBounces = 0;
+                document.getElementById('deaths-display').innerText = '0';
+                document.getElementById('game-over-modal').classList.add('hidden');
+                loadLevel(0);
+            });
+
+            // Level Selector Modal Controls
+            const modal = document.getElementById('level-modal');
+            const grid = document.getElementById('level-grid');
+
+            document.getElementById('btn-levels').addEventListener('click', () => {
+                grid.innerHTML = '';
+                LEVELS.forEach((lvl, idx) => {
+                    const btn = document.createElement('button');
+                    btn.className = `interactive-ui p-4 rounded-xl border flex flex-col items-center justify-center transition ${
+                        idx === currentLevelIdx 
+                            ? 'bg-indigo-600 border-indigo-400 text-white font-bold' 
+                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-500'
+                    }`;
+                    btn.innerHTML = `
+                        <span class="text-xs text-slate-400 mb-1">LEVEL</span>
+                        <span class="text-xl font-black title-font">${idx + 1}</span>
+                        <span class="text-[10px] text-slate-400 mt-1 truncate w-full text-center">${lvl.title}</span>
+                    `;
+                    btn.addEventListener('click', () => {
+                        loadLevel(idx);
+                        modal.classList.add('hidden');
+                    });
+                    grid.appendChild(btn);
+                });
+                modal.classList.remove('hidden');
+            });
+
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Toggle Camera
+            const btnCamera = document.getElementById('btn-camera');
+            if (btnCamera) {
+                btnCamera.addEventListener('click', () => {
+                    cameraFollowEnabled = !cameraFollowEnabled;
+                    if(cameraFollowEnabled) {
+                        btnCamera.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden md:inline">Cam: On</span>';
+                        btnCamera.classList.replace('text-slate-200', 'text-emerald-400');
+                        btnCamera.classList.replace('border-slate-600', 'border-emerald-500');
+                    } else {
+                        btnCamera.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden md:inline">Cam: Off</span>';
+                        btnCamera.classList.replace('text-emerald-400', 'text-slate-200');
+                        btnCamera.classList.replace('border-emerald-500', 'border-slate-600');
+                    }
+                });
+            }
+
+            // Toggle Bot Mode
+            const btnBot = document.getElementById('btn-bot');
+            if (btnBot) {
+                btnBot.addEventListener('click', () => {
+                    botMode = !botMode;
+                    if (botMode) {
+                        btnBot.innerHTML = '<i class="fa-solid fa-robot"></i><span class="hidden md:inline">Bot: On</span>';
+                        btnBot.classList.remove('text-slate-300', 'border-slate-700');
+                        btnBot.classList.add('text-emerald-400', 'border-emerald-500');
+                        // Start thinking
+                        startBotThinking();
+                    } else {
+                        btnBot.innerHTML = '<i class="fa-solid fa-robot"></i><span class="hidden md:inline">Bot: Off</span>';
+                        btnBot.classList.remove('text-emerald-400', 'border-emerald-500');
+                        btnBot.classList.add('text-slate-300', 'border-slate-700');
+                        // Hide overlays when bot is turned off
+                        document.getElementById('thinking-overlay').classList.add('hidden');
+                        document.getElementById('attempt-display').classList.add('hidden');
+                        isThinking = false;
+                    }
+                });
+            }
+
+            // Toggle Audio
+            document.getElementById('btn-audio').addEventListener('click', () => {
+                soundEnabled = !soundEnabled;
+                const icon = document.getElementById('audio-icon');
+                if (soundEnabled) {
+                    icon.className = 'fa-solid fa-volume-high';
+                } else {
+                    icon.className = 'fa-solid fa-volume-xmark text-rose-500';
+                }
+            });
+        }
+
+        window.onload = function() {
+            resizeCanvas();
+            setupUI();
+            loadLevel(0);
+            gameLoop();
+        };
+    </script>
+</body>
+</html>
