@@ -246,7 +246,8 @@ const projects = [
     "ascii wheel", // wow
     "translate smt 500 times", // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
     "bombparty offline", // my fav
-    "bombparty practice"
+    "bombparty practice",
+    "physics quest"
 ];
 
 const fileList = document.getElementById('file-list');
