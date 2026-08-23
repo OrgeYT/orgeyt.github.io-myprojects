@@ -55,26 +55,6 @@
             background: #3b82f6;
             border-radius: 4px;
         }
-
-        /* Bot Thinking Animation */
-        @keyframes pulse-glow {
-            0% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
-            50% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.8); }
-            100% { box-shadow: 0 0 10px rgba(59, 130, 246, 0.4); }
-        }
-
-        @keyframes pulse-dot {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-        }
-
-        .thinking-animation {
-            animation: pulse-glow 1.5s ease-in-out infinite;
-        }
-
-        .thinking-dot {
-            animation: pulse-dot 1.5s ease-in-out infinite;
-        }
     </style>
 </head>
 <body class="w-screen h-screen flex flex-col justify-between items-center bg-slate-950 text-slate-100 relative">
@@ -91,7 +71,7 @@
         <div class="flex items-center space-x-6 text-sm md:text-base">
             <div class="flex items-center space-x-2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
                 <span class="text-slate-400">LEVEL:</span>
-                <span id="level-display" class="font-bold text-amber-400 title-font">01 / 13</span>
+                <span id="level-display" class="font-bold text-amber-400 title-font">01 / 20</span>
             </div>
             <div class="flex items-center space-x-2 bg-slate-800/80 px-4 py-1.5 rounded-full border border-slate-700">
                 <span class="text-slate-400">DEATHS:</span>
@@ -109,10 +89,6 @@
                 <i class="fa-solid fa-video"></i>
                 <span class="hidden md:inline">Cam: On</span>
             </button>
-            <button id="btn-bot" class="interactive-ui bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1 transition font-semibold text-xs md:text-sm">
-                <i class="fa-solid fa-robot"></i>
-                <span class="hidden md:inline">Bot: Off</span>
-            </button>
             <button id="btn-audio" class="interactive-ui bg-slate-800 hover:bg-slate-700 text-slate-300 p-2 rounded-lg border border-slate-700">
                 <i id="audio-icon" class="fa-solid fa-volume-high"></i>
             </button>
@@ -124,30 +100,6 @@
         <div id="game-wrapper" class="relative w-full max-w-5xl h-full max-h-[700px] bg-slate-900 rounded-2xl border-2 border-slate-800 shadow-2xl overflow-hidden flex items-center justify-center">
             
             <canvas id="gameCanvas" class="w-full h-full block bg-slate-950"></canvas>
-
-            <!-- Bot Thinking Overlay -->
-            <div id="thinking-overlay" class="hidden absolute inset-0 bg-slate-950/40 backdrop-blur-sm flex flex-col items-center justify-center z-25">
-                <div class="thinking-animation bg-blue-900/80 border-2 border-blue-500 rounded-3xl p-8 max-w-xs w-full shadow-2xl text-center space-y-4">
-                    <div class="text-5xl mb-2">
-                        <i class="fa-solid fa-brain text-blue-400"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-blue-300 title-font">Bot is thinking...</h3>
-                    <div class="flex justify-center space-x-2">
-                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full"></div>
-                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full" style="animation-delay: 0.2s;"></div>
-                        <div class="thinking-dot w-2 h-2 bg-blue-400 rounded-full" style="animation-delay: 0.4s;"></div>
-                    </div>
-                    <div class="text-sm text-blue-300 mt-4">
-                        Calculating optimal moves...
-                    </div>
-                </div>
-            </div>
-
-            <!-- Attempt Counter -->
-            <div id="attempt-display" class="hidden absolute top-4 right-4 bg-purple-900/90 border-2 border-purple-500 rounded-lg px-4 py-2 z-24 text-center">
-                <div class="text-xs text-purple-300 font-semibold">ATTEMPTS</div>
-                <div class="text-2xl font-black text-purple-300 title-font" id="attempt-count">0</div>
-            </div>
 
             <!-- Onscreen Guide Overlay -->
             <div id="start-overlay" class="absolute top-6 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-emerald-500/50 text-slate-200 px-6 py-3 rounded-xl text-center pointer-events-none transition-opacity duration-300 backdrop-blur-md shadow-lg">
@@ -197,7 +149,7 @@
                         <i class="fa-solid fa-crown animate-bounce"></i>
                     </div>
                     <h2 class="text-4xl font-black title-font text-white tracking-wider">QUEST COMPLETED!</h2>
-                    <p class="text-slate-300">You mastered all 13 levels of precise physics balancing!</p>
+                    <p class="text-slate-300">You mastered all 20 levels of precise physics balancing!</p>
                     <div class="bg-slate-800 p-4 rounded-xl text-left space-y-2 border border-slate-700 text-sm">
                         <div class="flex justify-between text-slate-300">
                             <span>Total Deaths:</span>
@@ -214,6 +166,20 @@
                 </div>
             </div>
 
+            <!-- Game Start Screen -->
+            <div id="game-start-modal" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center z-50 p-6 text-center">
+                <div class="bg-slate-900 border-2 border-emerald-500 p-8 rounded-2xl max-w-lg w-full shadow-2xl space-y-6">
+                    <div class="text-emerald-400 text-6xl">
+                        <i class="fa-solid fa-play animate-pulse"></i>
+                    </div>
+                    <h2 class="text-4xl font-black title-font text-white tracking-wider">PHYSICS QUEST</h2>
+                    <p class="text-slate-300">Bounce the green square into the yellow portal using your paddle.</p>
+                    <button id="btn-init-start" class="interactive-ui w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-3 rounded-xl transition shadow-xl text-lg">
+                        CLICK TO START
+                    </button>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -225,6 +191,7 @@
             <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-emerald-500 rounded-sm"></span> Green Square = Juggled Hero</span>
             <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-amber-400 rounded-sm"></span> Yellow = Portal</span>
             <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-rose-600 rounded-sm"></span> Red Bottom = Lava</span>
+            <span class="flex items-center gap-1"><span class="w-3 h-3 inline-block bg-gradient-to-b from-blue-500 to-red-500 rounded-sm"></span> Magnet = Pulls You (Not Solid!)</span>
         </div>
         <div>
             <span>Press <kbd class="px-2 py-0.5 bg-slate-800 rounded border border-slate-700 text-slate-300">R</kbd> to restart anytime</span>
@@ -312,12 +279,6 @@
         let isStarted = false;
         let isVictorious = false;
         let animationFrameId = null;
-        let botMode = false;
-        
-        // Bot Thinking State
-        let isThinking = false;
-        let botThinkAttempts = 0;
-        let thinkingStartTime = 0;
 
         // Mouse Cursor Paddle (Black Block)
         const paddle = {
@@ -329,35 +290,36 @@
             vy: 0,
             prevX: 100,
             prevY: 100,
-        mode: 'bounce' // 'bounce' or 'platform'
-    };
+            mode: 'bounce' // 'bounce' or 'platform'
+        };
 
-    // Green Square Player (Physics Body)
-    const player = {
-        x: 0,
-        y: 0,
-        width: 28,
-        height: 28,
-        vx: 0,
-        vy: 0,
-        rotation: 0,
-        angularVelocity: 0,
-        gravity: 0.45,
-        bounceFriction: 0.98,
-        walkSpeed: 2.2,
-        isGrounded: false,
-        color: '#22c55e'
-    };
+        // Green Square Player (Physics Body)
+        const player = {
+            x: 0,
+            y: 0,
+            width: 28,
+            height: 28,
+            vx: 0,
+            vy: 0,
+            rotation: 0,
+            angularVelocity: 0,
+            gravity: 0.45,
+            bounceFriction: 0.98,
+            walkSpeed: 2.2,
+            isGrounded: false,
+            color: '#22c55e'
+        };
 
-    // Goal Portal
+        // Goal Portal
         let goal = { x: 0, y: 0, width: 45, height: 55 };
 
         // Level Elements
         let platforms = [];
         let enemies = [];
         let particles = [];
+        let magnets = [];
 
-        // Design of 13 Levels
+        // Design of 16 Levels
         const LEVELS = [
             // Level 1: Gentle Introduction
             {
@@ -547,7 +509,7 @@
             // Level 13: Grand Master Juggler
             {
                 title: "Grand Master Test",
-                guide: "The ultimate trial! Juggler mastery required to finish Physics Quest!",
+                guide: "Juggler mastery required! Nail this before the magnetic trials ahead...",
                 spawn: { x: 70, y: 200 },
                 goal: { x: 900, y: 200, w: 45, h: 55 },
                 platforms: [
@@ -560,6 +522,133 @@
                     { x: 180, y: 350, w: 28, h: 28, speed: 1.3, type: 'chaser' },
                     { x: 450, y: 300, w: 28, h: 28, vx: 0, vy: 3.5, rangeY: [100, 500], type: 'vertical' },
                     { x: 740, y: 250, w: 28, h: 28, speed: 1.5, type: 'chaser' }
+                ]
+            },
+            // Level 14: Introducing Magnets
+            {
+                title: "Magnetic Awakening",
+                guide: "A new force awakens! The Red/Blue Magnet PULLS the green square toward it — it's not solid, so you'll sail right past it. Ride the pull across the gap!",
+                spawn: { x: 100, y: 220 },
+                goal: { x: 880, y: 220, w: 45, h: 55 },
+                platforms: [
+                    { x: 60, y: 270, w: 150, h: 25 },
+                    { x: 840, y: 270, w: 150, h: 25 }
+                ],
+                enemies: [],
+                magnets: [
+                    { x: 460, y: 260, w: 42, h: 42, radius: 250, strength: 2900 }
+                ]
+            },
+            // Level 15: Twin Poles
+            {
+                title: "Twin Poles",
+                guide: "Two magnets fight over the green square! Let their combined pull sling you down and across to the goal.",
+                spawn: { x: 90, y: 130 },
+                goal: { x: 900, y: 480, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 180, w: 130, h: 25 },
+                    { x: 860, y: 530, w: 130, h: 25 }
+                ],
+                enemies: [
+                    { x: 470, y: 560, w: 24, h: 24, vx: 2.2, vy: 0, rangeX: [380, 620], type: 'patrol' }
+                ],
+                magnets: [
+                    { x: 330, y: 260, w: 40, h: 40, radius: 210, strength: 2200 },
+                    { x: 620, y: 380, w: 40, h: 40, radius: 210, strength: 2200 }
+                ]
+            },
+            // Level 16: Magnetic Maelstrom
+            {
+                title: "Magnetic Maelstrom",
+                guide: "The ultimate trial! Three magnets, sentries, and precision juggling — full mastery required to finish Physics Quest!",
+                spawn: { x: 70, y: 550 },
+                goal: { x: 900, y: 140, w: 45, h: 55 },
+                platforms: [
+                    { x: 40, y: 600, w: 110, h: 25 },
+                    { x: 860, y: 190, w: 110, h: 25 },
+                    { x: 420, y: 600, w: 160, h: 25 }
+                ],
+                enemies: [
+                    { x: 250, y: 150, w: 26, h: 26, speed: 1.2, type: 'chaser' },
+                    { x: 700, y: 450, w: 26, h: 26, vx: 0, vy: 3, rangeY: [280, 560], type: 'vertical' }
+                ],
+                magnets: [
+                    { x: 220, y: 400, w: 40, h: 40, radius: 220, strength: 2400 },
+                    { x: 500, y: 260, w: 40, h: 40, radius: 230, strength: 2600 },
+                    { x: 760, y: 420, w: 40, h: 40, radius: 220, strength: 2400 }
+                ]
+            },
+            // Level 17: The Slingshot
+            {
+                title: "The Slingshot",
+                guide: "Use the massive magnetic field to slingshot over the lava ocean!",
+                spawn: { x: 50, y: 450 },
+                goal: { x: 900, y: 100, w: 45, h: 55 },
+                platforms: [
+                    { x: 20, y: 500, w: 100, h: 25 },
+                    { x: 860, y: 150, w: 110, h: 25 }
+                ],
+                enemies: [
+                    { x: 450, y: 100, w: 26, h: 26, vx: 0, vy: 4, rangeY: [50, 600], type: 'vertical' }
+                ],
+                magnets: [
+                    { x: 480, y: 300, w: 60, h: 60, radius: 350, strength: 3500 }
+                ]
+            },
+            // Level 18: Descent
+            {
+                title: "Descent",
+                guide: "Navigate the hazardous drop. Control your fall!",
+                spawn: { x: 80, y: 80 },
+                goal: { x: 880, y: 560, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 130, w: 100, h: 25 },
+                    { x: 250, y: 250, w: 500, h: 25 },
+                    { x: 50, y: 400, w: 500, h: 25 },
+                    { x: 850, y: 610, w: 120, h: 25 }
+                ],
+                enemies: [
+                    { x: 300, y: 220, w: 26, h: 26, vx: 3, vy: 0, rangeX: [250, 750], type: 'patrol' },
+                    { x: 100, y: 370, w: 26, h: 26, vx: 4, vy: 0, rangeX: [50, 550], type: 'patrol' }
+                ]
+            },
+            // Level 19: The Swarm
+            {
+                title: "The Swarm",
+                guide: "They're onto you! Keep moving to outrun the swarm of chasers.",
+                spawn: { x: 80, y: 300 },
+                goal: { x: 880, y: 300, w: 45, h: 55 },
+                platforms: [
+                    { x: 50, y: 350, w: 100, h: 25 },
+                    { x: 850, y: 350, w: 100, h: 25 },
+                    { x: 450, y: 500, w: 100, h: 25 },
+                    { x: 450, y: 100, w: 100, h: 25 }
+                ],
+                enemies: [
+                    { x: 500, y: 150, w: 24, h: 24, speed: 1.1, type: 'chaser' },
+                    { x: 550, y: 450, w: 24, h: 24, speed: 1.1, type: 'chaser' },
+                    { x: 300, y: 450, w: 24, h: 24, speed: 1.2, type: 'chaser' }
+                ]
+            },
+            // Level 20: The Zenith
+            {
+                title: "The Zenith",
+                guide: "The ultimate test of Physics Quest. Good luck.",
+                spawn: { x: 50, y: 550 },
+                goal: { x: 900, y: 100, w: 45, h: 55 },
+                platforms: [
+                    { x: 30, y: 600, w: 100, h: 25 },
+                    { x: 860, y: 150, w: 110, h: 25 },
+                    { x: 400, y: 300, w: 200, h: 25 }
+                ],
+                enemies: [
+                    { x: 200, y: 200, w: 26, h: 26, speed: 1.25, type: 'chaser' },
+                    { x: 750, y: 400, w: 26, h: 26, speed: 1.25, type: 'chaser' },
+                    { x: 400, y: 270, w: 26, h: 26, vx: 3, vy: 0, rangeX: [400, 600], type: 'patrol' }
+                ],
+                magnets: [
+                    { x: 200, y: 400, w: 40, h: 40, radius: 250, strength: 2500 },
+                    { x: 750, y: 200, w: 40, h: 40, radius: 250, strength: 2500 }
                 ]
             }
         ];
@@ -584,7 +673,8 @@
             if (!isStarted) {
                 const isModalOpen = isVictorious || 
                     !document.getElementById('level-modal').classList.contains('hidden') || 
-                    !document.getElementById('game-over-modal').classList.contains('hidden');
+                    !document.getElementById('game-over-modal').classList.contains('hidden') ||
+                    !document.getElementById('game-start-modal').classList.contains('hidden');
                 
                 if (isModalOpen) return; // Prevent game start while modals are active
 
@@ -613,11 +703,11 @@
         // Toggle paddle mode on click
         window.addEventListener('mousedown', (e) => {
             if (e.target.closest('.interactive-ui')) return; // Ignore UI clicks
-            if (botMode) return; // Bot controls the paddle mode
             
             const isModalOpen = isVictorious || 
                 !document.getElementById('level-modal').classList.contains('hidden') || 
-                !document.getElementById('game-over-modal').classList.contains('hidden');
+                !document.getElementById('game-over-modal').classList.contains('hidden') ||
+                !document.getElementById('game-start-modal').classList.contains('hidden');
             if (isModalOpen) return; // Ignore clicks if modal is open
 
             paddle.mode = paddle.mode === 'bounce' ? 'platform' : 'bounce';
@@ -669,6 +759,30 @@
             });
         }
 
+        // Computes the combined pull from all magnets
+        function getMagnetForce(px, py) {
+            let fx = 0, fy = 0;
+            for (let i = 0; i < magnets.length; i++) {
+                const mag = magnets[i];
+                const mcx = mag.x + mag.w / 2;
+                const mcy = mag.y + mag.h / 2;
+                const dx = mcx - px;
+                const dy = mcy - py;
+                const distSq = dx * dx + dy * dy;
+                const dist = Math.sqrt(distSq) || 1;
+                const radius = mag.radius || 220;
+                if (dist < radius) {
+                    const clampedDistSq = Math.max(distSq, 1600); // clamp min distance (40px) to avoid a singularity
+                    const strength = mag.strength || 2600;
+                    const falloff = 1 - (dist / radius); // fades to 0 at the edge of the field
+                    const pull = (strength / clampedDistSq) * falloff;
+                    fx += (dx / dist) * pull;
+                    fy += (dy / dist) * pull;
+                }
+            }
+            return { fx, fy };
+        }
+
         function loadLevel(idx) {
             currentLevelIdx = idx;
             const lvl = LEVELS[idx];
@@ -683,15 +797,15 @@
             isVictorious = false;
 
             // Reset player position & velocities
-        player.x = lvl.spawn.x;
-        player.y = lvl.spawn.y;
-        player.vx = 0;
-        player.vy = 0;
-        player.rotation = 0;
-        player.angularVelocity = 0;
-        player.isGrounded = false;
+            player.x = lvl.spawn.x;
+            player.y = lvl.spawn.y;
+            player.vx = 0;
+            player.vy = 0;
+            player.rotation = 0;
+            player.angularVelocity = 0;
+            player.isGrounded = false;
 
-        // Setup Goal
+            // Setup Goal
             goal = { ...lvl.goal };
 
             // Setup Platforms
@@ -700,204 +814,11 @@
             // Setup Enemies with original state copies
             enemies = lvl.enemies.map(e => ({ ...e, startX: e.x, startY: e.y }));
 
+            // Setup Magnets
+            magnets = (lvl.magnets || []).map(m => ({ ...m }));
+
             particles = [];
             document.getElementById('victory-modal').classList.add('hidden');
-            
-            // Reset bot state for new level
-            isPaddleTeleported = false;
-            lastTrajectoryWasSuccess = false;
-            waitingForBounceVerification = false;
-            ballTouchedPaddle = false;
-            ballLeftPaddleAfterTouch = false;
-            
-            // Start thinking if bot is enabled
-            if (botMode) {
-                startBotThinking();
-            }
-        }
-
-        // Track if paddle is currently teleported and last success status
-        let isPaddleTeleported = false;
-        let lastTrajectoryWasSuccess = false;
-        
-        // Track the bounce verification process
-        let waitingForBounceVerification = false;
-        let ballTouchedPaddle = false;
-        let ballLeftPaddleAfterTouch = false;
-
-        function startBotThinking() {
-            isThinking = true;
-            botThinkAttempts = 0;
-            thinkingStartTime = Date.now();
-
-            document.getElementById('thinking-overlay').classList.remove('hidden');
-            document.getElementById('attempt-display').classList.remove('hidden');
-
-            // Intelligent bot strategy evaluation
-            setTimeout(() => {
-                const savedPaddleX = paddle.x;
-                const savedPaddleY = paddle.y;
-                const savedPaddleMode = paddle.mode;
-                
-                let foundSolution = false;
-                let attempts = 0;
-                const maxAttempts = Math.floor(Math.random() * 15) + 12; // 12-27 attempts
-                
-                // Analyze level characteristics
-                const playerCenterX = player.x + player.width / 2;
-                const playerCenterY = player.y + player.height / 2;
-                const goalCenterX = goal.x + (goal.w / 2);
-                const goalCenterY = goal.y + (goal.h / 2);
-                const distToGoalX = Math.abs(goalCenterX - playerCenterX);
-                const distToGoalY = Math.abs(goalCenterY - playerCenterY);
-                const goalIsHigher = goalCenterY < playerCenterY;
-                const goalIsLower = goalCenterY > playerCenterY + 100;
-                
-                // Generate intelligent test positions based on level analysis
-                const testPositions = [];
-                
-                // Strategy 1: Platform mode positions (grounded support)
-                if (goalIsLower) {
-                    // If goal is lower, use platforms as support
-                    for (let plat of platforms) {
-                        // Test positions on platforms
-                        const platformCenterX = plat.x + plat.w / 2;
-                        for (let offset of [-60, -30, 0, 30, 60]) {
-                            testPositions.push({
-                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, platformCenterX + offset - paddle.width / 2)),
-                                y: plat.y - paddle.height - 5,
-                                mode: 'platform'
-                            });
-                        }
-                    }
-                }
-                
-                // Strategy 2: Bounce mode - high trajectory
-                if (goalIsHigher) {
-                    // If goal is higher, launch with bounce
-                    for (let height of [GAME_HEIGHT - 300, GAME_HEIGHT - 280, GAME_HEIGHT - 260, GAME_HEIGHT - 240]) {
-                        for (let xPos of [100, GAME_WIDTH / 3, GAME_WIDTH / 2, GAME_WIDTH * 2 / 3, GAME_WIDTH - 150]) {
-                            testPositions.push({
-                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
-                                y: height,
-                                mode: 'bounce'
-                            });
-                        }
-                    }
-                }
-                
-                // Strategy 3: Medium height positions with both modes (50/50 split)
-                for (let height of [GAME_HEIGHT - 90, GAME_HEIGHT - 110, GAME_HEIGHT - 130, GAME_HEIGHT - 150, GAME_HEIGHT - 170]) {
-                    for (let xPos of [80, GAME_WIDTH / 4, GAME_WIDTH / 2, GAME_WIDTH * 3 / 4, GAME_WIDTH - 120]) {
-                        const useMode = Math.random() > 0.5 ? 'platform' : 'bounce';
-                        testPositions.push({
-                            x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
-                            y: height,
-                            mode: useMode
-                        });
-                    }
-                }
-                
-                // Strategy 4: Directional guidance toward goal
-                if (distToGoalX > 200) {
-                    // Goal is far horizontally - test positions leading toward it
-                    const direction = goalCenterX > playerCenterX ? 1 : -1;
-                    for (let i = 1; i <= 3; i++) {
-                        const xPos = playerCenterX + (direction * i * 150);
-                        for (let mode of ['bounce', 'platform']) {
-                            testPositions.push({
-                                x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
-                                y: GAME_HEIGHT - 100 - (i * 20),
-                                mode: mode
-                            });
-                        }
-                    }
-                }
-                
-                // Strategy 5: Defensive positions (avoid lava)
-                for (let height of [GAME_HEIGHT - 70, GAME_HEIGHT - 85]) {
-                    for (let xPos of [150, GAME_WIDTH / 2, GAME_WIDTH - 200]) {
-                        testPositions.push({
-                            x: Math.max(0, Math.min(GAME_WIDTH - paddle.width, xPos - paddle.width / 2)),
-                            y: height,
-                            mode: 'bounce'
-                        });
-                    }
-                }
-                
-                // Shuffle array for variety in testing order
-                for (let i = testPositions.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [testPositions[i], testPositions[j]] = [testPositions[j], testPositions[i]];
-                }
-                
-                // Try each position
-                for (let i = 0; i < testPositions.length && attempts < maxAttempts; i++) {
-                    const pos = testPositions[i];
-                    paddle.x = pos.x;
-                    paddle.y = Math.max(35, Math.min(GAME_HEIGHT - 50, pos.y));
-                    paddle.mode = pos.mode || 'bounce';
-                    
-                    // Check if this position leads to success
-                    const traj = getTrajectory();
-                    attempts++;
-                    
-                    if (traj.status === 'success') {
-                        foundSolution = true;
-                        botThinkAttempts = attempts;
-                        break;
-                    }
-                }
-                
-                // If no solution found, try emergency strategies
-                if (!foundSolution && attempts < maxAttempts * 1.5) {
-                    // Try random positions as last resort
-                    for (let i = 0; i < 10 && !foundSolution && attempts < maxAttempts * 1.5; i++) {
-                        paddle.x = Math.random() * (GAME_WIDTH - paddle.width);
-                        paddle.y = 100 + Math.random() * (GAME_HEIGHT - 150);
-                        paddle.mode = Math.random() > 0.5 ? 'platform' : 'bounce';
-                        
-                        const traj = getTrajectory();
-                        attempts++;
-                        
-                        if (traj.status === 'success') {
-                            foundSolution = true;
-                            botThinkAttempts = Math.min(attempts, maxAttempts);
-                            break;
-                        }
-                    }
-                }
-                
-                // If still no solution, use best educated guess
-                if (!foundSolution) {
-                    botThinkAttempts = maxAttempts;
-                    // Position toward goal with balanced approach
-                    paddle.x = Math.max(0, Math.min(GAME_WIDTH - paddle.width, goalCenterX - paddle.width / 2));
-                    paddle.y = GAME_HEIGHT - 110;
-                    paddle.mode = goalIsHigher ? 'bounce' : 'platform';
-                }
-                
-                // Restore paddle state
-                paddle.x = savedPaddleX;
-                paddle.y = savedPaddleY;
-                paddle.mode = savedPaddleMode;
-                
-                // Update attempt display
-                document.getElementById('attempt-count').innerText = botThinkAttempts;
-
-                // Hide thinking overlay after brief delay
-                setTimeout(() => {
-                    document.getElementById('thinking-overlay').classList.add('hidden');
-                    isThinking = false;
-                    
-                    // Auto-start the level
-                    if (!isStarted && !isVictorious) {
-                        isStarted = true;
-                        const guideElem = document.getElementById('start-overlay');
-                        if (guideElem) guideElem.classList.add('opacity-0');
-                    }
-                }, 500);
-            }, 1500 + Math.random() * 1000); // 1.5-2.5 seconds
         }
 
         function restartCurrentLevel() {
@@ -906,266 +827,6 @@
             playDeathSound();
             createParticles(player.x + player.width / 2, player.y + player.height / 2, '#ef4444', 25);
             loadLevel(currentLevelIdx);
-        }
-
-        function updateBotPaddle() {
-            const playerCenterX = player.x + player.width / 2;
-            const playerBottom = player.y + player.height;
-            const playerCenterY = player.y + player.height / 2;
-            const goalCenterX = (goal.x || 0) + ((goal.w || goal.width || 45) / 2);
-            const goalCenterY = (goal.y || 0) + ((goal.h || goal.height || 55) / 2);
-            const LAVA_Y = GAME_HEIGHT - 35;
-            const distToGoalX = goalCenterX - playerCenterX;
-            const distToGoalY = goalCenterY - playerCenterY;
-            const absDistGoalX = Math.abs(distToGoalX);
-            const goalIsHigher = goalCenterY < playerCenterY - 40;
-
-            // --- Trajectory awareness ---
-            const traj = getTrajectory();
-            
-            // Check if ball is currently colliding with paddle
-            const ballCollidingWithPaddle = (player.x + player.width > paddle.x &&
-                player.x < paddle.x + paddle.width &&
-                player.y + player.height > paddle.y &&
-                player.y < paddle.y + paddle.height);
-            
-            // If trajectory shows success and we're not already waiting, start verification
-            if (traj.status === 'success' && !waitingForBounceVerification && !isPaddleTeleported) {
-                waitingForBounceVerification = true;
-                ballTouchedPaddle = false;
-                ballLeftPaddleAfterTouch = false;
-                // Continue guiding - don't teleport yet!
-            }
-            
-            // Track if ball touched the paddle during verification
-            if (waitingForBounceVerification && ballCollidingWithPaddle) {
-                ballTouchedPaddle = true;
-            }
-            
-            // Check if ball left the paddle after touching it
-            if (waitingForBounceVerification && ballTouchedPaddle && !ballCollidingWithPaddle) {
-                ballLeftPaddleAfterTouch = true;
-                
-                // Recheck trajectory after the bounce
-                const recheckTraj = getTrajectory();
-                
-                if (recheckTraj.status === 'success') {
-                    // Still going to goal - teleport away!
-                    isPaddleTeleported = true;
-                    paddle.x = -1000;
-                    paddle.y = -1000;
-                    waitingForBounceVerification = false;
-                    return;
-                } else {
-                    // Bounce didn't work as expected - reset verification and guide again
-                    waitingForBounceVerification = false;
-                    ballTouchedPaddle = false;
-                    ballLeftPaddleAfterTouch = false;
-                }
-            }
-            
-            // If we were teleported but trajectory is no longer successful, teleport back!
-            if (isPaddleTeleported && traj.status !== 'success') {
-                isPaddleTeleported = false;
-                lastTrajectoryWasSuccess = false;
-                waitingForBounceVerification = false;
-                ballTouchedPaddle = false;
-                ballLeftPaddleAfterTouch = false;
-                // Continue with normal logic below to guide the ball back to goal
-            }
-
-            // Time-to-lava estimate
-            let framesToLava = 999;
-            if (player.vy > 0) {
-                const dy = LAVA_Y - playerBottom;
-                const disc = player.vy * player.vy + 2 * player.gravity * dy;
-                if (disc >= 0) framesToLava = (-player.vy + Math.sqrt(disc)) / player.gravity;
-            } else if (playerBottom > LAVA_Y - 90) {
-                framesToLava = 18;
-            }
-
-            const danger = traj.status === 'danger' || framesToLava < 40 || playerBottom > GAME_HEIGHT * 0.70 || player.vy > 7;
-            
-            // Smart mode selection: 50/50 between bounce and platform
-            let needStablePlatform = player.isGrounded ||
-                (player.vy < 2.5 && playerBottom > GAME_HEIGHT * 0.60 && absDistGoalX > 70) ||
-                (framesToLava < 22 && player.vy > 1.5 && absDistGoalX < 140);
-            
-            // Add randomness to mode selection for variety
-            const useRandomMode = Math.random() > 0.5;
-            if (useRandomMode && !danger && !player.isGrounded) {
-                // Mix up the strategy - randomly prefer one mode
-                needStablePlatform = Math.random() > 0.5;
-            }
-            
-            paddle.mode = needStablePlatform ? 'platform' : 'bounce';
-
-            // ---- Primary target ----
-            let targetX, targetY;
-
-            if (danger) {
-                // Hard rescue: intercept under the player with lead
-                targetX = playerCenterX - paddle.width / 2 + player.vx * 6;
-                targetY = Math.min(playerBottom + 5, LAVA_Y - 36);
-            } else if (player.isGrounded) {
-                // Walk support: stay slightly ahead toward goal
-                const lead = Math.sign(distToGoalX || 1) * 45;
-                targetX = playerCenterX - paddle.width / 2 + lead;
-                targetY = playerBottom + 3;
-            } else {
-                // Juggle toward goal
-                const lookAhead = Math.min(22, Math.max(10, framesToLava * 0.5));
-                let predX = playerCenterX + player.vx * lookAhead;
-                let predY = playerBottom + player.vy * lookAhead + 0.5 * player.gravity * lookAhead * lookAhead;
-
-                // Contact offset to impart velocity toward goal
-                const desiredDirX = Math.sign(distToGoalX || 1);
-                let contactOffsetX = desiredDirX * Math.min(26, absDistGoalX * 0.14);
-
-                // If goal is much higher, aim a bit more centered for pure vertical boost
-                if (goalIsHigher && absDistGoalX < 180) {
-                    contactOffsetX *= 0.55;
-                }
-
-                targetX = predX - paddle.width / 2 + contactOffsetX;
-                targetY = predY + 3;
-
-                // Meet lower and prepare upward flick when height is needed
-                if (goalIsHigher) {
-                    targetY = Math.min(targetY, playerBottom + 16);
-                }
-            }
-
-            // ---- Enemy avoidance with prediction ----
-            for (const enemy of enemies) {
-                const ew = enemy.w || 26;
-                const eh = enemy.h || 26;
-                let ex = enemy.x + ew / 2;
-                let ey = enemy.y + eh / 2;
-                if (enemy.type === 'patrol' && enemy.vx) {
-                    ex += enemy.vx * 10;
-                } else if (enemy.type === 'vertical' && enemy.vy) {
-                    ey += enemy.vy * 10;
-                } else if (enemy.type === 'chaser') {
-                    const edx = playerCenterX - ex;
-                    const edy = playerCenterY - ey;
-                    const ed = Math.hypot(edx, edy) || 1;
-                    const spd = enemy.speed || 1.2;
-                    ex += (edx / ed) * spd * 8;
-                    ey += (edy / ed) * spd * 8;
-                }
-
-                const distE = Math.hypot((targetX + paddle.width / 2) - ex, targetY - ey);
-                if (distE < 120) {
-                    const strength = (120 - distE) / 120;
-                    const awayX = (targetX + paddle.width / 2 > ex) ? 1 : -1;
-                    targetX += awayX * strength * 60;
-                    targetY -= strength * 28;
-                }
-            }
-
-            // ---- Enhanced micro-search: test multiple positions and BOTH modes ----
-            // (finds optimal paddle position and mode for current trajectory)
-            if (!danger && !player.isGrounded) {
-                const candidates = [
-                    { x: targetX, mode: paddle.mode },
-                    { x: targetX - 28, mode: paddle.mode },
-                    { x: targetX + 28, mode: paddle.mode },
-                    { x: targetX - 50, mode: paddle.mode },
-                    { x: targetX + 50, mode: paddle.mode },
-                    // Also try the alternate mode!
-                    { x: targetX, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
-                    { x: targetX - 35, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
-                    { x: targetX + 35, mode: paddle.mode === 'bounce' ? 'platform' : 'bounce' },
-                ];
-                
-                let bestX = targetX;
-                let bestMode = paddle.mode;
-                let bestScore = -Infinity;
-                let bestY = targetY;
-
-                const savedPx = paddle.x, savedPy = paddle.y, savedMode = paddle.mode;
-                
-                for (const candidate of candidates) {
-                    const clamped = Math.max(0, Math.min(GAME_WIDTH - paddle.width, candidate.x));
-                    
-                    // Test multiple heights for platform mode
-                    const heightsToTest = candidate.mode === 'platform' 
-                        ? [targetY, targetY - 15, targetY + 15]
-                        : [targetY];
-                    
-                    for (const testY of heightsToTest) {
-                        paddle.x = clamped;
-                        paddle.y = Math.max(28, Math.min(LAVA_Y - 40, testY));
-                        paddle.mode = candidate.mode;
-                        
-                        const probe = getTrajectory();
-                        let score = 0;
-                        
-                        // Heavy reward for success
-                        if (probe.status === 'success') {
-                            score = 2000;
-                        } else if (probe.status === 'danger') {
-                            score = -1000;
-                        } else {
-                            score = 100;
-                        }
-                        
-                        // Trajectory quality metrics
-                        if (probe.points && probe.points.length > 2) {
-                            const last = probe.points[probe.points.length - 1];
-                            
-                            // How close to goal?
-                            const distToGoal = Math.hypot(last.x - goalCenterX, last.y - goalCenterY);
-                            score -= distToGoal * 0.3;
-                            
-                            // Prefer higher final position (safer)
-                            score += Math.max(0, LAVA_Y - last.y) * 0.1;
-                            
-                            // Bonus for smooth trajectories (more points = longer flight)
-                            score += Math.min(50, probe.points.length * 2);
-                        }
-                        
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestX = clamped;
-                            bestMode = candidate.mode;
-                            bestY = paddle.y;
-                        }
-                    }
-                }
-                
-                // Restore and apply best solution
-                paddle.mode = savedMode;
-                targetX = bestX;
-                targetY = bestY;
-                paddle.mode = bestMode; // Update mode for current frame
-            }
-
-            // ---- Clamps ----
-            targetX = Math.max(0, Math.min(GAME_WIDTH - paddle.width, targetX));
-            targetY = Math.max(28, Math.min(LAVA_Y - 40, targetY));
-
-            // ---- Pursuit ----
-            const maxSpeed = danger ? 34 : 27;
-            const dx = targetX - paddle.x;
-            const dy = targetY - paddle.y;
-            const dist = Math.hypot(dx, dy) || 1;
-            if (dist > maxSpeed) {
-                paddle.x += (dx / dist) * maxSpeed;
-                paddle.y += (dy / dist) * maxSpeed;
-            } else {
-                paddle.x = targetX;
-                paddle.y = targetY;
-            }
-
-            // Upward flick for extra height when contacting and goal is above
-            if (paddle.mode === 'bounce' &&
-                Math.abs(playerCenterX - (paddle.x + paddle.width / 2)) < paddle.width * 0.75 &&
-                playerBottom < paddle.y + 22 && playerBottom > paddle.y - 28 &&
-                player.vy > -1 && goalIsHigher) {
-                paddle.y = Math.max(25, paddle.y - 10);
-            }
         }
 
         function updatePhysics() {
@@ -1178,7 +839,8 @@
 
             const isModalOpen = isVictorious || 
                 !document.getElementById('level-modal').classList.contains('hidden') || 
-                !document.getElementById('game-over-modal').classList.contains('hidden');
+                !document.getElementById('game-over-modal').classList.contains('hidden') ||
+                !document.getElementById('game-start-modal').classList.contains('hidden');
 
             // Restore the standard mouse pointer when a UI modal is active
             wrapper.style.cursor = isModalOpen ? 'default' : 'none';
@@ -1187,36 +849,19 @@
                 paddle.prevX = paddle.x;
                 paddle.prevY = paddle.y;
 
-                if (botMode) {
-                    // Don't update paddle while thinking
-                    if (isThinking) {
-                        // Keep paddle still while thinking
-                    } else {
-                        // Auto-start the level when bot is active
-                        if (!isStarted && !isVictorious) {
-                            isStarted = true;
-                            const guideElem = document.getElementById('start-overlay');
-                            if (guideElem) guideElem.classList.add('opacity-0');
-                        }
-                        if (isStarted && !isVictorious) {
-                            updateBotPaddle();
-                        }
-                    }
-                } else {
-                    let mousePercentX = canvas.width > 0 ? (rawMouseX / canvas.width) : 0.5;
-                    let mousePercentY = canvas.height > 0 ? (rawMouseY / canvas.height) : 0.5;
-                    
-                    // Constrain percentages
-                    mousePercentX = Math.max(0, Math.min(1, mousePercentX || 0.5));
-                    mousePercentY = Math.max(0, Math.min(1, mousePercentY || 0.5));
+                let mousePercentX = canvas.width > 0 ? (rawMouseX / canvas.width) : 0.5;
+                let mousePercentY = canvas.height > 0 ? (rawMouseY / canvas.height) : 0.5;
+                
+                // Constrain percentages
+                mousePercentX = Math.max(0, Math.min(1, mousePercentX || 0.5));
+                mousePercentY = Math.max(0, Math.min(1, mousePercentY || 0.5));
 
-                    // Map absolute mouse position to absolute level position
-                    paddle.x = mousePercentX * GAME_WIDTH - paddle.width / 2;
-                    paddle.y = mousePercentY * GAME_HEIGHT - paddle.height / 2;
+                // Map absolute mouse position to absolute level position
+                paddle.x = mousePercentX * GAME_WIDTH - paddle.width / 2;
+                paddle.y = mousePercentY * GAME_HEIGHT - paddle.height / 2;
 
-                    paddle.x = Math.max(0, Math.min(GAME_WIDTH - paddle.width, paddle.x));
-                    paddle.y = Math.max(0, Math.min(GAME_HEIGHT - paddle.height, paddle.y));
-                }
+                paddle.x = Math.max(0, Math.min(GAME_WIDTH - paddle.width, paddle.x));
+                paddle.y = Math.max(0, Math.min(GAME_HEIGHT - paddle.height, paddle.y));
 
                 paddle.vx = paddle.x - paddle.prevX;
                 paddle.vy = paddle.y - paddle.prevY;
@@ -1255,6 +900,13 @@
             // Apply gravity
             player.vy += player.gravity;
 
+            // Apply magnet attraction (magnets are NOT solid - only felt while flying)
+            if (magnets.length && !player.isGrounded) {
+                const mf = getMagnetForce(player.x + player.width / 2, player.y + player.height / 2);
+                player.vx += mf.fx;
+                player.vy += mf.fy;
+            }
+
             // Update Position
             player.x += player.vx;
             player.y += player.vy;
@@ -1273,37 +925,36 @@
                     const overlapY = Math.min((player.y + player.height) - plat.y, (plat.y + plat.h) - player.y);
 
                     if (overlapY < overlapX) {
-                    // Vertical Collision
-                    if (player.vy > 0 && player.y < plat.y) {
-                        // Top collision (landing)
-                        player.y = plat.y - player.height;
-                        player.vy = 0;
-                        player.isGrounded = true;
-                    } else if (player.vy < 0 && player.y > plat.y) {
-                        // Bottom head bonk
-                        player.y = plat.y + plat.h;
-                        player.vy = 0;
-                    }
-                } else {
-                    // Horizontal Collision
-                    const overlapLeft = (player.x + player.width) - plat.x;
-                    const overlapRight = (plat.x + plat.w) - player.x;
-
-                    if (overlapLeft < overlapRight) {
-                        player.x = plat.x - player.width;
-                        player.vx = -Math.abs(player.vx) * 0.5;
-                        player.angularVelocity = player.vy * 0.05;
+                        // Vertical Collision
+                        if (player.vy > 0 && player.y < plat.y) {
+                            // Top collision (landing)
+                            player.y = plat.y - player.height;
+                            player.vy = 0;
+                            player.isGrounded = true;
+                        } else if (player.vy < 0 && player.y > plat.y) {
+                            // Bottom head bonk
+                            player.y = plat.y + plat.h;
+                            player.vy = 0;
+                        }
                     } else {
-                        player.x = plat.x + plat.w;
-                        player.vx = Math.abs(player.vx) * 0.5;
-                        player.angularVelocity = -player.vy * 0.05;
+                        // Horizontal Collision
+                        const overlapLeft = (player.x + player.width) - plat.x;
+                        const overlapRight = (plat.x + plat.w) - player.x;
+
+                        if (overlapLeft < overlapRight) {
+                            player.x = plat.x - player.width;
+                            player.vx = -Math.abs(player.vx) * 0.5;
+                            player.angularVelocity = player.vy * 0.05;
+                        } else {
+                            player.x = plat.x + plat.w;
+                            player.vx = Math.abs(player.vx) * 0.5;
+                            player.angularVelocity = -player.vy * 0.05;
+                        }
                     }
                 }
-            }
-        });
+            });
 
-        // 3. Black Cursor Block Collisions (Paddle Physics)
-            // Note: Rotation of green square is intentionally disabled per design requirements!
+            // 3. Black Cursor Block Collisions (Paddle Physics)
             if (player.x + player.width > paddle.x &&
                 player.x < paddle.x + paddle.width &&
                 player.y + player.height > paddle.y &&
@@ -1340,46 +991,46 @@
                     }
 
                     totalBounces++;
-                playBounceSound(Math.abs(player.vy) + Math.abs(paddle.vy));
-                createParticles(player.x + player.width/2, player.y + player.height/2, '#4ade80', 6);
-                
-                // Add rotational bounce spin
-                player.angularVelocity = (player.vx - paddle.vx * 0.2) * 0.04;
-            } else {
-                // Platform Logic (Solid, movable platform)
-                if (minOverlap === overlapTop) {
-                    player.y = paddle.y - player.height;
-                    player.vy = paddle.vy < 0 ? paddle.vy : 0; // Carry up if moving up
-                    player.isGrounded = true;
-                } else if (minOverlap === overlapBottom) {
-                    player.y = paddle.y + paddle.height;
-                    player.vy = paddle.vy > 0 ? paddle.vy : 0;
-                } else if (minOverlap === overlapLeft) {
-                    player.x = paddle.x - player.width;
-                    player.vx = paddle.vx < 0 ? paddle.vx : 0;
-                } else if (minOverlap === overlapRight) {
-                    player.x = paddle.x + paddle.width;
-                    player.vx = paddle.vx > 0 ? paddle.vx : 0;
+                    playBounceSound(Math.abs(player.vy) + Math.abs(paddle.vy));
+                    createParticles(player.x + player.width/2, player.y + player.height/2, '#4ade80', 6);
+                    
+                    // Add rotational bounce spin
+                    player.angularVelocity = (player.vx - paddle.vx * 0.2) * 0.04;
+                } else {
+                    // Platform Logic (Solid, movable platform)
+                    if (minOverlap === overlapTop) {
+                        player.y = paddle.y - player.height;
+                        player.vy = paddle.vy < 0 ? paddle.vy : 0; // Carry up if moving up
+                        player.isGrounded = true;
+                    } else if (minOverlap === overlapBottom) {
+                        player.y = paddle.y + paddle.height;
+                        player.vy = paddle.vy > 0 ? paddle.vy : 0;
+                    } else if (minOverlap === overlapLeft) {
+                        player.x = paddle.x - player.width;
+                        player.vx = paddle.vx < 0 ? paddle.vx : 0;
+                    } else if (minOverlap === overlapRight) {
+                        player.x = paddle.x + paddle.width;
+                        player.vx = paddle.vx > 0 ? paddle.vx : 0;
+                    }
                 }
             }
-        }
 
-        // Air resistance on horizontal speed
-        player.vx *= 0.985;
+            // Air resistance on horizontal speed
+            player.vx *= 0.985;
 
-        // Handle Rotation & Stand upright when landed
-        player.rotation += player.angularVelocity;
-        if (player.isGrounded) {
-            player.rotation %= (Math.PI * 2);
-            player.angularVelocity *= 0.6;
-            const PI_2 = Math.PI / 2;
-            const targetRotation = Math.round(player.rotation / PI_2) * PI_2;
-            player.rotation += (targetRotation - player.rotation) * 0.25;
-        } else {
-            player.angularVelocity *= 0.99; // Air resistance on spin
-        }
+            // Handle Rotation & Stand upright when landed
+            player.rotation += player.angularVelocity;
+            if (player.isGrounded) {
+                player.rotation %= (Math.PI * 2);
+                player.angularVelocity *= 0.6;
+                const PI_2 = Math.PI / 2;
+                const targetRotation = Math.round(player.rotation / PI_2) * PI_2;
+                player.rotation += (targetRotation - player.rotation) * 0.25;
+            } else {
+                player.angularVelocity *= 0.99; // Air resistance on spin
+            }
 
-        // 4. Enemy Updates & Collision
+            // 4. Enemy Updates & Collision
             enemies.forEach(enemy => {
                 // Movement updates
                 if (enemy.type === 'patrol') {
@@ -1417,11 +1068,11 @@
             }
 
             // Outer Bounds Left/Right/Top Soft bounce
-        if (player.x < 0) { player.x = 0; player.vx = Math.abs(player.vx) * 0.5; player.angularVelocity = -player.vy * 0.05; }
-        if (player.x + player.width > GAME_WIDTH) { player.x = GAME_WIDTH - player.width; player.vx = -Math.abs(player.vx) * 0.5; player.angularVelocity = player.vy * 0.05; }
-        if (player.y < 0) { player.y = 0; player.vy = Math.abs(player.vy) * 0.5; }
+            if (player.x < 0) { player.x = 0; player.vx = Math.abs(player.vx) * 0.5; player.angularVelocity = -player.vy * 0.05; }
+            if (player.x + player.width > GAME_WIDTH) { player.x = GAME_WIDTH - player.width; player.vx = -Math.abs(player.vx) * 0.5; player.angularVelocity = player.vy * 0.05; }
+            if (player.y < 0) { player.y = 0; player.vy = Math.abs(player.vy) * 0.5; }
 
-        // 6. Victory Goal Gate Collision
+            // 6. Victory Goal Gate Collision
             if (player.x + player.width > goal.x &&
                 player.x < goal.x + goal.w &&
                 player.y + player.height > goal.y &&
@@ -1470,6 +1121,14 @@
                 }
 
                 simVy += player.gravity;
+
+                // Simulated magnet attraction (mirrors the real physics update)
+                if (magnets.length && !simGrounded) {
+                    const mf = getMagnetForce(simX + player.width / 2, simY + player.height / 2);
+                    simVx += mf.fx;
+                    simVy += mf.fy;
+                }
+
                 simX += simVx;
                 simY += simVy;
                 simGrounded = false;
@@ -1484,33 +1143,33 @@
                         const overlapY = Math.min((simY + player.height) - plat.y, (plat.y + plat.h) - simY);
 
                         if (overlapY < overlapX) {
-                        if (simVy > 0 && simY < plat.y) {
-                            simY = plat.y - player.height;
-                            simVy = 0;
-                            simGrounded = true;
-                        } else if (simVy < 0 && simY > plat.y) {
-                            simY = plat.y + plat.h;
-                            simVy = 0;
-                            hitWall = true; // End line at ceilings
-                        }
-                    } else {
-                        // Horizontal fix for simulation
-                        const overlapLeft = (simX + player.width) - plat.x;
-                        const overlapRight = (plat.x + plat.w) - simX;
-
-                        if (overlapLeft < overlapRight) {
-                            simX = plat.x - player.width;
-                            simVx = -Math.abs(simVx) * 0.5;
+                            if (simVy > 0 && simY < plat.y) {
+                                simY = plat.y - player.height;
+                                simVy = 0;
+                                simGrounded = true;
+                            } else if (simVy < 0 && simY > plat.y) {
+                                simY = plat.y + plat.h;
+                                simVy = 0;
+                                hitWall = true; // End line at ceilings
+                            }
                         } else {
-                            simX = plat.x + plat.w;
-                            simVx = Math.abs(simVx) * 0.5;
+                            // Horizontal fix for simulation
+                            const overlapLeft = (simX + player.width) - plat.x;
+                            const overlapRight = (plat.x + plat.w) - simX;
+
+                            if (overlapLeft < overlapRight) {
+                                simX = plat.x - player.width;
+                                simVx = -Math.abs(simVx) * 0.5;
+                            } else {
+                                simX = plat.x + plat.w;
+                                simVx = Math.abs(simVx) * 0.5;
+                            }
+                            hitWall = true; // End line at side walls
                         }
-                        hitWall = true; // End line at side walls
                     }
                 }
-            }
 
-            // Simulated Paddle Collision
+                // Simulated Paddle Collision
                 if (simX + player.width > paddle.x && simX < paddle.x + paddle.width &&
                     simY + player.height > paddle.y && simY < paddle.y + paddle.height) {
                     
@@ -1662,6 +1321,70 @@
                 ctx.strokeRect(plat.x, plat.y, plat.w, plat.h);
             });
 
+            // C2. Draw Magnets
+            magnets.forEach(mag => {
+                const mcx = mag.x + mag.w / 2;
+                const mcy = mag.y + mag.h / 2;
+                const radius = mag.radius || 220;
+                const pulseT = Date.now() * 0.002;
+                const pulse = (Math.sin(pulseT) + 1) / 2; // 0..1
+
+                ctx.save();
+
+                // Pulsing field-radius ring shows how far the pull reaches
+                ctx.beginPath();
+                ctx.arc(mcx, mcy, radius * (0.85 + pulse * 0.15), 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(192, 132, 252, ${0.10 + pulse * 0.08})`;
+                ctx.setLineDash([10, 8]);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Inward-pointing ticks hint at the pull direction
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+                    const ringR = radius * 0.5;
+                    const tx = mcx + Math.cos(a) * ringR;
+                    const ty = mcy + Math.sin(a) * ringR;
+                    const tx2 = mcx + Math.cos(a) * (ringR - 14);
+                    const ty2 = mcy + Math.sin(a) * (ringR - 14);
+                    ctx.beginPath();
+                    ctx.moveTo(tx, ty);
+                    ctx.lineTo(tx2, ty2);
+                    ctx.strokeStyle = 'rgba(196, 181, 253, 0.35)';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // Magnet body
+                ctx.translate(mag.x, mag.y);
+                const w = mag.w, h = mag.h;
+
+                ctx.fillStyle = '#3b82f6'; // Blue half
+                ctx.fillRect(0, 0, w, h / 2);
+                ctx.fillStyle = '#ef4444'; // Red half
+                ctx.fillRect(0, h / 2, w, h / 2);
+
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(0, 0, w, h);
+
+                ctx.beginPath();
+                ctx.moveTo(0, h / 2);
+                ctx.lineTo(w, h / 2);
+                ctx.strokeStyle = '#f8fafc';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Orbitron, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('N', w / 2, h / 4 + 1);
+                ctx.fillText('S', w / 2, (3 * h) / 4 + 1);
+
+                ctx.restore();
+            });
+
             // D. Draw Goal Gate (Yellow Portal)
             ctx.save();
             ctx.fillStyle = 'rgba(234, 179, 8, 0.25)';
@@ -1769,23 +1492,23 @@
             
             ctx.fillStyle = player.color;
             ctx.fillRect(hx, hy, pw, ph);
-        
-        // Player Top Accent
-        ctx.fillStyle = '#86efac';
-        ctx.fillRect(hx + 3, hy + 3, pw - 6, 4);
+            
+            // Player Top Accent
+            ctx.fillStyle = '#86efac';
+            ctx.fillRect(hx + 3, hy + 3, pw - 6, 4);
 
-        // Player Outline
-        ctx.strokeStyle = '#15803d';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(hx, hy, pw, ph);
+            // Player Outline
+            ctx.strokeStyle = '#15803d';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hx, hy, pw, ph);
 
-        // Cute Eyes on Green Square
-        ctx.fillStyle = '#052e16';
-        ctx.fillRect(hx + 6, hy + 8, 4, 6);
-        ctx.fillRect(hx + 18, hy + 8, 4, 6);
-        ctx.restore();
+            // Cute Eyes on Green Square
+            ctx.fillStyle = '#052e16';
+            ctx.fillRect(hx + 6, hy + 8, 4, 6);
+            ctx.fillRect(hx + 18, hy + 8, 4, 6);
+            ctx.restore();
 
-        // H. Draw Mouse Cursor Black Block
+            // H. Draw Mouse Cursor Black Block
             ctx.save();
             if (paddle.mode === 'bounce') {
                 ctx.fillStyle = '#0f172a';
@@ -1869,154 +1592,107 @@
                         ctx.strokeStyle = strokeColor;
                         ctx.lineWidth = 2;
                         ctx.stroke();
-                        
                         ctx.restore();
                     }
                 };
-
-                // Draw Goal Arrow
-                const gx = goal.x + goal.w / 2;
-                const gy = goal.y + goal.h / 2;
-                drawOffscreenArrow(gx, gy, '#eab308', '#fef08a');
-
-                // Draw Player Arrow
-                const px = player.x + player.width / 2;
-                const py = player.y + player.height / 2;
-                drawOffscreenArrow(px, py, '#22c55e', '#86efac');
-
-                // Draw Enemy Arrows
-                enemies.forEach(enemy => {
-                    const ex = enemy.x + enemy.w / 2;
-                    const ey = enemy.y + enemy.h / 2;
-                    drawOffscreenArrow(ex, ey, '#ef4444', '#fda4af');
-                });
+                
+                // Indicate goal location
+                drawOffscreenArrow(goal.x + goal.w/2, goal.y + goal.h/2, '#facc15', '#ca8a04');
             }
 
-            ctx.restore(); // Restore global scaling
+            ctx.restore();
+            updateParticles();
         }
 
         function gameLoop() {
             updatePhysics();
-            updateParticles();
             render();
             animationFrameId = requestAnimationFrame(gameLoop);
         }
 
-        function setupUI() {
-            // Restart Level Button
-            document.getElementById('btn-restart').addEventListener('click', () => {
-                restartCurrentLevel();
-            });
-
-            // Keyboard Shortcuts
-            window.addEventListener('keydown', (e) => {
-                if (e.key === 'r' || e.key === 'R') {
-                    restartCurrentLevel();
-                }
-            });
-
-            // Next Level Button
-            document.getElementById('btn-next-level').addEventListener('click', () => {
-                if (currentLevelIdx < LEVELS.length - 1) {
-                    loadLevel(currentLevelIdx + 1);
-                }
-            });
-
-            // Restart Entire Game Button
-            document.getElementById('btn-restart-game').addEventListener('click', () => {
-                totalDeaths = 0;
-                totalBounces = 0;
-                document.getElementById('deaths-display').innerText = '0';
-                document.getElementById('game-over-modal').classList.add('hidden');
-                loadLevel(0);
-            });
-
-            // Level Selector Modal Controls
-            const modal = document.getElementById('level-modal');
+        // Initialize Level Selector
+        function initLevelSelector() {
             const grid = document.getElementById('level-grid');
-
-            document.getElementById('btn-levels').addEventListener('click', () => {
-                grid.innerHTML = '';
-                LEVELS.forEach((lvl, idx) => {
-                    const btn = document.createElement('button');
-                    btn.className = `interactive-ui p-4 rounded-xl border flex flex-col items-center justify-center transition ${
-                        idx === currentLevelIdx 
-                            ? 'bg-indigo-600 border-indigo-400 text-white font-bold' 
-                            : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700 hover:border-slate-500'
-                    }`;
-                    btn.innerHTML = `
-                        <span class="text-xs text-slate-400 mb-1">LEVEL</span>
-                        <span class="text-xl font-black title-font">${idx + 1}</span>
-                        <span class="text-[10px] text-slate-400 mt-1 truncate w-full text-center">${lvl.title}</span>
-                    `;
-                    btn.addEventListener('click', () => {
-                        loadLevel(idx);
-                        modal.classList.add('hidden');
-                    });
-                    grid.appendChild(btn);
-                });
-                modal.classList.remove('hidden');
-            });
-
-            document.getElementById('btn-close-modal').addEventListener('click', () => {
-                modal.classList.add('hidden');
-            });
-
-            // Toggle Camera
-            const btnCamera = document.getElementById('btn-camera');
-            if (btnCamera) {
-                btnCamera.addEventListener('click', () => {
-                    cameraFollowEnabled = !cameraFollowEnabled;
-                    if(cameraFollowEnabled) {
-                        btnCamera.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden md:inline">Cam: On</span>';
-                        btnCamera.classList.replace('text-slate-200', 'text-emerald-400');
-                        btnCamera.classList.replace('border-slate-600', 'border-emerald-500');
-                    } else {
-                        btnCamera.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden md:inline">Cam: Off</span>';
-                        btnCamera.classList.replace('text-emerald-400', 'text-slate-200');
-                        btnCamera.classList.replace('border-emerald-500', 'border-slate-600');
-                    }
-                });
-            }
-
-            // Toggle Bot Mode
-            const btnBot = document.getElementById('btn-bot');
-            if (btnBot) {
-                btnBot.addEventListener('click', () => {
-                    botMode = !botMode;
-                    if (botMode) {
-                        btnBot.innerHTML = '<i class="fa-solid fa-robot"></i><span class="hidden md:inline">Bot: On</span>';
-                        btnBot.classList.remove('text-slate-300', 'border-slate-700');
-                        btnBot.classList.add('text-emerald-400', 'border-emerald-500');
-                        // Start thinking
-                        startBotThinking();
-                    } else {
-                        btnBot.innerHTML = '<i class="fa-solid fa-robot"></i><span class="hidden md:inline">Bot: Off</span>';
-                        btnBot.classList.remove('text-emerald-400', 'border-emerald-500');
-                        btnBot.classList.add('text-slate-300', 'border-slate-700');
-                        // Hide overlays when bot is turned off
-                        document.getElementById('thinking-overlay').classList.add('hidden');
-                        document.getElementById('attempt-display').classList.add('hidden');
-                        isThinking = false;
-                    }
-                });
-            }
-
-            // Toggle Audio
-            document.getElementById('btn-audio').addEventListener('click', () => {
-                soundEnabled = !soundEnabled;
-                const icon = document.getElementById('audio-icon');
-                if (soundEnabled) {
-                    icon.className = 'fa-solid fa-volume-high';
-                } else {
-                    icon.className = 'fa-solid fa-volume-xmark text-rose-500';
-                }
+            grid.innerHTML = '';
+            LEVELS.forEach((lvl, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'interactive-ui bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl p-3 flex flex-col items-center justify-center transition shadow-sm hover:shadow-md';
+                btn.innerHTML = `
+                    <span class="text-xl font-bold title-font mb-1 text-slate-100">${idx + 1}</span>
+                    <span class="text-[10px] text-center leading-tight opacity-70">${lvl.title}</span>
+                `;
+                btn.onclick = () => {
+                    document.getElementById('level-modal').classList.add('hidden');
+                    loadLevel(idx);
+                };
+                grid.appendChild(btn);
             });
         }
 
+        // Setup Button Listeners
+        document.getElementById('btn-restart').addEventListener('click', () => { restartCurrentLevel(); });
+        document.getElementById('btn-levels').addEventListener('click', () => { document.getElementById('level-modal').classList.remove('hidden'); });
+        document.getElementById('btn-close-modal').addEventListener('click', () => { document.getElementById('level-modal').classList.add('hidden'); });
+        
+        document.getElementById('btn-next-level').addEventListener('click', () => {
+            if (currentLevelIdx < LEVELS.length - 1) {
+                loadLevel(currentLevelIdx + 1);
+            }
+        });
+        
+        document.getElementById('btn-restart-game').addEventListener('click', () => {
+            document.getElementById('game-over-modal').classList.add('hidden');
+            totalDeaths = 0;
+            totalBounces = 0;
+            document.getElementById('deaths-display').innerText = '0';
+            loadLevel(0);
+        });
+
+        // Initialize Audio and start game from start screen
+        document.getElementById('btn-init-start').addEventListener('click', async () => {
+            if (Tone.context.state !== 'running') {
+                await Tone.start();
+            }
+            initAudio(); // Initialize synthesizers early
+            document.getElementById('game-start-modal').classList.add('hidden');
+        });
+        
+        document.getElementById('btn-camera').addEventListener('click', (e) => {
+            cameraFollowEnabled = !cameraFollowEnabled;
+            const btn = e.currentTarget;
+            if (cameraFollowEnabled) {
+                btn.classList.replace('text-slate-400', 'text-emerald-400');
+                btn.classList.replace('border-slate-700', 'border-emerald-500');
+                btn.innerHTML = '<i class="fa-solid fa-video"></i><span class="hidden md:inline">Cam: On</span>';
+            } else {
+                btn.classList.replace('text-emerald-400', 'text-slate-400');
+                btn.classList.replace('border-emerald-500', 'border-slate-700');
+                btn.innerHTML = '<i class="fa-solid fa-video-slash"></i><span class="hidden md:inline">Cam: Off</span>';
+            }
+        });
+
+        document.getElementById('btn-audio').addEventListener('click', (e) => {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('audio-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                e.currentTarget.classList.replace('text-slate-500', 'text-slate-300');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+                e.currentTarget.classList.replace('text-slate-300', 'text-slate-500');
+            }
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key.toLowerCase() === 'r') {
+                restartCurrentLevel();
+            }
+        });
+
+        // Initialize Game Environment
         window.onload = function() {
+            initLevelSelector();
             resizeCanvas();
-            setupUI();
             loadLevel(0);
             gameLoop();
         };
