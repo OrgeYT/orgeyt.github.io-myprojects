@@ -1,0 +1,2703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Ultimate Breakout</title>
+
+<style>
+*{box-sizing:border-box}
+
+html,body{
+  margin:0;
+  width:100%;
+  height:100%;
+  overflow:hidden;
+  background:#090b14;
+  color:#fff;
+  font-family:system-ui,-apple-system,Segoe UI,sans-serif;
+  touch-action:none;
+}
+
+#mobileFrame{
+  position:fixed;
+  width:390px;
+  height:100vh;
+  height:100dvh;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  overflow:hidden;
+  background:#090b14;
+  border:2px solid #30364f;
+  border-radius:18px;
+  box-shadow:0 0 50px #000;
+}
+
+canvas{
+  display:block;
+  width:100%;
+  height:100%;
+}
+
+#hud{
+  position:absolute;
+  left:14px;
+  top:12px;
+  z-index:5;
+  pointer-events:none;
+  text-shadow:0 2px 5px #000;
+  font-weight:800;
+}
+
+#hud div{
+  margin:3px 0;
+}
+
+#pauseBtn{
+  position:absolute;
+  right:12px;
+  top:12px;
+  z-index:6;
+  border:1px solid #69708e;
+  border-radius:10px;
+  padding:8px 13px;
+  font-size:14px;
+  font-weight:900;
+  background:#151a2c;
+  color:#fff;
+}
+
+#overlay{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:rgba(3,5,12,.78);
+  z-index:10;
+}
+
+.card{
+  width:calc(100% - 40px);
+  max-width:350px;
+  max-height:calc(100% - 40px);
+  overflow-y:auto;
+  padding:25px;
+  border:1px solid #39405f;
+  border-radius:20px;
+  background:#111528;
+  box-shadow:0 20px 70px #0008;
+  text-align:center;
+}
+
+h1{
+  font-size:38px;
+  margin:0 0 8px;
+}
+
+p{
+  color:#c9cee5;
+  line-height:1.5;
+}
+
+button{
+  border:0;
+  border-radius:12px;
+  padding:12px 20px;
+  font-size:16px;
+  font-weight:900;
+  cursor:pointer;
+  background:#fff;
+  color:#0b0d18;
+  margin:5px;
+}
+
+input{
+  width:110px;
+  padding:11px;
+  border:1px solid #4b5270;
+  border-radius:10px;
+  background:#090b14;
+  color:#fff;
+  font-size:16px;
+  font-weight:800;
+  text-align:center;
+}
+
+#levelControls{
+  display:none;
+  margin-top:15px;
+}
+
+#levelControls button{
+  display:block;
+  margin:8px auto;
+}
+
+#safetyPopup{
+  position:absolute;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(0,0,0,.82);
+  z-index:30;
+}
+
+.safetyCard{
+  width:calc(100% - 42px);
+  max-width:340px;
+  padding:25px;
+  border:2px solid #ffb020;
+  border-radius:18px;
+  background:#171b2c;
+  box-shadow:0 20px 80px #000;
+  text-align:center;
+}
+
+.safetyCard h2{
+  margin:0 0 12px;
+  font-size:25px;
+}
+
+.safetyCard p{
+  margin:0 0 18px;
+}
+
+#safetyYes{
+  background:#45e083;
+}
+
+#safetyNo{
+  background:#ff5368;
+  color:#fff;
+}
+
+.hidden{
+  display:none!important;
+}
+</style>
+</head>
+
+<body>
+
+<div id="mobileFrame">
+
+<canvas id="game"></canvas>
+
+<div id="hud">
+  <div id="level">Level 1</div>
+  <div id="balls">Balls: 2</div>
+  <div id="bricks">Bricks: 96</div>
+  <div id="score">Score: 0</div>
+  <div id="upgrade">Upgrade: ×3</div>
+  <div id="cameraMode">Camera: Balls 🎥</div>
+</div>
+
+<button id="pauseBtn">Ⅱ PAUSE</button>
+
+<div id="overlay">
+
+  <div class="card">
+
+    <h1 id="overlayTitle">
+      ULTIMATE BREAKOUT
+    </h1>
+
+    <p id="overlayText">
+      Multi-ball Breakout taken WAY too far. 💀
+      <br><br>
+
+      Start with <b>2 balls</b>.<br>
+      Level 1 starts with <b>12 layers</b>.<br>
+      Every level adds another layer above the tower.
+      <br><br>
+
+      🔵 Blue bricks create extra balls.<br>
+      🟢 Power-ups split balls.<br>
+      🎥 Click the game to switch camera modes.<br>
+      🔊 Sound effects included.
+    </p>
+
+    <button id="start">
+      START GAME
+    </button>
+
+    <div id="levelControls">
+
+      <input
+        id="levelInput"
+        type="number"
+        min="1"
+        value="1"
+      >
+
+      <button id="applyLevel">
+        GO TO LEVEL
+      </button>
+
+      <button id="restart">
+        RESTART
+      </button>
+
+      <button id="resume">
+        RESUME
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<div id="safetyPopup">
+
+  <div class="safetyCard">
+
+    <h2>⚠️ Ball Safety Warning</h2>
+
+    <p>
+      This action might crash the game.
+      <br><br>
+
+      It may create more than
+      <b>100 balls</b> at once.
+      <br><br>
+
+      <b>This could cause extreme lag or crash your browser.</b>
+      <br><br>
+
+      This warning will only appear once
+      during this session if you choose YES.
+      <br><br>
+
+      <b>This action might crash the game, proceed?</b>
+    </p>
+
+    <button id="safetyYes">
+      YES, PROCEED
+    </button>
+
+    <button id="safetyNo">
+      NO, CANCEL
+    </button>
+
+  </div>
+
+</div>
+
+</div>
+
+<script>
+
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+const frame=document.getElementById("mobileFrame");
+
+const GAME_W=390;
+
+let W=GAME_W;
+let H=window.innerHeight;
+let DPR=Math.min(devicePixelRatio||1,2);
+
+let paddle={
+  x:0,
+  y:0,
+  w:150,
+  h:16
+};
+
+function getGameHeight(){
+  return frame.clientHeight||window.innerHeight;
+}
+
+function resizeGame(){
+
+  H=getGameHeight();
+  W=GAME_W;
+
+  DPR=Math.min(devicePixelRatio||1,2);
+
+  canvas.width=Math.round(W*DPR);
+  canvas.height=Math.round(H*DPR);
+
+  canvas.style.width=W+"px";
+  canvas.style.height=H+"px";
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+
+  paddle.y=H-75;
+
+  paddle.x=Math.max(
+    -paddle.w*.55,
+    Math.min(
+      paddle.x,
+      W-paddle.w*.45
+    )
+  );
+}
+
+resizeGame();
+
+window.addEventListener(
+  "resize",
+  resizeGame
+);
+
+if(window.visualViewport){
+  window.visualViewport.addEventListener(
+    "resize",
+    resizeGame
+  );
+}
+
+
+/* =====================================================
+   ELEMENTS
+===================================================== */
+
+const levelEl=document.getElementById("level");
+const ballsEl=document.getElementById("balls");
+const bricksEl=document.getElementById("bricks");
+const scoreEl=document.getElementById("score");
+const upgradeEl=document.getElementById("upgrade");
+const cameraModeEl=document.getElementById("cameraMode");
+
+const overlay=document.getElementById("overlay");
+const overlayTitle=document.getElementById("overlayTitle");
+const overlayText=document.getElementById("overlayText");
+
+const startBtn=document.getElementById("start");
+const pauseBtn=document.getElementById("pauseBtn");
+
+const levelControls=document.getElementById("levelControls");
+const levelInput=document.getElementById("levelInput");
+const applyLevel=document.getElementById("applyLevel");
+const restartBtn=document.getElementById("restart");
+const resumeBtn=document.getElementById("resume");
+
+const safetyPopup=document.getElementById("safetyPopup");
+const safetyYes=document.getElementById("safetyYes");
+const safetyNo=document.getElementById("safetyNo");
+
+
+/* =====================================================
+   GAME STATE
+===================================================== */
+
+let running=false;
+let paused=false;
+
+let level=1;
+let score=0;
+
+let cameraY=0;
+let cameraZoom=1;
+
+let targetCameraY=0;
+let targetZoom=1;
+
+let paddleCamera=false;
+
+let ceilingY=0;
+
+let balls=[];
+let bricks=[];
+let powerUps=[];
+
+let keys={
+  left:false,
+  right:false
+};
+
+let mouseX=null;
+
+
+/* =====================================================
+   SAFETY
+===================================================== */
+
+let ballSafetyAccepted=false;
+let pendingBallAction=null;
+
+
+/*
+ * Find a safer level after cancelling.
+ *
+ * The goal isn't simply "go down one level".
+ * We deliberately move to a level where:
+ *
+ * 1. Starter balls aren't huge.
+ * 2. The upgrade multiplier is much smaller.
+ * 3. A new level won't immediately cause another
+ *    ridiculous split.
+ */
+function getSafeLevel(){
+
+  /*
+   * Start from the current level and walk downward.
+   */
+  let candidate=level-1;
+
+  /*
+   * Never go below level 1.
+   */
+  candidate=Math.max(
+    1,
+    candidate
+  );
+
+  /*
+   * Find a level whose starter ball count
+   * is comfortably below the danger zone.
+   */
+  while(
+    candidate>1 &&
+    (
+      2+
+      Math.floor(
+        (candidate-1)/5
+      )>=25
+    )
+  ){
+
+    candidate--;
+  }
+
+  /*
+   * Also avoid levels where the upgrade itself
+   * is already enormous.
+   */
+  while(
+    candidate>1 &&
+    (
+      3+
+      Math.floor(
+        (candidate-1)/2
+      )>=20
+    )
+  ){
+
+    candidate--;
+  }
+
+  return candidate;
+}
+
+
+/*
+ * This is what happens when the user clicks NO.
+ */
+function cancelDangerousAction(){
+
+  pendingBallAction=null;
+
+  safetyPopup.style.display="none";
+
+  /*
+   * Pick a safer level.
+   */
+  const safeLevel=
+    getSafeLevel();
+
+  /*
+   * Tell the player what happened.
+   */
+  level=safeLevel;
+
+  score=0;
+
+  paddleCamera=false;
+
+  makeLevel();
+
+  running=true;
+  paused=false;
+
+  overlayTitle.textContent=
+    "SAFER LEVEL 🛡️";
+
+  overlayText.innerHTML=
+    `
+    The dangerous action was cancelled.
+    <br><br>
+    You have been moved to
+    <b>Level ${safeLevel}</b>
+    so the ball count doesn't go completely insane.
+    <br><br>
+    Good luck. 😭
+    `;
+
+  startBtn.classList.add("hidden");
+
+  levelControls.style.display="block";
+
+  resumeBtn.style.display="block";
+
+  overlay.classList.remove("hidden");
+
+  levelInput.value=safeLevel;
+
+  /*
+   * Give the player a moment to see the message,
+   * but the game remains paused until RESUME.
+   */
+  paused=true;
+
+  updateHud();
+}
+
+
+function wouldExceedBallLimit(additionalBalls){
+
+  return (
+    balls.length+
+    additionalBalls>
+    100
+  );
+}
+
+
+function requestBallSafety(
+  additionalBalls,
+  action
+){
+
+  if(ballSafetyAccepted){
+
+    action();
+    return true;
+  }
+
+  if(
+    !wouldExceedBallLimit(
+      additionalBalls
+    )
+  ){
+
+    action();
+    return true;
+  }
+
+  paused=true;
+
+  pendingBallAction=action;
+
+  safetyPopup.style.display="flex";
+
+  return false;
+}
+
+
+safetyYes.onclick=()=>{
+
+  ballSafetyAccepted=true;
+
+  safetyPopup.style.display="none";
+
+  const action=
+    pendingBallAction;
+
+  pendingBallAction=null;
+
+  if(action){
+    action();
+  }
+
+  paused=false;
+
+  updateHud();
+};
+
+
+safetyNo.onclick=()=>{
+
+  cancelDangerousAction();
+
+};
+
+
+/* =====================================================
+   AUDIO
+===================================================== */
+
+let audioCtx=null;
+
+const MAX_SIMULTANEOUS_SOUNDS=6;
+
+let activeSounds=0;
+
+function initAudio(){
+
+  if(!audioCtx){
+
+    audioCtx=
+      new(
+        window.AudioContext||
+        window.webkitAudioContext
+      )();
+  }
+
+  if(audioCtx.state==="suspended"){
+    audioCtx.resume();
+  }
+}
+
+
+function sound(
+  frequency,
+  duration,
+  type="sine",
+  volume=.045,
+  slide=0
+){
+
+  if(!audioCtx)
+    return;
+
+  if(
+    activeSounds>=
+    MAX_SIMULTANEOUS_SOUNDS
+  ){
+    return;
+  }
+
+  activeSounds++;
+
+  const osc=
+    audioCtx.createOscillator();
+
+  const gain=
+    audioCtx.createGain();
+
+  osc.type=type;
+
+  osc.frequency.setValueAtTime(
+    frequency,
+    audioCtx.currentTime
+  );
+
+  if(slide){
+
+    osc.frequency.linearRampToValueAtTime(
+      frequency+slide,
+      audioCtx.currentTime+
+      duration
+    );
+  }
+
+  gain.gain.setValueAtTime(
+    volume,
+    audioCtx.currentTime
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    .001,
+    audioCtx.currentTime+
+    duration
+  );
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.onended=()=>{
+
+    activeSounds=
+      Math.max(
+        0,
+        activeSounds-1
+      );
+
+    osc.disconnect();
+    gain.disconnect();
+  };
+
+  osc.start();
+
+  osc.stop(
+    audioCtx.currentTime+
+    duration
+  );
+}
+
+
+function sfxWall(){
+  sound(170,.055,"square",.035,80);
+}
+
+function sfxPaddle(){
+  sound(320,.07,"triangle",.055,150);
+}
+
+function sfxBrick(){
+  sound(420,.045,"square",.025,-80);
+}
+
+function sfxBlueBrick(){
+
+  sound(700,.12,"sine",.055,300);
+
+  setTimeout(()=>{
+    sound(950,.09,"sine",.035,-200);
+  },35);
+}
+
+function sfxPowerUp(){
+
+  sound(500,.1,"sine",.05,250);
+
+  setTimeout(()=>{
+    sound(750,.1,"sine",.05,300);
+  },80);
+
+  setTimeout(()=>{
+    sound(1100,.16,"sine",.05,0);
+  },160);
+}
+
+function sfxBarrier(){
+  sound(100,.18,"sawtooth",.045,-60);
+}
+
+function sfxCeiling(){
+  sound(210,.06,"square",.03,60);
+}
+
+function sfxLevelUp(){
+
+  sound(440,.12,"triangle",.055,120);
+
+  setTimeout(()=>{
+    sound(660,.12,"triangle",.055,160);
+  },110);
+
+  setTimeout(()=>{
+    sound(880,.18,"triangle",.06,0);
+  },220);
+}
+
+function sfxGameOver(){
+
+  sound(300,.18,"sawtooth",.05,-150);
+
+  setTimeout(()=>{
+    sound(180,.3,"sawtooth",.05,-100);
+  },170);
+}
+
+
+/* =====================================================
+   BRICKS
+===================================================== */
+
+const BRICK_COLS=8;
+const BRICK_W=40;
+const BRICK_H=22;
+const BRICK_GAP=7;
+
+function getLayerCount(){
+
+  return 12+(level-1);
+}
+
+function getUpgradePower(){
+
+  return 3+
+    Math.floor(
+      (level-1)/2
+    );
+}
+
+function createLayer(layerIndex){
+
+  const layer=[];
+
+  const totalWidth=
+    BRICK_COLS*BRICK_W+
+    (BRICK_COLS-1)*BRICK_GAP;
+
+  const startX=
+    (W-totalWidth)/2;
+
+  const y=
+    70-
+    layerIndex*
+    (BRICK_H+BRICK_GAP);
+
+  for(
+    let c=0;
+    c<BRICK_COLS;
+    c++
+  ){
+
+    const blue=
+      Math.random()<.12;
+
+    layer.push({
+
+      x:
+        startX+
+        c*
+        (
+          BRICK_W+
+          BRICK_GAP
+        ),
+
+      y:y,
+
+      w:BRICK_W,
+      h:BRICK_H,
+
+      hp:1,
+      maxHp:1,
+
+      type:
+        blue?
+        "ball":
+        "normal",
+
+      layer:layerIndex
+    });
+  }
+
+  return layer;
+}
+
+
+function makeLevel(){
+
+  bricks=[];
+  powerUps=[];
+
+  const totalLayers=
+    getLayerCount();
+
+  for(
+    let layer=0;
+    layer<totalLayers;
+    layer++
+  ){
+
+    bricks.push(
+      ...createLayer(layer)
+    );
+  }
+
+  const highestLayer=
+    totalLayers-1;
+
+  ceilingY=
+    70-
+    highestLayer*
+    (
+      BRICK_H+
+      BRICK_GAP
+    )-
+    45;
+
+  paddle.y=H-75;
+
+  paddle.x=
+    W/2-
+    paddle.w/2;
+
+  balls=[];
+
+  for(
+    let i=0;
+    i<starterBalls();
+    i++
+  ){
+
+    spawnBall(i);
+  }
+
+  cameraY=paddle.y;
+  targetCameraY=paddle.y;
+
+  cameraZoom=1;
+  targetZoom=1;
+
+  updateHud();
+}
+
+
+/* =====================================================
+   BALLS
+===================================================== */
+
+function starterBalls(){
+
+  return 2+
+    Math.floor(
+      (level-1)/5
+    );
+}
+
+function spawnBall(i=0){
+
+  const count=
+    starterBalls();
+
+  const angle=
+    -Math.PI/2+
+    (
+      i-
+      (count-1)/2
+    )*.16;
+
+  const speed=
+    5.5+
+    Math.min(
+      level*.08,
+      2.8
+    );
+
+  balls.push({
+
+    x:
+      paddle.x+
+      paddle.w/2+
+      (i%2?14:-14),
+
+    y:
+      paddle.y-18,
+
+    vx:
+      Math.cos(angle)*
+      speed,
+
+    vy:
+      Math.sin(angle)*
+      speed,
+
+    r:8
+  });
+}
+
+
+function spawnBonusBallRaw(x,y){
+
+  const speed=
+    5.5+
+    Math.min(
+      level*.08,
+      2.8
+    );
+
+  const angle=
+    -Math.PI/2+
+    (
+      Math.random()-.5
+    )*1.2;
+
+  balls.push({
+
+    x:x,
+    y:y,
+
+    vx:
+      Math.cos(angle)*
+      speed,
+
+    vy:
+      Math.sin(angle)*
+      speed,
+
+    r:8
+  });
+}
+
+
+/* =====================================================
+   POWER UPS
+===================================================== */
+
+function spawnPowerUp(x,y){
+
+  if(
+    Math.random()>.08
+  ){
+    return;
+  }
+
+  powerUps.push({
+
+    x:x,
+    y:y,
+
+    w:25,
+    h:25,
+
+    vy:3.2,
+
+    rotation:0
+  });
+}
+
+
+function getPowerUpBallIncrease(){
+
+  if(!balls.length)
+    return 0;
+
+  const splitCount=
+    getUpgradePower();
+
+  const amount=
+    Math.min(
+      splitCount,
+      balls.length
+    );
+
+  return amount*
+    (splitCount-1);
+}
+
+
+function activatePowerUpRaw(){
+
+  if(!balls.length)
+    return;
+
+  const splitCount=
+    getUpgradePower();
+
+  const amount=
+    Math.min(
+      splitCount,
+      balls.length
+    );
+
+  const shuffled=
+    [...balls].sort(
+      ()=>Math.random()-.5
+    );
+
+  const selected=
+    shuffled.slice(
+      0,
+      amount
+    );
+
+  for(
+    const b of selected
+  ){
+
+    const speed=
+      Math.max(
+        5.5,
+        Math.hypot(
+          b.vx,
+          b.vy
+        )
+      );
+
+    const baseAngle=
+      Math.atan2(
+        b.vy,
+        b.vx
+      );
+
+    for(
+      let n=1;
+      n<splitCount;
+      n++
+    ){
+
+      const spread=.55;
+
+      const offset=
+        (
+          n-
+          (splitCount-1)/2
+        )*
+        spread;
+
+      const angle=
+        baseAngle+
+        offset;
+
+      balls.push({
+
+        x:b.x,
+        y:b.y,
+
+        vx:
+          Math.cos(angle)*
+          speed,
+
+        vy:
+          Math.sin(angle)*
+          speed,
+
+        r:b.r
+      });
+    }
+  }
+
+  score+=100;
+
+  sfxPowerUp();
+
+  updateHud();
+}
+
+
+function activatePowerUp(){
+
+  const increase=
+    getPowerUpBallIncrease();
+
+  requestBallSafety(
+    increase,
+    activatePowerUpRaw
+  );
+}
+
+
+/* =====================================================
+   HUD
+===================================================== */
+
+function updateHud(){
+
+  levelEl.textContent=
+    "Level "+level;
+
+  ballsEl.textContent=
+    "Balls: "+balls.length;
+
+  bricksEl.textContent=
+    "Bricks: "+bricks.length;
+
+  scoreEl.textContent=
+    "Score: "+score;
+
+  upgradeEl.textContent=
+    "Upgrade: ×"+
+    getUpgradePower();
+
+  cameraModeEl.textContent=
+    paddleCamera?
+    "Camera: Paddle 🏓":
+    "Camera: Balls 🎥";
+}
+
+
+/* =====================================================
+   CAMERA
+===================================================== */
+
+function updateCamera(){
+
+  if(paddleCamera){
+
+    targetCameraY=
+      paddle.y;
+
+    targetZoom=1;
+
+  }else{
+
+    if(!balls.length)
+      return;
+
+    let minY=Infinity;
+    let maxY=-Infinity;
+
+    for(
+      const b of balls
+    ){
+
+      minY=
+        Math.min(
+          minY,
+          b.y
+        );
+
+      maxY=
+        Math.max(
+          maxY,
+          b.y
+        );
+    }
+
+    const center=
+      (minY+maxY)/2;
+
+    targetCameraY=center;
+
+    const spread=
+      maxY-minY;
+
+    targetZoom=
+      1-
+      Math.min(
+        spread/1000,
+        .45
+      );
+
+    targetZoom=
+      Math.max(
+        .55,
+        targetZoom
+      );
+  }
+
+  cameraY+=
+    (
+      targetCameraY-
+      cameraY
+    )*.08;
+
+  cameraZoom+=
+    (
+      targetZoom-
+      cameraZoom
+    )*.08;
+}
+
+
+function worldToScreenY(y){
+
+  return H/2+
+    (
+      y-cameraY
+    )*
+    cameraZoom;
+}
+
+
+function worldToScreenX(x){
+
+  return W/2+
+    (
+      x-W/2
+    )*
+    cameraZoom;
+}
+
+
+/* =====================================================
+   UTILITIES
+===================================================== */
+
+function clamp(v,a,b){
+
+  return Math.max(
+    a,
+    Math.min(
+      b,
+      v
+    )
+  );
+}
+
+
+function movePaddle(){
+
+  const speed=10;
+
+  if(keys.left)
+    paddle.x-=speed;
+
+  if(keys.right)
+    paddle.x+=speed;
+
+  if(mouseX!==null){
+
+    paddle.x=
+      mouseX-
+      paddle.w/2;
+  }
+
+  paddle.x=
+    clamp(
+      paddle.x,
+      -paddle.w*.55,
+      W-paddle.w*.45
+    );
+}
+
+
+function circleRectCollision(b,r){
+
+  const cx=
+    clamp(
+      b.x,
+      r.x,
+      r.x+r.w
+    );
+
+  const cy=
+    clamp(
+      b.y,
+      r.y,
+      r.y+r.h
+    );
+
+  const dx=b.x-cx;
+  const dy=b.y-cy;
+
+  return(
+    dx*dx+
+    dy*dy<=
+    b.r*b.r
+  );
+}
+
+
+/* =====================================================
+   UPDATE
+===================================================== */
+
+function update(){
+
+  if(
+    !running||
+    paused
+  ){
+    return;
+  }
+
+  movePaddle();
+
+  const barrierWorldY=
+    paddle.y+
+    paddle.h+
+    55;
+
+
+  for(
+    let i=balls.length-1;
+    i>=0;
+    i--
+  ){
+
+    const b=balls[i];
+
+    b.x+=b.vx;
+    b.y+=b.vy;
+
+
+    if(
+      b.x-b.r<0
+    ){
+
+      b.x=b.r;
+      b.vx=Math.abs(b.vx);
+
+      sfxWall();
+    }
+
+
+    if(
+      b.x+b.r>W
+    ){
+
+      b.x=W-b.r;
+      b.vx=-Math.abs(b.vx);
+
+      sfxWall();
+    }
+
+
+    if(
+      b.y-b.r<=ceilingY&&
+      b.vy<0
+    ){
+
+      b.y=
+        ceilingY+b.r;
+
+      b.vy=
+        Math.abs(b.vy);
+
+      sfxCeiling();
+    }
+
+
+    /*
+     * RED BARRIER
+     */
+
+    if(
+      b.y+b.r>=
+      barrierWorldY
+    ){
+
+      balls.splice(
+        i,
+        1
+      );
+
+      sfxBarrier();
+
+      continue;
+    }
+
+
+    /*
+     * PADDLE
+     */
+
+    if(
+      b.vy>0&&
+      circleRectCollision(
+        b,
+        {
+          x:paddle.x,
+          y:paddle.y,
+          w:paddle.w,
+          h:paddle.h
+        }
+      )
+    ){
+
+      b.y=
+        paddle.y-b.r;
+
+      const hit=
+        (
+          b.x-
+          (
+            paddle.x+
+            paddle.w/2
+          )
+        )/
+        (paddle.w/2);
+
+      const speed=
+        Math.max(
+          5.5,
+          Math.hypot(
+            b.vx,
+            b.vy
+          )
+        );
+
+      const angle=
+        hit*1.12-
+        Math.PI/2;
+
+      b.vx=
+        Math.cos(angle)*
+        speed;
+
+      b.vy=
+        Math.sin(angle)*
+        speed;
+
+      sfxPaddle();
+    }
+
+
+    /*
+     * BRICKS
+     */
+
+    for(
+      let j=bricks.length-1;
+      j>=0;
+      j--
+    ){
+
+      const r=bricks[j];
+
+      if(
+        circleRectCollision(
+          b,
+          r
+        )
+      ){
+
+        const prevY=
+          b.y-b.vy;
+
+        if(
+          prevY<=r.y||
+          prevY>=r.y+r.h
+        ){
+
+          b.vy*=-1;
+
+        }else{
+
+          b.vx*=-1;
+        }
+
+
+        /*
+         * BLUE BRICK
+         */
+
+        if(
+          r.type==="ball"
+        ){
+
+          const action=()=>{
+
+            spawnBonusBallRaw(
+              r.x+r.w/2,
+              r.y+r.h/2
+            );
+
+            spawnPowerUp(
+              r.x+r.w/2,
+              r.y+r.h/2
+            );
+
+            score+=50;
+
+            sfxBlueBrick();
+
+            bricks.splice(
+              j,
+              1
+            );
+
+            updateHud();
+          };
+
+
+          if(
+            !ballSafetyAccepted&&
+            wouldExceedBallLimit(1)
+          ){
+
+            requestBallSafety(
+              1,
+              action
+            );
+
+            return;
+          }
+
+          action();
+
+        }else{
+
+          r.hp--;
+
+          score+=10;
+
+          sfxBrick();
+
+          if(
+            r.hp<=0
+          ){
+
+            spawnPowerUp(
+              r.x+r.w/2,
+              r.y+r.h/2
+            );
+
+            bricks.splice(
+              j,
+              1
+            );
+          }
+        }
+
+        break;
+      }
+    }
+  }
+
+
+  /*
+   * POWER UPS
+   */
+
+  for(
+    let i=powerUps.length-1;
+    i>=0;
+    i--
+  ){
+
+    const p=
+      powerUps[i];
+
+    p.y+=p.vy;
+    p.rotation+=.05;
+
+
+    /*
+     * Barrier destroys power-up.
+     */
+
+    if(
+      p.y+p.h/2>=
+      barrierWorldY
+    ){
+
+      powerUps.splice(
+        i,
+        1
+      );
+
+      sfxBarrier();
+
+      continue;
+    }
+
+
+    /*
+     * Paddle catches power-up.
+     */
+
+    if(
+      p.y+p.h/2>=paddle.y&&
+      p.y-p.h/2<=
+        paddle.y+paddle.h&&
+      p.x+p.w/2>=paddle.x&&
+      p.x-p.w/2<=
+        paddle.x+paddle.w
+    ){
+
+      const increase=
+        getPowerUpBallIncrease();
+
+      const action=()=>{
+
+        activatePowerUpRaw();
+
+        powerUps.splice(
+          i,
+          1
+        );
+      };
+
+
+      if(
+        !ballSafetyAccepted&&
+        wouldExceedBallLimit(
+          increase
+        )
+      ){
+
+        requestBallSafety(
+          increase,
+          action
+        );
+
+        return;
+      }
+
+      action();
+
+      continue;
+    }
+  }
+
+
+  if(!balls.length){
+
+    gameOver();
+
+    return;
+  }
+
+
+  if(
+    bricks.length===0
+  ){
+
+    nextLevel();
+  }
+
+
+  updateCamera();
+  updateHud();
+}
+
+
+/* =====================================================
+   LEVEL
+===================================================== */
+
+function nextLevel(){
+
+  level++;
+
+  sfxLevelUp();
+
+  makeLevel();
+}
+
+
+/* =====================================================
+   DRAW BACKGROUND
+===================================================== */
+
+function drawBackground(){
+
+  ctx.fillStyle="#090b14";
+
+  ctx.fillRect(
+    0,0,W,H
+  );
+
+  const grid=70;
+
+  const scaledGrid=
+    grid*cameraZoom;
+
+  let offset=
+    (
+      H/2-
+      cameraY*cameraZoom
+    )%scaledGrid;
+
+  if(offset<0)
+    offset+=scaledGrid;
+
+  ctx.strokeStyle="#171b2d";
+  ctx.lineWidth=1;
+
+  for(
+    let y=offset;
+    y<H;
+    y+=scaledGrid
+  ){
+
+    ctx.beginPath();
+
+    ctx.moveTo(0,y);
+    ctx.lineTo(W,y);
+
+    ctx.stroke();
+  }
+
+  for(
+    let x=0;
+    x<W;
+    x+=scaledGrid
+  ){
+
+    ctx.beginPath();
+
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,H);
+
+    ctx.stroke();
+  }
+}
+
+
+/* =====================================================
+   DRAW
+===================================================== */
+
+function draw(){
+
+  drawBackground();
+
+
+  /*
+   * WALLS
+   */
+
+  ctx.fillStyle="#69738f";
+
+  ctx.shadowBlur=10;
+  ctx.shadowColor="#69738f";
+
+  ctx.fillRect(
+    0,0,
+    8,H
+  );
+
+  ctx.fillRect(
+    W-8,
+    0,
+    8,H
+  );
+
+  ctx.shadowBlur=0;
+
+
+  /*
+   * CEILING
+   */
+
+  const ceilingScreenY=
+    worldToScreenY(
+      ceilingY
+    );
+
+  if(
+    ceilingScreenY>-30&&
+    ceilingScreenY<H+30
+  ){
+
+    ctx.fillStyle="#aebbd2";
+
+    ctx.shadowBlur=15;
+    ctx.shadowColor="#aebbd2";
+
+    ctx.fillRect(
+      0,
+      ceilingScreenY,
+      W,
+      10
+    );
+
+    ctx.shadowBlur=0;
+  }
+
+
+  /*
+   * BRICKS
+   */
+
+  for(
+    const r of bricks
+  ){
+
+    const sx=
+      worldToScreenX(r.x);
+
+    const sy=
+      worldToScreenY(r.y);
+
+    const sw=
+      r.w*cameraZoom;
+
+    const sh=
+      r.h*cameraZoom;
+
+    if(
+      sy>H+40||
+      sy+sh<-40
+    ){
+      continue;
+    }
+
+
+    if(
+      r.type==="ball"
+    ){
+
+      ctx.fillStyle="#1677ff";
+
+    }else{
+
+      const hue=
+        (
+          r.layer*37+
+          level*19
+        )%360;
+
+      ctx.fillStyle=
+        `hsl(${hue} 78% 52%)`;
+    }
+
+    ctx.fillRect(
+      sx,
+      sy,
+      sw,
+      sh
+    );
+
+    ctx.fillStyle=
+      "rgba(255,255,255,.18)";
+
+    ctx.fillRect(
+      sx,
+      sy,
+      sw,
+      Math.max(
+        2,
+        4*cameraZoom
+      )
+    );
+
+
+    if(
+      r.type==="ball"
+    ){
+
+      ctx.fillStyle="#fff";
+
+      ctx.beginPath();
+
+      ctx.arc(
+        sx+sw/2,
+        sy+sh/2,
+        Math.max(
+          3,
+          5*cameraZoom
+        ),
+        0,
+        Math.PI*2
+      );
+
+      ctx.fill();
+    }
+  }
+
+
+  /*
+   * POWER UPS
+   */
+
+  for(
+    const p of powerUps
+  ){
+
+    const sx=
+      worldToScreenX(p.x);
+
+    const sy=
+      worldToScreenY(p.y);
+
+    const size=
+      p.w*cameraZoom;
+
+    if(
+      sy+size<0||
+      sy-size>H
+    ){
+      continue;
+    }
+
+    ctx.save();
+
+    ctx.translate(
+      sx,
+      sy
+    );
+
+    ctx.rotate(
+      p.rotation
+    );
+
+    ctx.shadowBlur=
+      20*cameraZoom;
+
+    ctx.shadowColor="#00ffcc";
+
+    ctx.fillStyle="#00d9a6";
+
+    ctx.beginPath();
+
+    if(ctx.roundRect){
+
+      ctx.roundRect(
+        -size/2,
+        -size/2,
+        size,
+        size,
+        7*cameraZoom
+      );
+
+    }else{
+
+      ctx.rect(
+        -size/2,
+        -size/2,
+        size,
+        size
+      );
+    }
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+
+    ctx.restore();
+
+    ctx.fillStyle="#fff";
+
+    ctx.font=
+      `900 ${
+        Math.max(
+          10,
+          13*cameraZoom
+        )
+      }px system-ui`;
+
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+
+    ctx.fillText(
+      "×"+
+      getUpgradePower(),
+      sx,
+      sy
+    );
+  }
+
+
+  /*
+   * PADDLE
+   */
+
+  const paddleX=
+    worldToScreenX(
+      paddle.x
+    );
+
+  const paddleY=
+    worldToScreenY(
+      paddle.y
+    );
+
+  const paddleW=
+    paddle.w*cameraZoom;
+
+  const paddleH=
+    paddle.h*cameraZoom;
+
+
+  if(
+    paddleY+paddleH>0&&
+    paddleY<H
+  ){
+
+    ctx.fillStyle="#fff";
+
+    ctx.fillRect(
+      paddleX,
+      paddleY,
+      paddleW,
+      paddleH
+    );
+
+    ctx.fillStyle="#8f9cff";
+
+    ctx.fillRect(
+      paddleX+
+      12*cameraZoom,
+      paddleY+
+      4*cameraZoom,
+      (paddle.w-24)*
+      cameraZoom,
+      4*cameraZoom
+    );
+
+  }else{
+
+    /*
+     * PADDLE ARROW
+     */
+
+    const above=
+      paddleY<0;
+
+    const arrowY=
+      above?
+      42:
+      H-42;
+
+    const centerX=
+      clamp(
+        paddleX+
+        paddleW/2,
+        30,
+        W-30
+      );
+
+    ctx.save();
+
+    ctx.translate(
+      centerX,
+      arrowY
+    );
+
+    ctx.fillStyle="#fff";
+
+    if(above){
+
+      ctx.beginPath();
+
+      ctx.moveTo(0,-18);
+      ctx.lineTo(-15,0);
+      ctx.lineTo(-6,0);
+      ctx.lineTo(-6,15);
+      ctx.lineTo(6,15);
+      ctx.lineTo(6,0);
+      ctx.lineTo(15,0);
+
+      ctx.closePath();
+      ctx.fill();
+
+    }else{
+
+      ctx.beginPath();
+
+      ctx.moveTo(0,18);
+      ctx.lineTo(-15,0);
+      ctx.lineTo(-6,0);
+      ctx.lineTo(-6,-15);
+      ctx.lineTo(6,-15);
+      ctx.lineTo(6,0);
+      ctx.lineTo(15,0);
+
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.restore();
+
+    ctx.fillStyle="#fff";
+
+    ctx.font=
+      "bold 12px system-ui";
+
+    ctx.textAlign="center";
+
+    ctx.fillText(
+      "PADDLE",
+      centerX,
+      above?65:H-65
+    );
+  }
+
+
+  /*
+   * BALLS
+   */
+
+  for(
+    const b of balls
+  ){
+
+    const sx=
+      worldToScreenX(b.x);
+
+    const sy=
+      worldToScreenY(b.y);
+
+    const radius=
+      b.r*cameraZoom;
+
+    if(
+      sy+radius<0||
+      sy-radius>H
+    ){
+      continue;
+    }
+
+    ctx.beginPath();
+
+    ctx.arc(
+      sx,
+      sy,
+      radius,
+      0,
+      Math.PI*2
+    );
+
+    ctx.fillStyle="#fff";
+
+    ctx.shadowBlur=
+      15*cameraZoom;
+
+    ctx.shadowColor="#fff";
+
+    ctx.fill();
+
+    ctx.shadowBlur=0;
+  }
+
+
+  /*
+   * RED BARRIER
+   */
+
+  const barrierWorldY=
+    paddle.y+
+    paddle.h+
+    55;
+
+  const barrierY=
+    worldToScreenY(
+      barrierWorldY
+    );
+
+  if(
+    barrierY<H&&
+    barrierY+
+    24*cameraZoom>0
+  ){
+
+    ctx.fillStyle="#ff1f35";
+
+    ctx.shadowBlur=18;
+    ctx.shadowColor="#ff1f35";
+
+    ctx.fillRect(
+      0,
+      barrierY,
+      W,
+      24*cameraZoom
+    );
+
+    ctx.shadowBlur=0;
+
+    ctx.fillStyle=
+      "rgba(255,255,255,.25)";
+
+    const stripeWidth=
+      18*cameraZoom;
+
+    for(
+      let x=-30;
+      x<W+30;
+      x+=stripeWidth*2
+    ){
+
+      ctx.beginPath();
+
+      ctx.moveTo(
+        x,
+        barrierY
+      );
+
+      ctx.lineTo(
+        x+stripeWidth,
+        barrierY
+      );
+
+      ctx.lineTo(
+        x+stripeWidth-10,
+        barrierY+
+        24*cameraZoom
+      );
+
+      ctx.lineTo(
+        x-10,
+        barrierY+
+        24*cameraZoom
+      );
+
+      ctx.closePath();
+
+      ctx.fill();
+    }
+  }
+
+
+  /*
+   * PAUSE
+   */
+
+  if(paused){
+
+    ctx.fillStyle=
+      "rgba(0,0,0,.4)";
+
+    ctx.fillRect(
+      0,0,W,H
+    );
+
+    ctx.fillStyle="#fff";
+
+    ctx.font=
+      "900 44px system-ui";
+
+    ctx.textAlign="center";
+
+    ctx.fillText(
+      "PAUSED",
+      W/2,
+      H/2
+    );
+  }
+}
+
+
+/* =====================================================
+   LOOP
+===================================================== */
+
+function loop(){
+
+  update();
+  draw();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
+
+
+/* =====================================================
+   KEYBOARD
+===================================================== */
+
+addEventListener(
+  "keydown",
+  e=>{
+
+    if(
+      e.key==="ArrowLeft"||
+      e.key.toLowerCase()==="a"
+    ){
+      keys.left=true;
+    }
+
+    if(
+      e.key==="ArrowRight"||
+      e.key.toLowerCase()==="d"
+    ){
+      keys.right=true;
+    }
+
+    if(
+      e.key.toLowerCase()==="p"
+    ){
+
+      if(paused){
+
+        if(
+          safetyPopup.style.display!=="flex"
+        ){
+          resumeGame();
+        }
+
+      }else{
+
+        openPause();
+      }
+    }
+
+    if(
+      e.key.toLowerCase()==="r"
+    ){
+      restartGame();
+    }
+  }
+);
+
+
+addEventListener(
+  "keyup",
+  e=>{
+
+    if(
+      e.key==="ArrowLeft"||
+      e.key.toLowerCase()==="a"
+    ){
+      keys.left=false;
+    }
+
+    if(
+      e.key==="ArrowRight"||
+      e.key.toLowerCase()==="d"
+    ){
+      keys.right=false;
+    }
+  }
+);
+
+
+/* =====================================================
+   POINTER
+===================================================== */
+
+function setPointerX(clientX){
+
+  const rect=
+    frame.getBoundingClientRect();
+
+  const scaleX=
+    GAME_W/
+    rect.width;
+
+  mouseX=
+    (
+      clientX-
+      rect.left
+    )*
+    scaleX;
+}
+
+
+addEventListener(
+  "mousemove",
+  e=>{
+    setPointerX(
+      e.clientX
+    );
+  }
+);
+
+
+addEventListener(
+  "touchstart",
+  e=>{
+    setPointerX(
+      e.touches[0].clientX
+    );
+  },
+  {passive:true}
+);
+
+
+addEventListener(
+  "touchmove",
+  e=>{
+    setPointerX(
+      e.touches[0].clientX
+    );
+  },
+  {passive:true}
+);
+
+
+/* =====================================================
+   CAMERA CLICK
+===================================================== */
+
+canvas.addEventListener(
+  "click",
+  ()=>{
+
+    if(
+      !running||
+      paused
+    ){
+      return;
+    }
+
+    paddleCamera=
+      !paddleCamera;
+
+    updateHud();
+  }
+);
+
+
+/* =====================================================
+   MENU
+===================================================== */
+
+function closeOverlay(){
+
+  overlay.classList.add(
+    "hidden"
+  );
+
+  levelControls.style.display=
+    "none";
+
+  startBtn.classList.remove(
+    "hidden"
+  );
+}
+
+
+function startGame(){
+
+  initAudio();
+
+  level=1;
+  score=0;
+
+  paddleCamera=false;
+
+  makeLevel();
+
+  running=true;
+  paused=false;
+
+  closeOverlay();
+}
+
+
+function openPause(){
+
+  if(!running)
+    return;
+
+  paused=true;
+
+  overlayTitle.textContent=
+    "PAUSED";
+
+  overlayText.innerHTML=
+    `
+    <b>Game paused.</b>
+    <br><br>
+    Upgrade strength:
+    <b>×${getUpgradePower()}</b>
+    <br><br>
+    Balls:
+    <b>${balls.length}</b>
+    <br><br>
+    Camera:
+    <b>${
+      paddleCamera?
+      "Paddle 🏓":
+      "Balls 🎥"
+    }</b>
+    `;
+
+  startBtn.classList.add(
+    "hidden"
+  );
+
+  levelControls.style.display=
+    "block";
+
+  resumeBtn.style.display=
+    "block";
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+  levelInput.value=level;
+}
+
+
+function resumeGame(){
+
+  if(!running)
+    return;
+
+  initAudio();
+
+  paused=false;
+
+  closeOverlay();
+}
+
+
+function restartGame(){
+
+  initAudio();
+
+  level=1;
+  score=0;
+
+  paddleCamera=false;
+
+  makeLevel();
+
+  running=true;
+  paused=false;
+
+  closeOverlay();
+}
+
+
+function goToLevel(target){
+
+  initAudio();
+
+  target=Math.max(
+    1,
+    Math.floor(
+      Number(target)||1
+    )
+  );
+
+  level=target;
+
+  paddleCamera=false;
+
+  makeLevel();
+
+  running=true;
+  paused=false;
+
+  closeOverlay();
+}
+
+
+function gameOver(){
+
+  running=false;
+  paused=false;
+
+  sfxGameOver();
+
+  overlayTitle.textContent=
+    "GAME OVER 💀";
+
+  overlayText.innerHTML=
+    `
+    You reached
+    <b>Level ${level}</b>
+    with
+    <b>${score}</b>
+    points.
+    `;
+
+  startBtn.classList.add(
+    "hidden"
+  );
+
+  levelControls.style.display=
+    "block";
+
+  resumeBtn.style.display=
+    "none";
+
+  overlay.classList.remove(
+    "hidden"
+  );
+
+  levelInput.value=level;
+}
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+pauseBtn.onclick=()=>{
+
+  if(!running)
+    return;
+
+  if(paused){
+
+    if(
+      safetyPopup.style.display!=="flex"
+    ){
+      resumeGame();
+    }
+
+  }else{
+
+    openPause();
+  }
+};
+
+
+startBtn.onclick=
+  startGame;
+
+resumeBtn.onclick=
+  resumeGame;
+
+restartBtn.onclick=
+  restartGame;
+
+applyLevel.onclick=()=>{
+
+  goToLevel(
+    levelInput.value
+  );
+};
+
+
+/* =====================================================
+   INITIALIZE
+===================================================== */
+
+makeLevel();
+updateHud();
+
+</script>
+
+</body>
+</html>
