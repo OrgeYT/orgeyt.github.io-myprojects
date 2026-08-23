@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoEscape Virus Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap');
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #000;
+            user-select: none;
+        }
+
+        .win11-bg {
+            background: url('https://images.unsplash.com/photo-1618424181497-157f25b6ddd5?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+            transition: background 1s ease, filter 2s ease;
+        }
+
+        .desktop-red-bg {
+            background: #4a0000 !important;
+        }
+
+        /* Melt effect using SVG filter */
+        .melt-effect {
+            filter: url(#melt-filter);
+            animation: melt-anim 5s linear forwards;
+        }
+
+        @keyframes melt-anim {
+            0% { transform: translateY(0) skewY(0deg); opacity: 1; }
+            100% { transform: translateY(50px) skewY(2deg); opacity: 0.8; }
+        }
+
+        #fake-cursor {
+            position: absolute;
+            width: 24px;
+            height: 36px;
+            pointer-events: none; /* Crucial: lets clicks pass through */
+            z-index: 100000;
+            display: none;
+            transform-origin: top left;
+        }
+        
+        .clicking {
+            transform: scale(0.9);
+        }
+
+        /* Windows & Elements */
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        .dark-glass {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .window-base {
+            position: absolute;
+            border-radius: 8px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .window-base.active {
+            display: flex;
+        }
+
+        .title-bar {
+            height: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            background: #fff;
+            color: #000;
+        }
+
+        #uac-overlay {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 9000;
+        }
+
+        #boot-screen {
+            background: #000;
+            z-index: 9500;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255,255,255,0.1);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        /* Login Screen */
+        #login-screen {
+            background: url('https://images.unsplash.com/photo-1618424181497-157f25b6ddd5?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+            z-index: 9000;
+            backdrop-filter: blur(20px);
+        }
+        
+        .login-glass {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(40px);
+        }
+
+        /* Notepad */
+        #notepad {
+            width: 600px;
+            height: 400px;
+            background: #fff;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 8500;
+        }
+        
+        .notepad-textarea {
+            width: 100%;
+            height: calc(100% - 32px);
+            border: none;
+            outline: none;
+            padding: 10px;
+            font-family: 'Consolas', monospace;
+            font-size: 16px;
+            resize: none;
+        }
+
+        /* Paint Phase */
+        #black-phase {
+            background: #000;
+            z-index: 9800;
+        }
+
+        #paint-app {
+            width: 800px;
+            height: 600px;
+            background: #c0c0c0;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: 2px solid #fff;
+            border-right-color: #808080;
+            border-bottom-color: #808080;
+        }
+
+        #paint-canvas {
+            background: #fff;
+            cursor: crosshair;
+        }
+
+        /* Utilities */
+        .icon-grid {
+            display: grid;
+            grid-template-rows: repeat(auto-fill, 80px);
+            grid-template-columns: 80px;
+            gap: 10px;
+            padding: 10px;
+            height: calc(100% - 48px);
+        }
+
+        .desktop-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            padding: 5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        .desktop-icon:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        /* Spam Files */
+        .spam-file {
+            position: absolute;
+            width: 64px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: popIn 0.2s ease-out;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); }
+            80% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <svg style="position: absolute; width: 0; height: 0;">
+        <filter id="melt-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.005 0.05" numOctaves="2" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G">
+                <animate attributeName="scale" values="0; 60; 150" dur="5s" fill="freeze" />
+            </feDisplacementMap>
+        </filter>
+    </svg>
+
+    <div id="intro-screen" class="absolute inset-0 bg-gray-900 flex flex-col items-center justify-center z-[100000] text-white p-8 text-center">
+        <svg class="h-24 w-24 text-red-500 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <h1 class="text-5xl font-bold mb-4">NoEscape Showcase</h1>
+        <p class="text-gray-400 max-w-2xl mb-8 text-lg">
+            This is a harmless, interactive simulation of the "NoEscape" computer virus.<br><br>
+            It will request Full Screen and Pointer Lock (trapping your real mouse) to simulate a complete system takeover. You control the simulated cursor.<br><br>
+            <strong class="text-white text-xl">Press <kbd class="bg-gray-700 px-3 py-1 rounded">ESC</kbd> at any time to abort the simulation.</strong>
+        </p>
+        <button id="start-btn" class="px-8 py-4 bg-red-600 hover:bg-red-700 rounded-lg text-xl font-bold shadow-[0_0_20px_rgba(220,38,38,0.5)] transition transform hover:scale-105 active:scale-95">
+            Accept Risk & Initialize
+        </button>
+    </div>
+
+    <div id="desktop" class="absolute inset-0 win11-bg hidden">
+        <div class="icon-grid" id="icon-container">
+            <!-- Normal Icons -->
+            <div class="desktop-icon text-white" onclick="showPlaceholder('Recycle Bin')">
+                <svg class="w-12 h-12 text-blue-300 mb-1 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14M6 19a2 2 0 002 2h8a2 2 0 002-2V7H6v12Z"/></svg>
+                <span class="text-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">Recycle Bin</span>
+            </div>
+            <div class="desktop-icon text-white" onclick="showPlaceholder('Microsoft Edge')">
+                <svg class="w-12 h-12 text-blue-500 mb-1 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                <span class="text-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">Edge</span>
+            </div>
+            
+            <!-- THE VIRUS -->
+            <div class="desktop-icon text-white mt-8" onclick="triggerUAC()">
+                <svg class="w-12 h-12 text-red-600 mb-1 drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 2L2 22h20L12 2zm0 4.5l6.5 13h-13L12 6.5z"/>
+                    <path d="M11 10h2v5h-2zm0 6h2v2h-2z"/>
+                </svg>
+                <span class="text-xs drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] bg-red-900/50 px-1 rounded">NoEscape.exe</span>
+            </div>
+        </div>
+
+        <!-- Taskbar -->
+        <div class="absolute bottom-0 left-0 w-full h-12 dark-glass flex items-center justify-center z-[8000]">
+            <div class="w-10 h-10 rounded hover:bg-white/10 flex items-center justify-center">
+                <svg viewBox="0 0 88 88" class="w-6 h-6"><path d="M0 12.402l35.687-4.86.016 34.423-35.67.206L0 12.402zm35.67 33.529l.016 34.424-35.67-4.86v-29.35l35.654-.214zm4.226-38.618L87.973 0v41.527l-48.077.293V7.313zm48.077 38.318L88 88l-48.077-6.551V45.34l48.077.291z" fill="#0078D7"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <div id="placeholder-modal" class="window-base glass w-[400px] h-[200px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[8500]">
+        <div class="title-bar">
+            <span>Application</span>
+            <button class="w-8 h-full hover:bg-red-500 hover:text-white flex items-center justify-center" onclick="closePlaceholder()">✕</button>
+        </div>
+        <div class="flex-1 flex items-center justify-center flex-col p-4 text-center">
+            <svg class="w-12 h-12 text-gray-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <p id="placeholder-text" class="text-gray-800">This is a placeholder application.</p>
+            <button class="mt-4 px-6 py-1 bg-gray-200 border border-gray-400 rounded hover:bg-gray-300" onclick="closePlaceholder()">OK</button>
+        </div>
+    </div>
+
+    <div id="uac-overlay" class="absolute inset-0 hidden flex items-center justify-center">
+        <div class="bg-white w-[500px] rounded shadow-2xl flex flex-col overflow-hidden text-black">
+            <div class="bg-[#e6e6e6] px-6 py-4 flex items-start gap-4">
+                <svg class="w-10 h-10 text-yellow-500 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z"/></svg>
+                <div>
+                    <h2 class="text-xl font-normal mb-1">Do you want to allow this app from an unknown publisher to make changes to your device?</h2>
+                    <p class="font-bold text-lg">NoEscape.exe</p>
+                    <p class="text-gray-600 text-sm mt-1">Publisher: Unknown</p>
+                    <p class="text-gray-600 text-sm">File origin: Hard drive on this computer</p>
+                </div>
+            </div>
+            <div class="bg-[#f0f0f0] px-6 py-4 flex justify-end gap-2 border-t border-gray-300">
+                <button class="px-8 py-1 bg-gray-200 border border-gray-400 hover:bg-blue-100 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500" onclick="acceptUAC()">Yes</button>
+                <button class="px-8 py-1 bg-gray-200 border border-gray-400 hover:bg-gray-300 focus:outline-none" onclick="cancelUAC()">No</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="boot-screen" class="absolute inset-0 hidden flex items-center justify-center flex-col">
+        <svg viewBox="0 0 88 88" class="w-20 h-20 mb-12"><path d="M0 12.402l35.687-4.86.016 34.423-35.67.206L0 12.402zm35.67 33.529l.016 34.424-35.67-4.86v-29.35l35.654-.214zm4.226-38.618L87.973 0v41.527l-48.077.293V7.313zm48.077 38.318L88 88l-48.077-6.551V45.34l48.077.291z" fill="#0078D7"/></svg>
+        <div class="spinner"></div>
+    </div>
+
+    <div id="login-screen" class="absolute inset-0 hidden login-glass flex flex-col items-center justify-center">
+        
+        <!-- Main Login Area -->
+        <div id="login-main" class="flex flex-col items-center mb-16 transition-opacity duration-300">
+            <div class="w-32 h-32 bg-red-900 rounded-full flex items-center justify-center text-4xl mb-4 border-4 border-red-500 shadow-[0_0_30px_rgba(255,0,0,0.5)]">
+                💀
+            </div>
+            <h1 class="text-white text-4xl mb-6 font-semibold drop-shadow-lg text-red-500">NO ESCAPE</h1>
+            
+            <div class="relative w-72">
+                <input type="password" id="password-input" placeholder="Password" class="w-full bg-black/50 border border-gray-500 text-white px-4 py-2 rounded focus:outline-none focus:border-red-500 placeholder-gray-400">
+                <button onclick="attemptLogin()" class="absolute right-1 top-1 w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded">→</button>
+            </div>
+            <p id="login-error" class="text-red-400 mt-2 opacity-0 transition-opacity">Incorrect password.</p>
+        </div>
+
+        <!-- Other Users (Bottom Left) -->
+        <div class="absolute bottom-10 left-10 flex flex-col gap-2">
+            <div class="flex items-center gap-3 hover:bg-white/10 p-2 rounded cursor-pointer w-64" onclick="selectUser('Administrator')">
+                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white">A</div>
+                <span class="text-white">Administrator</span>
+            </div>
+            <div class="flex items-center gap-3 hover:bg-white/10 p-2 rounded cursor-pointer w-64" onclick="selectUser('Guest')">
+                <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white">G</div>
+                <span class="text-white">Guest</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="notepad" class="window-base">
+        <div class="title-bar bg-white border-b border-gray-200">
+            <div class="flex items-center gap-2">
+                <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <span>Untitled - Notepad</span>
+            </div>
+            <div class="flex gap-1 h-full">
+                <div class="w-8 h-full flex items-center justify-center hover:bg-gray-200">_</div>
+                <div class="w-8 h-full flex items-center justify-center hover:bg-gray-200">□</div>
+                <div class="w-8 h-full flex items-center justify-center hover:bg-red-500 hover:text-white">✕</div>
+            </div>
+        </div>
+        <textarea id="notepad-text" class="notepad-textarea" readonly></textarea>
+    </div>
+
+    <div id="black-phase" class="absolute inset-0 hidden">
+        <div id="paint-app" class="window-base active">
+            <div class="title-bar" style="background: #000080; color: white;">
+                <span>untitled - Paint</span>
+                <div class="flex gap-1 h-full">
+                    <div class="w-6 h-6 bg-gray-300 text-black border border-white flex items-center justify-center m-1 shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff]">_</div>
+                    <div class="w-6 h-6 bg-gray-300 text-black border border-white flex items-center justify-center m-1 shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff]">□</div>
+                    <div class="w-6 h-6 bg-gray-300 text-black border border-white flex items-center justify-center m-1 shadow-[inset_-1px_-1px_#0a0a0a,inset_1px_1px_#fff]">X</div>
+                </div>
+            </div>
+            <!-- Simple toolbar mock -->
+            <div class="h-12 bg-[#c0c0c0] flex items-center px-2 gap-2 border-b border-gray-500">
+                <div class="w-8 h-8 border-2 border-t-gray-500 border-l-gray-500 border-b-white border-r-white bg-[#c0c0c0] flex items-center justify-center cursor-pointer">
+                    ✏️
+                </div>
+                <div class="w-8 h-8 border-2 border-t-white border-l-white border-b-gray-500 border-r-gray-500 bg-[#dfdfdf] flex items-center justify-center cursor-pointer">
+                    🪣
+                </div>
+                <div class="ml-auto text-xs font-bold text-red-600 animate-pulse" id="paint-timer">60s</div>
+            </div>
+            <!-- Canvas container -->
+            <div class="flex-1 bg-gray-400 p-2 flex">
+                <canvas id="paint-canvas" width="600" height="400" class="shadow-[-1px_-1px_#000,1px_1px_#fff]"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div id="os-deleted" class="absolute inset-0 hidden bg-black flex flex-col p-4 text-[#a8a8a8] font-mono text-xl z-[99999]">
+        <p>PXE-E61: Media test failure, check cable</p>
+        <p>PXE-M0F: Exiting Intel Boot Agent.</p>
+        <br>
+        <p>Operating System not found</p>
+        <p class="animate-pulse">_</p>
+        
+        <div class="absolute bottom-10 right-10 text-red-500 font-sans text-sm tracking-widest opacity-50">
+            [ SIMULATION ENDED - PRESS ESC ]
+        </div>
+    </div>
+
+    <svg id="fake-cursor" viewBox="0 0 24 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M1 1L1 25.5L8.5 19L13.5 30.5L17.5 28.5L12.5 17.5L20.5 17.5L1 1Z" fill="white" stroke="black" stroke-width="1.5" stroke-linejoin="round"/>
+    </svg>
+
+    <script>
+        // State variables
+        let cursorX = window.innerWidth / 2;
+        let cursorY = window.innerHeight / 2;
+        let isSimRunning = false;
+        let isCursorHijacked = false; // When true, user mouse movement is ignored
+        let currentPhase = 'intro'; 
+        
+        // DOM Elements
+        const fakeCursor = document.getElementById('fake-cursor');
+        const desktop = document.getElementById('desktop');
+        const introScreen = document.getElementById('intro-screen');
+        const uacOverlay = document.getElementById('uac-overlay');
+        const bootScreen = document.getElementById('boot-screen');
+        const loginScreen = document.getElementById('login-screen');
+        const passwordInput = document.getElementById('password-input');
+        const notepad = document.getElementById('notepad');
+        const notepadText = document.getElementById('notepad-text');
+        const blackPhase = document.getElementById('black-phase');
+        const osDeleted = document.getElementById('os-deleted');
+        const iconContainer = document.getElementById('icon-container');
+
+        // Paint Logic
+        const canvas = document.getElementById('paint-canvas');
+        const ctx = canvas.getContext('2d');
+        let isPainting = false;
+
+        // Initialize
+        document.getElementById('start-btn').addEventListener('click', async () => {
+            try {
+                await document.documentElement.requestFullscreen();
+                await document.body.requestPointerLock();
+                startSimulation();
+            } catch (err) {
+                alert("Fullscreen or Pointer Lock failed. Ensure you are clicking the button directly.");
+            }
+        });
+
+        // Abort mechanism
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement !== document.body && isSimRunning) {
+                abortSimulation();
+            }
+        });
+
+        function startSimulation() {
+            if(isSimRunning) return;
+            isSimRunning = true;
+            currentPhase = 'desktop';
+            
+            introScreen.classList.add('hidden');
+            desktop.classList.remove('hidden');
+            fakeCursor.style.display = 'block';
+            
+            // Center cursor
+            cursorX = window.innerWidth / 2;
+            cursorY = window.innerHeight / 2;
+            updateCursorPos();
+        }
+
+        function abortSimulation() {
+            isSimRunning = false;
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(()=>{});
+            }
+            // Reload page to reset everything
+            location.reload(); 
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isSimRunning || isCursorHijacked) return;
+
+            cursorX += e.movementX;
+            cursorY += e.movementY;
+
+            // Clamp to screen
+            cursorX = Math.max(0, Math.min(window.innerWidth, cursorX));
+            cursorY = Math.max(0, Math.min(window.innerHeight, cursorY));
+
+            updateCursorPos();
+
+            // Paint app drawing logic
+            if (currentPhase === 'paint' && isPainting) {
+                drawOnCanvas(cursorX, cursorY);
+            }
+        });
+
+        document.addEventListener('mousedown', (e) => {
+            if (!isSimRunning || isCursorHijacked) return;
+            
+            // Visual click feedback
+            fakeCursor.classList.add('clicking');
+
+            // Find element under cursor and simulate click
+            fakeCursor.style.display = 'none'; // hide temporarily so it doesn't intercept
+            const target = document.elementFromPoint(cursorX, cursorY);
+            fakeCursor.style.display = 'block';
+
+            if (target) {
+                // Handle normal clicks
+                target.click();
+                
+                // If it's an input, focus it explicitly
+                if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+                    target.focus();
+                }
+
+                // Handle Canvas Painting start
+                if (currentPhase === 'paint' && target.id === 'paint-canvas') {
+                    isPainting = true;
+                    const rect = canvas.getBoundingClientRect();
+                    ctx.beginPath();
+                    ctx.moveTo(cursorX - rect.left, cursorY - rect.top);
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            fakeCursor.classList.remove('clicking');
+            isPainting = false;
+            if(currentPhase === 'paint') ctx.beginPath(); // reset path
+        });
+
+        // Allow real keyboard typing for the login password
+        document.addEventListener('keydown', (e) => {
+            if (currentPhase === 'login' && document.activeElement === passwordInput) {
+                if(e.key === 'Enter') {
+                    attemptLogin();
+                }
+            }
+        });
+
+        function updateCursorPos() {
+            fakeCursor.style.transform = `translate(${cursorX}px, ${cursorY}px)`;
+        }
+
+        // Canvas drawing helper
+        function drawOnCanvas(x, y) {
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineTo(x - rect.left, y - rect.top);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - rect.left, y - rect.top);
+        }
+
+        
+        // Phase 1: Placeholder apps
+        function showPlaceholder(name) {
+            if (currentPhase !== 'desktop') return;
+            document.getElementById('placeholder-text').innerText = `${name} is currently unavailable.`;
+            document.getElementById('placeholder-modal').classList.add('active');
+        }
+
+        function closePlaceholder() {
+            document.getElementById('placeholder-modal').classList.remove('active');
+        }
+
+        // Phase 2: UAC
+        function triggerUAC() {
+            if(currentPhase !== 'desktop') return;
+            closePlaceholder();
+            uacOverlay.classList.remove('hidden');
+        }
+
+        function cancelUAC() {
+            uacOverlay.classList.add('hidden');
+        }
+
+        function acceptUAC() {
+            uacOverlay.classList.add('hidden');
+            currentPhase = 'restarting';
+            restartSequence();
+        }
+
+        // Phase 3: Restart & Login
+        async function restartSequence() {
+            desktop.classList.add('hidden');
+            bootScreen.classList.remove('hidden');
+            
+            await delay(3000);
+            
+            bootScreen.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+            currentPhase = 'login';
+            
+            // Auto focus password (simulating user clicking it)
+            passwordInput.focus();
+        }
+
+        function selectUser(user) {
+            const err = document.getElementById('login-error');
+            err.innerText = `${user} profile corrupted. Switching to main...`;
+            err.style.opacity = 1;
+            setTimeout(() => {
+                err.style.opacity = 0;
+            }, 2000);
+        }
+
+        function attemptLogin() {
+            const val = passwordInput.value;
+            if (val.toLowerCase() === 'death') {
+                loginScreen.classList.add('hidden');
+                triggerPayload();
+            } else {
+                const err = document.getElementById('login-error');
+                err.innerText = "Incorrect password.";
+                err.style.opacity = 1;
+                setTimeout(() => err.style.opacity = 0, 1500);
+                passwordInput.value = '';
+            }
+        }
+
+        async function triggerPayload() {
+            currentPhase = 'infected';
+            desktop.classList.remove('hidden');
+            
+            // Visual Changes
+            desktop.classList.add('desktop-red-bg');
+            desktop.classList.add('melt-effect');
+            
+            // Spam Files
+            const spamInterval = setInterval(() => {
+                if(!isSimRunning || currentPhase !== 'infected') return clearInterval(spamInterval);
+                spawnSpamFile();
+            }, 50);
+
+            // Wait 5 seconds as requested, then Hijack
+            await delay(5000);
+            clearInterval(spamInterval);
+            hijackCursorSequence();
+        }
+
+        function spawnSpamFile() {
+            const el = document.createElement('div');
+            el.className = 'spam-file text-white';
+            el.style.left = `${Math.random() * (window.innerWidth - 64)}px`;
+            el.style.top = `${Math.random() * (window.innerHeight - 64)}px`;
+            el.innerHTML = `
+                <svg class="w-10 h-10 text-red-400 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+                <span class="text-[10px] bg-red-900 px-1">NoEscape.txt</span>
+            `;
+            desktop.appendChild(el);
+        }
+
+        async function hijackCursorSequence() {
+            isCursorHijacked = true; // Lock out user mouse
+            
+            // Smoothly move cursor to center to open notepad
+            await moveCursorTo(window.innerWidth / 2, window.innerHeight / 2, 1000);
+            
+            notepad.classList.add('active');
+            
+            // Move cursor to text area and click
+            await delay(500);
+            const rect = notepadText.getBoundingClientRect();
+            await moveCursorTo(rect.left + 50, rect.top + 50, 500);
+            
+            fakeCursor.classList.add('clicking');
+            await delay(100);
+            fakeCursor.classList.remove('clicking');
+            
+            // Type message
+            await delay(500);
+            const msg = "ENJOY YOUR COMPUTER'S LAST MINS!";
+            for (let i = 0; i < msg.length; i++) {
+                if(!isSimRunning) return;
+                notepadText.value += msg[i];
+                await delay(80 + Math.random() * 50);
+            }
+
+            await delay(1500);
+            
+            // Transition to Paint Phase
+            desktop.classList.add('hidden');
+            startPaintPhase();
+        }
+
+        function startPaintPhase() {
+            currentPhase = 'paint';
+            isCursorHijacked = false; // Give cursor back to user
+            
+            blackPhase.classList.remove('hidden');
+            
+            // Center cursor for paint app
+            cursorX = window.innerWidth / 2;
+            cursorY = window.innerHeight / 2;
+            updateCursorPos();
+
+            // 60 Second Countdown
+            let timeLeft = 60;
+            const timerEl = document.getElementById('paint-timer');
+            
+            const countdown = setInterval(() => {
+                if(!isSimRunning) return clearInterval(countdown);
+                timeLeft--;
+                timerEl.innerText = `${timeLeft}s`;
+                
+                if(timeLeft <= 0) {
+                    clearInterval(countdown);
+                    triggerFinalCrash();
+                }
+            }, 1000);
+        }
+
+        function triggerFinalCrash() {
+            currentPhase = 'dead';
+            isCursorHijacked = true; // freeze cursor
+            fakeCursor.style.display = 'none';
+            
+            blackPhase.classList.add('hidden');
+            osDeleted.classList.remove('hidden');
+            
+            // Free the hardware cursor explicitly for the end state
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+        }
+
+        const delay = ms => new Promise(res => setTimeout(res, ms));
+
+        function moveCursorTo(targetX, targetY, duration) {
+            return new Promise((resolve) => {
+                const startX = cursorX;
+                const startY = cursorY;
+                const startTime = performance.now();
+
+                function animate(time) {
+                    if(!isSimRunning) return resolve();
+                    const elapsed = time - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Ease in out quad
+                    const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+                    cursorX = startX + (targetX - startX) * ease;
+                    cursorY = startY + (targetY - startY) * ease;
+                    updateCursorPos();
+
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        resolve();
+                    }
+                }
+                requestAnimationFrame(animate);
+            });
+        }
+    </script>
+</body>
+</html>
