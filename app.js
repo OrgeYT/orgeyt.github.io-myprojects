@@ -248,7 +248,8 @@ const projects = [
     "bombparty offline", // my fav
     "bombparty practice",
     "physics quest",
-    "NoEscape"
+    "NoEscape",
+    "⛓️‍💥Ultimate Breakout"
 ];
 
 const fileList = document.getElementById('file-list');
