@@ -314,18 +314,25 @@ body.layout-down #file-list { max-height: 200px; }
     border-radius: 5px;
     cursor: pointer;
     text-align: center;
-    transition: background-color 0.2s, transform 0.1s, border-color 0.3s;
+    transition: background-color 0.2s, transform 0.1s, border-color 0.3s, opacity 0.2s;
     font-size: 0.85rem;
     width: 100%;
     position: relative;
 }
 
-.toggle-btn:hover {
+.toggle-btn:hover:not(:disabled) {
     background-color: var(--btn-primary-hover);
 }
 
-.toggle-btn:active {
+.toggle-btn:active:not(:disabled) {
     transform: scale(0.98);
+}
+
+.toggle-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background-color: var(--bg-main);
+    color: var(--text-accent);
 }
 
 /* Notification Badge Styling */
