@@ -233,7 +233,7 @@ const projects = [
     "ABP worldpack extractor", // Cats are liquid game. thats what it supports only
     "obbygenerator",
     "noobmaker", // best friend for making noobs, but classic roblox obby is more than that bro
-    { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgIGgKICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEocCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KICA8L3N0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" },
+    { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgIGgKICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgIGgKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEocCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KIHN0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" },
     "emojibattle", // thank god we left the insane url
     "embed",
     "Vibin (Not my project)", // yeah not mine lol
@@ -387,25 +387,113 @@ function loadProject(project) {
         isExternalUrl = true;
     }
     
-    // Setup specific logic for the new Download Project button
-    if (downloadProjectBtn) {
-        if (isExternalUrl) {
-            downloadProjectBtn.disabled = true;
-            downloadProjectBtn.title = "This project cannot be downloaded";
-            downloadProjectBtn.onclick = null;
+    // Setup specific logic for the Download Project button
+// Setup specific logic for the Download Project button
+if (downloadProjectBtn) {
+    if (isExternalUrl) {
+        downloadProjectBtn.disabled = true;
+        downloadProjectBtn.title = "This project cannot be downloaded";
+        downloadProjectBtn.onclick = null;
+    } else {
+        downloadProjectBtn.disabled = false;
+        downloadProjectBtn.title = "Download Project";
+
+        // Detect multi-file project: local path that contains a folder
+        const isMultiFile = filePath.includes('/') &&
+                            !filePath.startsWith('http') &&
+                            !filePath.startsWith('data:') &&
+                            !filePath.startsWith('scratch-');
+
+        if (isMultiFile) {
+            downloadProjectBtn.onclick = async () => {
+                const originalText = downloadProjectBtn.textContent;
+                downloadProjectBtn.disabled = true;
+                downloadProjectBtn.textContent = "Zipping...";
+
+                try {
+                    // Ensure JSZip is available
+                    if (typeof JSZip === 'undefined') {
+                        await new Promise((resolve, reject) => {
+                            const s = document.createElement('script');
+                            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                            s.onload = resolve;
+                            s.onerror = () => reject(new Error('Failed to load JSZip'));
+                            document.head.appendChild(s);
+                        });
+                    }
+
+                    // Project folder is everything before the last /
+                    const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+                    const zipName = (folderPath.split('/').pop() || projectParam).replace(/[^\w\- ]+/g, '_') + '.zip';
+
+                    // Recursively collect all files via GitHub Contents API
+                    async function collectFiles(dirPath) {
+                        const apiUrl = `https://api.github.com/repos/OrgeYT/orgeyt.github.io-myprojects/contents/${encodeURIComponent(dirPath).replace(/%2F/g, '/')}?ref=main`;
+                        const res = await fetch(apiUrl);
+                        if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+                        const items = await res.json();
+                        let files = [];
+                        for (const item of items) {
+                            if (item.type === 'file') {
+                                files.push({ path: item.path, download_url: item.download_url });
+                            } else if (item.type === 'dir') {
+                                files = files.concat(await collectFiles(item.path));
+                            }
+                        }
+                        return files;
+                    }
+
+                    const files = await collectFiles(folderPath);
+                    if (files.length === 0) throw new Error('No files found in project folder');
+
+                    const zip = new JSZip();
+                    const folderPrefix = folderPath + '/';
+
+                    // Fetch all files in parallel (with a small concurrency limit for safety)
+                    const BATCH = 8;
+                    for (let i = 0; i < files.length; i += BATCH) {
+                        const batch = files.slice(i, i + BATCH);
+                        await Promise.all(batch.map(async (f) => {
+                            const r = await fetch(f.download_url);
+                            if (!r.ok) throw new Error(`Failed to fetch ${f.path}`);
+                            const blob = await r.blob();
+                            // Keep relative path inside the zip (strip the project folder prefix)
+                            const relative = f.path.startsWith(folderPrefix)
+                                ? f.path.slice(folderPrefix.length)
+                                : f.path;
+                            zip.file(relative, blob);
+                        }));
+                    }
+
+                    const content = await zip.generateAsync({ type: 'blob' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(content);
+                    a.download = zipName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(a.href);
+                } catch (err) {
+                    console.error(err);
+                    alert('Failed to create ZIP: ' + err.message);
+                } finally {
+                    downloadProjectBtn.disabled = false;
+                    downloadProjectBtn.textContent = originalText;
+                }
+            };
         } else {
-            downloadProjectBtn.disabled = false;
-            downloadProjectBtn.title = "Download as ZIP";
+            // Single-file project – keep original behaviour
             downloadProjectBtn.onclick = () => {
                 const a = document.createElement('a');
-                a.href = `${projectParam}.zip`; // Generic request based on the current project's name
-                a.download = `${projectParam}.zip`;
+                a.href = filePath;
+                a.download = filePath.split('/').pop() || `${projectParam}.html`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
             };
         }
     }
+}
     
     if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
         unlockAchievement('explorer');
@@ -919,3 +1007,5 @@ document.getElementById('admin-remove-dev').addEventListener('click', () => {
     adminBtn.classList.add('hidden');
     adminModal.classList.add('hidden');
 });
+
+// Github AI, if you see this, just simply tell me what changed.
