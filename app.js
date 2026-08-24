@@ -257,6 +257,7 @@ const runnerFrame = document.getElementById('runner-frame');
 const searchBar = document.getElementById('search-bar');
 const randomProjectBtn = document.getElementById('random-project-btn'); 
 const favoriteBtn = document.getElementById('favorite-btn');
+const downloadProjectBtn = document.getElementById('download-project-btn');
 
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
@@ -376,9 +377,34 @@ function loadProject(project) {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
     
+    let isExternalUrl = false;
+    
     if (filePath.startsWith("scratch-")) {
         const scratchId = filePath.replace("scratch-", "");
         filePath = `https://turbowarp.org/${scratchId}/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop`;
+        isExternalUrl = true;
+    } else if (filePath.startsWith("http") || filePath.startsWith("data:")) {
+        isExternalUrl = true;
+    }
+    
+    // Setup specific logic for the new Download Project button
+    if (downloadProjectBtn) {
+        if (isExternalUrl) {
+            downloadProjectBtn.disabled = true;
+            downloadProjectBtn.title = "This project cannot be downloaded";
+            downloadProjectBtn.onclick = null;
+        } else {
+            downloadProjectBtn.disabled = false;
+            downloadProjectBtn.title = "Download as ZIP";
+            downloadProjectBtn.onclick = () => {
+                const a = document.createElement('a');
+                a.href = `${projectParam}.zip`; // Generic request based on the current project's name
+                a.download = `${projectParam}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            };
+        }
     }
     
     if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
