@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Color War</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2a2e3a;
+      --text: #e8eaed;
+      --muted: #9aa0a6;
+      --accent: #7c9cff;
+      --danger: #ff6b6b;
+      --success: #51cf66;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+    h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #7c9cff, #b197fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 28px;
+      font-size: 0.95rem;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 24px;
+      width: 100%;
+      max-width: 780px;
+      margin-bottom: 20px;
+    }
+    .panel h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .teams-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 14px;
+      max-height: 340px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .team-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #12151c;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      flex-wrap: wrap;
+    }
+    .team-swatch {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 2px solid rgba(255,255,255,0.15);
+      flex-shrink: 0;
+    }
+    .team-row input[type="color"] {
+      width: 36px;
+      height: 28px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+    }
+    .team-name {
+      flex: 1;
+      min-width: 70px;
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .mode-select {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .mode-select:focus { outline: 1px solid var(--accent); }
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f1117;
+    }
+    .btn-primary:hover { background: #9bb0ff; }
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: #222632; color: var(--text); }
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid transparent;
+      padding: 6px 10px;
+      font-size: 0.8rem;
+    }
+    .btn-danger:hover { background: rgba(255,107,107,0.12); }
+    .btn-danger:disabled { opacity: 0.3; cursor: not-allowed; }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .map-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .map-controls input[type="number"] {
+      width: 80px;
+      background: #12151c;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 0.95rem;
+    }
+    .presets {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .preset-btn {
+      background: #12151c;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+    .preset-btn:hover, .preset-btn.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      user-select: none;
+    }
+    .toggle-row label {
+      font-size: 0.9rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      inset: 0;
+      background: #2a2e3a;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .slider::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      left: 3px;
+      top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .switch input:checked + .slider {
+      background: var(--accent);
+    }
+    .switch input:checked + .slider::before {
+      transform: translateX(18px);
+    }
+    #sim-area {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 960px;
+    }
+    #sim-area.visible { display: flex; }
+    .canvas-wrap {
+      position: relative;
+      display: inline-block;
+      max-width: 100%;
+    }
+    canvas {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      max-width: 100%;
+      display: block;
+    }
+    .speech-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .speech-bubble {
+      position: absolute;
+      max-width: 160px;
+      padding: 8px 12px;
+      background: #1e2230;
+      border: 2px solid;
+      border-radius: 12px;
+      font-size: 0.78rem;
+      line-height: 1.35;
+      color: var(--text);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+      transform: translate(-50%, -100%);
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      z-index: 10;
+      pointer-events: none;
+      word-wrap: break-word;
+    }
+    .speech-bubble.visible { opacity: 1; }
+    .speech-bubble::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 8px 7px 0;
+      border-style: solid;
+      border-color: inherit;
+      border-left-color: transparent;
+      border-right-color: transparent;
+      border-bottom-color: transparent;
+    }
+    .speech-bubble .tail-fill {
+      position: absolute;
+      bottom: -5px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-top: 6px solid #1e2230;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 16px;
+      width: 100%;
+    }
+    .speed-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .speed-wrap label { color: var(--muted); font-size: 0.85rem; }
+    input[type="range"] {
+      width: 140px;
+      accent-color: var(--accent);
+    }
+    .speed-value {
+      font-variant-numeric: tabular-nums;
+      min-width: 42px;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .status {
+      margin-top: 12px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      min-height: 1.4em;
+    }
+    .status.winner {
+      color: var(--success);
+      font-weight: 600;
+      font-size: 1.05rem;
+    }
+    .hidden { display: none !important; }
+    .stats-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 12px;
+      width: 100%;
+    }
+    .stat-chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #12151c;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 12px 4px 6px;
+      font-size: 0.8rem;
+    }
+    .stat-chip .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* Death toasts */
+    #toast-stack {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      max-width: 280px;
+    }
+    .death-toast, .ability-toast {
+      background: rgba(20, 22, 30, 0.92);
+      border: 1px solid;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      opacity: 0;
+      transform: translateX(24px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .death-toast.show, .ability-toast.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .death-toast.hide, .ability-toast.hide {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    .death-toast .dot, .ability-toast .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Win popup */
+    #win-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.55);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+    #win-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .win-card {
+      background: linear-gradient(160deg, #1a1d27 0%, #12151c 100%);
+      border: 3px solid;
+      border-radius: 20px;
+      padding: 36px 48px;
+      text-align: center;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px rgba(0,0,0,0.6);
+      transform: scale(0.7);
+      transition: transform 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+      max-width: 90vw;
+    }
+    #win-overlay.show .win-card {
+      transform: scale(1);
+    }
+    .win-card .win-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      margin: 0 auto 14px;
+      box-shadow: 0 0 24px currentColor;
+    }
+    .win-card h2 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .win-card p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+    .win-card .btn { min-width: 120px; }
+
+    /* Orb HUD label over canvas */
+    .orb-label {
+      position: absolute;
+      transform: translate(-50%, -100%);
+      background: rgba(15, 17, 23, 0.9);
+      border: 2px solid #fbbf24;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fbbf24;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 15;
+      text-align: center;
+      line-height: 1.3;
+      box-shadow: 0 2px 12px rgba(251, 191, 36, 0.35);
+    }
+    .orb-label .orb-timer {
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body>
+  <h1>Color War</h1>
+  <p class="subtitle">Pixels fight for territory. Last color standing wins.</p>
+
+  <div id="setup" class="panel">
+    <h2>Teams</h2>
+    <div class="teams-list" id="teams-list"></div>
+    <div class="row" style="margin-bottom: 8px;">
+      <button class="btn btn-ghost" id="add-team" type="button">+ Add Team</button>
+      <span style="color: var(--muted); font-size: 0.85rem;" id="team-limit-hint">2 – 16 teams</span>
+    </div>
+    <p class="hint">Bonus colors: Black/White, Rainbow, and Random animate during the fight.</p>
+
+    <h2 style="margin-top: 18px;">Map Size</h2>
+    <div class="row map-controls" style="margin-bottom: 12px;">
+      <label>Width
+        <input type="number" id="map-w" min="10" max="300" value="80" />
+      </label>
+      <label>Height
+        <input type="number" id="map-h" min="10" max="300" value="60" />
+      </label>
+    </div>
+    <div class="presets" style="margin-bottom: 20px;">
+      <button class="preset-btn" data-w="40" data-h="30">Small 40×30</button>
+      <button class="preset-btn active" data-w="80" data-h="60">Medium 80×60</button>
+      <button class="preset-btn" data-w="120" data-h="90">Large 120×90</button>
+      <button class="preset-btn" data-w="160" data-h="120">XL 160×120</button>
+    </div>
+
+    <h2>Options</h2>
+    <div class="toggle-row">
+      <label class="switch">
+        <input type="checkbox" id="comments-toggle" checked />
+        <span class="slider"></span>
+      </label>
+      <label for="comments-toggle">Team speech bubbles</label>
+    </div>
+    <div class="toggle-row">
+      <label class="switch">
+        <input type="checkbox" id="abilities-toggle" checked />
+        <span class="slider"></span>
+      </label>
+      <label for="abilities-toggle">Abilities (power-up orbs)</label>
+    </div>
+    <p class="hint" style="margin-bottom: 16px;">
+      Orbs spawn randomly. Teams fight over them. Holder when the timer ends gets the power-up.
+    </p>
+
+    <button class="btn btn-primary" id="start-btn" type="button" style="width: 100%; padding: 12px;">
+      Start Simulation
+    </button>
+  </div>
+
+  <div id="sim-area">
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="canvas-wrap">
+      <canvas id="canvas"></canvas>
+      <div class="speech-layer" id="speech-layer"></div>
+      <div id="orb-label" class="orb-label hidden"></div>
+    </div>
+    <div class="controls">
+      <div class="speed-wrap">
+        <label for="speed">Speed</label>
+        <input type="range" id="speed" min="1" max="20" value="5" />
+        <span class="speed-value" id="speed-label">5×</span>
+      </div>
+      <div class="toggle-row" style="margin: 0;">
+        <label class="switch">
+          <input type="checkbox" id="comments-toggle-sim" checked />
+          <span class="slider"></span>
+        </label>
+        <label for="comments-toggle-sim" style="font-size: 0.85rem; color: var(--muted);">Comments</label>
+      </div>
+      <div class="toggle-row" style="margin: 0;">
+        <label class="switch">
+          <input type="checkbox" id="abilities-toggle-sim" checked />
+          <span class="slider"></span>
+        </label>
+        <label for="abilities-toggle-sim" style="font-size: 0.85rem; color: var(--muted);">Abilities</label>
+      </div>
+      <button class="btn btn-ghost" id="pause-btn" type="button">Pause</button>
+      <button class="btn btn-ghost" id="restart-btn" type="button">Restart</button>
+      <button class="btn btn-ghost" id="back-btn" type="button">Back to Setup</button>
+    </div>
+    <div class="status" id="status">Simulation running…</div>
+  </div>
+
+  <div id="toast-stack"></div>
+
+  <div id="win-overlay">
+    <div class="win-card">
+      <div class="win-dot" id="win-dot"></div>
+      <h2 id="win-title">Team Wins!</h2>
+      <p id="win-sub">Last color standing.</p>
+      <button class="btn btn-primary" id="win-dismiss" type="button">Continue</button>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_COLORS = [
+      "#3b82f6", "#ef4444", "#22c55e", "#eab308",
+      "#a855f7", "#f97316", "#14b8a6", "#ec4899",
+      "#6366f1", "#84cc16", "#06b6d4", "#f43f5e",
+      "#8b5cf6", "#10b981", "#f59e0b", "#64748b",
+    ];
+
+    const COLOR_MODES = [
+      { value: "solid", label: "Solid" },
+      { value: "bw", label: "Black / White" },
+      { value: "rainbow", label: "Rainbow" },
+      { value: "random", label: "Random" },
+    ];
+
+    const COMMENTS = {
+      normal: [
+        "Your move.", "Let's take this territory.", "We've got room to expand.",
+        "Keep pushing!", "That pixel is ours now.", "We're spreading!",
+        "They're getting too close.", "Defend the borders!", "Come on, team!",
+        "We need more territory.", "They're fighting back!", "That was close.",
+        "Keep going!", "We've got this.", "Push forward!", "They're surrounded.",
+        "Don't let them through.", "Our territory is growing!", "Take that pixel!",
+        "We're making progress.", "Hold the line!", "Let's expand!",
+        "They're everywhere...", "We've got a chance.", "Keep attacking!",
+        "Protect our pixels!", "We're gaining ground!", "Don't stop!",
+        "That's another one!", "We're still in this!",
+      ],
+      losing: [
+        "Uh oh...", "We're losing ground!", "They're taking over!",
+        "We're getting surrounded!", "This isn't looking good.", "They're everywhere!",
+        "We can't keep up!", "We're running out of space!", "DEFEND THE TERRITORY!",
+        "They're pushing us back!", "We're losing pixels!", "No, no, no!",
+        "Our territory is shrinking!", "We're getting crushed!",
+        "How did they get over here?!", "We're almost gone...", "This is bad.",
+        "We're being overwhelmed!", "We need a miracle!", "They're taking everything!",
+        "We're barely surviving!", "Don't give up!", "We're down to our last pixels!",
+        "They're closing in!", "There's nowhere left to go!", "We're getting wiped out!",
+        "Our last stand!", "This might be it...", "We're finished!", "NOOO!",
+      ],
+      winning: [
+        "We're in the lead!", "We've got the most pixels!", "We're winning!",
+        "Look at our territory!", "We're ahead!", "We're dominating the map!",
+        "We've got more territory than everyone!", "We're number one!",
+        "We're taking the lead!", "Our territory is massive!",
+        "Nobody has more pixels than us!", "We're on top!", "We're pulling ahead!",
+        "We're gaining a huge lead!", "The map is mostly ours!",
+        "We're crushing the competition!", "We've got this!", "We're looking strong!",
+        "We're expanding faster than them!", "We're the biggest team right now!",
+        "That's a LOT of pixels!", "We're taking over!", "We're way ahead!",
+        "Keep it up, team!", "Don't let them catch up!", "We're holding first place!",
+        "We're dominating!", "The lead is ours!", "We're ahead of everyone!",
+        "WE'RE NUMBER ONE!",
+      ],
+    };
+
+    // Ability definitions: weight for spawn rarity
+    const ABILITIES = [
+      { id: "dash", name: "Quick Dash", weight: 22, color: "#60a5fa" },
+      { id: "spike", name: "Spike", weight: 22, color: "#f87171" },
+      { id: "steal", name: "Steal", weight: 22, color: "#fbbf24" },
+      { id: "surround", name: "Surround", weight: 8, color: "#f472b6" }, // rare
+    ];
+
+    const ORB_DURATION = 5500; // ms until claim
+    const ORB_SPAWN_MIN = 7000;
+    const ORB_SPAWN_MAX = 14000;
+
+    let teams = [
+      { id: 1, color: DEFAULT_COLORS[0], name: "Team 1", colorMode: "solid" },
+      { id: 2, color: DEFAULT_COLORS[1], name: "Team 2", colorMode: "solid" },
+    ];
+    let nextId = 3;
+
+    let grid = null;
+    let width = 80;
+    let height = 60;
+    let cellSize = 8;
+    let running = false;
+    let paused = false;
+    let animId = null;
+    let lastTick = 0;
+    let winner = null;
+    let commentsEnabled = true;
+    let abilitiesEnabled = true;
+    let animTime = 0;
+    let prevAlive = new Set();
+
+    // Active orb: { x, y, ability, spawnAt, endsAt } or null
+    let orb = null;
+    let nextOrbAt = 0;
+
+    // Visual effects for Spike / Steal animations
+    // { type: "spike"|"steal", start, duration, attackerId, targetId, from:{x,y}, to:{x,y}, cells:[[x,y],...], applied:bool }
+    let vfx = [];
+
+    const speechState = {};
+    const randomColorState = {};
+
+    const teamsList = document.getElementById("teams-list");
+    const addTeamBtn = document.getElementById("add-team");
+    const startBtn = document.getElementById("start-btn");
+    const setupEl = document.getElementById("setup");
+    const simArea = document.getElementById("sim-area");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const speechLayer = document.getElementById("speech-layer");
+    const orbLabel = document.getElementById("orb-label");
+    const speedInput = document.getElementById("speed");
+    const speedLabel = document.getElementById("speed-label");
+    const pauseBtn = document.getElementById("pause-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const backBtn = document.getElementById("back-btn");
+    const statusEl = document.getElementById("status");
+    const statsBar = document.getElementById("stats-bar");
+    const mapW = document.getElementById("map-w");
+    const mapH = document.getElementById("map-h");
+    const commentsToggle = document.getElementById("comments-toggle");
+    const commentsToggleSim = document.getElementById("comments-toggle-sim");
+    const abilitiesToggle = document.getElementById("abilities-toggle");
+    const abilitiesToggleSim = document.getElementById("abilities-toggle-sim");
+    const toastStack = document.getElementById("toast-stack");
+    const winOverlay = document.getElementById("win-overlay");
+    const winDot = document.getElementById("win-dot");
+    const winTitle = document.getElementById("win-title");
+    const winSub = document.getElementById("win-sub");
+    const winDismiss = document.getElementById("win-dismiss");
+
+    function showToast(html, borderColor, duration = 2200) {
+      const el = document.createElement("div");
+      el.className = "ability-toast";
+      el.style.borderColor = borderColor || "#fbbf24";
+      el.innerHTML = html;
+      toastStack.appendChild(el);
+      requestAnimationFrame(() => el.classList.add("show"));
+      setTimeout(() => {
+        el.classList.remove("show");
+        el.classList.add("hide");
+        setTimeout(() => el.remove(), 320);
+      }, duration);
+      while (toastStack.children.length > 5) toastStack.firstChild.remove();
+    }
+
+    function showDeathToast(team, now) {
+      const col = getTeamColor(team, now || performance.now());
+      showToast(
+        `<span class="dot" style="background:${col}"></span><span>${team.name} Died...</span>`,
+        col,
+        2200
+      );
+    }
+
+    function showAbilityToast(team, ability, now) {
+      const col = getTeamColor(team, now || performance.now());
+      showToast(
+        `<span class="dot" style="background:${col}"></span><span>${team.name} got <strong style="color:${ability.color}">${ability.name}</strong>!</span>`,
+        ability.color,
+        2800
+      );
+    }
+
+    function showWinPopup(team, now) {
+      const col = getTeamColor(team, now || performance.now());
+      winDot.style.background = col;
+      winDot.style.color = col;
+      winTitle.textContent = `${team.name} Wins!`;
+      winTitle.style.color = col;
+      winSub.textContent = "Last color standing.";
+      winOverlay.querySelector(".win-card").style.borderColor = col;
+      winOverlay.classList.add("show");
+    }
+
+    function hideWinPopup() {
+      winOverlay.classList.remove("show");
+    }
+
+    winDismiss.addEventListener("click", hideWinPopup);
+    winOverlay.addEventListener("click", (e) => {
+      if (e.target === winOverlay) hideWinPopup();
+    });
+
+    function syncCommentToggles(from) {
+      commentsEnabled = from.checked;
+      commentsToggle.checked = commentsEnabled;
+      commentsToggleSim.checked = commentsEnabled;
+      if (!commentsEnabled) clearAllBubbles();
+    }
+    commentsToggle.addEventListener("change", () => syncCommentToggles(commentsToggle));
+    commentsToggleSim.addEventListener("change", () => syncCommentToggles(commentsToggleSim));
+
+    function syncAbilitiesToggles(from) {
+      abilitiesEnabled = from.checked;
+      abilitiesToggle.checked = abilitiesEnabled;
+      abilitiesToggleSim.checked = abilitiesEnabled;
+      if (!abilitiesEnabled) {
+        orb = null;
+        orbLabel.classList.add("hidden");
+      }
+    }
+    abilitiesToggle.addEventListener("change", () => syncAbilitiesToggles(abilitiesToggle));
+    abilitiesToggleSim.addEventListener("change", () => syncAbilitiesToggles(abilitiesToggleSim));
+
+    function hexToRgb(hex) {
+      const h = hex.replace("#", "");
+      return {
+        r: parseInt(h.slice(0, 2), 16),
+        g: parseInt(h.slice(2, 4), 16),
+        b: parseInt(h.slice(4, 6), 16),
+      };
+    }
+
+    function rgbToCss(r, g, b) {
+      return `rgb(${r | 0},${g | 0},${b | 0})`;
+    }
+
+    function randomRgb() {
+      return {
+        r: Math.floor(Math.random() * 256),
+        g: Math.floor(Math.random() * 256),
+        b: Math.floor(Math.random() * 256),
+      };
+    }
+
+    function ensureRandomState(teamId) {
+      if (!randomColorState[teamId]) {
+        randomColorState[teamId] = {
+          from: randomRgb(),
+          to: randomRgb(),
+          lastChange: performance.now(),
+        };
+      }
+      return randomColorState[teamId];
+    }
+
+    function getTeamColor(team, now) {
+      const mode = team.colorMode || "solid";
+      if (mode === "solid") return team.color;
+
+      if (mode === "bw") {
+        const t = (Math.sin(now / 400) + 1) / 2;
+        const v = Math.round(t * 255);
+        return rgbToCss(v, v, v);
+      }
+
+      if (mode === "rainbow") {
+        const hue = (now / 12) % 360;
+        return `hsl(${hue}, 90%, 55%)`;
+      }
+
+      if (mode === "random") {
+        const st = ensureRandomState(team.id);
+        if (now - st.lastChange >= 1000) {
+          st.from = st.to;
+          st.to = randomRgb();
+          st.lastChange = now;
+        }
+        const t = Math.min(1, (now - st.lastChange) / 1000);
+        const s = t * t * (3 - 2 * t);
+        return rgbToCss(
+          st.from.r + (st.to.r - st.from.r) * s,
+          st.from.g + (st.to.g - st.from.g) * s,
+          st.from.b + (st.to.b - st.from.b) * s
+        );
+      }
+      return team.color;
+    }
+
+    function renderTeams() {
+      teamsList.innerHTML = "";
+      teams.forEach((t) => {
+        const row = document.createElement("div");
+        row.className = "team-row";
+        const isSolid = (t.colorMode || "solid") === "solid";
+        const modeOpts = COLOR_MODES.map(
+          (m) =>
+            `<option value="${m.value}" ${t.colorMode === m.value ? "selected" : ""}>${m.label}</option>`
+        ).join("");
+        row.innerHTML = `
+          <div class="team-swatch" data-swatch="${t.id}" style="background:${t.color}"></div>
+          <input type="color" value="${t.color}" data-id="${t.id}" style="${isSolid ? "" : "visibility:hidden;width:0;padding:0;"}" />
+          <select class="mode-select" data-mode="${t.id}">${modeOpts}</select>
+          <span class="team-name">${t.name}</span>
+          <button class="btn btn-danger" data-remove="${t.id}" ${teams.length <= 2 ? "disabled" : ""}>Remove</button>
+        `;
+        teamsList.appendChild(row);
+      });
+      addTeamBtn.disabled = teams.length >= 16;
+      document.getElementById("team-limit-hint").textContent =
+        teams.length >= 16
+          ? "Maximum 16 teams"
+          : teams.length <= 2
+            ? "Minimum 2 teams"
+            : `${teams.length} / 16 teams`;
+    }
+
+    teamsList.addEventListener("input", (e) => {
+      if (e.target.type === "color") {
+        const id = +e.target.dataset.id;
+        const team = teams.find((t) => t.id === id);
+        if (team) {
+          team.color = e.target.value;
+          const sw = teamsList.querySelector(`[data-swatch="${id}"]`);
+          if (sw) sw.style.background = team.color;
+        }
+      }
+    });
+
+    teamsList.addEventListener("change", (e) => {
+      if (e.target.matches("[data-mode]")) {
+        const id = +e.target.dataset.mode;
+        const team = teams.find((t) => t.id === id);
+        if (team) {
+          team.colorMode = e.target.value;
+          if (team.colorMode === "random") ensureRandomState(id);
+          renderTeams();
+        }
+      }
+    });
+
+    teamsList.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-remove]");
+      if (!btn || teams.length <= 2) return;
+      const id = +btn.dataset.remove;
+      teams = teams.filter((t) => t.id !== id);
+      delete randomColorState[id];
+      renderTeams();
+    });
+
+    addTeamBtn.addEventListener("click", () => {
+      if (teams.length >= 16) return;
+      const color = DEFAULT_COLORS[teams.length % DEFAULT_COLORS.length];
+      teams.push({
+        id: nextId++,
+        color,
+        name: `Team ${teams.length + 1}`,
+        colorMode: "solid",
+      });
+      teams.forEach((t, i) => (t.name = `Team ${i + 1}`));
+      renderTeams();
+    });
+
+    document.querySelectorAll(".preset-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".preset-btn").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        mapW.value = btn.dataset.w;
+        mapH.value = btn.dataset.h;
+      });
+    });
+
+    [mapW, mapH].forEach((inp) => {
+      inp.addEventListener("input", () => {
+        document.querySelectorAll(".preset-btn").forEach((b) => b.classList.remove("active"));
+      });
+    });
+
+    function placeStarts() {
+      const n = teams.length;
+      const positions = [];
+
+      if (n === 2) {
+        positions.push({ x: 1, y: Math.floor(height / 2) });
+        positions.push({ x: width - 2, y: Math.floor(height / 2) });
+      } else if (n === 3) {
+        positions.push({ x: 1, y: Math.floor(height / 2) });
+        positions.push({ x: width - 2, y: Math.floor(height / 4) });
+        positions.push({ x: width - 2, y: Math.floor((3 * height) / 4) });
+      } else if (n === 4) {
+        positions.push({ x: 1, y: 1 });
+        positions.push({ x: width - 2, y: 1 });
+        positions.push({ x: 1, y: height - 2 });
+        positions.push({ x: width - 2, y: height - 2 });
+      } else {
+        const perimeter = 2 * (width + height) - 4;
+        for (let i = 0; i < n; i++) {
+          const t = (i / n) * perimeter;
+          let x, y;
+          if (t < width) {
+            x = Math.floor(t);
+            y = 1;
+          } else if (t < width + height - 1) {
+            x = width - 2;
+            y = Math.floor(t - width + 1);
+          } else if (t < 2 * width + height - 2) {
+            x = Math.floor(width - 1 - (t - (width + height - 1)));
+            y = height - 2;
+          } else {
+            x = 1;
+            y = Math.floor(height - 1 - (t - (2 * width + height - 2)));
+          }
+          x = Math.max(1, Math.min(width - 2, x));
+          y = Math.max(1, Math.min(height - 2, y));
+          positions.push({ x, y });
+        }
+      }
+
+      const used = new Set();
+      positions.forEach((p, i) => {
+        let key = `${p.x},${p.y}`;
+        let attempts = 0;
+        while (used.has(key) && attempts < 50) {
+          p.x = Math.max(0, Math.min(width - 1, p.x + (Math.random() < 0.5 ? -1 : 1)));
+          p.y = Math.max(0, Math.min(height - 1, p.y + (Math.random() < 0.5 ? -1 : 1)));
+          key = `${p.x},${p.y}`;
+          attempts++;
+        }
+        used.add(key);
+        grid[p.y][p.x] = teams[i].id;
+      });
+    }
+
+    function pickWeightedAbility() {
+      const total = ABILITIES.reduce((s, a) => s + a.weight, 0);
+      let r = Math.random() * total;
+      for (const a of ABILITIES) {
+        r -= a.weight;
+        if (r <= 0) return a;
+      }
+      return ABILITIES[0];
+    }
+
+    function scheduleNextOrb(now) {
+      nextOrbAt = now + ORB_SPAWN_MIN + Math.random() * (ORB_SPAWN_MAX - ORB_SPAWN_MIN);
+    }
+
+    function spawnOrb(now) {
+      // Prefer blank-ish area: try a few random spots
+      let x = 0, y = 0;
+      for (let i = 0; i < 30; i++) {
+        x = 2 + Math.floor(Math.random() * (width - 4));
+        y = 2 + Math.floor(Math.random() * (height - 4));
+        // ok anywhere; slightly prefer not on edge
+        if (x > 1 && y > 1 && x < width - 2 && y < height - 2) break;
+      }
+      const ability = pickWeightedAbility();
+      orb = {
+        x,
+        y,
+        ability,
+        spawnAt: now,
+        endsAt: now + ORB_DURATION,
+      };
+    }
+
+    function pickEnemyTeam(attacker, counts) {
+      const others = teams.filter((t) => t.id !== attacker.id && (counts[t.id] || 0) > 0);
+      if (others.length === 0) return null;
+      // Prefer larger teams so the effect feels impactful
+      others.sort((a, b) => (counts[b.id] || 0) - (counts[a.id] || 0));
+      // Weighted toward larger but not always #1
+      const top = others.slice(0, Math.min(3, others.length));
+      return top[Math.floor(Math.random() * top.length)];
+    }
+
+    function collectTeamPixels(teamId) {
+      const pts = [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (grid[y][x] === teamId) pts.push({ x, y });
+        }
+      }
+      return pts;
+    }
+
+    function applyAbility(team, ability, now) {
+      showAbilityToast(team, ability, now);
+
+      if (ability.id === "dash") {
+        // Instantly convert random pixels across the map
+        const count = Math.max(8, Math.floor((width * height) * 0.04));
+        for (let i = 0; i < count; i++) {
+          const x = Math.floor(Math.random() * width);
+          const y = Math.floor(Math.random() * height);
+          grid[y][x] = team.id;
+        }
+      } else if (ability.id === "spike") {
+        const counts = countPixels();
+        const target = pickEnemyTeam(team, counts);
+        if (!target) return;
+        const from = getCentroid(team.id);
+        const victimPixels = collectTeamPixels(target.id);
+        if (!from || victimPixels.length === 0) return;
+        // Aim at a random dense-ish victim pixel
+        const aim = victimPixels[Math.floor(Math.random() * victimPixels.length)];
+        // Build spike path: line from edge of attacker toward aim, then a thick spike through victim territory
+        const cells = [];
+        const steps = Math.max(8, Math.floor(Math.hypot(aim.x - from.x, aim.y - from.y) * 1.15));
+        const thickness = Math.max(1, Math.min(3, Math.floor(Math.min(width, height) / 40)));
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          const cx = from.x + (aim.x - from.x) * t;
+          const cy = from.y + (aim.y - from.y) * t;
+          // perpendicular for thickness
+          const dx = aim.x - from.x;
+          const dy = aim.y - from.y;
+          const len = Math.hypot(dx, dy) || 1;
+          const px = -dy / len;
+          const py = dx / len;
+          for (let w = -thickness; w <= thickness; w++) {
+            const x = Math.round(cx + px * w);
+            const y = Math.round(cy + py * w);
+            if (x < 0 || x >= width || y < 0 || y >= height) continue;
+            cells.push([x, y]);
+          }
+        }
+        // Unique cells
+        const seen = new Set();
+        const unique = [];
+        for (const [x, y] of cells) {
+          const k = x + "," + y;
+          if (seen.has(k)) continue;
+          seen.add(k);
+          unique.push([x, y]);
+        }
+        vfx.push({
+          type: "spike",
+          start: now,
+          duration: 900,
+          attackerId: team.id,
+          targetId: target.id,
+          from: { x: from.x, y: from.y },
+          to: { x: aim.x, y: aim.y },
+          cells: unique,
+          applied: false,
+        });
+      } else if (ability.id === "steal") {
+        const counts = countPixels();
+        const target = pickEnemyTeam(team, counts);
+        if (!target) return;
+        const from = getCentroid(team.id);
+        const victimPixels = collectTeamPixels(target.id);
+        if (!from || victimPixels.length === 0) return;
+        // Grab a contiguous-ish chunk around a random victim pixel
+        const seed = victimPixels[Math.floor(Math.random() * victimPixels.length)];
+        const want = Math.max(12, Math.floor((counts[target.id] || 0) * 0.12));
+        const chunk = [];
+        const seen = new Set([seed.x + "," + seed.y]);
+        const queue = [seed];
+        while (queue.length && chunk.length < want) {
+          const p = queue.shift();
+          if (grid[p.y][p.x] !== target.id) continue;
+          chunk.push([p.x, p.y]);
+          for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+            const nx = p.x + dx;
+            const ny = p.y + dy;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+            const k = nx + "," + ny;
+            if (seen.has(k)) continue;
+            if (grid[ny][nx] !== target.id) continue;
+            seen.add(k);
+            queue.push({ x: nx, y: ny });
+          }
+        }
+        if (chunk.length === 0) return;
+        // Chunk centroid
+        let sx = 0, sy = 0;
+        chunk.forEach(([x, y]) => { sx += x; sy += y; });
+        const chunkC = { x: sx / chunk.length, y: sy / chunk.length };
+        vfx.push({
+          type: "steal",
+          start: now,
+          duration: 1400,
+          attackerId: team.id,
+          targetId: target.id,
+          from: { x: from.x, y: from.y },
+          to: { x: chunkC.x, y: chunkC.y },
+          cells: chunk,
+          applied: false,
+        });
+      } else if (ability.id === "surround") {
+        // Find team with least pixels (not self if possible)
+        const counts = countPixels();
+        const candidates = teams.filter((t) => counts[t.id] > 0);
+        if (candidates.length === 0) return;
+        candidates.sort((a, b) => counts[a.id] - counts[b.id]);
+        let target = candidates[0];
+        // Prefer someone else if we have alternatives
+        if (target.id === team.id && candidates.length > 1) {
+          target = candidates[1];
+        }
+        // Build ring around target territory: for each target pixel, paint orthogonal neighbors that are not target
+        const toPaint = [];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            if (grid[y][x] !== target.id) continue;
+            for (const [dx, dy] of DIRS) {
+              const nx = x + dx;
+              const ny = y + dy;
+              if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+              if (grid[ny][nx] !== target.id) {
+                toPaint.push([nx, ny]);
+              }
+            }
+          }
+        }
+        // Also expand ring slightly for visibility
+        const unique = new Set(toPaint.map(([x, y]) => `${x},${y}`));
+        unique.forEach((key) => {
+          const [x, y] = key.split(",").map(Number);
+          grid[y][x] = team.id;
+        });
+      }
+    }
+
+    function resolveOrb(now) {
+      if (!orb) return;
+      const ownerId = grid[orb.y][orb.x];
+      if (ownerId) {
+        const team = teams.find((t) => t.id === ownerId);
+        if (team) applyAbility(team, orb.ability, now);
+      }
+      // else nobody held it — wasted
+      orb = null;
+      orbLabel.classList.add("hidden");
+      scheduleNextOrb(now);
+    }
+
+    function updateOrb(now) {
+      if (!abilitiesEnabled || winner) {
+        if (orb) {
+          orb = null;
+          orbLabel.classList.add("hidden");
+        }
+        return;
+      }
+      if (!orb) {
+        if (now >= nextOrbAt) spawnOrb(now);
+        return;
+      }
+      if (now >= orb.endsAt) {
+        resolveOrb(now);
+        return;
+      }
+      // Update label position & text
+      const remaining = Math.max(0, (orb.endsAt - now) / 1000);
+      const ownerId = grid[orb.y][orb.x];
+      const owner = ownerId ? teams.find((t) => t.id === ownerId) : null;
+      orbLabel.classList.remove("hidden");
+      orbLabel.style.borderColor = orb.ability.color;
+      orbLabel.style.color = orb.ability.color;
+      orbLabel.innerHTML =
+        `${orb.ability.name}<br><span class="orb-timer">${remaining.toFixed(1)}s</span>` +
+        (owner ? `<br><span style="color:${getTeamColor(owner, now)};font-weight:600">${owner.name}</span>` : `<br><span style="color:#9aa0a6">Contested</span>`);
+      const px = orb.x * cellSize + cellSize / 2;
+      const py = orb.y * cellSize - 4;
+      orbLabel.style.left = px + "px";
+      orbLabel.style.top = Math.max(4, py) + "px";
+    }
+
+    function initGrid() {
+      width = Math.max(10, Math.min(300, parseInt(mapW.value, 10) || 80));
+      height = Math.max(10, Math.min(300, parseInt(mapH.value, 10) || 60));
+      mapW.value = width;
+      mapH.value = height;
+
+      grid = Array.from({ length: height }, () => Array(width).fill(0));
+      placeStarts();
+      winner = null;
+      paused = false;
+      pauseBtn.textContent = "Pause";
+      clearAllBubbles();
+      hideWinPopup();
+      toastStack.innerHTML = "";
+      prevAlive = new Set(teams.map((t) => t.id));
+      orb = null;
+      orbLabel.classList.add("hidden");
+      vfx = [];
+      scheduleNextOrb(performance.now() + 2000); // first orb a bit after start
+      teams.forEach((t) => {
+        speechState[t.id] = { lastSpeak: 0, bubbleEl: null, hideTimer: null };
+        if (t.colorMode === "random") ensureRandomState(t.id);
+      });
+    }
+
+    function draw(now) {
+      const maxDisplay = 700;
+      const scale = Math.min(1, maxDisplay / Math.max(width, height));
+      cellSize = Math.max(2, Math.floor(8 * scale));
+      canvas.width = width * cellSize;
+      canvas.height = height * cellSize;
+
+      const colorMap = {};
+      teams.forEach((t) => {
+        colorMap[t.id] = getTeamColor(t, now);
+      });
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const id = grid[y][x];
+          ctx.fillStyle = id === 0 ? "#0a0c10" : colorMap[id] || "#888";
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+        }
+      }
+
+      // Draw orb
+      if (orb) {
+        const cx = orb.x * cellSize + cellSize / 2;
+        const cy = orb.y * cellSize + cellSize / 2;
+        const pulse = 0.7 + 0.3 * Math.sin(now / 150);
+        const r = Math.max(cellSize * 1.2, 6) * pulse;
+
+        // Glow
+        const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r * 2.2);
+        g.addColorStop(0, orb.ability.color + "cc");
+        g.addColorStop(0.4, orb.ability.color + "55");
+        g.addColorStop(1, "transparent");
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core
+        ctx.fillStyle = "#fff";
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.35, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = orb.ability.color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Progress ring
+        const progress = 1 - Math.max(0, (orb.endsAt - now) / ORB_DURATION);
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * 0.95, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw Spike / Steal visual effects
+      const stillActive = [];
+      for (const fx of vfx) {
+        const elapsed = now - fx.start;
+        const t = Math.min(1, elapsed / fx.duration);
+        const attackerCol = colorMap[fx.attackerId] || "#fff";
+        const targetCol = colorMap[fx.targetId] || "#888";
+
+        if (fx.type === "spike") {
+          // Progress of the stab
+          const stab = Math.min(1, t / 0.55);
+          const hold = t > 0.55;
+          const ax = fx.from.x * cellSize + cellSize / 2;
+          const ay = fx.from.y * cellSize + cellSize / 2;
+          const bx = fx.to.x * cellSize + cellSize / 2;
+          const by = fx.to.y * cellSize + cellSize / 2;
+          const ex = ax + (bx - ax) * stab;
+          const ey = ay + (by - ay) * stab;
+
+          // Spike shaft
+          ctx.strokeStyle = attackerCol;
+          ctx.lineWidth = Math.max(3, cellSize * 0.9);
+          ctx.lineCap = "round";
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(ex, ey);
+          ctx.stroke();
+
+          // Tip glow
+          ctx.fillStyle = "#fff";
+          ctx.beginPath();
+          ctx.arc(ex, ey, Math.max(3, cellSize * 0.55), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = attackerCol;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          // When stab completes, paint cells
+          if (hold && !fx.applied) {
+            for (const [x, y] of fx.cells) {
+              if (x >= 0 && x < width && y >= 0 && y < height) {
+                grid[y][x] = fx.attackerId;
+              }
+            }
+            fx.applied = true;
+          }
+
+          // Fade outline of converted path
+          if (hold) {
+            const fade = 1 - (t - 0.55) / 0.45;
+            ctx.globalAlpha = Math.max(0, fade) * 0.5;
+            ctx.fillStyle = attackerCol;
+            for (const [x, y] of fx.cells) {
+              ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+            }
+            ctx.globalAlpha = 1;
+          }
+        } else if (fx.type === "steal") {
+          // Phases: reach (0-0.35), grab (0.35-0.5), drag (0.5-0.9), release (0.9-1)
+          let handX, handY;
+          const ax = fx.from.x * cellSize + cellSize / 2;
+          const ay = fx.from.y * cellSize + cellSize / 2;
+          const bx = fx.to.x * cellSize + cellSize / 2;
+          const by = fx.to.y * cellSize + cellSize / 2;
+
+          if (t < 0.35) {
+            const p = t / 0.35;
+            handX = ax + (bx - ax) * p;
+            handY = ay + (by - ay) * p;
+          } else if (t < 0.5) {
+            handX = bx;
+            handY = by;
+          } else if (t < 0.9) {
+            const p = (t - 0.5) / 0.4;
+            handX = bx + (ax - bx) * p;
+            handY = by + (ay - by) * p;
+          } else {
+            handX = ax;
+            handY = ay;
+          }
+
+          // Highlight stolen cells while being grabbed/dragged
+          if (t >= 0.35 && t < 0.9) {
+            const dragP = t < 0.5 ? 0 : (t - 0.5) / 0.4;
+            ctx.globalAlpha = 0.85;
+            for (const [x, y] of fx.cells) {
+              // Cells visually move toward attacker during drag
+              const ox = x * cellSize;
+              const oy = y * cellSize;
+              const mx = ox + (ax - cellSize / 2 - ox) * dragP * 0.35;
+              const my = oy + (ay - cellSize / 2 - oy) * dragP * 0.35;
+              ctx.fillStyle = targetCol;
+              ctx.fillRect(mx, my, cellSize, cellSize);
+              ctx.strokeStyle = attackerCol;
+              ctx.lineWidth = 1.5;
+              ctx.strokeRect(mx + 0.5, my + 0.5, cellSize - 1, cellSize - 1);
+            }
+            ctx.globalAlpha = 1;
+          }
+
+          // Draw hand (simple claw shape)
+          const hr = Math.max(8, cellSize * 1.6);
+          ctx.fillStyle = attackerCol;
+          ctx.strokeStyle = "#fff";
+          ctx.lineWidth = 2;
+          // palm
+          ctx.beginPath();
+          ctx.arc(handX, handY, hr * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // fingers
+          for (let i = -1; i <= 1; i++) {
+            const ang = -Math.PI / 2 + i * 0.55;
+            const fx1 = handX + Math.cos(ang) * hr * 0.35;
+            const fy1 = handY + Math.sin(ang) * hr * 0.35;
+            const fx2 = handX + Math.cos(ang) * hr * 1.05;
+            const fy2 = handY + Math.sin(ang) * hr * 1.05;
+            ctx.beginPath();
+            ctx.moveTo(fx1, fy1);
+            ctx.lineTo(fx2, fy2);
+            ctx.lineWidth = Math.max(3, cellSize * 0.45);
+            ctx.lineCap = "round";
+            ctx.strokeStyle = attackerCol;
+            ctx.stroke();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#fff";
+            ctx.stroke();
+          }
+
+          // Apply conversion near end of drag
+          if (t >= 0.85 && !fx.applied) {
+            for (const [x, y] of fx.cells) {
+              if (x >= 0 && x < width && y >= 0 && y < height) {
+                grid[y][x] = fx.attackerId;
+              }
+            }
+            fx.applied = true;
+          }
+        }
+
+        if (t < 1) stillActive.push(fx);
+        else if (!fx.applied) {
+          // Safety: apply if animation finished without applying
+          for (const [x, y] of fx.cells) {
+            if (x >= 0 && x < width && y >= 0 && y < height) {
+              grid[y][x] = fx.attackerId;
+            }
+          }
+          fx.applied = true;
+        }
+      }
+      vfx = stillActive;
+
+      teams.forEach((t) => {
+        const st = speechState[t.id];
+        if (st && st.bubbleEl) {
+          st.bubbleEl.style.borderColor = colorMap[t.id];
+        }
+      });
+    }
+
+    function countPixels() {
+      const counts = {};
+      teams.forEach((t) => (counts[t.id] = 0));
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const id = grid[y][x];
+          if (id && counts[id] !== undefined) counts[id]++;
+        }
+      }
+      return counts;
+    }
+
+    function getCentroid(teamId) {
+      let sx = 0, sy = 0, n = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (grid[y][x] === teamId) {
+            sx += x;
+            sy += y;
+            n++;
+          }
+        }
+      }
+      if (n === 0) return null;
+      return { x: sx / n, y: sy / n };
+    }
+
+    function updateStats(now) {
+      const counts = countPixels();
+      statsBar.innerHTML = "";
+      teams.forEach((t) => {
+        const chip = document.createElement("div");
+        chip.className = "stat-chip";
+        const col = getTeamColor(t, now);
+        chip.innerHTML = `<span class="dot" style="background:${col}"></span>${t.name}: <strong>${counts[t.id] || 0}</strong>`;
+        statsBar.appendChild(chip);
+      });
+    }
+
+    function clearAllBubbles() {
+      speechLayer.innerHTML = "";
+      Object.keys(speechState).forEach((id) => {
+        if (speechState[id]) {
+          if (speechState[id].hideTimer) clearTimeout(speechState[id].hideTimer);
+          speechState[id].bubbleEl = null;
+          speechState[id].hideTimer = null;
+        }
+      });
+    }
+
+    function pickComment(mood) {
+      const list = COMMENTS[mood] || COMMENTS.normal;
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function pickCommentForTeam(mood) {
+      if (Math.random() < 0.5) return pickComment("normal");
+      if (mood === "winning" || mood === "losing") return pickComment(mood);
+      return pickComment("normal");
+    }
+
+    function getMood(teamId, counts) {
+      const alive = teams.filter((t) => counts[t.id] > 0);
+      if (alive.length <= 1) return "winning";
+      const myCount = counts[teamId] || 0;
+      if (myCount === 0) return null;
+      const sorted = [...alive].sort((a, b) => counts[b.id] - counts[a.id]);
+      const maxCount = counts[sorted[0].id];
+      const minCount = counts[sorted[sorted.length - 1].id];
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      if (myCount === maxCount && myCount > minCount) {
+        if (alive.length === 2 || myCount >= total * 0.4 || myCount > maxCount * 0.9) {
+          return "winning";
+        }
+      }
+      if (myCount === minCount && myCount < maxCount) {
+        if (myCount < total * 0.2 || myCount < maxCount * 0.35) return "losing";
+      }
+      if (myCount < total * 0.08 && alive.length > 1) return "losing";
+      return "normal";
+    }
+
+    function showBubble(team, text, cx, cy, now) {
+      const state = speechState[team.id];
+      if (!state) return;
+      let el = state.bubbleEl;
+      if (!el || !el.parentNode) {
+        el = document.createElement("div");
+        el.className = "speech-bubble";
+        el.innerHTML = `<span class="text"></span><span class="tail-fill"></span>`;
+        speechLayer.appendChild(el);
+        state.bubbleEl = el;
+      }
+      el.querySelector(".text").textContent = text;
+      el.style.borderColor = getTeamColor(team, now);
+      const px = cx * cellSize + cellSize / 2;
+      const py = cy * cellSize;
+      el.style.left = Math.max(20, Math.min(canvas.width - 20, px)) + "px";
+      el.style.top = Math.max(28, Math.min(canvas.height - 10, py)) + "px";
+      el.classList.add("visible");
+      if (state.hideTimer) clearTimeout(state.hideTimer);
+      state.hideTimer = setTimeout(() => el.classList.remove("visible"), 2800 + Math.random() * 800);
+      state.lastSpeak = now;
+    }
+
+    function trySpeak(now) {
+      if (!commentsEnabled || paused || winner) return;
+      const counts = countPixels();
+      const aliveTeams = teams.filter((t) => counts[t.id] > 0);
+      aliveTeams.forEach((t) => {
+        const state = speechState[t.id];
+        if (!state) return;
+        const cooldown = 3500 + (t.id * 400) % 2000 + Math.random() * 1500;
+        if (now - state.lastSpeak < cooldown) return;
+        if (Math.random() > 0.018) return;
+        const mood = getMood(t.id, counts);
+        if (!mood) return;
+        const centroid = getCentroid(t.id);
+        if (!centroid) return;
+        showBubble(t, pickCommentForTeam(mood), centroid.x, centroid.y, now);
+      });
+    }
+
+    const DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
+
+    function infectionChance(teamId, now) {
+      // base: always infect blank, 50% enemy
+      return 0.5;
+    }
+
+    function step(now) {
+      if (winner) return;
+
+      const cells = [];
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (grid[y][x] !== 0) cells.push({ x, y, id: grid[y][x] });
+        }
+      }
+
+      for (let i = cells.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cells[i], cells[j]] = [cells[j], cells[i]];
+      }
+
+      for (const c of cells) {
+        if (grid[c.y][c.x] !== c.id) continue;
+
+        const chance = infectionChance(c.id, now);
+        if (chance === "skip") continue;
+
+        const dir = DIRS[Math.floor(Math.random() * 4)];
+        const nx = c.x + dir[0];
+        const ny = c.y + dir[1];
+        if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+        const target = grid[ny][nx];
+        if (target === 0) {
+          grid[ny][nx] = c.id;
+        } else if (target !== c.id) {
+          if (Math.random() < chance) grid[ny][nx] = c.id;
+        }
+      }
+
+      const counts = countPixels();
+      const alive = teams.filter((t) => counts[t.id] > 0);
+      const aliveIds = new Set(alive.map((t) => t.id));
+
+      for (const id of prevAlive) {
+        if (!aliveIds.has(id)) {
+          const team = teams.find((t) => t.id === id);
+          if (team) showDeathToast(team, now);
+        }
+      }
+      prevAlive = aliveIds;
+
+      if (alive.length <= 1) {
+        winner = alive[0] || null;
+        running = false;
+        orb = null;
+        orbLabel.classList.add("hidden");
+        if (winner) {
+          statusEl.textContent = `${winner.name} wins!`;
+          statusEl.classList.add("winner");
+          showWinPopup(winner, now);
+          if (commentsEnabled) {
+            const c = getCentroid(winner.id);
+            if (c) showBubble(winner, pickCommentForTeam("winning"), c.x, c.y, now);
+          }
+        } else {
+          statusEl.textContent = "Draw — no pixels left.";
+        }
+      }
+    }
+
+    function loop(ts) {
+      animTime = ts;
+      if (simArea.classList.contains("visible")) {
+        if (running && !paused) {
+          const speed = +speedInput.value;
+          const interval = Math.max(8, 120 / speed);
+          if (ts - lastTick >= interval) {
+            lastTick = ts;
+            const micro = speed >= 12 ? 2 : 1;
+            for (let i = 0; i < micro; i++) step(ts);
+            trySpeak(ts);
+            updateOrb(ts);
+          }
+        } else if (running && paused) {
+          // still update orb label time display slowly? freeze timer while paused
+        } else {
+          updateOrb(ts);
+        }
+        draw(ts);
+        updateStats(ts);
+        // Keep orb label in sync even between steps
+        if (orb && !paused) {
+          // label updated in updateOrb
+        } else if (orb && paused) {
+          updateOrb(ts); // show frozen remaining — actually endsAt is absolute so pauses would still count
+        }
+      }
+
+      if (running || simArea.classList.contains("visible")) {
+        animId = requestAnimationFrame(loop);
+      }
+    }
+
+    // Pause should freeze orb timer — adjust endsAt when unpausing
+    let pauseStartedAt = 0;
+    pauseBtn.addEventListener("click", () => {
+      if (winner) return;
+      if (!paused) {
+        paused = true;
+        pauseStartedAt = performance.now();
+        pauseBtn.textContent = "Resume";
+        statusEl.textContent = "Paused";
+        statusEl.classList.remove("winner");
+      } else {
+        const pauseDur = performance.now() - pauseStartedAt;
+        if (orb) orb.endsAt += pauseDur;
+        nextOrbAt += pauseDur;
+        vfx.forEach((fx) => { fx.start += pauseDur; });
+        paused = false;
+        pauseBtn.textContent = "Pause";
+        statusEl.textContent = "Simulation running…";
+      }
+    });
+
+    function startSim() {
+      initGrid();
+      setupEl.classList.add("hidden");
+      simArea.classList.add("visible");
+      statusEl.textContent = "Simulation running…";
+      statusEl.classList.remove("winner");
+      running = true;
+      paused = false;
+      lastTick = performance.now();
+      if (animId) cancelAnimationFrame(animId);
+      animId = requestAnimationFrame(loop);
+    }
+
+    function stopSim() {
+      running = false;
+      if (animId) cancelAnimationFrame(animId);
+      animId = null;
+      clearAllBubbles();
+      hideWinPopup();
+      toastStack.innerHTML = "";
+      orb = null;
+      orbLabel.classList.add("hidden");
+      vfx = [];
+    }
+
+    startBtn.addEventListener("click", startSim);
+
+    speedInput.addEventListener("input", () => {
+      speedLabel.textContent = speedInput.value + "×";
+    });
+
+    restartBtn.addEventListener("click", () => {
+      stopSim();
+      startSim();
+    });
+
+    backBtn.addEventListener("click", () => {
+      stopSim();
+      simArea.classList.remove("visible");
+      setupEl.classList.remove("hidden");
+      statusEl.classList.remove("winner");
+    });
+
+    function setupPreviewLoop(ts) {
+      teams.forEach((t) => {
+        if (t.colorMode === "solid") return;
+        const sw = teamsList.querySelector(`[data-swatch="${t.id}"]`);
+        if (sw) sw.style.background = getTeamColor(t, ts);
+      });
+      requestAnimationFrame(setupPreviewLoop);
+    }
+    requestAnimationFrame(setupPreviewLoop);
+
+    renderTeams();
+  </script>
+</body>
+</html>
