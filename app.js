@@ -249,7 +249,8 @@ const projects = [
     "bombparty practice",
     "physics quest",
     "NoEscape",
-    "⛓️‍💥Ultimate Breakout"
+    "⛓️‍💥Ultimate Breakout",
+    "color war"
 ];
 
 const fileList = document.getElementById('file-list');
