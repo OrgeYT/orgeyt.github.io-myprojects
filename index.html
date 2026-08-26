@@ -30,6 +30,7 @@
             <button id="downloads-btn" class="toggle-btn">Downloads</button>
             <button id="download-project-btn" class="toggle-btn">Download Project</button>
             <button id="effects-btn" class="toggle-btn">Effects</button>
+            <button id="line-graph-btn" class="toggle-btn">Line Graph</button>
             <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
         </div>
 
@@ -234,6 +235,24 @@
                 <a href="download/decode.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: decode animation</a>
                 <a href="download/file contents.bat" download class="modal-btn" style="text-decoration:none; display:block; text-align:center;">Download: file contents/folder dump</a>
             </div>
+        </div>
+    </div>
+
+    <div id="line-graph-modal" class="modal hidden">
+        <div class="modal-content line-graph-modal-content">
+            <span id="close-line-graph-btn" class="close-btn">&times;</span>
+            <h3>Project Type Line Graph</h3>
+            <p class="line-graph-subtitle">Cumulative count of each project type as you move through the list (left → right = project order).</p>
+            <div class="line-graph-nav">
+                <button id="line-graph-prev" class="modal-btn">&lt; Prev</button>
+                <span id="line-graph-current-label">—</span>
+                <button id="line-graph-next" class="modal-btn">Next &gt;</button>
+            </div>
+            <div id="line-graph-canvas-wrap">
+                <canvas id="line-graph-canvas" width="800" height="360"></canvas>
+            </div>
+            <div id="line-graph-legend"></div>
+            <div id="line-graph-totals" class="line-graph-totals"></div>
         </div>
     </div>
 
