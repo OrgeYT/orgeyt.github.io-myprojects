@@ -1000,3 +1000,102 @@ body.layout-down #file-list { max-height: 200px; }
     margin-bottom: 8px;
     color: var(--text-accent);
 }
+
+/* ==========================================
+   Line Graph Modal Styles
+   ========================================== */
+.line-graph-modal-content {
+    width: 92%;
+    max-width: 920px;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+
+.line-graph-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-accent);
+    margin-bottom: 10px;
+}
+
+.line-graph-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#line-graph-current-label {
+    flex: 1;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#line-graph-canvas-wrap {
+    width: 100%;
+    background: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 12px;
+    overflow-x: auto;
+}
+
+#line-graph-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 380px;
+    background: #0a0a0a;
+    border-radius: 4px;
+}
+
+#line-graph-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    justify-content: center;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+}
+
+.lg-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-main);
+}
+
+.lg-legend-swatch {
+    width: 18px;
+    height: 4px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.line-graph-totals {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 6px 12px;
+    font-size: 0.8rem;
+    color: var(--text-accent);
+    border-top: 1px solid var(--border-main);
+    padding-top: 10px;
+}
+
+.line-graph-totals strong {
+    color: var(--text-main);
+}
+
+@media (max-width: 600px) {
+    .line-graph-modal-content {
+        width: 96%;
+        padding: 12px;
+    }
+    #line-graph-canvas {
+        max-height: 280px;
+    }
+}
