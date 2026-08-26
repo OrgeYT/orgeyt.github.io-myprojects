@@ -250,7 +250,8 @@ const projects = [
     "physics quest",
     "NoEscape",
     "⛓️‍💥Ultimate Breakout",
-    "color war"
+    "color war",
+    "softbody"
 ];
 
 const fileList = document.getElementById('file-list');
