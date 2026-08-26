@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breath if Prime</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --panel2: #242836;
+    --border: #333a4a;
+    --text: #e8eaed;
+    --text-dim: #9aa0a6;
+    --accent: #5b9cff;
+    --accent2: #7c5cff;
+    --danger: #ff5b5b;
+    --success: #3dd68c;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .app {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    min-height: 100vh;
+  }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { max-height: 55vh; overflow-y: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+  .sidebar {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  .main {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+  }
+  h1 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+  .section {
+    background: var(--panel2);
+    border-radius: 10px;
+    padding: 12px;
+    border: 1px solid var(--border);
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    font-size: 0.85rem;
+  }
+  .stat {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .stat label { display: block; color: var(--text-dim); font-size: 0.7rem; margin-bottom: 2px; }
+  .stat value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  button:hover { filter: brightness(1.12); }
+  button:active { transform: scale(0.97); }
+  button.secondary { background: var(--panel); border: 1px solid var(--border); color: var(--text); }
+  button.danger { background: var(--danger); }
+  button.success { background: var(--success); color: #0a0; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; filter: none; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  input[type="number"] {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 6px 10px;
+    font-size: 0.9rem;
+    width: 100%;
+  }
+  .speed-display { font-size: 0.85rem; color: var(--text-dim); margin-top: 4px; }
+  .prime-list {
+    max-height: 110px;
+    overflow-y: auto;
+    font-family: ui-monospace, monospace;
+    font-size: 0.8rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .prime-chip {
+    background: var(--bg);
+    border-radius: 4px;
+    padding: 2px 6px;
+    color: var(--text-dim);
+  }
+  .prime-chip.current {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
+  #airGraph {
+    width: 100%;
+    height: 130px;
+    background: var(--bg);
+    border-radius: 8px;
+    display: block;
+  }
+  .grid-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .player-grid {
+    display: grid;
+    gap: 6px;
+    flex: 1;
+    overflow: auto;
+    align-content: start;
+    padding: 4px;
+  }
+  .player-card, .grave-card {
+    border-radius: 10px;
+    padding: 8px;
+    position: relative;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: transform 0.2s, opacity 0.3s;
+    border: 2px solid transparent;
+    font-size: 0.75rem;
+  }
+  .player-card {
+    background: var(--panel2);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .player-card:hover { transform: translateY(-2px); }
+  .player-card .color-bar {
+    height: 6px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+  }
+  .player-card .name { font-weight: 700; font-size: 0.8rem; margin-bottom: 2px; }
+  .air-bar-wrap {
+    height: 10px;
+    background: #1a1d27;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 4px 0;
+  }
+  .air-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.12s linear;
+  }
+  .air-text { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+  .stats-mini { display: flex; justify-content: space-between; color: var(--text-dim); font-size: 0.7rem; }
+  .grave-card {
+    background: linear-gradient(160deg, #2a2e3a, #1c1f28);
+    border: 2px solid #4a5060;
+    opacity: 0.92;
+  }
+  .grave-card.grave-enter {
+    animation: graveIn 0.45s ease-out;
+  }
+  @keyframes graveIn {
+    from { transform: translateY(-20px) scale(0.85); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 0.92; }
+  }
+  .grave-card .skull { font-size: 1.3rem; text-align: center; }
+  .grave-card .g-name { font-weight: 700; text-align: center; margin: 2px 0; }
+  .grave-card .g-info { font-size: 0.68rem; color: var(--text-dim); line-height: 1.35; }
+  .mode-tabs { display: flex; gap: 6px; }
+  .mode-tabs button { flex: 1; padding: 8px; font-size: 0.8rem; }
+  .mode-tabs button.active { background: var(--accent2); }
+  .custom-form { display: none; flex-direction: column; gap: 8px; }
+  .custom-form.visible { display: flex; }
+  .player-inputs {
+    max-height: 160px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .custom-player-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 6px;
+    align-items: center;
+  }
+  .custom-player-row input { font-size: 0.8rem; padding: 4px 6px; }
+  .about {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .tooltip {
+    position: fixed;
+    background: #000e;
+    color: #fff;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    pointer-events: none;
+    z-index: 1000;
+    max-width: 220px;
+    display: none;
+  }
+  .low-air { animation: pulse 1s infinite; }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,91,91,0.45); }
+    50% { box-shadow: 0 0 0 6px rgba(255,91,91,0); }
+  }
+  .skip-row { display: flex; gap: 6px; align-items: center; }
+  .skip-row input { flex: 1; }
+  .big-start {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    margin-bottom: 4px;
+  }
+  .status-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+  }
+  .status-running { background: var(--success); color: #062; }
+  .status-paused { background: #666; color: #fff; }
+  .status-stopped { background: var(--danger); color: #fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <h1>Breath if Prime</h1>
+
+    <div class="mode-tabs">
+      <button id="btnDefaultMode" class="active">Default</button>
+      <button id="btnCustomMode" class="secondary">Custom</button>
+    </div>
+
+    <div class="section" id="defaultInfo">
+      <h2>Default Simulation</h2>
+      <p style="font-size:0.8rem;color:var(--text-dim)">70 players · 7×10 grid<br>Capacity 1→10 (left→right)<br>Gain −1→4 (bottom→top)<br>Death wave: bottom-left → top-right</p>
+    </div>
+
+    <div class="section custom-form" id="customForm">
+      <h2>Custom Players</h2>
+      <div class="player-inputs" id="customPlayerInputs"></div>
+      <button id="btnAddPlayer" class="secondary" style="width:100%">+ Add Player</button>
+      <button id="btnStartCustom" style="width:100%;margin-top:4px">Apply & Ready</button>
+    </div>
+
+    <div class="section">
+      <h2>Simulation Stats</h2>
+      <div class="stats-row">
+        <div class="stat"><label>Current Number</label><value id="statTime">0</value></div>
+        <div class="stat"><label>Current Prime</label><value id="statPrime">—</value></div>
+        <div class="stat"><label>Next Prime</label><value id="statNext">2</value></div>
+        <div class="stat"><label>Living / Dead</label><value id="statLiving">70 / 0</value></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Controls</h2>
+      <button id="btnStart" class="big-start success">▶ Start Simulation</button>
+      <div class="controls">
+        <button id="btnPause" class="secondary" disabled>Pause</button>
+        <button id="btnResume" class="secondary" disabled>Resume</button>
+        <button id="btnReset" class="secondary">Reset</button>
+      </div>
+      <div style="margin-top:10px">
+        <h2>Skip to Number / Prime</h2>
+        <div class="skip-row">
+          <input type="number" id="skipPrimeInput" placeholder="e.g. 100" min="1">
+          <button id="btnSkip">Skip</button>
+        </div>
+        <p style="font-size:0.7rem;color:var(--text-dim);margin-top:4px">Simulates every second up to that number accurately.</p>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Simulation Speed</h2>
+      <input type="range" id="speedSlider" min="0.2" max="50" step="0.2" value="1">
+      <div class="speed-display" id="speedLabel">1.0× — 1 number per second</div>
+    </div>
+
+    <div class="section">
+      <h2>Recent Primes</h2>
+      <div class="prime-list" id="primeList"></div>
+    </div>
+
+    <div class="section">
+      <h2>Air Levels (Living)</h2>
+      <canvas id="airGraph" width="300" height="130"></canvas>
+    </div>
+
+    <div class="section about">
+      <h2>About / Credits</h2>
+      <p><strong>Breath if Prime</strong> — Original concept by <strong>Carykh</strong>.</p>
+      <p style="margin-top:6px">Every second the number increases by 1. All living players lose 1 air. If the number is prime, every living player gains their “Air/Prime” amount (cannot exceed capacity). Die at 0 air → grave appears permanently.</p>
+      <p style="margin-top:6px">This is a fan simulation. Concept by Carykh.</p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="grid-header">
+      <div>
+        <strong id="gridTitle">Player Grid</strong>
+        <span class="status-badge status-stopped" id="statusBadge">Stopped</span>
+        <span style="color:var(--text-dim);font-size:0.85rem;margin-left:8px" id="gridSub"></span>
+      </div>
+      <div style="font-size:0.8rem;color:var(--text-dim)">
+        Hover for details · Low air pulses
+      </div>
+    </div>
+    <div class="player-grid" id="playerGrid"></div>
+  </main>
+</div>
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ===================== UTILITIES =====================
+function isPrime(n) {
+  if (n < 2) return false;
+  if (n === 2 || n === 3) return true;
+  if (n % 2 === 0 || n % 3 === 0) return false;
+  for (let i = 5; i * i <= n; i += 6) {
+    if (n % i === 0 || n % (i + 2) === 0) return false;
+  }
+  return true;
+}
+
+function nextPrime(n) {
+  let p = Math.max(2, n + 1);
+  while (!isPrime(p)) p++;
+  return p;
+}
+
+function hslColor(i, total) {
+  const h = (i * 137.508) % 360;
+  return `hsl(${h}, 72%, 55%)`;
+}
+
+// ===================== STATE =====================
+let players = [];
+let currentTime = 0;          // last fully processed integer
+let currentPrime = null;
+let recentPrimes = [];
+let running = false;
+let speed = 1;                // numbers per real second
+let intervalId = null;
+let mode = 'default';
+let customConfigs = [];
+
+// ===================== PLAYER =====================
+class Player {
+  constructor(id, capacity, gain, color) {
+    this.id = id;
+    this.capacity = capacity;
+    this.gain = gain;
+    this.color = color;
+    this.air = capacity;
+    this.alive = true;
+    this.diedOn = null;
+  }
+}
+
+// ===================== DEFAULT SETUP =====================
+function createDefaultPlayers() {
+  const list = [];
+  let id = 1;
+  // 7 rows × 10 cols
+  // Capacity: 1 (left) → 10 (right)
+  // Gain: -1 (bottom) → 4 (top)
+  // Worst (die first) = bottom-left · Best (die last) = top-right
+  // Death wave travels bottom-left → top-right
+  const gains = [-1, 0, 1, 2, 3, 3, 4]; // index 0 = bottom row
+  for (let row = 0; row < 7; row++) {
+    for (let col = 0; col < 10; col++) {
+      const capacity = col + 1;                 // 1 … 10 left→right
+      const gain = gains[6 - row];             // top row = highest gain
+      list.push(new Player(id, capacity, gain, hslColor(id - 1, 70)));
+      id++;
+    }
+  }
+  // Sort by survival potential (capacity + gain*weight) so visual order
+  // places weakest bottom-left and strongest top-right after grid fill.
+  // Primary: capacity ascending (left→right)
+  // Secondary: gain descending (higher gain higher up)
+  list.sort((a, b) => {
+    if (a.capacity !== b.capacity) return a.capacity - b.capacity;
+    return b.gain - a.gain;
+  });
+  return list;
+}
+
+// ===================== RENDER =====================
+function renderGrid() {
+  const grid = document.getElementById('playerGrid');
+  const n = players.length;
+  let cols = 10;
+  if (mode === 'custom') {
+    cols = Math.ceil(Math.sqrt(n * 1.5)) || 1;
+    cols = Math.min(Math.max(cols, 3), 14);
+  }
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(96px, 1fr))`;
+
+  grid.innerHTML = '';
+  players.forEach(p => {
+    if (p.alive) {
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      if (p.air / p.capacity < 0.22) card.classList.add('low-air');
+      card.style.borderColor = p.color;
+      const pct = Math.max(0, (p.air / p.capacity) * 100);
+      card.innerHTML = `
+        <div class="color-bar" style="background:${p.color}"></div>
+        <div class="name">P${p.id}</div>
+        <div class="air-bar-wrap">
+          <div class="air-bar" style="width:${pct}%;background:${p.color}"></div>
+        </div>
+        <div class="air-text">${Math.floor(p.air)} / ${p.capacity}</div>
+        <div class="stats-mini">
+          <span>${p.gain >= 0 ? '+' : ''}${p.gain}/prime</span>
+          <span>${pct.toFixed(0)}%</span>
+        </div>
+      `;
+      card.addEventListener('mouseenter', e => showTip(e, p));
+      card.addEventListener('mousemove', moveTip);
+      card.addEventListener('mouseleave', hideTip);
+      grid.appendChild(card);
+    } else {
+      const grave = document.createElement('div');
+      // Only play the entrance animation on the exact frame the player dies.
+      // Afterwards the grave stays static (no animation restart).
+      const justDied = (p.diedOn === currentTime);
+      grave.className = justDied ? 'grave-card grave-enter' : 'grave-card';
+      grave.style.borderColor = p.color;
+      grave.innerHTML = `
+        <div class="skull">💀</div>
+        <div class="g-name" style="color:${p.color}">Player ${p.id}</div>
+        <div class="g-info">
+          Cap: ${p.capacity} · ${p.gain >= 0 ? '+' : ''}${p.gain}/p<br>
+          Lost on: <strong>${p.diedOn}</strong>
+        </div>
+      `;
+      grave.addEventListener('mouseenter', e => showTip(e, p, true));
+      grave.addEventListener('mousemove', moveTip);
+      grave.addEventListener('mouseleave', hideTip);
+      grid.appendChild(grave);
+    }
+  });
+}
+
+function showTip(e, p, dead = false) {
+  const tip = document.getElementById('tooltip');
+  tip.style.display = 'block';
+  if (dead) {
+    tip.innerHTML = `<strong>Player ${p.id}</strong> (eliminated)<br>
+      Capacity: ${p.capacity}<br>
+      Air / Prime: ${p.gain}<br>
+      Died on number: ${p.diedOn}`;
+  } else {
+    tip.innerHTML = `<strong>Player ${p.id}</strong><br>
+      Air: ${Math.floor(p.air)} / ${p.capacity}<br>
+      Gain: ${p.gain >= 0 ? '+' : ''}${p.gain} on each prime<br>
+      Color: ${p.color}`;
+  }
+  moveTip(e);
+}
+function moveTip(e) {
+  const tip = document.getElementById('tooltip');
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top  = (e.clientY + 14) + 'px';
+}
+function hideTip() {
+  document.getElementById('tooltip').style.display = 'none';
+}
+
+function updateStats() {
+  const living = players.filter(p => p.alive).length;
+  const dead = players.length - living;
+  document.getElementById('statTime').textContent = currentTime;
+  document.getElementById('statPrime').textContent = currentPrime ?? '—';
+  document.getElementById('statNext').textContent = nextPrime(currentTime);
+  document.getElementById('statLiving').textContent = `${living} / ${dead}`;
+  document.getElementById('gridSub').textContent = `${living} alive · ${dead} dead · t = ${currentTime}`;
+}
+
+function updatePrimeList() {
+  const el = document.getElementById('primeList');
+  el.innerHTML = recentPrimes.slice(-50).map(p => {
+    const cls = p === currentPrime ? 'prime-chip current' : 'prime-chip';
+    return `<span class="${cls}">${p}</span>`;
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function drawGraph() {
+  const canvas = document.getElementById('airGraph');
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  ctx.clearRect(0, 0, w, h);
+
+  const living = players.filter(p => p.alive);
+  if (living.length === 0) {
+    ctx.fillStyle = '#666';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('No living players', 10, h / 2);
+    return;
+  }
+  const maxAir = Math.max(...living.map(p => p.capacity), 1);
+  const barW = Math.max(2, (w - 16) / living.length - 1);
+
+  living.forEach((p, i) => {
+    const x = 8 + i * (barW + 1);
+    const barH = (p.air / maxAir) * (h - 18);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(x, h - 10 - barH, barW, barH);
+  });
+  ctx.strokeStyle = '#444';
+  ctx.beginPath();
+  ctx.moveTo(4, h - 10);
+  ctx.lineTo(w - 4, h - 10);
+  ctx.stroke();
+}
+
+function setStatus(state) {
+  const badge = document.getElementById('statusBadge');
+  badge.className = 'status-badge';
+  if (state === 'running') {
+    badge.classList.add('status-running');
+    badge.textContent = 'Running';
+  } else if (state === 'paused') {
+    badge.classList.add('status-paused');
+    badge.textContent = 'Paused';
+  } else {
+    badge.classList.add('status-stopped');
+    badge.textContent = 'Stopped';
+  }
+}
+
+// ===================== SIMULATION CORE =====================
+function processSecond(t) {
+  for (const p of players) {
+    if (!p.alive) continue;
+    // Lose 1 air every second
+    p.air -= 1;
+    // If this number is prime → apply air gain (can be negative)
+    if (isPrime(t)) {
+      p.air = Math.min(p.capacity, p.air + p.gain);
+    }
+    if (p.air <= 0) {
+      p.air = 0;
+      p.alive = false;
+      p.diedOn = t;
+    }
+  }
+  if (isPrime(t)) {
+    currentPrime = t;
+    recentPrimes.push(t);
+    if (recentPrimes.length > 80) recentPrimes.shift();
+  }
+  currentTime = t;
+}
+
+function simulateTo(target) {
+  target = Math.floor(target);
+  if (target <= currentTime) return;
+  // Process in reasonable chunks so UI stays responsive
+  const CHUNK = 20000;
+  let t = currentTime + 1;
+  while (t <= target) {
+    const end = Math.min(t + CHUNK - 1, target);
+    for (let s = t; s <= end; s++) {
+      processSecond(s);
+      if (!players.some(p => p.alive)) {
+        currentTime = s;
+        return;
+      }
+    }
+    t = end + 1;
+  }
+}
+
+// ===================== TIMER (reliable) =====================
+function tick() {
+  if (!running) return;
+  if (!players.some(p => p.alive)) {
+    stopSimulation();
+    return;
+  }
+  processSecond(currentTime + 1);
+  updateStats();
+  updatePrimeList();
+  renderGrid();
+  drawGraph();
+}
+
+function startSimulation() {
+  if (running) return;
+  if (!players.some(p => p.alive)) return;
+
+  running = true;
+  setStatus('running');
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnPause').disabled = false;
+  document.getElementById('btnResume').disabled = true;
+
+  // Clear any previous timer
+  if (intervalId) clearInterval(intervalId);
+
+  // Interval length = 1000 ms / speed
+  // speed = 1 → 1000 ms per number
+  // speed = 10 → 100 ms per number
+  const ms = Math.max(10, 1000 / speed);
+  intervalId = setInterval(tick, ms);
+}
+
+function pauseSimulation() {
+  running = false;
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+  setStatus('paused');
+  document.getElementById('btnStart').disabled = true;
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnResume').disabled = false;
+  updateStats();
+  renderGrid();
+  drawGraph();
+}
+
+function resumeSimulation() {
+  if (running) return;
+  if (!players.some(p => p.alive)) return;
+  startSimulation();
+}
+
+function stopSimulation() {
+  running = false;
+  if (intervalId) {
+    clearInterval(intervalId);
+    intervalId = null;
+  }
+  setStatus('stopped');
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnPause').disabled = true;
+  document.getElementById('btnResume').disabled = true;
+}
+
+function resetSimulation() {
+  stopSimulation();
+  currentTime = 0;
+  currentPrime = null;
+  recentPrimes = [];
+
+  if (mode === 'default') {
+    players = createDefaultPlayers();
+  } else {
+    players = customConfigs.map((c, i) =>
+      new Player(i + 1, c.capacity, c.gain, hslColor(i, customConfigs.length || 1))
+    );
+  }
+
+  document.getElementById('btnStart').disabled = false;
+  updateStats();
+  updatePrimeList();
+  renderGrid();
+  drawGraph();
+  setStatus('stopped');
+}
+
+// ===================== CUSTOM MODE =====================
+function addCustomRow(cap = 40, gain = 2) {
+  const container = document.getElementById('customPlayerInputs');
+  const row = document.createElement('div');
+  row.className = 'custom-player-row';
+  row.innerHTML = `
+    <input type="number" class="cap" min="1" max="10000" value="${cap}" title="Air Capacity">
+    <input type="number" class="gain" min="-10" max="1000" value="${gain}" title="Air gained per prime (can be negative)">
+    <button class="secondary remove" style="padding:4px 8px">×</button>
+  `;
+  row.querySelector('.remove').onclick = () => row.remove();
+  container.appendChild(row);
+}
+
+function gatherCustomConfigs() {
+  const rows = document.querySelectorAll('#customPlayerInputs .custom-player-row');
+  const configs = [];
+  rows.forEach(r => {
+    const cap  = Math.max(1, parseInt(r.querySelector('.cap').value)  || 1);
+    const gain = parseInt(r.querySelector('.gain').value);
+    const safeGain = isNaN(gain) ? 0 : gain;
+    configs.push({ capacity: cap, gain: safeGain });
+  });
+  return configs;
+}
+
+// ===================== UI BINDINGS =====================
+document.getElementById('speedSlider').addEventListener('input', e => {
+  speed = parseFloat(e.target.value);
+  const ms = Math.round(1000 / speed);
+  document.getElementById('speedLabel').textContent =
+    `${speed.toFixed(1)}× — ~${ms} ms per number`;
+
+  // If currently running, restart the interval with new speed
+  if (running) {
+    clearInterval(intervalId);
+    const intervalMs = Math.max(10, 1000 / speed);
+    intervalId = setInterval(tick, intervalMs);
+  }
+});
+
+document.getElementById('btnStart').onclick = () => {
+  startSimulation();
+};
+
+document.getElementById('btnPause').onclick = () => pauseSimulation();
+document.getElementById('btnResume').onclick = () => resumeSimulation();
+document.getElementById('btnReset').onclick = () => resetSimulation();
+
+document.getElementById('btnSkip').onclick = () => {
+  const val = parseInt(document.getElementById('skipPrimeInput').value);
+  if (!val || val < 1) return;
+
+  const wasRunning = running;
+  pauseSimulation();
+  simulateTo(val);
+  updateStats();
+  updatePrimeList();
+  renderGrid();
+  drawGraph();
+
+  if (wasRunning && players.some(p => p.alive)) {
+    startSimulation();
+  } else if (!players.some(p => p.alive)) {
+    setStatus('stopped');
+    document.getElementById('btnStart').disabled = true;
+  }
+};
+
+document.getElementById('btnDefaultMode').onclick = () => {
+  mode = 'default';
+  document.getElementById('btnDefaultMode').classList.add('active');
+  document.getElementById('btnCustomMode').classList.remove('active');
+  document.getElementById('defaultInfo').style.display = 'block';
+  document.getElementById('customForm').classList.remove('visible');
+  resetSimulation();
+};
+
+document.getElementById('btnCustomMode').onclick = () => {
+  mode = 'custom';
+  document.getElementById('btnCustomMode').classList.add('active');
+  document.getElementById('btnDefaultMode').classList.remove('active');
+  document.getElementById('defaultInfo').style.display = 'none';
+  document.getElementById('customForm').classList.add('visible');
+  if (document.getElementById('customPlayerInputs').children.length === 0) {
+    for (let i = 0; i < 8; i++) addCustomRow(20 + i * 10, 1 + (i % 5));
+  }
+};
+
+document.getElementById('btnAddPlayer').onclick = () => addCustomRow();
+document.getElementById('btnStartCustom').onclick = () => {
+  customConfigs = gatherCustomConfigs();
+  if (customConfigs.length === 0) {
+    alert('Add at least one player');
+    return;
+  }
+  resetSimulation();
+};
+
+// ===================== BOOT =====================
+resetSimulation();
+</script>
+</body>
+</html>
