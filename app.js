@@ -251,7 +251,9 @@ const projects = [
     "NoEscape",
     "⛓️‍💥Ultimate Breakout",
     "color war",
-    "softbody"
+    "softbody",
+    "breath if prime",
+    { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" }
 ];
 
 const fileList = document.getElementById('file-list');
