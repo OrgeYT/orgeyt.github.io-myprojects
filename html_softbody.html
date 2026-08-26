@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>GLB Soft Body Playground — FPS Fly</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      overflow: hidden;
+      background: #0d1117;
+      color: #e6edf3;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+    #container { width: 100vw; height: 100vh; }
+    #ui {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      background: rgba(13, 17, 23, 0.9);
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 14px 16px;
+      max-width: 340px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    #ui h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #58a6ff;
+    }
+    #ui p { font-size: 12px; line-height: 1.45; color: #8b949e; margin-bottom: 10px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+    button, label.btn {
+      background: #21262d;
+      color: #e6edf3;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 7px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      user-select: none;
+    }
+    button:hover, label.btn:hover { background: #30363d; border-color: #58a6ff; }
+    button.primary { background: #238636; border-color: #2ea043; }
+    button.primary:hover { background: #2ea043; }
+    button.danger { background: #da3633; border-color: #f85149; }
+    input[type="file"] { display: none; }
+    #status {
+      font-size: 11px;
+      color: #7ee787;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+    .hint {
+      position: absolute;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(13,17,23,0.8);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      color: #8b949e;
+      pointer-events: none;
+      border: 1px solid #30363d;
+      text-align: center;
+      z-index: 5;
+    }
+    #crosshair {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 12px; height: 12px;
+      margin: -6px 0 0 -6px;
+      border: 1.5px solid rgba(255,255,255,0.7);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 4;
+      display: none;
+    }
+    #crosshair::before, #crosshair::after {
+      content: '';
+      position: absolute;
+      background: rgba(255,255,255,0.7);
+    }
+    #crosshair::before { width: 1.5px; height: 100%; left: 50%; margin-left: -0.75px; }
+    #crosshair::after { height: 1.5px; width: 100%; top: 50%; margin-top: -0.75px; }
+    label.slider-label {
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #c9d1d9;
+    }
+  </style>
+</head>
+<body>
+  <div id="container"></div>
+  <div id="crosshair"></div>
+  <div id="ui">
+    <h1>GLB → Soft Body</h1>
+    <p style="color:#7ee787;">Note: GLBs with more triangles work best for soft-body deformation.</p>
+    <div class="row">
+      <button class="primary" id="btnDefault">Load Default Sphere</button>
+      <label class="btn" for="fileInput">Upload GLB</label>
+      <input type="file" id="fileInput" accept=".glb,.gltf">
+    </div>
+    <div class="row">
+      <button id="btnReset">Reset Soft Body</button>
+      <button class="danger" id="btnClearBalls">Clear Balls</button>
+    </div>
+    <div class="row">
+      <span style="font-size:12px;color:#c9d1d9;">Camera:</span>
+      <button id="btnCamFP">First Person</button>
+      <button id="btnCamTP" class="primary">Third Person</button>
+    </div>
+    <div class="row">
+      <span style="font-size:12px;color:#c9d1d9;">Interact:</span>
+      <button id="btnModeBall" class="primary">Balls</button>
+      <button id="btnModeDrag">Click &amp; Drag</button>
+    </div>
+    <div class="row">
+      <label class="slider-label">
+        Pressure
+        <input type="range" id="pressure" min="0" max="800" value="180" style="width:90px">
+        <span id="pressureVal">180</span>
+      </label>
+    </div>
+    <div class="row">
+      <label class="slider-label">
+        Mass
+        <input type="range" id="mass" min="1" max="80" value="18" style="width:90px">
+        <span id="massVal">18</span>
+      </label>
+    </div>
+    <div class="row">
+      <label class="slider-label">
+        Min tris
+        <input type="range" id="minTris" min="24" max="400" step="8" value="80" style="width:90px">
+        <span id="minTrisVal">80</span>
+      </label>
+      <span style="font-size:10px;color:#8b949e">(Reset to apply)</span>
+    </div>
+    <div class="row">
+      <label class="slider-label">
+        Grab size
+        <input type="range" id="grabRadius" min="0.2" max="2.5" step="0.1" value="0.9" style="width:90px">
+        <span id="grabRadiusVal">0.9</span>
+      </label>
+    </div>
+    <div id="status">Ready. Loading default model…</div>
+  </div>
+  <div class="hint" id="hint">Third person · right-drag rotates camera · left-click interacts</div>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
+    import Stats from 'three/addons/libs/stats.module.js';
+
+    // Load Ammo WASM
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/gh/kripken/ammo.js@79190a1f03845794b1bba1777f30037349967658/builds/ammo.wasm.js';
+      s.onload = resolve;
+      s.onerror = () => reject(new Error('Failed to load ammo.wasm.js'));
+      document.head.appendChild(s);
+    });
+
+    const DEFAULT_GLB = 'https://file.garden/Zj01o_oh-G9Y8APf/sphere.glb';
+    const GRAVITY = -9.8;
+    const MARGIN = 0.04;
+    const FLY_SPEED = 12;
+    const LOOK_SENS = 0.0022;
+
+    let Ammo;
+    let container, camera, scene, renderer, stats;
+    let physicsWorld, softBodyHelpers, transformAux1;
+    const rigidBodies = [];
+    const softBodies = [];
+    const kinematicBodies = [];
+    let softMesh = null;
+    let softBody = null;
+    let currentGltfUrl = DEFAULT_GLB;
+    let pressure = 180;
+    let softMass = 18;
+    let minTrianglesTarget = 80;
+    let grabRadius = 0.9;
+    const clock = new THREE.Clock();
+    const thrownBalls = [];
+
+    // Interaction: 'ball' | 'drag'
+    let interactMode = 'ball';
+    let dragNodes = []; // { index, offset } multi-node grab
+    let dragDistance = 3;
+    let isDragging = false;
+    let isOrbiting = false;
+    const raycaster = new THREE.Raycaster();
+    const ndc = new THREE.Vector2();
+
+    // Camera: 'fp' | 'tp'
+    let cameraMode = 'tp';
+    const keys = { w: false, a: false, s: false, d: false, space: false, shift: false };
+    let pointerLocked = false;
+    let yaw = 0.4;
+    let pitch = -0.35;
+    let tpDistance = 14;
+    let tpTarget = new THREE.Vector3(0, 3, 2);
+    const velocity = new THREE.Vector3();
+    const direction = new THREE.Vector3();
+
+    const statusEl = document.getElementById('status');
+    const crosshair = document.getElementById('crosshair');
+    function setStatus(msg, isError = false) {
+      statusEl.textContent = msg;
+      statusEl.style.color = isError ? '#f85149' : '#7ee787';
+    }
+
+    async function bootAmmo() {
+      let attempts = 0;
+      while (typeof window.Ammo === 'undefined' && attempts < 200) {
+        await new Promise(r => setTimeout(r, 25));
+        attempts++;
+      }
+      if (typeof window.Ammo === 'undefined') throw new Error('Ammo global never appeared');
+
+      const AMMO_BASE = 'https://cdn.jsdelivr.net/gh/kripken/ammo.js@79190a1f03845794b1bba1777f30037349967658/builds/';
+      if (typeof window.Ammo === 'function') {
+        Ammo = await window.Ammo({
+          locateFile: (path) => path.endsWith('.wasm') ? AMMO_BASE + 'ammo.wasm.wasm' : AMMO_BASE + path
+        });
+      } else {
+        Ammo = window.Ammo;
+      }
+      if (Ammo && typeof Ammo.then === 'function') Ammo = await Ammo;
+      if (!Ammo || typeof Ammo.btVector3 !== 'function') {
+        throw new Error('Ammo initialized but btVector3 missing');
+      }
+    }
+
+    bootAmmo().then(() => {
+      initGraphics();
+      initPhysics();
+      buildMap();
+      loadGLBAsSoftBody(DEFAULT_GLB);
+      initInput();
+      animate();
+    }).catch(err => {
+      console.error(err);
+      setStatus('Failed to load Ammo.js: ' + (err?.message || err), true);
+    });
+
+    function initGraphics() {
+      container = document.getElementById('container');
+      camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 500);
+      yaw = 0.45;
+      pitch = -0.35;
+      tpDistance = 14;
+      tpTarget.set(0, 3, 2);
+      updateCameraFromOrbit();
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x1a2332);
+      scene.fog = new THREE.Fog(0x1a2332, 50, 140);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
+
+      const amb = new THREE.AmbientLight(0x6688aa, 0.55);
+      scene.add(amb);
+      scene.add(new THREE.HemisphereLight(0x87ceeb, 0x3a2a1a, 0.45));
+
+      const dir = new THREE.DirectionalLight(0xfff5e6, 2.2);
+      dir.position.set(-12, 22, 10);
+      dir.castShadow = true;
+      dir.shadow.mapSize.set(2048, 2048);
+      dir.shadow.camera.near = 1;
+      dir.shadow.camera.far = 60;
+      dir.shadow.camera.left = -25;
+      dir.shadow.camera.right = 25;
+      dir.shadow.camera.top = 25;
+      dir.shadow.camera.bottom = -25;
+      dir.shadow.bias = -0.0004;
+      scene.add(dir);
+      scene.add(new THREE.DirectionalLight(0x88aaff, 0.4).translateX(8).translateY(6).translateZ(-10));
+
+      stats = new Stats();
+      stats.dom.style.position = 'absolute';
+      stats.dom.style.top = '0';
+      stats.dom.style.right = '0';
+      document.body.appendChild(stats.dom);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    }
+
+    function updateCameraRotation() {
+      // First-person: orientation only
+      const euler = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+      camera.quaternion.setFromEuler(euler);
+    }
+
+    function updateCameraFromOrbit() {
+      // Third-person: position around tpTarget
+      const cp = Math.cos(pitch);
+      const sp = Math.sin(pitch);
+      const cy = Math.cos(yaw);
+      const sy = Math.sin(yaw);
+      camera.position.set(
+        tpTarget.x + tpDistance * cp * sy,
+        tpTarget.y + tpDistance * sp,
+        tpTarget.z + tpDistance * cp * cy
+      );
+      camera.lookAt(tpTarget);
+    }
+
+    function softBodyCenter() {
+      if (!softBody) return tpTarget.clone();
+      try {
+        const nodes = softBody.get_m_nodes();
+        const n = nodes.size();
+        if (n === 0) return tpTarget.clone();
+        let x = 0, y = 0, z = 0;
+        const step = Math.max(1, (n / 40) | 0);
+        let count = 0;
+        for (let i = 0; i < n; i += step) {
+          const p = nodes.at(i).get_m_x();
+          x += p.x(); y += p.y(); z += p.z();
+          count++;
+        }
+        return new THREE.Vector3(x / count, y / count, z / count);
+      } catch (_) {
+        return tpTarget.clone();
+      }
+    }
+
+    function setCameraMode(mode) {
+      cameraMode = mode;
+      endDrag();
+      isOrbiting = false;
+      const fpBtn = document.getElementById('btnCamFP');
+      const tpBtn = document.getElementById('btnCamTP');
+      if (mode === 'fp') {
+        fpBtn.classList.add('primary');
+        tpBtn.classList.remove('primary');
+        // unlock pointer when switching away isn't forced; user clicks to lock
+        if (document.pointerLockElement) document.exitPointerLock();
+        // place FP cam near soft body
+        const c = softBodyCenter();
+        camera.position.set(c.x, c.y + 2, c.z + 8);
+        yaw = 0;
+        pitch = -0.1;
+        updateCameraRotation();
+      } else {
+        tpBtn.classList.add('primary');
+        fpBtn.classList.remove('primary');
+        if (document.pointerLockElement) document.exitPointerLock();
+        crosshair.style.display = 'none';
+        pointerLocked = false;
+        const c = softBodyCenter();
+        tpTarget.copy(c);
+        updateCameraFromOrbit();
+      }
+      updateHint();
+    }
+
+    function initPhysics() {
+      const collisionConfiguration = new Ammo.btSoftBodyRigidBodyCollisionConfiguration();
+      const dispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
+      const broadphase = new Ammo.btDbvtBroadphase();
+      const solver = new Ammo.btSequentialImpulseConstraintSolver();
+      const softBodySolver = new Ammo.btDefaultSoftBodySolver();
+      physicsWorld = new Ammo.btSoftRigidDynamicsWorld(
+        dispatcher, broadphase, solver, collisionConfiguration, softBodySolver
+      );
+      physicsWorld.setGravity(new Ammo.btVector3(0, GRAVITY, 0));
+      physicsWorld.getWorldInfo().set_m_gravity(new Ammo.btVector3(0, GRAVITY, 0));
+      transformAux1 = new Ammo.btTransform();
+      softBodyHelpers = new Ammo.btSoftBodyHelpers();
+    }
+
+    function createRigidBody(threeObject, shape, mass, pos, quat, friction = 0.6, restitution = 0.15) {
+      threeObject.position.copy(pos);
+      threeObject.quaternion.copy(quat);
+      const transform = new Ammo.btTransform();
+      transform.setIdentity();
+      transform.setOrigin(new Ammo.btVector3(pos.x, pos.y, pos.z));
+      transform.setRotation(new Ammo.btQuaternion(quat.x, quat.y, quat.z, quat.w));
+      const motionState = new Ammo.btDefaultMotionState(transform);
+      const localInertia = new Ammo.btVector3(0, 0, 0);
+      if (mass > 0) shape.calculateLocalInertia(mass, localInertia);
+      const rbInfo = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+      const body = new Ammo.btRigidBody(rbInfo);
+      body.setFriction(friction);
+      body.setRestitution(restitution);
+      threeObject.userData.physicsBody = body;
+      scene.add(threeObject);
+      if (mass > 0) {
+        rigidBodies.push(threeObject);
+        body.setActivationState(4);
+      }
+      physicsWorld.addRigidBody(body);
+      return body;
+    }
+
+    function createBox(sx, sy, sz, mass, pos, quat, material, friction = 0.6, restitution = 0.15) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      const shape = new Ammo.btBoxShape(new Ammo.btVector3(sx * 0.5, sy * 0.5, sz * 0.5));
+      shape.setMargin(MARGIN);
+      createRigidBody(mesh, shape, mass, pos, quat, friction, restitution);
+      return mesh;
+    }
+
+    function createCylinder(radius, height, mass, pos, quat, material, friction = 0.5) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 24), material);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      const shape = new Ammo.btCylinderShape(new Ammo.btVector3(radius, height * 0.5, radius));
+      shape.setMargin(MARGIN);
+      createRigidBody(mesh, shape, mass, pos, quat, friction);
+      return mesh;
+    }
+
+    function buildMap() {
+      const floorMat = new THREE.MeshStandardMaterial({ color: 0x3a4a5a, roughness: 0.85, metalness: 0.05 });
+      createBox(80, 1, 80, 0, new THREE.Vector3(0, -0.5, 0), new THREE.Quaternion(), floorMat, 0.8, 0.1);
+      const grid = new THREE.GridHelper(80, 40, 0x4a6a8a, 0x2a3a4a);
+      grid.position.y = 0.01;
+      scene.add(grid);
+
+      const stairMat = new THREE.MeshStandardMaterial({ color: 0x6b8cae, roughness: 0.7, metalness: 0.15 });
+      const stepW = 6, stepH = 0.35, stepD = 1.1;
+      for (let i = 0; i < 12; i++) {
+        createBox(stepW, stepH, stepD, 0,
+          new THREE.Vector3(0, stepH * 0.5 + i * stepH, -4 + i * stepD),
+          new THREE.Quaternion(), stairMat, 0.9, 0.05);
+      }
+      createBox(8, 0.4, 5, 0,
+        new THREE.Vector3(0, 12 * stepH + 0.2, -4 + 12 * stepD + 1.5),
+        new THREE.Quaternion(),
+        new THREE.MeshStandardMaterial({ color: 0x5a7a9a, roughness: 0.65 }), 0.85);
+
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a5a6a, roughness: 0.8 });
+      createBox(0.4, 5, 16, 0, new THREE.Vector3(-3.3, 2.5, 2), new THREE.Quaternion(), wallMat);
+      createBox(0.4, 5, 16, 0, new THREE.Vector3(3.3, 2.5, 2), new THREE.Quaternion(), wallMat);
+
+      // Spinning sideways pillar
+      const pillarMat = new THREE.MeshStandardMaterial({
+        color: 0xff6b35, roughness: 0.35, metalness: 0.4, emissive: 0x331100
+      });
+      const pillarLen = 7, pillarR = 0.55;
+      const pillarMesh = new THREE.Mesh(new THREE.CylinderGeometry(pillarR, pillarR, pillarLen, 20), pillarMat);
+      pillarMesh.rotation.z = Math.PI / 2;
+      pillarMesh.castShadow = true;
+      pillarMesh.receiveShadow = true;
+      pillarMesh.position.set(0, 3.2, 8);
+
+      const pillarShape = new Ammo.btCylinderShape(new Ammo.btVector3(pillarR, pillarLen * 0.5, pillarR));
+      pillarShape.setMargin(MARGIN);
+      const pillarTransform = new Ammo.btTransform();
+      pillarTransform.setIdentity();
+      pillarTransform.setOrigin(new Ammo.btVector3(0, 3.2, 8));
+      const qPillar = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+      pillarTransform.setRotation(new Ammo.btQuaternion(qPillar.x, qPillar.y, qPillar.z, qPillar.w));
+      const pillarMotion = new Ammo.btDefaultMotionState(pillarTransform);
+      const pillarBody = new Ammo.btRigidBody(
+        new Ammo.btRigidBodyConstructionInfo(0, pillarMotion, pillarShape, new Ammo.btVector3(0, 0, 0))
+      );
+      pillarBody.setCollisionFlags(pillarBody.getCollisionFlags() | 2);
+      pillarBody.setActivationState(4);
+      physicsWorld.addRigidBody(pillarBody);
+      pillarMesh.userData.physicsBody = pillarBody;
+      pillarMesh.userData.isKinematicSpinner = true;
+      pillarMesh.userData.spinSpeed = 1.8;
+      pillarMesh.userData.baseQuat = qPillar.clone();
+      scene.add(pillarMesh);
+      kinematicBodies.push(pillarMesh);
+
+      const poleMat = new THREE.MeshStandardMaterial({ color: 0x555566, metalness: 0.6, roughness: 0.3 });
+      createCylinder(0.18, 6.5, 0, new THREE.Vector3(-4.2, 3.25, 8), new THREE.Quaternion(), poleMat);
+      createCylinder(0.18, 6.5, 0, new THREE.Vector3(4.2, 3.25, 8), new THREE.Quaternion(), poleMat);
+
+      // Blender
+      const jarMat = new THREE.MeshPhysicalMaterial({
+        color: 0x88ccff, transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.1,
+        transmission: 0.6, thickness: 0.5, side: THREE.DoubleSide
+      });
+      const jarR = 2.2, jarH = 3.5;
+      const jarMesh = new THREE.Mesh(new THREE.CylinderGeometry(jarR, jarR * 0.95, jarH, 32, 1, true), jarMat);
+      jarMesh.position.set(-9, jarH * 0.5 + 0.05, 0);
+      jarMesh.castShadow = true;
+      scene.add(jarMesh);
+      createBox(jarR * 2.1, 0.25, jarR * 2.1, 0, new THREE.Vector3(-9, 0.12, 0), new THREE.Quaternion(),
+        new THREE.MeshStandardMaterial({ color: 0x334455 }), 0.7);
+      for (let i = 0; i < 8; i++) {
+        const ang = (i / 8) * Math.PI * 2;
+        createBox(0.18, jarH, 1.6, 0,
+          new THREE.Vector3(-9 + Math.cos(ang) * jarR, jarH * 0.5, Math.sin(ang) * jarR),
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -ang + Math.PI / 2),
+          new THREE.MeshStandardMaterial({ visible: false }), 0.4);
+      }
+
+      const bladeMat = new THREE.MeshStandardMaterial({ color: 0xccccdd, metalness: 0.85, roughness: 0.2, emissive: 0x222233 });
+      const bladeGroup = new THREE.Group();
+      for (let i = 0; i < 4; i++) {
+        const blade = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.35), bladeMat);
+        blade.position.x = 0.55;
+        blade.rotation.y = (i / 4) * Math.PI * 2;
+        blade.castShadow = true;
+        bladeGroup.add(blade);
+      }
+      bladeGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.2, 16), bladeMat));
+      bladeGroup.position.set(-9, 0.55, 0);
+      scene.add(bladeGroup);
+
+      const bladeShape = new Ammo.btBoxShape(new Ammo.btVector3(1.0, 0.15, 1.0));
+      bladeShape.setMargin(MARGIN);
+      const bladeT = new Ammo.btTransform();
+      bladeT.setIdentity();
+      bladeT.setOrigin(new Ammo.btVector3(-9, 0.55, 0));
+      const bladeBody = new Ammo.btRigidBody(
+        new Ammo.btRigidBodyConstructionInfo(0, new Ammo.btDefaultMotionState(bladeT), bladeShape, new Ammo.btVector3(0, 0, 0))
+      );
+      bladeBody.setCollisionFlags(bladeBody.getCollisionFlags() | 2);
+      bladeBody.setActivationState(4);
+      physicsWorld.addRigidBody(bladeBody);
+      bladeGroup.userData.physicsBody = bladeBody;
+      bladeGroup.userData.isKinematicSpinner = true;
+      bladeGroup.userData.spinSpeed = 6.5;
+      kinematicBodies.push(bladeGroup);
+
+      const rampMat = new THREE.MeshStandardMaterial({ color: 0x7a9a5a, roughness: 0.75 });
+      createBox(5, 0.35, 10, 0, new THREE.Vector3(9, 1.8, -2),
+        new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 7), rampMat, 0.7);
+
+      const padMat = new THREE.MeshStandardMaterial({ color: 0xff4488, roughness: 0.4, emissive: 0x220011 });
+      createBox(3, 0.3, 3, 0, new THREE.Vector3(9, 0.15, 6), new THREE.Quaternion(), padMat, 0.3, 1.4);
+      createBox(2.5, 0.3, 2.5, 0, new THREE.Vector3(-4, 0.15, -10), new THREE.Quaternion(), padMat, 0.3, 1.5);
+
+      const crateMat = new THREE.MeshStandardMaterial({ color: 0xc4a35a, roughness: 0.8 });
+      for (let i = 0; i < 8; i++) {
+        const s = 0.6 + Math.random() * 0.5;
+        createBox(s, s, s, 2 + Math.random() * 3,
+          new THREE.Vector3((Math.random() - 0.5) * 10, 4 + i * 0.8, 12 + Math.random() * 4),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(Math.random(), Math.random(), Math.random())),
+          crateMat, 0.5, 0.2);
+      }
+      createBox(1, 1.5, 12, 0, new THREE.Vector3(14, 0.75, 0), new THREE.Quaternion(), wallMat);
+      createBox(1, 1.5, 12, 0, new THREE.Vector3(-14, 0.75, 0), new THREE.Quaternion(), wallMat);
+      createBox(8, 0.25, 1.2, 8, new THREE.Vector3(0, 2.5, -12), new THREE.Quaternion(),
+        new THREE.MeshStandardMaterial({ color: 0xaa7744, roughness: 0.7 }), 0.6, 0.1);
+    }
+
+    // ─── Soft body helpers ────────────────────────────────────────────────────
+    function toNonIndexed(geo) {
+      return geo.index ? geo.toNonIndexed() : geo.clone();
+    }
+
+    function countTriangles(geo) {
+      if (geo.index) return (geo.index.count / 3) | 0;
+      const pos = geo.getAttribute('position');
+      return pos ? (pos.count / 3) | 0 : 0;
+    }
+
+    /**
+     * One mid-point subdivision pass on a triangle mesh (non-indexed ok).
+     * Each triangle → 4 smaller triangles. Preserves UV if present.
+     */
+    function subdivideOnce(geo) {
+      const g = toNonIndexed(geo);
+      const pos = g.getAttribute('position');
+      const uv = g.getAttribute('uv');
+      const nTri = (pos.count / 3) | 0;
+      const newPos = new Float32Array(nTri * 12 * 3); // 4 tris * 3 verts * 3 comps
+      const newUv = uv ? new Float32Array(nTri * 12 * 2) : null;
+      let pi = 0, ui = 0;
+
+      for (let t = 0; t < nTri; t++) {
+        const i0 = t * 9, i1 = i0 + 3, i2 = i0 + 6;
+        const ax = pos.array[i0], ay = pos.array[i0 + 1], az = pos.array[i0 + 2];
+        const bx = pos.array[i1], by = pos.array[i1 + 1], bz = pos.array[i1 + 2];
+        const cx = pos.array[i2], cy = pos.array[i2 + 1], cz = pos.array[i2 + 2];
+        const abx = (ax + bx) * 0.5, aby = (ay + by) * 0.5, abz = (az + bz) * 0.5;
+        const bcx = (bx + cx) * 0.5, bcy = (by + cy) * 0.5, bcz = (bz + cz) * 0.5;
+        const cax = (cx + ax) * 0.5, cay = (cy + ay) * 0.5, caz = (cz + az) * 0.5;
+
+        // 4 triangles: a-ab-ca, ab-b-bc, ca-bc-c, ab-bc-ca
+        const verts = [
+          ax, ay, az, abx, aby, abz, cax, cay, caz,
+          abx, aby, abz, bx, by, bz, bcx, bcy, bcz,
+          cax, cay, caz, bcx, bcy, bcz, cx, cy, cz,
+          abx, aby, abz, bcx, bcy, bcz, cax, cay, caz
+        ];
+        for (let k = 0; k < verts.length; k++) newPos[pi++] = verts[k];
+
+        if (newUv) {
+          const u0 = t * 6;
+          const uA = uv.array[u0], vA = uv.array[u0 + 1];
+          const uB = uv.array[u0 + 2], vB = uv.array[u0 + 3];
+          const uC = uv.array[u0 + 4], vC = uv.array[u0 + 5];
+          const uAB = (uA + uB) * 0.5, vAB = (vA + vB) * 0.5;
+          const uBC = (uB + uC) * 0.5, vBC = (vB + vC) * 0.5;
+          const uCA = (uC + uA) * 0.5, vCA = (vC + vA) * 0.5;
+          const uvs = [
+            uA, vA, uAB, vAB, uCA, vCA,
+            uAB, vAB, uB, vB, uBC, vBC,
+            uCA, vCA, uBC, vBC, uC, vC,
+            uAB, vAB, uBC, vBC, uCA, vCA
+          ];
+          for (let k = 0; k < uvs.length; k++) newUv[ui++] = uvs[k];
+        }
+      }
+
+      const out = new THREE.BufferGeometry();
+      out.setAttribute('position', new THREE.BufferAttribute(newPos, 3));
+      if (newUv) out.setAttribute('uv', new THREE.BufferAttribute(newUv, 2));
+      out.computeVertexNormals();
+      return out;
+    }
+
+    /** Subdivide until triangle count >= minTrianglesTarget (cap passes to avoid explosion) */
+    function ensureSoftResolution(geo) {
+      let g = geo;
+      let tris = countTriangles(g);
+      let passes = 0;
+      const target = Math.max(12, minTrianglesTarget | 0);
+      // max 5 passes: 1 → 4 → 16 → 64 → 256 → 1024× triangles
+      while (tris < target && passes < 5) {
+        g = subdivideOnce(g);
+        tris = countTriangles(g);
+        passes++;
+      }
+      return { geometry: g, passes, triangles: tris };
+    }
+
+    /** Strip to position (+ optional uv/normal) so mergeGeometries always works */
+    function normalizeGeometry(geo) {
+      const g = toNonIndexed(geo);
+      const out = new THREE.BufferGeometry();
+      out.setAttribute('position', g.getAttribute('position').clone());
+      if (g.getAttribute('normal')) out.setAttribute('normal', g.getAttribute('normal').clone());
+      if (g.getAttribute('uv')) out.setAttribute('uv', g.getAttribute('uv').clone());
+      return out;
+    }
+
+    /**
+     * Find connected components in an indexed triangle mesh (union-find on vertices).
+     * Returns array of components, each = array of vertex indices.
+     */
+    function findConnectedComponents(positions, indices) {
+      const n = (positions.length / 3) | 0;
+      const parent = new Int32Array(n);
+      for (let i = 0; i < n; i++) parent[i] = i;
+      const find = (x) => {
+        while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; }
+        return x;
+      };
+      const unite = (a, b) => {
+        a = find(a); b = find(b);
+        if (a !== b) parent[a] = b;
+      };
+      for (let i = 0; i < indices.length; i += 3) {
+        unite(indices[i], indices[i + 1]);
+        unite(indices[i + 1], indices[i + 2]);
+        unite(indices[i + 2], indices[i]);
+      }
+      const map = new Map();
+      for (let i = 0; i < n; i++) {
+        const r = find(i);
+        if (!map.has(r)) map.set(r, []);
+        map.get(r).push(i);
+      }
+      return Array.from(map.values());
+    }
+
+    /**
+     * For each pair of disconnected components, find the closest vertex pair and
+     * append stiff soft-body links so the parts stay attached.
+     */
+    function attachDisconnectedComponents(softBody, positions, components) {
+      if (components.length <= 1) return 0;
+      let linksAdded = 0;
+      const mat = softBody.get_m_materials().at(0);
+
+      // Connect every component to the largest one (star topology) + chain neighbors
+      components.sort((a, b) => b.length - a.length);
+      const primary = components[0];
+
+      for (let c = 1; c < components.length; c++) {
+        const other = components[c];
+        let bestDist = Infinity;
+        let bestA = primary[0], bestB = other[0];
+
+        // sample up to 200 verts each for speed on large meshes
+        const stepA = Math.max(1, (primary.length / 200) | 0);
+        const stepB = Math.max(1, (other.length / 200) | 0);
+        for (let ia = 0; ia < primary.length; ia += stepA) {
+          const i = primary[ia];
+          const ix = positions[i * 3], iy = positions[i * 3 + 1], iz = positions[i * 3 + 2];
+          for (let ib = 0; ib < other.length; ib += stepB) {
+            const j = other[ib];
+            const dx = ix - positions[j * 3];
+            const dy = iy - positions[j * 3 + 1];
+            const dz = iz - positions[j * 3 + 2];
+            const d = dx * dx + dy * dy + dz * dz;
+            if (d < bestDist) {
+              bestDist = d;
+              bestA = i;
+              bestB = j;
+            }
+          }
+        }
+
+        // Multiple links around the contact for stability
+        const pairs = [[bestA, bestB]];
+        // also link a few random nearby samples
+        for (let k = 0; k < 4; k++) {
+          const ia = primary[(Math.random() * primary.length) | 0];
+          const ib = other[(Math.random() * other.length) | 0];
+          pairs.push([ia, ib]);
+        }
+
+        for (const [na, nb] of pairs) {
+          try {
+            // appendLink(node0, node1, material, bCheckExist)
+            softBody.appendLink(na, nb, mat, true);
+            linksAdded++;
+          } catch (_) {
+            // older builds may differ; try generateClusters style skip
+          }
+        }
+      }
+
+      // Stiffen new links
+      try {
+        softBody.get_m_materials().at(0).set_m_kLST(1.0);
+        softBody.get_m_materials().at(0).set_m_kAST(1.0);
+      } catch (_) {}
+
+      return linksAdded;
+    }
+
+    function processGeometry(bufGeometry) {
+      const posOnly = new THREE.BufferGeometry();
+      posOnly.setAttribute('position', bufGeometry.getAttribute('position'));
+      if (bufGeometry.index) posOnly.setIndex(bufGeometry.index);
+      // Aggressive weld so nearby limb joints fuse into one vertex
+      const indexed = BufferGeometryUtils.mergeVertices(posOnly, 0.02);
+
+      const vertices = bufGeometry.attributes.position.array;
+      const idxVertices = indexed.attributes.position.array;
+      const indices = indexed.index.array;
+      const numIdxVertices = idxVertices.length / 3;
+      const numVertices = vertices.length / 3;
+
+      bufGeometry.ammoVertices = new Float32Array(idxVertices);
+      bufGeometry.ammoIndices = new Uint32Array(indices);
+      bufGeometry.ammoIndexAssociation = [];
+      bufGeometry.ammoComponents = findConnectedComponents(idxVertices, indices);
+
+      const cell = 0.02;
+      const hash = new Map();
+      const key = (x, y, z) => `${Math.round(x / cell)},${Math.round(y / cell)},${Math.round(z / cell)}`;
+      for (let j = 0; j < numVertices; j++) {
+        const j3 = j * 3;
+        const k = key(vertices[j3], vertices[j3 + 1], vertices[j3 + 2]);
+        if (!hash.has(k)) hash.set(k, []);
+        hash.get(k).push(j3);
+      }
+
+      const delta = 0.025;
+      for (let i = 0; i < numIdxVertices; i++) {
+        const association = [];
+        const i3 = i * 3;
+        const kx = Math.round(idxVertices[i3] / cell);
+        const ky = Math.round(idxVertices[i3 + 1] / cell);
+        const kz = Math.round(idxVertices[i3 + 2] / cell);
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              const candidates = hash.get(`${kx + dx},${ky + dy},${kz + dz}`) || [];
+              for (const j3 of candidates) {
+                if (
+                  Math.abs(idxVertices[i3] - vertices[j3]) < delta &&
+                  Math.abs(idxVertices[i3 + 1] - vertices[j3 + 1]) < delta &&
+                  Math.abs(idxVertices[i3 + 2] - vertices[j3 + 2]) < delta
+                ) {
+                  association.push(j3);
+                }
+              }
+            }
+          }
+        }
+        if (association.length === 0) {
+          for (let j = 0; j < numVertices; j++) {
+            const j3 = j * 3;
+            if (
+              Math.abs(idxVertices[i3] - vertices[j3]) < delta &&
+              Math.abs(idxVertices[i3 + 1] - vertices[j3 + 1]) < delta &&
+              Math.abs(idxVertices[i3 + 2] - vertices[j3 + 2]) < delta
+            ) association.push(j3);
+          }
+        }
+        bufGeometry.ammoIndexAssociation.push(association);
+      }
+    }
+
+    function removeCurrentSoftBody() {
+      for (const m of softBodies) {
+        scene.remove(m);
+        m.geometry?.dispose();
+        if (m.material) {
+          if (Array.isArray(m.material)) m.material.forEach(x => x.dispose());
+          else m.material.dispose();
+        }
+        if (m.userData.physicsBody) {
+          try { physicsWorld.removeSoftBody(m.userData.physicsBody); } catch (_) {}
+        }
+      }
+      softBodies.length = 0;
+      softMesh = null;
+      softBody = null;
+    }
+
+    async function loadGLBAsSoftBody(urlOrFile) {
+      setStatus('Loading model…');
+      removeCurrentSoftBody();
+
+      const loader = new GLTFLoader();
+      let gltf;
+      try {
+        if (typeof urlOrFile === 'string') {
+          gltf = await loader.loadAsync(urlOrFile);
+        } else {
+          const url = URL.createObjectURL(urlOrFile);
+          gltf = await loader.loadAsync(url);
+          URL.revokeObjectURL(url);
+        }
+      } catch (e) {
+        setStatus('Load failed: ' + (e.message || e), true);
+        console.error(e);
+        return;
+      }
+
+      gltf.scene.updateMatrixWorld(true);
+
+      // Collect EVERY mesh, bake world matrix, normalize, subdivide low-poly parts
+      const geos = [];
+      const materials = [];
+      let subdivNotes = [];
+      gltf.scene.traverse((child) => {
+        if (!child.isMesh || !child.geometry) return;
+        const pos = child.geometry.getAttribute('position');
+        if (!pos || pos.count < 3) return;
+
+        let geo = child.geometry.clone();
+        geo.applyMatrix4(child.matrixWorld);
+        geo = normalizeGeometry(geo);
+
+        const before = countTriangles(geo);
+        const { geometry: refined, passes, triangles } = ensureSoftResolution(geo);
+        geo = refined;
+        if (passes > 0) {
+          subdivNotes.push(`${before}→${triangles}tris`);
+        }
+
+        geos.push(geo);
+        const mat = Array.isArray(child.material) ? child.material[0] : child.material;
+        if (mat) materials.push(mat);
+      });
+
+      if (geos.length === 0) {
+        setStatus('No meshes found in GLB', true);
+        return;
+      }
+
+      // Force consistent attributes across all geos for merge
+      const hasUV = geos.every(g => g.getAttribute('uv'));
+      const hasNormal = geos.every(g => g.getAttribute('normal'));
+      for (const g of geos) {
+        if (!hasUV && g.getAttribute('uv')) g.deleteAttribute('uv');
+        if (!hasNormal && g.getAttribute('normal')) g.deleteAttribute('normal');
+        for (const name of Object.keys(g.attributes)) {
+          if (name !== 'position' && name !== 'normal' && name !== 'uv') {
+            g.deleteAttribute(name);
+          }
+        }
+      }
+
+      let merged = null;
+      try {
+        merged = BufferGeometryUtils.mergeGeometries(geos, false);
+      } catch (e) {
+        console.warn('mergeGeometries failed, concatenating positions manually', e);
+        let totalVerts = 0;
+        for (const g of geos) totalVerts += g.getAttribute('position').count;
+        const positions = new Float32Array(totalVerts * 3);
+        let offset = 0;
+        for (const g of geos) {
+          const arr = g.getAttribute('position').array;
+          positions.set(arr, offset);
+          offset += arr.length;
+        }
+        merged = new THREE.BufferGeometry();
+        merged.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        const indices = new Uint32Array(totalVerts);
+        for (let i = 0; i < totalVerts; i++) indices[i] = i;
+        merged.setIndex(new THREE.BufferAttribute(indices, 1));
+      }
+
+      if (!merged) {
+        setStatus('Could not build geometry', true);
+        return;
+      }
+
+      // Scale & place
+      merged.computeBoundingBox();
+      const size = new THREE.Vector3();
+      merged.boundingBox.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 3.2 / maxDim;
+      merged.scale(scale, scale, scale);
+      merged.computeBoundingBox();
+      const center = new THREE.Vector3();
+      merged.boundingBox.getCenter(center);
+      merged.translate(-center.x, -merged.boundingBox.min.y, -center.z);
+      merged.translate(0, 6.5, 2);
+
+      // Material — keep first textured material if any
+      let mat;
+      const withMap = materials.find(m => m && m.map);
+      if (withMap) {
+        mat = withMap.clone();
+        mat.side = THREE.DoubleSide;
+        if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+      } else if (materials[0]) {
+        mat = materials[0].clone();
+        mat.side = THREE.DoubleSide;
+      } else {
+        mat = new THREE.MeshStandardMaterial({
+          color: 0xffcc00, roughness: 0.55, metalness: 0.05, side: THREE.DoubleSide
+        });
+      }
+      if (mat.roughness !== undefined) mat.roughness = Math.min(mat.roughness ?? 0.6, 0.7);
+
+      processGeometry(merged);
+
+      softMesh = new THREE.Mesh(merged, mat);
+      softMesh.castShadow = true;
+      softMesh.receiveShadow = true;
+      softMesh.frustumCulled = false;
+      scene.add(softMesh);
+
+      // Soft body from full merged mesh
+      softBody = softBodyHelpers.CreateFromTriMesh(
+        physicsWorld.getWorldInfo(),
+        merged.ammoVertices,
+        merged.ammoIndices,
+        merged.ammoIndices.length / 3,
+        true
+      );
+
+      const sbConfig = softBody.get_m_cfg();
+      sbConfig.set_viterations(40);
+      sbConfig.set_piterations(40);
+      sbConfig.set_collisions(0x11);
+      sbConfig.set_kDF(0.25);
+      sbConfig.set_kDP(0.02);
+      sbConfig.set_kPR(pressure);
+      softBody.get_m_materials().at(0).set_m_kLST(0.9);
+      softBody.get_m_materials().at(0).set_m_kAST(0.9);
+      softBody.get_m_materials().at(0).set_m_kVST(0.9);
+
+      softBody.setTotalMass(softMass, false);
+      Ammo.castObject(softBody, Ammo.btCollisionObject).getCollisionShape().setMargin(MARGIN);
+      physicsWorld.addSoftBody(softBody, 1, -1);
+      softBody.setActivationState(4);
+
+      // Detect disconnected islands and weld them with soft links immediately
+      const components = merged.ammoComponents || [];
+      let linksAdded = 0;
+      if (components.length > 1) {
+        linksAdded = attachDisconnectedComponents(
+          softBody,
+          merged.ammoVertices,
+          components
+        );
+      }
+
+      softMesh.userData.physicsBody = softBody;
+      softBodies.push(softMesh);
+
+      const vertCount = (merged.ammoVertices.length / 3) | 0;
+      const subdivMsg = subdivNotes.length ? ` · subdivided ${subdivNotes.length} low-poly part(s)` : '';
+      const attachMsg = components.length > 1
+        ? ` · ${components.length} islands → linked (${linksAdded} links)`
+        : ' · fully connected';
+      setStatus(`Soft body ready · ${geos.length} part(s) · ${vertCount} verts${subdivMsg}${attachMsg}`);
+    }
+
+    // ─── Input: camera modes + interact ───────────────────────────────────────
+    function updateHint() {
+      const hint = document.getElementById('hint');
+      if (cameraMode === 'fp') {
+        hint.textContent = interactMode === 'ball'
+          ? 'FP · click to lock · WASD fly · click throws ball · Esc unlock'
+          : 'FP · click to lock · WASD fly · hold click grabs (multi-node) · Esc unlock';
+      } else {
+        hint.textContent = interactMode === 'ball'
+          ? 'TP · right-drag to rotate camera · scroll zoom · left-click throws ball'
+          : 'TP · right-drag to rotate camera · scroll zoom · left-drag grabs soft body';
+      }
+    }
+
+    function setInteractMode(mode) {
+      interactMode = mode;
+      endDrag();
+      const ballBtn = document.getElementById('btnModeBall');
+      const dragBtn = document.getElementById('btnModeDrag');
+      if (mode === 'ball') {
+        ballBtn.classList.add('primary');
+        dragBtn.classList.remove('primary');
+      } else {
+        dragBtn.classList.add('primary');
+        ballBtn.classList.remove('primary');
+      }
+      updateHint();
+    }
+
+    /** Ray from camera through NDC (or center if FP locked) */
+    function getPickRay(clientX, clientY) {
+      if (cameraMode === 'fp' && pointerLocked) {
+        const origin = camera.position.clone();
+        const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        return { origin, dir };
+      }
+      ndc.x = (clientX / window.innerWidth) * 2 - 1;
+      ndc.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      return { origin: raycaster.ray.origin.clone(), dir: raycaster.ray.direction.clone() };
+    }
+
+    /**
+     * Find closest node to ray, then collect all nodes within grabRadius of that hit.
+     * Returns { centerIndex, distance, point, nodes: [{index, localOffset}] } or null
+     */
+    function pickSoftCluster(origin, direction, maxDist = 50) {
+      if (!softBody) return null;
+      const nodes = softBody.get_m_nodes();
+      const n = nodes.size();
+      const dir = direction.clone().normalize();
+      let best = -1;
+      let bestRadial = 1.5;
+      let bestT = 5;
+      let bestPoint = null;
+
+      for (let i = 0; i < n; i++) {
+        const p = nodes.at(i).get_m_x();
+        const px = p.x(), py = p.y(), pz = p.z();
+        const ox = px - origin.x, oy = py - origin.y, oz = pz - origin.z;
+        const t = ox * dir.x + oy * dir.y + oz * dir.z;
+        if (t < 0.2 || t > maxDist) continue;
+        const cx = origin.x + dir.x * t - px;
+        const cy = origin.y + dir.y * t - py;
+        const cz = origin.z + dir.z * t - pz;
+        const radial = Math.sqrt(cx * cx + cy * cy + cz * cz);
+        if (radial < bestRadial) {
+          bestRadial = radial;
+          best = i;
+          bestT = t;
+          bestPoint = new THREE.Vector3(px, py, pz);
+        }
+      }
+      if (best < 0 || !bestPoint) return null;
+
+      // Grab a cluster of nodes around the hit so the body lifts as a region
+      const cluster = [];
+      const r2 = grabRadius * grabRadius;
+      for (let i = 0; i < n; i++) {
+        const p = nodes.at(i).get_m_x();
+        const dx = p.x() - bestPoint.x;
+        const dy = p.y() - bestPoint.y;
+        const dz = p.z() - bestPoint.z;
+        if (dx * dx + dy * dy + dz * dz <= r2) {
+          cluster.push({
+            index: i,
+            offset: new THREE.Vector3(dx, dy, dz)
+          });
+        }
+      }
+      // ensure at least the center node
+      if (cluster.length === 0) {
+        cluster.push({ index: best, offset: new THREE.Vector3(0, 0, 0) });
+      }
+      return { centerIndex: best, distance: bestT, point: bestPoint, nodes: cluster };
+    }
+
+    function startDrag(clientX, clientY) {
+      if (!softBody || interactMode !== 'drag') return false;
+      const { origin, dir } = getPickRay(clientX, clientY);
+      const hit = pickSoftCluster(origin, dir);
+      if (!hit) return false;
+      isDragging = true;
+      dragDistance = hit.distance;
+      dragNodes = hit.nodes;
+      try {
+        const nodes = softBody.get_m_nodes();
+        for (const d of dragNodes) {
+          nodes.at(d.index).get_m_v().setValue(0, 0, 0);
+        }
+      } catch (_) {}
+      return true;
+    }
+
+    function updateDrag(clientX, clientY) {
+      if (!isDragging || !softBody || dragNodes.length === 0) return;
+      const { origin, dir } = getPickRay(
+        clientX != null ? clientX : window.innerWidth / 2,
+        clientY != null ? clientY : window.innerHeight / 2
+      );
+      const target = origin.clone().addScaledVector(dir.normalize(), dragDistance);
+
+      try {
+        const nodes = softBody.get_m_nodes();
+        const strength = 22;
+        const posBlend = 0.4;
+        for (const d of dragNodes) {
+          const node = nodes.at(d.index);
+          const cur = node.get_m_x();
+          const goalX = target.x + d.offset.x;
+          const goalY = target.y + d.offset.y;
+          const goalZ = target.z + d.offset.z;
+          const dx = goalX - cur.x();
+          const dy = goalY - cur.y();
+          const dz = goalZ - cur.z();
+          node.get_m_v().setValue(dx * strength, dy * strength, dz * strength);
+          node.get_m_x().setValue(
+            cur.x() + dx * posBlend,
+            cur.y() + dy * posBlend,
+            cur.z() + dz * posBlend
+          );
+        }
+      } catch (_) {
+        endDrag();
+      }
+    }
+
+    function endDrag() {
+      isDragging = false;
+      dragNodes = [];
+    }
+
+    let lastMouseX = 0, lastMouseY = 0;
+
+    function initInput() {
+      const canvas = renderer.domElement;
+
+      canvas.addEventListener('click', (e) => {
+        if (e.target.closest && e.target.closest('#ui')) return;
+        if (cameraMode === 'fp' && !pointerLocked) {
+          canvas.requestPointerLock();
+        }
+      });
+
+      canvas.addEventListener('contextmenu', (e) => {
+        e.preventDefault(); // allow right-click orbit without browser menu
+      });
+
+      canvas.addEventListener('mousedown', (e) => {
+        if (e.target.closest && e.target.closest('#ui')) return;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        // Right mouse → orbit camera in third person
+        if (e.button === 2) {
+          if (cameraMode === 'tp') {
+            isOrbiting = true;
+            endDrag();
+          }
+          return;
+        }
+
+        if (e.button !== 0) return;
+
+        if (cameraMode === 'fp') {
+          if (!pointerLocked) return;
+          if (interactMode === 'ball') throwBallFromCamera();
+          else startDrag(e.clientX, e.clientY);
+          return;
+        }
+
+        // Third person — left click is interact only (no orbit)
+        if (interactMode === 'drag') {
+          startDrag(e.clientX, e.clientY);
+        } else if (interactMode === 'ball') {
+          throwBallToward(e.clientX, e.clientY);
+        }
+      });
+
+      window.addEventListener('mouseup', (e) => {
+        if (e.button === 0) endDrag();
+        if (e.button === 2) isOrbiting = false;
+      });
+
+      document.addEventListener('pointerlockchange', () => {
+        pointerLocked = document.pointerLockElement === canvas;
+        crosshair.style.display = (pointerLocked && cameraMode === 'fp') ? 'block' : 'none';
+        if (!pointerLocked) endDrag();
+      });
+
+      document.addEventListener('mousemove', (e) => {
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        if (cameraMode === 'fp') {
+          if (!pointerLocked) return;
+          yaw -= e.movementX * LOOK_SENS;
+          pitch -= e.movementY * LOOK_SENS;
+          pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
+          updateCameraRotation();
+          return;
+        }
+
+        // Third person
+        if (isDragging) {
+          updateDrag(e.clientX, e.clientY);
+          return;
+        }
+        if (isOrbiting) {
+          yaw -= e.movementX * 0.005;
+          pitch -= e.movementY * 0.005;
+          pitch = Math.max(-1.4, Math.min(1.4, pitch));
+          updateCameraFromOrbit();
+        }
+      });
+
+      canvas.addEventListener('wheel', (e) => {
+        if (cameraMode !== 'tp') return;
+        e.preventDefault();
+        tpDistance *= (e.deltaY > 0 ? 1.08 : 0.92);
+        tpDistance = Math.max(3, Math.min(50, tpDistance));
+        updateCameraFromOrbit();
+      }, { passive: false });
+
+      window.addEventListener('keydown', (e) => {
+        const k = e.code;
+        if (k === 'KeyW') keys.w = true;
+        if (k === 'KeyA') keys.a = true;
+        if (k === 'KeyS') keys.s = true;
+        if (k === 'KeyD') keys.d = true;
+        if (k === 'Space') { keys.space = true; e.preventDefault(); }
+        if (k === 'ShiftLeft' || k === 'ShiftRight') keys.shift = true;
+        if (k === 'KeyB') setInteractMode('ball');
+        if (k === 'KeyG') setInteractMode('drag');
+        if (k === 'KeyV') setCameraMode(cameraMode === 'fp' ? 'tp' : 'fp');
+      });
+      window.addEventListener('keyup', (e) => {
+        const k = e.code;
+        if (k === 'KeyW') keys.w = false;
+        if (k === 'KeyA') keys.a = false;
+        if (k === 'KeyS') keys.s = false;
+        if (k === 'KeyD') keys.d = false;
+        if (k === 'Space') keys.space = false;
+        if (k === 'ShiftLeft' || k === 'ShiftRight') keys.shift = false;
+      });
+
+      document.getElementById('btnDefault').addEventListener('click', () => {
+        currentGltfUrl = DEFAULT_GLB;
+        loadGLBAsSoftBody(DEFAULT_GLB);
+      });
+      document.getElementById('fileInput').addEventListener('change', (e) => {
+        const f = e.target.files?.[0];
+        if (f) {
+          currentGltfUrl = f;
+          loadGLBAsSoftBody(f);
+        }
+      });
+      document.getElementById('btnReset').addEventListener('click', () => {
+        loadGLBAsSoftBody(currentGltfUrl || DEFAULT_GLB);
+      });
+      document.getElementById('btnClearBalls').addEventListener('click', clearThrownBalls);
+      document.getElementById('btnModeBall').addEventListener('click', () => setInteractMode('ball'));
+      document.getElementById('btnModeDrag').addEventListener('click', () => setInteractMode('drag'));
+      document.getElementById('btnCamFP').addEventListener('click', () => setCameraMode('fp'));
+      document.getElementById('btnCamTP').addEventListener('click', () => setCameraMode('tp'));
+
+      const pSlider = document.getElementById('pressure');
+      const pVal = document.getElementById('pressureVal');
+      pSlider.addEventListener('input', () => {
+        pressure = +pSlider.value;
+        pVal.textContent = String(pressure);
+        if (softBody) {
+          try { softBody.get_m_cfg().set_kPR(pressure); } catch (_) {}
+        }
+      });
+
+      const mSlider = document.getElementById('mass');
+      const mVal = document.getElementById('massVal');
+      mSlider.addEventListener('input', () => {
+        softMass = +mSlider.value;
+        mVal.textContent = String(softMass);
+        if (softBody) {
+          try { softBody.setTotalMass(softMass, false); } catch (_) {}
+        }
+      });
+
+      const tSlider = document.getElementById('minTris');
+      const tVal = document.getElementById('minTrisVal');
+      tSlider.addEventListener('input', () => {
+        minTrianglesTarget = +tSlider.value;
+        tVal.textContent = String(minTrianglesTarget);
+      });
+
+      const gSlider = document.getElementById('grabRadius');
+      const gVal = document.getElementById('grabRadiusVal');
+      if (gSlider) {
+        gSlider.addEventListener('input', () => {
+          grabRadius = +gSlider.value;
+          gVal.textContent = grabRadius.toFixed(1);
+        });
+      }
+
+      updateHint();
+    }
+
+    function spawnBall(pos, vel) {
+      const ballMass = 4;
+      const ballRadius = 0.35;
+      const ballMat = new THREE.MeshStandardMaterial({ color: 0x222228, roughness: 0.3, metalness: 0.6 });
+      const ball = new THREE.Mesh(new THREE.SphereGeometry(ballRadius, 16, 12), ballMat);
+      ball.castShadow = true;
+      const shape = new Ammo.btSphereShape(ballRadius);
+      shape.setMargin(MARGIN);
+      const body = createRigidBody(ball, shape, ballMass, pos, new THREE.Quaternion(), 0.6, 0.4);
+      body.setLinearVelocity(new Ammo.btVector3(vel.x, vel.y, vel.z));
+      thrownBalls.push(ball);
+    }
+
+    function throwBallFromCamera() {
+      const pos = camera.position.clone();
+      const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+      pos.addScaledVector(forward, 1.2);
+      spawnBall(pos, forward.multiplyScalar(28));
+    }
+
+    function throwBallToward(clientX, clientY) {
+      const { origin, dir } = getPickRay(clientX, clientY);
+      const pos = origin.clone().addScaledVector(dir, 1.5);
+      spawnBall(pos, dir.normalize().multiplyScalar(28));
+    }
+
+    function clearThrownBalls() {
+      for (const b of thrownBalls) {
+        if (b.userData.physicsBody) physicsWorld.removeRigidBody(b.userData.physicsBody);
+        scene.remove(b);
+        const i = rigidBodies.indexOf(b);
+        if (i >= 0) rigidBodies.splice(i, 1);
+        b.geometry?.dispose();
+        b.material?.dispose();
+      }
+      thrownBalls.length = 0;
+    }
+
+    function updateFly(dt) {
+      if (cameraMode !== 'fp') return;
+      direction.set(0, 0, 0);
+      if (keys.w) direction.z -= 1;
+      if (keys.s) direction.z += 1;
+      if (keys.a) direction.x -= 1;
+      if (keys.d) direction.x += 1;
+      if (keys.space) direction.y += 1;
+      if (keys.shift) direction.y -= 1;
+
+      if (direction.lengthSq() > 0) {
+        direction.normalize();
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+        forward.y = 0;
+        right.y = 0;
+        if (forward.lengthSq() > 0.0001) forward.normalize();
+        if (right.lengthSq() > 0.0001) right.normalize();
+
+        velocity.set(0, 0, 0);
+        velocity.addScaledVector(forward, -direction.z);
+        velocity.addScaledVector(right, direction.x);
+        velocity.y += direction.y;
+        if (velocity.lengthSq() > 0) velocity.normalize().multiplyScalar(FLY_SPEED * dt);
+        camera.position.add(velocity);
+      }
+    }
+
+    function updatePhysics(dt) {
+      const t = clock.elapsedTime;
+      for (const obj of kinematicBodies) {
+        const body = obj.userData.physicsBody;
+        if (!body) continue;
+        const speed = obj.userData.spinSpeed || 1;
+        const spin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), t * speed);
+        let q = spin;
+        if (obj.userData.baseQuat) {
+          q = spin.clone().multiply(obj.userData.baseQuat);
+        }
+        obj.quaternion.copy(q);
+        const origin = body.getWorldTransform().getOrigin();
+        const tr = new Ammo.btTransform();
+        tr.setIdentity();
+        tr.setOrigin(origin);
+        tr.setRotation(new Ammo.btQuaternion(q.x, q.y, q.z, q.w));
+        body.setWorldTransform(tr);
+        body.getMotionState().setWorldTransform(tr);
+      }
+
+      physicsWorld.stepSimulation(dt, 12, 1 / 60);
+
+      for (const volume of softBodies) {
+        const sb = volume.userData.physicsBody;
+        if (!sb) continue;
+        const geom = volume.geometry;
+        const assoc = geom.ammoIndexAssociation;
+        if (!assoc) continue;
+        const positions = geom.attributes.position.array;
+        const nodes = sb.get_m_nodes();
+        for (let i = 0; i < assoc.length; i++) {
+          const node = nodes.at(i);
+          const nodePos = node.get_m_x();
+          const x = nodePos.x(), y = nodePos.y(), z = nodePos.z();
+          const association = assoc[i];
+          for (let j = 0; j < association.length; j++) {
+            const idx = association[j];
+            positions[idx] = x;
+            positions[idx + 1] = y;
+            positions[idx + 2] = z;
+          }
+        }
+        geom.attributes.position.needsUpdate = true;
+        geom.computeVertexNormals();
+      }
+
+      for (let i = 0; i < rigidBodies.length; i++) {
+        const obj = rigidBodies[i];
+        const body = obj.userData.physicsBody;
+        if (!body) continue;
+        const ms = body.getMotionState();
+        if (ms) {
+          ms.getWorldTransform(transformAux1);
+          const p = transformAux1.getOrigin();
+          const q = transformAux1.getRotation();
+          obj.position.set(p.x(), p.y(), p.z());
+          obj.quaternion.set(q.x(), q.y(), q.z(), q.w());
+        }
+      }
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      updateFly(dt);
+      if (isDragging && cameraMode === 'fp') {
+        updateDrag(); // uses screen center when locked
+      }
+      // gently track soft body in third person when not orbiting/dragging
+      if (cameraMode === 'tp' && !isOrbiting && !isDragging && softBody) {
+        const c = softBodyCenter();
+        tpTarget.lerp(c, 0.03);
+        updateCameraFromOrbit();
+      }
+      updatePhysics(dt);
+      renderer.render(scene, camera);
+      stats.update();
+    }
+  </script>
+</body>
+</html>
