@@ -253,7 +253,8 @@ const projects = [
     "color war",
     "softbody",
     "breath if prime",
-    { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" }
+    { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" },
+    { name: "AI Meme Generator (Trust me its funny)", path: "https://orgeyt-meme-gen--orgeyt.on.websim.com/" } // i laughed at the memes
 ];
 
 const fileList = document.getElementById('file-list');
