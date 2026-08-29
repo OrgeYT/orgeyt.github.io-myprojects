@@ -90,7 +90,6 @@
 <body>
   <div class="topbar">
     <h1 id="title">Loading…</h1>
-
     <div>
       <button id="fs-btn">Fullscreen</button>
       <a href="index.html">← Library</a>
@@ -103,69 +102,66 @@
     </div>
   </div>
 
-  <script src="js/games.js"></script>
-
   <script>
     const params = new URLSearchParams(window.location.search);
-    const isCustom = params.get("custom") === "1";
-    let game = null;
-    let customData = null;
+    const id = params.get("id");
 
-    if (isCustom) {
-      try {
-        customData = JSON.parse(sessionStorage.getItem("customRom") || "null");
-      } catch (e) {
-        customData = null;
-      }
-      if (!customData || !customData.romUrl || !customData.core) {
-        document.getElementById("title").textContent = "Custom ROM not found";
-        setTimeout(() => location.href = "index.html", 1500);
-      } else {
-        document.getElementById("title").textContent = customData.title || "Custom ROM";
-        document.title = (customData.title || "Custom ROM") + " – Classic Games";
-
-        window.EJS_player = "#game";
-        window.EJS_core = customData.core;
-        window.EJS_gameUrl = customData.romUrl;
-        window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-        window.EJS_color = "#00f5d4";
-        window.EJS_startOnLoaded = true;
-        window.EJS_gameName = customData.title || "Custom ROM";
-        window.EJS_fullscreenOnLoaded = false;
-
-        const s = document.createElement("script");
-        s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-        document.body.appendChild(s);
-      }
-    } else {
-      const id = params.get("id");
-      game = GAMES.find(g => g.id === id);
-
-      if (!game) {
-        document.getElementById("title").textContent = "Game not found";
-        setTimeout(() => location.href = "index.html", 1500);
-      } else {
-        document.getElementById("title").textContent = game.title;
-        document.title = game.title + " – Classic Games";
-
-        window.EJS_player = "#game";
-        window.EJS_core = game.core;
-        window.EJS_gameUrl = game.rom;
-        window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-        window.EJS_color = "#00f5d4";
-        window.EJS_startOnLoaded = true;
-        window.EJS_gameName = game.title;
-        window.EJS_fullscreenOnLoaded = false;
-
-        const s = document.createElement("script");
-        s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-        document.body.appendChild(s);
-      }
+    function resolveGame(raw, systems) {
+      const sys = (systems && systems[raw.system]) || {};
+      const folder = sys.folder || raw.system;
+      const core = raw.core || sys.core || raw.system;
+      return {
+        id: raw.id,
+        title: raw.title,
+        system: raw.system,
+        core: core,
+        rom: raw.rom || ("roms/" + folder + "/" + raw.file),
+        year: raw.year || "",
+        hack: !!raw.hack
+      };
     }
+
+    function startGame(game) {
+      document.getElementById("title").textContent = game.title;
+      document.title = game.title + " – Classic Games";
+
+      window.EJS_player = "#game";
+      window.EJS_core = game.core;
+      window.EJS_gameUrl = game.rom;
+      window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+      window.EJS_color = "#00f5d4";
+      window.EJS_startOnLoaded = true;
+      window.EJS_gameName = game.title;
+      window.EJS_fullscreenOnLoaded = false;
+
+      const s = document.createElement("script");
+      s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+      document.body.appendChild(s);
+    }
+
+    fetch("roms.json")
+      .then((r) => {
+        if (!r.ok) throw new Error("roms.json missing");
+        return r.json();
+      })
+      .then((data) => {
+        const systems = data.systems || {};
+        const games = (data.games || []).map((g) => resolveGame(g, systems));
+        const game = games.find((g) => g.id === id);
+        if (!game) {
+          document.getElementById("title").textContent = "Game not found";
+          setTimeout(() => (location.href = "index.html"), 1500);
+          return;
+        }
+        startGame(game);
+      })
+      .catch(() => {
+        document.getElementById("title").textContent = "Failed to load roms.json";
+        setTimeout(() => (location.href = "index.html"), 2000);
+      });
 
     document.getElementById("fs-btn").addEventListener("click", () => {
       const el = document.querySelector(".emulator-box");
-
       if (el.requestFullscreen) el.requestFullscreen();
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     });
