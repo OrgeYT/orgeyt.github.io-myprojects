@@ -255,7 +255,8 @@ const projects = [
     "breath if prime",
     { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" },
     { name: "AI Meme Generator (Trust me its funny)", path: "https://orgeyt-meme-gen--orgeyt.on.websim.com/" }, // i laughed at the memes
-    "CursorHub" // biggest project yet
+    "CursorHub", // biggest project yet
+    { name: "Classic Game", path: "classic games/index.html" } // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
 ];
 
 const fileList = document.getElementById('file-list');
