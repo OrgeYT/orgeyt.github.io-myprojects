@@ -5,6 +5,11 @@
   const customFile = document.getElementById("custom-rom-file");
   const fileNameEl = document.getElementById("file-name");
   const playCustomBtn = document.getElementById("play-custom-btn");
+  const playOverlay = document.getElementById("play-overlay");
+  const playTitle = document.getElementById("play-title");
+  const playGame = document.getElementById("play-game");
+  const closePlayBtn = document.getElementById("close-play-btn");
+  const fsPlayBtn = document.getElementById("fs-play-btn");
 
   let currentSystem = "all";
   let selectedFile = null;
@@ -73,7 +78,6 @@
     });
   });
 
-  // Custom ROM upload
   customFile.addEventListener("change", () => {
     selectedFile = customFile.files && customFile.files[0] ? customFile.files[0] : null;
     if (selectedFile) {
@@ -85,25 +89,64 @@
     }
   });
 
+  function clearEmulator() {
+    playGame.innerHTML = "";
+    const keys = Object.keys(window).filter((k) => k.startsWith("EJS_"));
+    keys.forEach((k) => {
+      try { delete window[k]; } catch (_) {}
+    });
+  }
+
+  function startCustomRom(file, core, title) {
+    clearEmulator();
+
+    playTitle.textContent = title;
+    playOverlay.classList.remove("hidden");
+    document.body.style.overflow = "hidden";
+
+    // EmulatorJS accepts a File/Blob directly — avoids network fetch / Network error
+    window.EJS_player = "#play-game";
+    window.EJS_core = core;
+    window.EJS_gameUrl = file;
+    window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+    window.EJS_color = "#00f5d4";
+    window.EJS_startOnLoaded = true;
+    window.EJS_gameName = title;
+    window.EJS_fullscreenOnLoaded = false;
+
+    const s = document.createElement("script");
+    s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+    s.async = true;
+    s.onerror = function () {
+      playTitle.textContent = "Failed to load emulator";
+    };
+    document.body.appendChild(s);
+  }
+
   playCustomBtn.addEventListener("click", () => {
     if (!selectedFile) return;
-
     const core = customCore.value;
     const title = selectedFile.name.replace(/\.[^/.]+$/, "") || "Custom ROM";
-    const objectUrl = URL.createObjectURL(selectedFile);
+    startCustomRom(selectedFile, core, title);
+  });
 
-    // Store in sessionStorage so play.html can pick it up (blob URLs work same-origin)
-    sessionStorage.setItem(
-      "customRom",
-      JSON.stringify({
-        core: core,
-        title: title,
-        romUrl: objectUrl,
-        fileName: selectedFile.name
-      })
-    );
+  closePlayBtn.addEventListener("click", () => {
+    playOverlay.classList.add("hidden");
+    document.body.style.overflow = "";
+    clearEmulator();
+  });
 
-    window.location.href = "play.html?custom=1";
+  fsPlayBtn.addEventListener("click", () => {
+    const el = document.querySelector(".play-emulator-box");
+    if (!el) return;
+    if (el.requestFullscreen) el.requestFullscreen();
+    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !playOverlay.classList.contains("hidden")) {
+      closePlayBtn.click();
+    }
   });
 
   renderGames();
