@@ -80,6 +80,22 @@
     <p class="controls-hint">Keyboard: Arrow keys / WASD · Z/X or A/S for buttons · Enter = Start · Shift = Select</p>
   </footer>
 
+  <!-- Full-screen overlay for custom uploaded ROMs -->
+  <div id="play-overlay" class="play-overlay hidden">
+    <div class="play-topbar">
+      <h1 id="play-title">Loading…</h1>
+      <div>
+        <button type="button" id="fs-play-btn">Fullscreen</button>
+        <button type="button" id="close-play-btn">← Close</button>
+      </div>
+    </div>
+    <div class="play-area">
+      <div class="play-emulator-box">
+        <div id="play-game"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/games.js"></script>
   <script src="js/app.js"></script>
 </body>
