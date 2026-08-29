@@ -7,12 +7,13 @@
   const playCustomBtn = document.getElementById("play-custom-btn");
   const playOverlay = document.getElementById("play-overlay");
   const playTitle = document.getElementById("play-title");
-  const playGame = document.getElementById("play-game");
+  const playBox = document.getElementById("play-box");
   const closePlayBtn = document.getElementById("close-play-btn");
   const fsPlayBtn = document.getElementById("fs-play-btn");
 
   let currentSystem = "all";
   let selectedFile = null;
+  let currentBlobUrl = null;
 
   function systemLabel(sys) {
     const map = {
@@ -89,36 +90,41 @@
     }
   });
 
-  function clearEmulator() {
-    playGame.innerHTML = "";
-    const keys = Object.keys(window).filter((k) => k.startsWith("EJS_"));
-    keys.forEach((k) => {
-      try { delete window[k]; } catch (_) {}
-    });
-  }
-
   function startCustomRom(file, core, title) {
-    clearEmulator();
+    if (currentBlobUrl) {
+      try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
+      currentBlobUrl = null;
+    }
+
+    // Official EmulatorJS pattern: pass File object OR blob URL created on same page
+    // Using both approaches — File first (as official demo), blob URL as the string form
+    currentBlobUrl = URL.createObjectURL(file);
 
     playTitle.textContent = title;
     playOverlay.classList.remove("hidden");
     document.body.style.overflow = "hidden";
 
-    // EmulatorJS accepts a File/Blob directly — avoids network fetch / Network error
-    window.EJS_player = "#play-game";
+    // Fresh container each time (matches official demo clearing UI)
+    playBox.innerHTML = '<div id="game" style="width:100%;height:100%;"></div>';
+
+    // Force layout so EmulatorJS sees non-zero size
+    playOverlay.offsetHeight;
+
+    window.EJS_player = "#game";
     window.EJS_core = core;
-    window.EJS_gameUrl = file;
+    // Blob URL on same page (EmulatorJS handles blob: without network/CORS issues)
+    window.EJS_gameUrl = currentBlobUrl;
     window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
     window.EJS_color = "#00f5d4";
     window.EJS_startOnLoaded = true;
     window.EJS_gameName = title;
     window.EJS_fullscreenOnLoaded = false;
+    window.EJS_gameID = Date.now();
 
     const s = document.createElement("script");
     s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-    s.async = true;
     s.onerror = function () {
-      playTitle.textContent = "Failed to load emulator";
+      playTitle.textContent = "Failed to load EmulatorJS (check network / CDN)";
     };
     document.body.appendChild(s);
   }
@@ -130,11 +136,17 @@
     startCustomRom(selectedFile, core, title);
   });
 
-  closePlayBtn.addEventListener("click", () => {
+  function closeOverlay() {
     playOverlay.classList.add("hidden");
     document.body.style.overflow = "";
-    clearEmulator();
-  });
+    playBox.innerHTML = "";
+    if (currentBlobUrl) {
+      try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
+      currentBlobUrl = null;
+    }
+  }
+
+  closePlayBtn.addEventListener("click", closeOverlay);
 
   fsPlayBtn.addEventListener("click", () => {
     const el = document.querySelector(".play-emulator-box");
@@ -145,7 +157,7 @@
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !playOverlay.classList.contains("hidden")) {
-      closePlayBtn.click();
+      closeOverlay();
     }
   });
 
