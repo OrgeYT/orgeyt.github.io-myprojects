@@ -21,7 +21,7 @@
   <main>
     <section class="custom-rom-section">
       <h2>Play Your Own ROM</h2>
-      <p class="custom-hint">Choose a console supported by EmulatorJS, upload a ROM, and play instantly.</p>
+      <p class="custom-hint">Choose a console supported by EmulatorJS, upload a ROM, and play instantly. Must be served over HTTP (not file://).</p>
       <div class="custom-rom-controls">
         <label class="custom-label">
           Console
@@ -80,7 +80,6 @@
     <p class="controls-hint">Keyboard: Arrow keys / WASD · Z/X or A/S for buttons · Enter = Start · Shift = Select</p>
   </footer>
 
-  <!-- Full-screen overlay for custom uploaded ROMs -->
   <div id="play-overlay" class="play-overlay hidden">
     <div class="play-topbar">
       <h1 id="play-title">Loading…</h1>
@@ -90,8 +89,8 @@
       </div>
     </div>
     <div class="play-area">
-      <div class="play-emulator-box">
-        <div id="play-game"></div>
+      <div class="play-emulator-box" id="play-box">
+        <!-- #game injected by JS -->
       </div>
     </div>
   </div>
