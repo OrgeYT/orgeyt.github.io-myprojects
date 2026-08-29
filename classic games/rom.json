@@ -1,0 +1,186 @@
+{
+  "systems": {
+    "nes": {
+      "label": "NES",
+      "core": "nes",
+      "folder": "nes"
+    },
+    "snes": {
+      "label": "SNES",
+      "core": "snes",
+      "folder": "snes"
+    },
+    "genesis": {
+      "label": "Genesis",
+      "core": "segaMD",
+      "folder": "genesis"
+    },
+    "sms": {
+      "label": "Master System",
+      "core": "segaMS",
+      "folder": "sms"
+    }
+  },
+  "games": [
+    {
+      "id": "smb",
+      "title": "Super Mario Bros.",
+      "system": "nes",
+      "file": "super-mario-bros.nes",
+      "thumb": "smb.jpg",
+      "year": 1985,
+      "hack": false,
+      "description": "The classic that started it all."
+    },
+    {
+      "id": "smb2",
+      "title": "Super Mario Bros. 2",
+      "system": "nes",
+      "file": "super-mario-bros-2.nes",
+      "thumb": "smb2.jpg",
+      "year": 1988,
+      "hack": false,
+      "description": "Pull up vegetables and ride on clouds."
+    },
+    {
+      "id": "smb3",
+      "title": "Super Mario Bros. 3",
+      "system": "nes",
+      "file": "super-mario-bros-3.nes",
+      "thumb": "smb3.jpg",
+      "year": 1988,
+      "hack": false,
+      "description": "Tanooki suits, flying, and world maps."
+    },
+    {
+      "id": "kirby",
+      "title": "Kirby's Adventure",
+      "system": "nes",
+      "file": "Kirby's Adventure (E).nes",
+      "thumb": "kirby.png",
+      "year": 1993,
+      "hack": false,
+      "description": "Inhale enemies and copy their abilities."
+    },
+    {
+      "id": "nyancat",
+      "title": "Nyan Cat",
+      "system": "nes",
+      "file": "nyancat.nes",
+      "thumb": "nyancat.png",
+      "year": 2020,
+      "hack": true,
+      "description": "Nyan Cat on the NES!"
+    },
+    {
+      "id": "smw",
+      "title": "Super Mario World",
+      "system": "snes",
+      "file": "super-mario-world.smc",
+      "thumb": "smw.png",
+      "year": 1990,
+      "hack": false,
+      "description": "Ride Yoshi through Dinosaur Land."
+    },
+    {
+      "id": "smas",
+      "title": "Super Mario All-Stars",
+      "system": "snes",
+      "file": "super-mario-all-stars.smc",
+      "thumb": "smas.jpg",
+      "year": 1993,
+      "hack": false,
+      "description": "Enhanced versions of the classic Mario games."
+    },
+    {
+      "id": "sonic1",
+      "title": "Sonic the Hedgehog",
+      "system": "genesis",
+      "file": "sonic-the-hedgehog.bin",
+      "thumb": "sonic1.png",
+      "year": 1991,
+      "hack": false,
+      "description": "Gotta go fast! The original Genesis classic."
+    },
+    {
+      "id": "sonic2",
+      "title": "Sonic the Hedgehog 2",
+      "system": "genesis",
+      "file": "sonic-the-hedgehog-2.gen",
+      "thumb": "sonic2.jpg",
+      "year": 1992,
+      "hack": false,
+      "description": "Tails joins the adventure."
+    },
+    {
+      "id": "sonic3",
+      "title": "Sonic the Hedgehog 3",
+      "system": "genesis",
+      "file": "sonic-the-hedgehog-3.gen",
+      "thumb": "sonic3.png",
+      "year": 1994,
+      "hack": false,
+      "description": "Epic platforming with new moves."
+    },
+    {
+      "id": "sonic-knuckles",
+      "title": "Sonic & Knuckles",
+      "system": "genesis",
+      "file": "sonic-and-knuckles.gen",
+      "thumb": "sonic-knuckles.png",
+      "year": 1994,
+      "hack": false,
+      "description": "Play as Knuckles the Echidna."
+    },
+    {
+      "id": "s3k",
+      "title": "Sonic 3 & Knuckles",
+      "system": "genesis",
+      "file": "sonic-and-knuckles-with-sonic-3.gen",
+      "thumb": "s3k.jpg",
+      "year": 1994,
+      "hack": false,
+      "description": "The complete combined experience."
+    },
+    {
+      "id": "sonic-3-in-1",
+      "title": "Sonic 3-in-1",
+      "system": "genesis",
+      "file": "sonic-3-in-1.gen",
+      "thumb": "sonic-3-in-1.png",
+      "year": 1994,
+      "hack": false,
+      "description": "Sonic 1, 2, and 3 in one cartridge."
+    },
+    {
+      "id": "s1yourpast",
+      "title": "Sonic 1: Your Past",
+      "system": "genesis",
+      "file": "s1yourpast.bin",
+      "thumb": "s1yourpast.png",
+      "year": 2020,
+      "hack": true,
+      "description": "ROM hack of Sonic the Hedgehog."
+    },
+    {
+      "id": "scheroes",
+      "title": "Sonic Heroes (Hack)",
+      "system": "genesis",
+      "file": "scheroes.bin",
+      "thumb": "scheroes.jpg",
+      "year": 2022,
+      "hack": true,
+      "description": "Sonic Heroes inspired Genesis ROM hack."
+    },
+    {
+      "id": "sonic-ms",
+      "title": "Sonic the Hedgehog",
+      "system": "sms",
+      "file": "sonic-the-hedgehog-ms.sms",
+      "thumb": "sonic-ms.png",
+      "year": 1991,
+      "hack": false,
+      "description": "Sonic on the Sega Master System."
+    }
+  ]
+}
