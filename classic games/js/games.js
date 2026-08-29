@@ -23,6 +23,17 @@ const GAMES = [
     description: "Pull up vegetables and ride on clouds."
   },
   {
+    id: "smb3",
+    title: "Super Mario Bros. 3",
+    system: "nes",
+    core: "nes",
+    rom: "roms/nes/super-mario-bros-3.nes",
+    thumb: "thumbs/smb3.jpg",
+    year: 1988,
+    hack: false,
+    description: "Tanooki suits, flying, and world maps."
+  },
+  {
     id: "kirby",
     title: "Kirby's Adventure",
     system: "nes",
@@ -124,6 +135,17 @@ const GAMES = [
     year: 1994,
     hack: false,
     description: "The complete combined experience."
+  },
+  {
+    id: "sonic-3-in-1",
+    title: "Sonic 3-in-1",
+    system: "genesis",
+    core: "segaMD",
+    rom: "roms/genesis/sonic-3-in-1.gen",
+    thumb: "thumbs/sonic-3-in-1.png",
+    year: 1994,
+    hack: false,
+    description: "Sonic 1, 2, and 3 in one cartridge."
   },
   {
     id: "s1yourpast",

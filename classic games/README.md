@@ -4,9 +4,9 @@ A browser-based collection of classic games and ROM hacks powered by [EmulatorJS
 
 ## Supported Systems
 
-- **NES** – Super Mario Bros., Super Mario Bros. 2, Kirby's Adventure, Nyan Cat
+- **NES** – Super Mario Bros., Super Mario Bros. 2, Super Mario Bros. 3, Kirby's Adventure, Nyan Cat
 - **SNES** – Super Mario World, Super Mario All-Stars
-- **Sega Genesis / Mega Drive** – Sonic the Hedgehog 1–3, Sonic & Knuckles, Sonic 3 & Knuckles, plus ROM hacks
+- **Sega Genesis / Mega Drive** – Sonic the Hedgehog 1–3, Sonic & Knuckles, Sonic 3 & Knuckles, Sonic 3-in-1, plus ROM hacks
 - **Sega Master System** – Sonic the Hedgehog
 
 ## How to Run
