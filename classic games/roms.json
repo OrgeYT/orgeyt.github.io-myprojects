@@ -181,6 +181,16 @@
       "year": 1991,
       "hack": false,
       "description": "Sonic on the Sega Master System."
+    },
+    {
+      "id": "famidash",
+      "title": "Famidash",
+      "system": "nes",
+      "file": "famidash.nes",
+      "thumb": "famidash.png",
+      "year": 2024,
+      "hack": true,
+      "description": "Geometry dash on the NES."
     }
   ]
 }
