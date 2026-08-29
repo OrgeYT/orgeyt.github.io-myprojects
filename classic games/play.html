@@ -32,6 +32,10 @@
       font-family: 'Press Start 2P', cursive;
       font-size: 0.75rem;
       color: #00f5d4;
+      max-width: 55%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .topbar a, .topbar button {
@@ -103,28 +107,60 @@
 
   <script>
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("id");
-    const game = GAMES.find(g => g.id === id);
+    const isCustom = params.get("custom") === "1";
+    let game = null;
+    let customData = null;
 
-    if (!game) {
-      document.getElementById("title").textContent = "Game not found";
-      setTimeout(() => location.href = "index.html", 1500);
+    if (isCustom) {
+      try {
+        customData = JSON.parse(sessionStorage.getItem("customRom") || "null");
+      } catch (e) {
+        customData = null;
+      }
+      if (!customData || !customData.romUrl || !customData.core) {
+        document.getElementById("title").textContent = "Custom ROM not found";
+        setTimeout(() => location.href = "index.html", 1500);
+      } else {
+        document.getElementById("title").textContent = customData.title || "Custom ROM";
+        document.title = (customData.title || "Custom ROM") + " – Classic Games";
+
+        window.EJS_player = "#game";
+        window.EJS_core = customData.core;
+        window.EJS_gameUrl = customData.romUrl;
+        window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+        window.EJS_color = "#00f5d4";
+        window.EJS_startOnLoaded = true;
+        window.EJS_gameName = customData.title || "Custom ROM";
+        window.EJS_fullscreenOnLoaded = false;
+
+        const s = document.createElement("script");
+        s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+        document.body.appendChild(s);
+      }
     } else {
-      document.getElementById("title").textContent = game.title;
-      document.title = game.title + " – Classic Games";
+      const id = params.get("id");
+      game = GAMES.find(g => g.id === id);
 
-      window.EJS_player = "#game";
-      window.EJS_core = game.core;
-      window.EJS_gameUrl = game.rom;
-      window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-      window.EJS_color = "#00f5d4";
-      window.EJS_startOnLoaded = true;
-      window.EJS_gameName = game.title;
-      window.EJS_fullscreenOnLoaded = false;
+      if (!game) {
+        document.getElementById("title").textContent = "Game not found";
+        setTimeout(() => location.href = "index.html", 1500);
+      } else {
+        document.getElementById("title").textContent = game.title;
+        document.title = game.title + " – Classic Games";
 
-      const s = document.createElement("script");
-      s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-      document.body.appendChild(s);
+        window.EJS_player = "#game";
+        window.EJS_core = game.core;
+        window.EJS_gameUrl = game.rom;
+        window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
+        window.EJS_color = "#00f5d4";
+        window.EJS_startOnLoaded = true;
+        window.EJS_gameName = game.title;
+        window.EJS_fullscreenOnLoaded = false;
+
+        const s = document.createElement("script");
+        s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
+        document.body.appendChild(s);
+      }
     }
 
     document.getElementById("fs-btn").addEventListener("click", () => {

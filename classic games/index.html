@@ -19,6 +19,48 @@
   </header>
 
   <main>
+    <section class="custom-rom-section">
+      <h2>Play Your Own ROM</h2>
+      <p class="custom-hint">Choose a console supported by EmulatorJS, upload a ROM, and play instantly.</p>
+      <div class="custom-rom-controls">
+        <label class="custom-label">
+          Console
+          <select id="custom-core" aria-label="Select console">
+            <option value="nes">NES / Famicom</option>
+            <option value="snes">SNES / Super Famicom</option>
+            <option value="segaMD">Sega Genesis / Mega Drive</option>
+            <option value="segaMS">Sega Master System</option>
+            <option value="segaGG">Sega Game Gear</option>
+            <option value="gb">Game Boy / Game Boy Color</option>
+            <option value="gba">Game Boy Advance</option>
+            <option value="n64">Nintendo 64</option>
+            <option value="nds">Nintendo DS</option>
+            <option value="psx">PlayStation</option>
+            <option value="atari2600">Atari 2600</option>
+            <option value="atari7800">Atari 7800</option>
+            <option value="lynx">Atari Lynx</option>
+            <option value="pce">TurboGrafx-16 / PC Engine</option>
+            <option value="ngp">Neo Geo Pocket</option>
+            <option value="ws">WonderSwan</option>
+            <option value="arcade">Arcade (FBNeo / MAME)</option>
+            <option value="segaCD">Sega CD</option>
+            <option value="sega32x">Sega 32X</option>
+            <option value="segaSaturn">Sega Saturn</option>
+            <option value="vb">Virtual Boy</option>
+            <option value="jaguar">Atari Jaguar</option>
+            <option value="3do">3DO</option>
+            <option value="coleco">ColecoVision</option>
+          </select>
+        </label>
+        <label class="custom-label file-label">
+          ROM File
+          <input type="file" id="custom-rom-file" accept=".nes,.sfc,.smc,.md,.gen,.bin,.sms,.gg,.gb,.gbc,.gba,.n64,.z64,.v64,.nds,.iso,.cue,.chd,.a26,.a78,.lnx,.pce,.ngp,.ws,.wsc,.zip,.7z,.rar" aria-label="Upload ROM file">
+          <span id="file-name" class="file-name">No file chosen</span>
+        </label>
+        <button type="button" id="play-custom-btn" class="btn play-custom-btn" disabled>Play ROM</button>
+      </div>
+    </section>
+
     <nav class="system-tabs">
       <button class="tab active" data-system="all">All Games</button>
       <button class="tab" data-system="nes">NES</button>
