@@ -75,124 +75,6 @@ main {
   padding: 1.5rem 1rem 3rem;
 }
 
-/* Custom ROM upload section */
-.custom-rom-section {
-  background: var(--bg-card);
-  border: 2px solid var(--border);
-  border-radius: 8px;
-  padding: 1.25rem 1.5rem 1.5rem;
-  margin-bottom: 2rem;
-  text-align: center;
-}
-
-.custom-rom-section h2 {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.85rem;
-  color: var(--accent2);
-  margin-bottom: 0.5rem;
-}
-
-.custom-hint {
-  font-size: 1.15rem;
-  color: var(--text-dim);
-  margin-bottom: 1.1rem;
-}
-
-.custom-rom-controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  justify-content: center;
-  align-items: flex-end;
-}
-
-.custom-label {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.5rem;
-  color: var(--text-dim);
-  letter-spacing: 0.5px;
-}
-
-.custom-label select {
-  font-family: 'VT323', monospace;
-  font-size: 1.15rem;
-  padding: 0.45rem 0.6rem;
-  background: #0a0a12;
-  color: var(--text);
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  min-width: 200px;
-  cursor: pointer;
-}
-
-.custom-label select:focus {
-  outline: none;
-  border-color: var(--accent2);
-}
-
-.file-label {
-  position: relative;
-  cursor: pointer;
-}
-
-.file-label input[type="file"] {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-  width: 100%;
-  height: 100%;
-}
-
-.file-name {
-  font-family: 'VT323', monospace;
-  font-size: 1.1rem;
-  padding: 0.45rem 0.75rem;
-  background: #0a0a12;
-  color: var(--text-dim);
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  min-width: 180px;
-  max-width: 260px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-}
-
-.file-label:hover .file-name {
-  border-color: var(--accent2);
-  color: var(--text);
-}
-
-.play-custom-btn {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.6rem;
-  padding: 0.6rem 1rem;
-  background: var(--accent2);
-  color: #000;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-  align-self: flex-end;
-  height: fit-content;
-}
-
-.play-custom-btn:hover:not(:disabled) {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.play-custom-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
 .system-tabs {
   display: flex;
   flex-wrap: wrap;
@@ -299,43 +181,6 @@ main {
 .game-card .info .meta {
   font-size: 1.05rem;
   color: var(--text-dim);
-  margin-bottom: 0.65rem;
-}
-
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.btn-play,
-.btn-download {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.45rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: 3px;
-  text-decoration: none;
-  cursor: pointer;
-  border: none;
-  transition: opacity 0.15s, transform 0.1s;
-  letter-spacing: 0.3px;
-}
-
-.btn-play {
-  background: var(--accent2);
-  color: #000;
-}
-
-.btn-download {
-  background: transparent;
-  color: var(--accent2);
-  border: 1px solid var(--accent2);
-}
-
-.btn-play:hover,
-.btn-download:hover {
-  opacity: 0.85;
-  transform: translateY(-1px);
 }
 
 .game-card.hack .info h3::after {
@@ -368,7 +213,7 @@ footer a:hover {
   opacity: 0.8;
 }
 
-/* Modal leftovers (unused but kept for compatibility) */
+/* Modal */
 .modal {
   position: fixed;
   inset: 0;
@@ -482,6 +327,12 @@ footer a:hover {
   color: var(--text-dim);
 }
 
+/* Thumb colors by system */
+
+
+
+
+
 @media (max-width: 600px) {
   .games-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -492,105 +343,49 @@ footer a:hover {
   .logo h1 {
     font-size: 1.2rem;
   }
-  .custom-rom-controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .custom-label select,
-  .file-name {
-    min-width: 100%;
-    max-width: 100%;
-  }
-  .play-custom-btn {
-    width: 100%;
-  }
 }
 
-/* Custom ROM play overlay (in-page emulator, no navigation) */
-.play-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 10000;
-  background: #0a0a12;
+.loading-msg {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 1.25rem;
+  padding: 2rem 1rem;
+}
+
+.card-actions {
   display: flex;
-  flex-direction: column;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.55rem;
 }
 
-.play-overlay.hidden {
-  display: none;
-}
-
-.play-topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.6rem 1rem;
-  background: #12121f;
-  border-bottom: 2px solid #2a2a40;
-  flex-shrink: 0;
-}
-
-.play-topbar h1 {
+.btn-play,
+.btn-download {
   font-family: 'Press Start 2P', cursive;
-  font-size: 0.75rem;
-  color: #00f5d4;
-  max-width: 55%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.play-topbar button {
-  font-family: 'Press Start 2P', cursive;
-  font-size: 0.55rem;
-  color: #e8e8f0;
-  background: transparent;
-  border: 1px solid #2a2a40;
-  padding: 0.4rem 0.7rem;
+  font-size: 0.45rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 3px;
+  text-decoration: none;
   cursor: pointer;
-  margin-left: 0.4rem;
+  border: none;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.3px;
 }
 
-.play-topbar button:hover {
-  border-color: #00f5d4;
-  color: #00f5d4;
+.btn-play {
+  background: var(--accent2);
+  color: #000;
 }
 
-.play-area {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #000;
-  min-height: 0;
-  padding: 0.5rem;
-  overflow: hidden;
+.btn-download {
+  background: transparent;
+  color: var(--accent2);
+  border: 1px solid var(--accent2);
 }
 
-.play-emulator-box {
-  width: min(96vw, calc((100vh - 70px) * 4 / 3));
-  height: min(calc(100vh - 70px), 72vw);
-  aspect-ratio: 4 / 3;
-  position: relative;
-  border: 2px solid #2a2a40;
-  box-shadow: 0 0 24px rgba(0, 245, 212, 0.12);
-  background: #000;
-  flex-shrink: 0;
-}
-
-.play-emulator-box #game {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.play-emulator-box #game > div,
-.play-emulator-box #game canvas {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+.btn-play:hover,
+.btn-download:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
 }
