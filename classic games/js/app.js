@@ -1,28 +1,63 @@
 (function () {
   const grid = document.getElementById("games-grid");
-  const tabs = document.querySelectorAll(".tab");
-  const customCore = document.getElementById("custom-core");
-  const customFile = document.getElementById("custom-rom-file");
-  const fileNameEl = document.getElementById("file-name");
-  const playCustomBtn = document.getElementById("play-custom-btn");
-  const playOverlay = document.getElementById("play-overlay");
-  const playTitle = document.getElementById("play-title");
-  const playBox = document.getElementById("play-box");
-  const closePlayBtn = document.getElementById("close-play-btn");
-  const fsPlayBtn = document.getElementById("fs-play-btn");
+  const tabsNav = document.getElementById("system-tabs");
 
+  let GAMES = [];
+  let SYSTEMS = {};
   let currentSystem = "all";
-  let selectedFile = null;
-  let currentBlobUrl = null;
+
+  function resolveGame(raw) {
+    const sys = SYSTEMS[raw.system] || {};
+    const folder = sys.folder || raw.system;
+    const core = raw.core || sys.core || raw.system;
+    return {
+      id: raw.id,
+      title: raw.title,
+      system: raw.system,
+      core: core,
+      rom: raw.rom || ("roms/" + folder + "/" + raw.file),
+      thumb: raw.thumb.startsWith("thumbs/") || raw.thumb.startsWith("http")
+        ? raw.thumb
+        : ("thumbs/" + raw.thumb),
+      year: raw.year || "",
+      hack: !!raw.hack,
+      description: raw.description || ""
+    };
+  }
 
   function systemLabel(sys) {
-    const map = {
-      nes: "NES",
-      snes: "SNES",
-      genesis: "Genesis",
-      sms: "SMS"
-    };
+    if (SYSTEMS[sys] && SYSTEMS[sys].label) return SYSTEMS[sys].label;
+    const map = { nes: "NES", snes: "SNES", genesis: "Genesis", sms: "SMS" };
     return map[sys] || sys.toUpperCase();
+  }
+
+  function buildTabs() {
+    // Keep All + Hacks; insert system tabs between them
+    const allBtn = tabsNav.querySelector('[data-system="all"]');
+    const hacksBtn = tabsNav.querySelector('[data-system="hacks"]');
+
+    // Remove any previously injected system tabs
+    tabsNav.querySelectorAll(".tab[data-system]").forEach((btn) => {
+      const s = btn.dataset.system;
+      if (s !== "all" && s !== "hacks") btn.remove();
+    });
+
+    Object.keys(SYSTEMS).forEach((key) => {
+      const btn = document.createElement("button");
+      btn.className = "tab";
+      btn.dataset.system = key;
+      btn.textContent = SYSTEMS[key].label || key.toUpperCase();
+      tabsNav.insertBefore(btn, hacksBtn);
+    });
+
+    tabsNav.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        tabsNav.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentSystem = tab.dataset.system;
+        renderGames();
+      });
+    });
   }
 
   function renderGames() {
@@ -34,6 +69,11 @@
           : GAMES.filter((g) => g.system === currentSystem);
 
     grid.innerHTML = "";
+
+    if (!filtered.length) {
+      grid.innerHTML = '<p class="loading-msg">No games in this section.</p>';
+      return;
+    }
 
     filtered.forEach((game) => {
       const card = document.createElement("article");
@@ -70,96 +110,23 @@
     });
   }
 
-  tabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach((t) => t.classList.remove("active"));
-      tab.classList.add("active");
-      currentSystem = tab.dataset.system;
+  fetch("roms.json")
+    .then((r) => {
+      if (!r.ok) throw new Error("Could not load roms.json");
+      return r.json();
+    })
+    .then((data) => {
+      SYSTEMS = data.systems || {};
+      GAMES = (data.games || []).map(resolveGame);
+      // Expose for play.html / debugging
+      window.GAMES = GAMES;
+      window.SYSTEMS = SYSTEMS;
+      buildTabs();
       renderGames();
+    })
+    .catch((err) => {
+      console.error(err);
+      grid.innerHTML =
+        '<p class="loading-msg">Failed to load <code>roms.json</code>. Serve this folder over HTTP and check the file exists.</p>';
     });
-  });
-
-  customFile.addEventListener("change", () => {
-    selectedFile = customFile.files && customFile.files[0] ? customFile.files[0] : null;
-    if (selectedFile) {
-      fileNameEl.textContent = selectedFile.name;
-      playCustomBtn.disabled = false;
-    } else {
-      fileNameEl.textContent = "No file chosen";
-      playCustomBtn.disabled = true;
-    }
-  });
-
-  function startCustomRom(file, core, title) {
-    if (currentBlobUrl) {
-      try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
-      currentBlobUrl = null;
-    }
-
-    // Official EmulatorJS pattern: pass File object OR blob URL created on same page
-    // Using both approaches — File first (as official demo), blob URL as the string form
-    currentBlobUrl = URL.createObjectURL(file);
-
-    playTitle.textContent = title;
-    playOverlay.classList.remove("hidden");
-    document.body.style.overflow = "hidden";
-
-    // Fresh container each time (matches official demo clearing UI)
-    playBox.innerHTML = '<div id="game" style="width:100%;height:100%;"></div>';
-
-    // Force layout so EmulatorJS sees non-zero size
-    playOverlay.offsetHeight;
-
-    window.EJS_player = "#game";
-    window.EJS_core = core;
-    // Blob URL on same page (EmulatorJS handles blob: without network/CORS issues)
-    window.EJS_gameUrl = currentBlobUrl;
-    window.EJS_pathtodata = "https://cdn.emulatorjs.org/stable/data/";
-    window.EJS_color = "#00f5d4";
-    window.EJS_startOnLoaded = true;
-    window.EJS_gameName = title;
-    window.EJS_fullscreenOnLoaded = false;
-    window.EJS_gameID = Date.now();
-
-    const s = document.createElement("script");
-    s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
-    s.onerror = function () {
-      playTitle.textContent = "Failed to load EmulatorJS (check network / CDN)";
-    };
-    document.body.appendChild(s);
-  }
-
-  playCustomBtn.addEventListener("click", () => {
-    if (!selectedFile) return;
-    const core = customCore.value;
-    const title = selectedFile.name.replace(/\.[^/.]+$/, "") || "Custom ROM";
-    startCustomRom(selectedFile, core, title);
-  });
-
-  function closeOverlay() {
-    playOverlay.classList.add("hidden");
-    document.body.style.overflow = "";
-    playBox.innerHTML = "";
-    if (currentBlobUrl) {
-      try { URL.revokeObjectURL(currentBlobUrl); } catch (_) {}
-      currentBlobUrl = null;
-    }
-  }
-
-  closePlayBtn.addEventListener("click", closeOverlay);
-
-  fsPlayBtn.addEventListener("click", () => {
-    const el = document.querySelector(".play-emulator-box");
-    if (!el) return;
-    if (el.requestFullscreen) el.requestFullscreen();
-    else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  });
-
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !playOverlay.classList.contains("hidden")) {
-      closeOverlay();
-    }
-  });
-
-  renderGames();
 })();
