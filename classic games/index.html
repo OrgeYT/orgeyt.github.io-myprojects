@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classic Games</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="scanlines"></div>
+  <header>
+    <div class="logo">
+      <h1>CLASSIC GAMES</h1>
+      <p class="tagline">Play classic games &amp; ROM hacks in your browser</p>
+    </div>
+  </header>
+
+  <main>
+    <nav class="system-tabs">
+      <button class="tab active" data-system="all">All Games</button>
+      <button class="tab" data-system="nes">NES</button>
+      <button class="tab" data-system="snes">SNES</button>
+      <button class="tab" data-system="genesis">Genesis</button>
+      <button class="tab" data-system="sms">Master System</button>
+      <button class="tab" data-system="hacks">Hacks</button>
+    </nav>
+
+    <section class="games-grid" id="games-grid">
+      <!-- Games injected by JS -->
+    </section>
+  </main>
+
+  <footer>
+    <p>Powered by <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a></p>
+    <p class="controls-hint">Keyboard: Arrow keys / WASD · Z/X or A/S for buttons · Enter = Start · Shift = Select</p>
+  </footer>
+
+  <script src="js/games.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
