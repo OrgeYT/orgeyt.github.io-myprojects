@@ -73,6 +73,26 @@
       "description": "Nyan Cat on the NES!"
     },
     {
+      "id": "pacman",
+      "title": "Pac-Man",
+      "system": "nes",
+      "file": "pacman.nes",
+      "thumb": "pacman.png",
+      "year": 1993,
+      "hack": false,
+      "description": "Eat pellets, avoid ghosts, and clear the maze."
+    },
+    {
+      "id": "duckhunt",
+      "title": "Duck Hunt",
+      "system": "nes",
+      "file": "duckhunt.nes",
+      "thumb": "duckhunt.png",
+      "year": 1984,
+      "hack": false,
+      "description": "Shoot ducks and try to get the highest score."
+    },
+    {
       "id": "smw",
       "title": "Super Mario World",
       "system": "snes",
