@@ -103,6 +103,26 @@
       "description": "A ROM made to test emulator accuracy. Running it on this website lets you test EmulatorJS. Made by 100thCoin."
     },
     {
+      "id": "tictacxo",
+      "title": "Tic Tac XO",
+      "system": "nes",
+      "file": "tictacxo.nes",
+      "thumb": "tictacxo.png",
+      "year": 2024,
+      "hack": true,
+      "description": "Play Tic Tac Toe on the NES!"
+    },
+    {
+      "id": "snake",
+      "title": "Snake",
+      "system": "nes",
+      "file": "snake.nes",
+      "thumb": "snake.png",
+      "year": 2024,
+      "hack": true,
+      "description": "Play the classic Snake game on the NES!"
+    },
+    {
       "id": "smw",
       "title": "Super Mario World",
       "system": "snes",
