@@ -1,0 +1,1284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Platformer Maker</title>
+    <style>
+        :root {
+            --bg: #111;
+            --ui-bg: #222;
+            --ui-border: #444;
+            --accent: #4a90e2;
+            --text: #eee;
+            --text-muted: #aaa;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden; /* Prevent scrolling */
+            touch-action: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        /* UI OVERLAYS */
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel {
+            pointer-events: auto;
+            background: var(--ui-bg);
+            border: 2px solid var(--ui-border);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Top Bar: Level Management */
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px;
+            gap: 10px;
+        }
+        
+        .controls-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Toolbar: Objects */
+        #toolbar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            padding: 8px;
+        }
+
+        .tool-btn {
+            width: 50px;
+            height: 50px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 6px;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: 0.1s;
+        }
+        .tool-btn:hover { background: #444; }
+        .tool-btn.active {
+            border-color: var(--accent);
+            background: #2a405c;
+            box-shadow: 0 0 10px rgba(74, 144, 226, 0.5);
+        }
+        .tool-icon {
+            width: 24px;
+            height: 24px;
+            margin-bottom: 2px;
+        }
+        .tool-label {
+            font-size: 10px;
+            font-weight: bold;
+            pointer-events: none;
+            text-transform: uppercase;
+        }
+
+        button {
+            background: #333;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        button:hover { background: #444; border-color: #777; }
+        button.primary { background: var(--success); border-color: #27ae60; color: #000; }
+        button.primary:hover { background: #27ae60; }
+        button.danger { background: var(--danger); border-color: #c0392b; }
+        button.danger:hover { background: #c0392b; }
+        
+        select, input {
+            background: #111;
+            color: white;
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        /* Overlays (Win / Play Mode) */
+        #play-overlay {
+            position: absolute;
+            top: 10px; left: 10px;
+            pointer-events: auto;
+            display: none;
+        }
+        
+        #win-screen {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            z-index: 100;
+        }
+        #win-screen h1 { margin: 0; color: var(--success); font-size: 48px; text-shadow: 2px 2px 0 #000; }
+        
+        .hidden { display: none !important; }
+        
+        #help-text {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <!-- Editor Top Bar -->
+        <div id="top-bar" class="panel">
+            <div class="controls-group">
+                <select id="level-select">
+                    <option value="Blank">Blank Level</option>
+                    <option value="Level">Example: Demo Level</option>
+                    <option value="Challenge">Example: Challenge Level</option>
+                    <option value="Custom" disabled hidden>Custom (Unsaved)</option>
+                </select>
+                <button id="btn-new">New</button>
+            </div>
+            
+            <div class="controls-group">
+                <button id="btn-play" class="primary">▶ PLAY</button>
+            </div>
+
+            <div class="controls-group">
+                <button id="btn-save">Save (.platformerlevel)</button>
+                <button id="btn-load">Load</button>
+                <input type="file" id="file-input" accept=".platformerlevel" style="display:none;">
+            </div>
+        </div>
+
+        <!-- Editor Toolbar -->
+        <div id="toolbar" class="panel">
+            <!-- Tools populated by JS -->
+        </div>
+        
+        <!-- Updated help text to reflect zooming -->
+        <div id="help-text">Scroll: Zoom | Left Click: Place | Right-Click + Drag: Pan | WASD/Arrows: Move</div>
+    </div>
+
+    <!-- Play Mode UI -->
+    <div id="play-overlay">
+        <button id="btn-stop" class="danger">■ RETURN TO EDITOR</button>
+        <button id="btn-reset">Reset Player</button>
+    </div>
+
+    <!-- Win Screen -->
+    <div id="win-screen" class="panel">
+        <h1>YOU WIN!</h1>
+        <div class="controls-group">
+            <button id="btn-win-replay" class="primary">Replay Level</button>
+            <button id="btn-win-edit">Return to Editor</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * PLATFORMER MAKER ENGINE
+ * Single file implementation containing Editor, Physics, Rendering, and Serialization.
+ */
+
+// --- CONFIG & CONSTANTS ---
+const TS = 32; // Tile Size
+const GRAVITY = 0.4;
+const MAX_FALL = 10;
+const JUMP_FORCE = -8.5;
+const PLAYER_SPEED = 4.5;
+const FRICTION = 0.8;
+const PLAY_ZOOM = 1.25; // Default zoom in play mode (zoomed in slightly)
+
+const TYPES = {
+    PLAYER: 'p',
+    FIRE: 'f',
+    BOX: 'b',
+    BUTTON: 'u',
+    SOLID: 's',
+    TOGGLE: 't',
+    GOAL: 'g',
+    ERASER: 'x' // Editor only
+};
+
+const TOOLS = [
+    { type: TYPES.PLAYER, name: 'Player', color: '#fff' },
+    { type: TYPES.SOLID, name: 'Solid', color: '#fff' },
+    { type: TYPES.FIRE, name: 'Fire', color: '#e74c3c' },
+    { type: TYPES.BOX, name: 'Box', color: '#e67e22' },
+    { type: TYPES.BUTTON, name: 'Button', color: '#e74c3c' },
+    { type: TYPES.TOGGLE, name: 'Toggle', color: '#00ffff' },
+    { type: TYPES.GOAL, name: 'Goal', color: '#f1c40f' },
+    { type: TYPES.ERASER, name: 'Eraser', color: '#333' }
+];
+
+// --- STATE ---
+let state = {
+    mode: 'EDIT', // 'EDIT' or 'PLAY'
+    cam: { x: 0, y: 0, zoom: 1 }, // Added zoom to state
+    mouse: { x: 0, y: 0, worldX: 0, worldY: 0, leftDown: false, rightDown: false },
+    keys: {},
+    selectedTool: TYPES.SOLID,
+    levelName: "Blank",
+    
+    // Level Data
+    objects: [], // Format: {type, x, y, gx, gy}
+    
+    // Play state
+    player: null,
+    activeEntities: [], // dynamic things like boxes
+    globalTogglesOn: true,
+    lastButtonPressedCount: 0,
+    win: false,
+    
+    // Editor panning
+    panStart: { x: 0, y: 0 },
+    camStart: { x: 0, y: 0 }
+};
+
+// --- BUILT-IN LEVELS ---
+const BUILT_IN_LEVELS = {
+    "Blank": {"v":1,"n":"Blank","w":1,"h":1,"g":32,"o":[]},
+    "Level": {"v":1,"n":"Level","w":33,"h":14,"g":32,"o":[["p",2,7],["f",10,12],["f",11,12],["b",17,5],["u",17,9],["g",29,9],["sr",0,8,4],["sr",6,11,3],["sr",9,13,4],["sr",13,10,6],["sr",22,12,3],["sr",28,10,4],["sr",23,6,2],["t",25,9],["t",25,10],["t",25,11]]},
+    "Challenge": {"v":1,"n":"Challenge","w":58,"h":10,"g":32,"o":[["sr",47,-3,11],["s",47,-2],["s",47,-1],["sr",45,0,3],["s",43,2],["s",45,4],["sr",26,6,8],["sr",35,6,9],["sr",19,7,2],["sr",23,7,2],["sr",16,8,2],["sr",9,9,5],["p",11,8],["f",21,7],["f",22,7],["b",28,5],["u",33,1],["t",34,2],["t",34,3],["t",34,4],["t",34,5],["t",34,6],["b",46,-1],["g",57,-5]]}
+};
+
+// --- DOM ELEMENTS ---
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiLayer = document.getElementById('ui-layer');
+const playOverlay = document.getElementById('play-overlay');
+const winScreen = document.getElementById('win-screen');
+const toolbar = document.getElementById('toolbar');
+const levelSelect = document.getElementById('level-select');
+
+// --- LOAD ASSETS ---
+const playerImg = new Image();
+playerImg.src = 'channels4_profile_2.jpg';
+let playerImgLoaded = false;
+playerImg.onload = () => playerImgLoaded = true;
+
+// --- INITIALIZATION ---
+function init() {
+    resize();
+    window.addEventListener('resize', resize);
+    
+    buildToolbar();
+    setupInputs();
+    
+    // Try to load autosave, otherwise load Blank
+    const autosave = localStorage.getItem('platformer_autosave');
+    if (autosave) {
+        loadLevelData(autosave);
+        levelSelect.value = "Custom";
+    } else {
+        loadBuiltIn("Blank");
+    }
+
+    requestAnimationFrame(loop);
+}
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+
+// --- UI SETUP ---
+function buildToolbar() {
+    toolbar.innerHTML = '';
+    TOOLS.forEach(tool => {
+        const btn = document.createElement('div');
+        btn.className = `tool-btn ${state.selectedTool === tool.type ? 'active' : ''}`;
+        btn.onclick = () => selectTool(tool.type, btn);
+        
+        // Create Icon canvas
+        const iconCanvas = document.createElement('canvas');
+        iconCanvas.className = 'tool-icon';
+        iconCanvas.width = 24; iconCanvas.height = 24;
+        drawIcon(iconCanvas.getContext('2d'), tool.type, 24);
+        
+        const label = document.createElement('div');
+        label.className = 'tool-label';
+        label.innerText = tool.name;
+        
+        btn.appendChild(iconCanvas);
+        btn.appendChild(label);
+        toolbar.appendChild(btn);
+    });
+}
+
+function selectTool(type, btnElement) {
+    state.selectedTool = type;
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btnElement.classList.add('active');
+}
+
+// --- INPUT HANDLING ---
+function setupInputs() {
+    // Keyboard
+    window.addEventListener('keydown', e => {
+        state.keys[e.code] = true;
+        if (state.mode === 'PLAY' && ['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+            e.preventDefault(); // Prevent scrolling
+        }
+        
+        // Shortcuts
+        if (e.ctrlKey) {
+            if (e.code === 'KeyS') { e.preventDefault(); saveLevelToFile(); }
+            if (e.code === 'KeyO') { e.preventDefault(); document.getElementById('file-input').click(); }
+        }
+    });
+    window.addEventListener('keyup', e => state.keys[e.code] = false);
+
+    // Mouse / Touch
+    canvas.addEventListener('mousedown', onPointerDown);
+    canvas.addEventListener('mousemove', onPointerMove);
+    window.addEventListener('mouseup', onPointerUp); // Window to catch releases outside
+    
+    // Zoom / Scroll support for Canvas
+    canvas.addEventListener('wheel', e => {
+        if (state.mode === 'EDIT') {
+            e.preventDefault();
+            const oldZoom = state.cam.zoom;
+            // Calculate new zoom level
+            let newZoom = oldZoom - (e.deltaY * 0.001);
+            newZoom = Math.max(0.2, Math.min(newZoom, 5)); // Clamp zoom between 0.2x and 5x
+            
+            // Calculate current world position of mouse
+            const mouseWorldX = (state.mouse.x / oldZoom) + state.cam.x;
+            const mouseWorldY = (state.mouse.y / oldZoom) + state.cam.y;
+            
+            // Apply zoom
+            state.cam.zoom = newZoom;
+            
+            // Shift camera position to keep mouse over the same world coordinate
+            state.cam.x = mouseWorldX - (state.mouse.x / newZoom);
+            state.cam.y = mouseWorldY - (state.mouse.y / newZoom);
+            
+            // Immediately update world variables to prevent a visual jump before mouse moves
+            state.mouse.worldX = (state.mouse.x / newZoom) + state.cam.x;
+            state.mouse.worldY = (state.mouse.y / newZoom) + state.cam.y;
+        }
+    }, { passive: false });
+    
+    canvas.addEventListener('touchstart', e => handleTouch(e, onPointerDown), {passive: false});
+    canvas.addEventListener('touchmove', e => handleTouch(e, onPointerMove), {passive: false});
+    window.addEventListener('touchend', e => handleTouch(e, onPointerUp));
+    
+    // UI Buttons
+    document.getElementById('btn-play').onclick = startPlay;
+    document.getElementById('btn-stop').onclick = stopPlay;
+    document.getElementById('btn-reset').onclick = resetPlayer;
+    document.getElementById('btn-new').onclick = () => { loadBuiltIn("Blank"); levelSelect.value = "Blank"; };
+    document.getElementById('btn-save').onclick = saveLevelToFile;
+    document.getElementById('btn-load').onclick = () => document.getElementById('file-input').click();
+    document.getElementById('btn-win-replay').onclick = resetPlayer;
+    document.getElementById('btn-win-edit').onclick = stopPlay;
+    
+    levelSelect.onchange = (e) => {
+        if (BUILT_IN_LEVELS[e.target.value]) {
+            loadBuiltIn(e.target.value);
+        }
+    };
+
+    document.getElementById('file-input').onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            if (loadLevelData(e.target.result)) {
+                levelSelect.value = "Custom";
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = ''; // Reset
+    };
+    
+    // Prevent context menu for right click panning
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+function handleTouch(e, mouseFunc) {
+    if (e.touches.length > 0) {
+        e.clientX = e.touches[0].clientX;
+        e.clientY = e.touches[0].clientY;
+        e.button = 0; // Simulate left click for touch
+    }
+    mouseFunc(e);
+    if(e.cancelable && state.mode === 'EDIT') e.preventDefault();
+}
+
+function updateMouseCoords(e) {
+    const rect = canvas.getBoundingClientRect();
+    state.mouse.x = e.clientX - rect.left;
+    state.mouse.y = e.clientY - rect.top;
+    
+    // Factor in the dynamic zoom for Editor mode or fixed zoom for Play mode
+    const currentZoom = state.mode === 'PLAY' ? PLAY_ZOOM : state.cam.zoom;
+    
+    state.mouse.worldX = (state.mouse.x / currentZoom) + state.cam.x;
+    state.mouse.worldY = (state.mouse.y / currentZoom) + state.cam.y;
+}
+
+function onPointerDown(e) {
+    updateMouseCoords(e);
+    if (e.button === 0) state.mouse.leftDown = true;
+    if (e.button === 2) {
+        state.mouse.rightDown = true;
+        state.panStart = { x: state.mouse.x, y: state.mouse.y };
+        state.camStart = { x: state.cam.x, y: state.cam.y };
+    }
+    handleEditorAction();
+}
+
+function onPointerMove(e) {
+    updateMouseCoords(e);
+    if (state.mouse.rightDown && state.mode === 'EDIT') {
+        // Divide by zoom to properly scale mouse drag velocity to world space
+        const dx = (state.mouse.x - state.panStart.x) / state.cam.zoom;
+        const dy = (state.mouse.y - state.panStart.y) / state.cam.zoom;
+        state.cam.x = state.camStart.x - dx;
+        state.cam.y = state.camStart.y - dy;
+    } else if (state.mouse.leftDown) {
+        handleEditorAction();
+    }
+}
+
+function onPointerUp(e) {
+    if (e.button === 0) state.mouse.leftDown = false;
+    if (e.button === 2) state.mouse.rightDown = false;
+}
+
+// --- EDITOR LOGIC ---
+function handleEditorAction() {
+    if (state.mode !== 'EDIT' || !state.mouse.leftDown) return;
+    
+    const gx = Math.floor(state.mouse.worldX / TS);
+    const gy = Math.floor(state.mouse.worldY / TS);
+    
+    if (state.selectedTool === TYPES.ERASER) {
+        removeObjectAt(gx, gy);
+    } else {
+        placeObject(state.selectedTool, gx, gy);
+    }
+}
+
+function placeObject(type, gx, gy) {
+    // Only one player allowed
+    if (type === TYPES.PLAYER) {
+        state.objects = state.objects.filter(o => o.type !== TYPES.PLAYER);
+    }
+    
+    // Prevent overlapping objects at same grid cell
+    removeObjectAt(gx, gy);
+    
+    state.objects.push({
+        type: type,
+        gx: gx, gy: gy,
+        x: gx * TS, y: gy * TS
+    });
+    
+    saveToLocal();
+}
+
+function removeObjectAt(gx, gy) {
+    const before = state.objects.length;
+    state.objects = state.objects.filter(o => o.gx !== gx || o.gy !== gy);
+    if (state.objects.length < before) saveToLocal();
+}
+
+// --- SERIALIZATION (COMPACT JSON) ---
+function serializeLevel() {
+    // Determine bounds
+    let maxX = 0, maxY = 0;
+    state.objects.forEach(o => {
+        if (o.gx > maxX) maxX = o.gx;
+        if (o.gy > maxY) maxY = o.gy;
+    });
+
+    // RLE Compression for Solids
+    let finalObjects = [];
+    let solids = state.objects.filter(o => o.type === TYPES.SOLID);
+    let others = state.objects.filter(o => o.type !== TYPES.SOLID);
+    
+    // Sort solids by Y, then X for run detection
+    solids.sort((a, b) => {
+        if (a.gy === b.gy) return a.gx - b.gx;
+        return a.gy - b.gy;
+    });
+    
+    let currentRun = null;
+    for (let s of solids) {
+        if (!currentRun) {
+            currentRun = { gx: s.gx, gy: s.gy, len: 1 };
+        } else {
+            if (s.gy === currentRun.gy && s.gx === currentRun.gx + currentRun.len) {
+                // Extend run
+                currentRun.len++;
+            } else {
+                // Save run and start new
+                pushRun(finalObjects, currentRun);
+                currentRun = { gx: s.gx, gy: s.gy, len: 1 };
+            }
+        }
+    }
+    if (currentRun) pushRun(finalObjects, currentRun);
+
+    // Add others
+    others.forEach(o => {
+        finalObjects.push([o.type, o.gx, o.gy]);
+    });
+
+    const data = {
+        v: 1,
+        n: state.levelName,
+        w: maxX + 1, h: maxY + 1, g: TS,
+        o: finalObjects
+    };
+    return JSON.stringify(data);
+}
+
+function pushRun(arr, run) {
+    if (run.len === 1) {
+        arr.push([TYPES.SOLID, run.gx, run.gy]);
+    } else {
+        arr.push(["sr", run.gx, run.gy, run.len]);
+    }
+}
+
+function deserializeLevel(jsonStr) {
+    try {
+        const data = JSON.parse(jsonStr);
+        if (!data.v || !data.o) throw new Error("Invalid format");
+        
+        state.levelName = data.n || "Custom";
+        state.objects = [];
+        
+        data.o.forEach(item => {
+            const type = item[0];
+            if (type === "sr") {
+                // Solid run: ["sr", x, y, len]
+                const gx = item[1];
+                const gy = item[2];
+                const len = item[3];
+                for(let i=0; i<len; i++) {
+                    state.objects.push({ type: TYPES.SOLID, gx: gx + i, gy: gy, x: (gx+i)*TS, y: gy*TS });
+                }
+            } else {
+                // Normal: ["p", x, y]
+                state.objects.push({ type: type, gx: item[1], gy: item[2], x: item[1]*TS, y: item[2]*TS });
+            }
+        });
+        
+        return true;
+    } catch (e) {
+        alert("Invalid Platformer Maker level!");
+        console.error(e);
+        return false;
+    }
+}
+
+function saveLevelToFile() {
+    const json = serializeLevel();
+    const blob = new Blob([json], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (state.levelName || "level") + ".platformerlevel";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function loadLevelData(jsonStr) {
+    if(deserializeLevel(jsonStr)) {
+        stopPlay();
+        // Center camera roughly
+        let p = state.objects.find(o => o.type === TYPES.PLAYER);
+        if(p) {
+            state.cam.x = p.x - (canvas.width / state.cam.zoom) / 2;
+            state.cam.y = p.y - (canvas.height / state.cam.zoom) / 2;
+        } else {
+            state.cam.x = 0; state.cam.y = 0; // preserve zoom
+        }
+        return true;
+    }
+    return false;
+}
+
+function saveToLocal() {
+    localStorage.setItem('platformer_autosave', serializeLevel());
+}
+
+function loadBuiltIn(name) {
+    loadLevelData(JSON.stringify(BUILT_IN_LEVELS[name]));
+}
+
+// --- PLAY/EDIT MODE TRANSITIONS ---
+function startPlay() {
+    const pObj = state.objects.find(o => o.type === TYPES.PLAYER);
+    if (!pObj) {
+        alert("Please place a Player object first!");
+        return;
+    }
+
+    state.mode = 'PLAY';
+    uiLayer.classList.add('hidden');
+    playOverlay.style.display = 'block';
+    
+    // Build active world
+    state.globalTogglesOn = true;
+    state.lastButtonPressedCount = 0;
+    state.win = false;
+    winScreen.style.display = 'none';
+    
+    // Create physical entities
+    state.activeEntities = [];
+    state.objects.forEach(o => {
+        if (o.type === TYPES.BOX) {
+            state.activeEntities.push({
+                type: TYPES.BOX,
+                x: o.x, y: o.y, w: TS, h: TS,
+                vx: 0, vy: 0
+            });
+        }
+    });
+
+    // Init Player
+    state.player = {
+        type: TYPES.PLAYER,
+        spawnX: pObj.x, spawnY: pObj.y,
+        x: pObj.x, y: pObj.y, w: TS, h: TS,
+        vx: 0, vy: 0,
+        facing: 'right', // Start facing right
+        onGround: false,
+        scaleX: 1, scaleY: 1 // Track squash and stretch
+    };
+}
+
+function stopPlay() {
+    state.mode = 'EDIT';
+    uiLayer.classList.remove('hidden');
+    playOverlay.style.display = 'none';
+    winScreen.style.display = 'none';
+}
+
+function resetPlayer() {
+    if(state.player) {
+        state.player.x = state.player.spawnX;
+        state.player.y = state.player.spawnY;
+        state.player.vx = 0;
+        state.player.vy = 0;
+        state.player.scaleX = 1;
+        state.player.scaleY = 1;
+    }
+    state.win = false;
+    winScreen.style.display = 'none';
+    // Reset boxes too
+    state.activeEntities = [];
+    state.objects.forEach(o => {
+        if (o.type === TYPES.BOX) {
+            state.activeEntities.push({ type: TYPES.BOX, x: o.x, y: o.y, w: TS, h: TS, vx: 0, vy: 0 });
+        }
+    });
+    state.globalTogglesOn = true;
+}
+
+// --- PHYSICS ENGINE ---
+function getVoidY() {
+    let maxY = 0;
+    state.objects.forEach(o => {
+        if (o.y > maxY) maxY = o.y;
+    });
+    return maxY + (35 * TS);
+}
+
+function getSolidRects() {
+    let solids = [];
+    state.objects.forEach(o => {
+        if (o.type === TYPES.SOLID || (o.type === TYPES.TOGGLE && state.globalTogglesOn)) {
+            solids.push({x: o.x, y: o.y, w: TS, h: TS});
+        }
+    });
+    return solids;
+}
+
+function checkCollision(r1, r2) {
+    return r1.x < r2.x + r2.w && r1.x + r1.w > r2.x &&
+           r1.y < r2.y + r2.h && r1.y + r1.h > r2.y;
+}
+
+function moveEntity(ent, dx, dy, solids, isPlayer=false) {
+    // X Axis
+    ent.x += dx;
+    let hitX = false;
+    
+    // Check Box Pushing (Player pushing Box)
+    if (isPlayer) {
+        for (let box of state.activeEntities) {
+            if (checkCollision(ent, box)) {
+                // Try to push box
+                moveEntity(box, dx, 0, solids, false);
+                // If box didn't move enough to clear player, player must stop
+                if (checkCollision(ent, box)) {
+                    ent.x -= dx; // Revert
+                    hitX = true;
+                    ent.vx = 0;
+                }
+            }
+        }
+    } else {
+        // Box checking collision with other boxes
+        for (let other of state.activeEntities) {
+            if (other !== ent && checkCollision(ent, other)) {
+                ent.x -= dx; hitX = true; ent.vx = 0;
+            }
+        }
+    }
+
+    // Check Solids X
+    for (let s of solids) {
+        if (checkCollision(ent, s)) {
+            if (dx > 0) ent.x = s.x - ent.w;
+            else if (dx < 0) ent.x = s.x + s.w;
+            hitX = true;
+            ent.vx = 0;
+        }
+    }
+
+    // Y Axis
+    ent.y += dy;
+    let hitY = false;
+    if(isPlayer) ent.onGround = false;
+
+    // Check Boxes Y (Landing on boxes)
+    if (isPlayer) {
+        for (let box of state.activeEntities) {
+            if (checkCollision(ent, box)) {
+                if (dy > 0) { // falling
+                    ent.y = box.y - ent.h;
+                    ent.onGround = true;
+                } else if (dy < 0) { // jumping up hitting bottom of box
+                    ent.y = box.y + box.h;
+                }
+                hitY = true;
+                ent.vy = 0;
+            }
+        }
+    } else {
+         for (let other of state.activeEntities) {
+            if (other !== ent && checkCollision(ent, other)) {
+                 if(dy > 0) ent.y = other.y - ent.h;
+                 else if(dy < 0) ent.y = other.y + other.h;
+                 hitY = true; ent.vy = 0;
+            }
+         }
+    }
+
+    // Check Solids Y
+    for (let s of solids) {
+        if (checkCollision(ent, s)) {
+            if (dy > 0) {
+                ent.y = s.y - ent.h;
+                if(isPlayer) ent.onGround = true;
+            } else if (dy < 0) {
+                ent.y = s.y + s.h;
+            }
+            hitY = true;
+            ent.vy = 0;
+        }
+    }
+    return { hitX, hitY };
+}
+
+function updatePhysics() {
+    if (state.win) return;
+    const p = state.player;
+    const solids = getSolidRects();
+
+    const wasOnGround = p.onGround;
+
+    // 1. Input & Player Velocity
+    let moveDir = 0;
+    if (state.keys['ArrowLeft'] || state.keys['KeyA']) moveDir = -1;
+    if (state.keys['ArrowRight'] || state.keys['KeyD']) moveDir = 1;
+
+    p.vx = moveDir * PLAYER_SPEED;
+    
+    // Eyes tracking
+    if (p.vx > 0) p.facing = 'right';
+    else if (p.vx < 0) p.facing = 'left';
+    else if (p.vy < -1) p.facing = 'up';
+    else if (p.vy > 1) p.facing = 'down';
+    else p.facing = 'idle';
+
+    // Gravity
+    p.vy += GRAVITY;
+    if (p.vy > MAX_FALL) p.vy = MAX_FALL;
+
+    // Jump
+    if ((state.keys['ArrowUp'] || state.keys['KeyW'] || state.keys['Space']) && p.onGround) {
+        p.vy = JUMP_FORCE;
+        p.onGround = false;
+        p.facing = 'up';
+        p.scaleX = 0.5; // Stretch up
+        p.scaleY = 1.5;
+    }
+
+    // 2. Box Gravity
+    state.activeEntities.forEach(box => {
+        box.vy += GRAVITY;
+        if (box.vy > MAX_FALL) box.vy = MAX_FALL;
+        moveEntity(box, 0, box.vy, solids, false); // Boxes fall first
+    });
+
+    // 3. Move Player
+    moveEntity(p, p.vx, p.vy, solids, true);
+
+    // 4. Interactables (Sensors)
+    let pressedCount = 0;
+    
+    state.objects.forEach(o => {
+        const objRect = {x: o.x, y: o.y, w: TS, h: TS};
+        const pTouch = checkCollision(p, objRect);
+        
+        // Fire
+        if (o.type === TYPES.FIRE && pTouch) {
+            resetPlayer();
+        }
+        
+        // Goal
+        if (o.type === TYPES.GOAL && pTouch) {
+            state.win = true;
+            winScreen.style.display = 'flex';
+        }
+
+        // Button logic
+        if (o.type === TYPES.BUTTON) {
+            let isPressed = false;
+            // Pad slightly so walking over it smoothly presses it
+            const btnRect = {x: o.x+4, y: o.y+4, w: TS-8, h: TS-8}; 
+            
+            if (checkCollision(p, btnRect)) isPressed = true;
+            for (let box of state.activeEntities) {
+                if (checkCollision(box, btnRect)) isPressed = true;
+            }
+            if (isPressed) pressedCount++;
+        }
+    });
+
+    // Toggle Flip Logic (Edge Detection)
+    if (pressedCount > 0 && state.lastButtonPressedCount === 0) {
+        state.globalTogglesOn = !state.globalTogglesOn;
+    }
+    state.lastButtonPressedCount = pressedCount;
+
+    // Squash on land
+    if (!wasOnGround && p.onGround) {
+        p.scaleX = 1.4;
+        p.scaleY = 0.6;
+    }
+
+    // Recover squash/stretch smoothly towards 1
+    if (p.scaleX === undefined) { p.scaleX = 1; p.scaleY = 1; }
+    p.scaleX += (1 - p.scaleX) * 0.15;
+    p.scaleY += (1 - p.scaleY) * 0.15;
+
+    // Void kill check
+    if (p.y >= getVoidY()) {
+        resetPlayer();
+    }
+
+    // 5. Camera Follow (Accounting for Play Zoom)
+    const visibleWidth = canvas.width / PLAY_ZOOM;
+    const visibleHeight = canvas.height / PLAY_ZOOM;
+    const targetCamX = p.x + TS/2 - visibleWidth/2;
+    const targetCamY = p.y + TS/2 - visibleHeight/2;
+    
+    // Smooth camera
+    state.cam.x += (targetCamX - state.cam.x) * 0.1;
+    state.cam.y += (targetCamY - state.cam.y) * 0.1;
+}
+
+// --- RENDERING ---
+function drawIcon(ctx, type, size, isActive=true) {
+    ctx.clearRect(0,0,size,size);
+    const half = size/2;
+    
+    if (type === TYPES.SOLID) {
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+        ctx.strokeStyle = '#ccc'; ctx.lineWidth = size*0.03; // Scale relative to size
+        ctx.beginPath();
+        ctx.moveTo(0, size/2); ctx.lineTo(size, size/2);
+        ctx.moveTo(size/2, 0); ctx.lineTo(size/2, size/2);
+        ctx.moveTo(size/4, size/2); ctx.lineTo(size/4, size);
+        ctx.moveTo(size*0.75, size/2); ctx.lineTo(size*0.75, size);
+        ctx.stroke();
+    }
+    else if (type === TYPES.FIRE) {
+        ctx.fillStyle = '#e74c3c'; ctx.fillRect(0,0,size,size);
+        ctx.fillStyle = '#f1c40f'; // flame
+        ctx.beginPath();
+        ctx.moveTo(half, size*0.2);
+        ctx.lineTo(size*0.8, size*0.8);
+        ctx.lineTo(size*0.2, size*0.8);
+        ctx.fill();
+        ctx.fillStyle = '#e67e22'; // inner flame
+        ctx.beginPath();
+        ctx.moveTo(half, size*0.4);
+        ctx.lineTo(size*0.65, size*0.8);
+        ctx.lineTo(size*0.35, size*0.8);
+        ctx.fill();
+    }
+    else if (type === TYPES.BOX) {
+        ctx.fillStyle = '#e67e22'; ctx.fillRect(0,0,size,size);
+        ctx.strokeStyle = '#d35400'; ctx.lineWidth = size*0.1;
+        ctx.strokeRect(size*0.1, size*0.1, size*0.8, size*0.8);
+        ctx.beginPath();
+        ctx.moveTo(size*0.1, size*0.1); ctx.lineTo(size*0.9, size*0.9);
+        ctx.moveTo(size*0.9, size*0.1); ctx.lineTo(size*0.1, size*0.9);
+        ctx.stroke();
+    }
+    else if (type === TYPES.BUTTON) {
+        ctx.fillStyle = '#c0392b'; ctx.fillRect(0,0,size,size);
+        ctx.fillStyle = isActive ? '#7f8c8d' : '#ecf0f1'; // Gray ring / pressed state
+        ctx.beginPath(); ctx.arc(half, half, size*0.35, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = '#bdc3c7';
+        ctx.beginPath(); ctx.arc(half, half, size*0.2, 0, Math.PI*2); ctx.fill();
+    }
+    else if (type === TYPES.TOGGLE) {
+        ctx.fillStyle = isActive ? '#00ffff' : 'rgba(0, 255, 255, 0.3)';
+        ctx.fillRect(0,0,size,size);
+        ctx.strokeStyle = isActive ? '#008888' : 'rgba(0, 136, 136, 0.5)';
+        ctx.lineWidth = size*0.06;
+        // switch icon
+        ctx.strokeRect(size*0.2, size*0.3, size*0.6, size*0.4);
+        ctx.fillStyle = ctx.strokeStyle;
+        if(isActive) ctx.fillRect(size*0.5, size*0.3, size*0.3, size*0.4);
+        else ctx.fillRect(size*0.2, size*0.3, size*0.3, size*0.4);
+    }
+    else if (type === TYPES.GOAL) {
+        ctx.fillStyle = '#f1c40f'; ctx.fillRect(0,0,size,size);
+        // Flag
+        ctx.fillStyle = '#000'; ctx.fillRect(size*0.3, size*0.2, size*0.05, size*0.6);
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.moveTo(size*0.35, size*0.2);
+        ctx.lineTo(size*0.7, size*0.35);
+        ctx.lineTo(size*0.35, size*0.5);
+        ctx.fill();
+    }
+    else if (type === TYPES.PLAYER) {
+        // Draw the yellow star-like character
+        ctx.save();
+        ctx.scale(size/100, size/100); // Scale internal 100x100 coordinates to actual size
+        
+        // Base shape
+        ctx.fillStyle = '#f9d238'; // Yellow color from image
+        
+        ctx.beginPath();
+        ctx.moveTo(10, 90); // Bottom left
+        ctx.lineTo(35, 90); // Inner left bottom
+        ctx.bezierCurveTo(45, 80, 55, 80, 65, 90); // Middle bottom gap
+        ctx.lineTo(90, 90); // Bottom right
+        ctx.lineTo(90, 50); // Right straight side up
+        ctx.lineTo(95, 35); // Right horn out
+        ctx.lineTo(90, 25); // Right horn in
+        ctx.lineTo(80, 5);  // Top right horn tip
+        ctx.lineTo(50, 20); // Top center dip
+        ctx.lineTo(20, 5);  // Top left horn tip
+        ctx.lineTo(10, 25); // Left horn in
+        ctx.lineTo(5, 35);  // Left horn out
+        ctx.lineTo(10, 50); // Left straight side down
+        ctx.closePath();
+        ctx.fill();
+
+        // White highlights
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); // Left body edge
+        ctx.moveTo(13, 85);
+        ctx.lineTo(13, 55);
+        ctx.bezierCurveTo(16, 65, 19, 75, 19, 85);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.beginPath(); // Left side horn
+        ctx.moveTo(15, 45);
+        ctx.lineTo(8, 35);
+        ctx.lineTo(15, 28);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.beginPath(); // Top left horn
+        ctx.moveTo(25, 25);
+        ctx.lineTo(23, 10);
+        ctx.lineTo(35, 22);
+        ctx.closePath();
+        ctx.fill();
+
+        // Eyes
+        ctx.fillStyle = '#000';
+        // Left eye
+        ctx.beginPath();
+        ctx.ellipse(45, 45, 2.5, 5, 0, 0, Math.PI*2);
+        ctx.fill();
+        // Right eye
+        ctx.beginPath();
+        ctx.ellipse(55, 45, 2.5, 5, 0, 0, Math.PI*2);
+        ctx.fill();
+
+        // Smile
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2; 
+        ctx.beginPath();
+        ctx.arc(50, 53, 5, 0, Math.PI, false);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+    else if (type === TYPES.ERASER) {
+        ctx.strokeStyle = '#e74c3c'; ctx.lineWidth = size*0.1;
+        ctx.beginPath();
+        ctx.moveTo(size*0.2, size*0.2); ctx.lineTo(size*0.8, size*0.8);
+        ctx.moveTo(size*0.8, size*0.2); ctx.lineTo(size*0.2, size*0.8);
+        ctx.stroke();
+    }
+}
+
+function drawPlayer(ctx, p) {
+    ctx.save();
+    
+    // Translate to bottom center for scaling anchor
+    ctx.translate(p.x + p.w / 2, p.y + p.h);
+    
+    // Flip if facing left
+    let dirScale = p.facing === 'left' ? -1 : 1;
+    const sx = p.scaleX || 1;
+    const sy = p.scaleY || 1;
+    
+    ctx.scale(sx * dirScale, sy);
+    
+    // Draw the yellow star-like character
+    ctx.save();
+    // Move drawing origin so the bottom center of the character is at (0,0)
+    ctx.translate(-p.w / 2, -p.h);
+    ctx.scale(p.w/100, p.h/100); // Scale internal 100x100 coordinates to actual size
+    
+    // Base shape
+    ctx.fillStyle = '#f9d238'; // Yellow color from image
+    
+    ctx.beginPath();
+    ctx.moveTo(10, 90); // Bottom left
+    ctx.lineTo(35, 90); // Inner left bottom
+    ctx.bezierCurveTo(45, 80, 55, 80, 65, 90); // Middle bottom gap
+    ctx.lineTo(90, 90); // Bottom right
+    ctx.lineTo(90, 50); // Right straight side up
+    ctx.lineTo(95, 35); // Right horn out
+    ctx.lineTo(90, 25); // Right horn in
+    ctx.lineTo(80, 5);  // Top right horn tip
+    ctx.lineTo(50, 20); // Top center dip
+    ctx.lineTo(20, 5);  // Top left horn tip
+    ctx.lineTo(10, 25); // Left horn in
+    ctx.lineTo(5, 35);  // Left horn out
+    ctx.lineTo(10, 50); // Left straight side down
+    ctx.closePath();
+    ctx.fill();
+
+    // White highlights
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); // Left body edge
+    ctx.moveTo(13, 85);
+    ctx.lineTo(13, 55);
+    ctx.bezierCurveTo(16, 65, 19, 75, 19, 85);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.beginPath(); // Left side horn
+    ctx.moveTo(15, 45);
+    ctx.lineTo(8, 35);
+    ctx.lineTo(15, 28);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.beginPath(); // Top left horn
+    ctx.moveTo(25, 25);
+    ctx.lineTo(23, 10);
+    ctx.lineTo(35, 22);
+    ctx.closePath();
+    ctx.fill();
+
+    // Eyes
+    ctx.fillStyle = '#000';
+    // Shift eyes based on vertical velocity
+    let eyeYOffset = 0;
+    if (p.facing === 'up') eyeYOffset = -4;
+    if (p.facing === 'down') eyeYOffset = 4;
+    
+    // Left eye
+    ctx.beginPath();
+    ctx.ellipse(45, 45 + eyeYOffset, 2.5, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+    // Right eye
+    ctx.beginPath();
+    ctx.ellipse(55, 45 + eyeYOffset, 2.5, 5, 0, 0, Math.PI*2);
+    ctx.fill();
+
+    // Smile
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(50, 53 + eyeYOffset, 5, 0, Math.PI, false);
+    ctx.stroke();
+
+    ctx.restore();
+    ctx.restore();
+}
+
+function render() {
+    // Clear
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.save();
+    
+    // Apply dynamic zoom for editor or fixed zoom for play mode
+    const currentZoom = state.mode === 'PLAY' ? PLAY_ZOOM : state.cam.zoom;
+    ctx.scale(currentZoom, currentZoom);
+    
+    ctx.translate(-state.cam.x, -state.cam.y);
+
+    const visibleWidth = canvas.width / currentZoom;
+    const visibleHeight = canvas.height / currentZoom;
+
+    // Draw Grid (Editor only)
+    if (state.mode === 'EDIT') {
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1 / currentZoom; // Keep 1px regardless of zoom
+        const startX = Math.floor(state.cam.x / TS) * TS;
+        const startY = Math.floor(state.cam.y / TS) * TS;
+        const endX = startX + visibleWidth + TS;
+        const endY = startY + visibleHeight + TS;
+        
+        ctx.beginPath();
+        for (let x = startX; x < endX; x += TS) { ctx.moveTo(x, startY); ctx.lineTo(x, endY); }
+        for (let y = startY; y < endY; y += TS) { ctx.moveTo(startX, y); ctx.lineTo(endX, y); }
+        ctx.stroke();
+    }
+
+    // Draw Void
+    const voidY = getVoidY();
+    const screenBottomWorldY = state.cam.y + visibleHeight;
+    if (screenBottomWorldY > voidY) {
+        ctx.fillStyle = 'maroon';
+        ctx.fillRect(state.cam.x, voidY, visibleWidth, screenBottomWorldY - voidY + 100);
+    }
+
+    // Draw Static Objects
+    state.objects.forEach(o => {
+        // Skip rendering original boxes/player in PLAY mode (they are active entities)
+        if (state.mode === 'PLAY' && (o.type === TYPES.PLAYER || o.type === TYPES.BOX)) return;
+        
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        
+        let isActive = true;
+        if(o.type === TYPES.TOGGLE) isActive = state.globalTogglesOn;
+        if(o.type === TYPES.BUTTON) isActive = state.lastButtonPressedCount > 0;
+        
+        drawIcon(ctx, o.type, TS, isActive);
+        ctx.restore();
+    });
+
+    // Draw Active Entities (Play mode)
+    if (state.mode === 'PLAY') {
+        state.activeEntities.forEach(box => {
+            ctx.save(); ctx.translate(box.x, box.y);
+            drawIcon(ctx, TYPES.BOX, TS);
+            ctx.restore();
+        });
+        
+        if (state.player) {
+            drawPlayer(ctx, state.player);
+        }
+    }
+
+    // Draw Editor Preview / Hover
+    if (state.mode === 'EDIT') {
+        const hx = Math.floor(state.mouse.worldX / TS) * TS;
+        const hy = Math.floor(state.mouse.worldY / TS) * TS;
+        
+        ctx.save();
+        ctx.translate(hx, hy);
+        if (state.selectedTool === TYPES.ERASER) {
+            ctx.strokeStyle = 'red'; 
+            ctx.lineWidth = 2 / currentZoom;
+            ctx.strokeRect(0,0,TS,TS);
+        } else {
+            ctx.globalAlpha = 0.5;
+            drawIcon(ctx, state.selectedTool, TS);
+        }
+        ctx.restore();
+    }
+
+    ctx.restore();
+}
+
+function loop() {
+    if (state.mode === 'PLAY') {
+        updatePhysics();
+    }
+    render();
+    requestAnimationFrame(loop);
+}
+
+// Start
+init();
+
+</script>
+</body>
+</html>
