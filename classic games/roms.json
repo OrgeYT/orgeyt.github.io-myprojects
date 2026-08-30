@@ -250,7 +250,7 @@
       "thumb": "sonic 2 XL.jpg",
       "year": 2010,
       "hack": true,
-      "description": "Eat the rings to get fat, and get the question mark box to remove all fat."
+      "description": "A strange twist on Sonic 2 where collecting rings makes Sonic grow bigger and bigger. Find the question mark box to shrink back down!"
     },
     {
       "id": "s1blast",
@@ -261,6 +261,16 @@
       "year": 2021,
       "hack": true,
       "description": "Where did all of the graphics go? You gonna restore it!"
+    },
+    {
+      "id": "sonic-mega-mushroom",
+      "title": "Sonic Mega Mushroom",
+      "system": "genesis",
+      "file": "Sonic Mega Mushroom.gen",
+      "thumb": "Sonic Mega Mushroom.png",
+      "year": 2013,
+      "hack": true,
+      "description": "Sonic gets a massive power-up with the Mega Mushroom!"
     }
   ]
 }
