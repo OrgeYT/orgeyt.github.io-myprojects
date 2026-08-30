@@ -183,6 +183,16 @@ main {
   color: var(--text-dim);
 }
 
+
+.game-card .info .description {
+  font-size: 1.05rem;
+  line-height: 1.25;
+  color: var(--text);
+  opacity: 0.85;
+  margin-top: 0.35rem;
+  min-height: 2.5em;
+}
+
 .game-card.hack .info h3::after {
   content: ' HACK';
   font-size: 0.5rem;
