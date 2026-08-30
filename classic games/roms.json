@@ -241,6 +241,26 @@
       "year": 2024,
       "hack": true,
       "description": "Geometry dash on the NES."
+    },
+    {
+      "id": "sonic2xl",
+      "title": "Sonic 2 XL",
+      "system": "genesis",
+      "file": "Sonic 2 XL.bin",
+      "thumb": "sonic 2 XL.jpg",
+      "year": 2010,
+      "hack": true,
+      "description": "Eat the rings to get fat, and get the question mark box to remove all fat."
+    },
+    {
+      "id": "s1blast",
+      "title": "Sonic 1 Blastless",
+      "system": "genesis",
+      "file": "s1blast-dx-plus.gen",
+      "thumb": "Sonic1_Blastless.png",
+      "year": 2021,
+      "hack": true,
+      "description": "Where did all of the graphics go? You gonna restore it!"
     }
   ]
 }
