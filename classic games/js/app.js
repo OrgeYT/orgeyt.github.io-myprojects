@@ -88,6 +88,7 @@
         <div class="info">
           <h3>${game.title}</h3>
           <div class="meta">${game.year}${game.hack ? " · ROM Hack" : ""}</div>
+          <div class="description">${game.description}</div>
           <div class="card-actions">
             <button type="button" class="btn-play" data-id="${game.id}">Play</button>
             <a class="btn-download" href="${game.rom}" download title="Download ROM">Download</a>
