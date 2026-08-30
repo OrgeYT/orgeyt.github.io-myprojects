@@ -93,6 +93,16 @@
       "description": "Shoot ducks and try to get the highest score."
     },
     {
+      "id": "accuracycoin",
+      "title": "Accuracy Coin",
+      "system": "nes",
+      "file": "AccuracyCoin.nes",
+      "thumb": "accuracycoin.png",
+      "year": 2024,
+      "hack": true,
+      "description": "A ROM made to test emulator accuracy. Running it on this website lets you test EmulatorJS. Made by 100thCoin."
+    },
+    {
       "id": "smw",
       "title": "Super Mario World",
       "system": "snes",
