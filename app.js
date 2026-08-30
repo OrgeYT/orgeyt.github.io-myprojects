@@ -228,9 +228,9 @@ const projects = [
     "scratch explorer",
     { name: "Pass the bomb 3d expanded", path: "https://pass-the-bomb-3d--orgeyt.on.websim.com/?v=30" },
     { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" },
-    "claudescratchtools",
-    "coinpuzzle",
-    "ABP worldpack extractor", // Cats are liquid game. thats what it supports only
+    "claudescratchtools", // claude, who made scratch?
+    "coinpuzzle", // flip flip
+    "ABP worldpack extractor", // Cats are liquid game. thats what it supports only. yes cats are liquid is an actual game, and its rlly peak
     "obbygenerator",
     "noobmaker", // best friend for making noobs, but classic roblox obby is more than that bro
     { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgIGgKICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgIGgKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEocCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KIHN0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" },
@@ -241,22 +241,23 @@ const projects = [
     "memorydrawing",
     "errormaker", // three new projects in a row! holy s\it bro!!
     "translate scratch projects", // when its japanese and you rlly want to understand it
-    "oiiatranslator",
+    "oiiatranslator", // oiia? oiiaiooiaioaia!!
     "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
     "ascii wheel", // wow
     "translate smt 500 times", // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
-    "bombparty offline", // my fav
-    "bombparty practice",
+    "bombparty offline", // my fav, totally
+    "bombparty practice", // i never use this lol
     "physics quest",
     "NoEscape",
-    "⛓️‍💥Ultimate Breakout",
+    "⛓️‍💥Ultimate Breakout", // ping pong boom pow OH SHIT TEN TRILLION BALLS???
     "color war",
-    "softbody",
+    "softbody", // softer than my- ok nvm
     "breath if prime",
     { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" },
     { name: "AI Meme Generator (Trust me its funny)", path: "https://orgeyt-meme-gen--orgeyt.on.websim.com/" }, // i laughed at the memes
     "CursorHub", // biggest project yet
-    { name: "Classic Game", path: "classic games/index.html" } // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
+    { name: "Classic Game", path: "classic games/index.html" }, // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
+    "platformer maker" // make some hard levels idc bro
 ];
 
 const fileList = document.getElementById('file-list');
