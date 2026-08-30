@@ -1,3 +1,4 @@
+
 {
   "systems": {
     "nes": {
@@ -271,6 +272,36 @@
       "year": 2013,
       "hack": true,
       "description": "Sonic gets a massive power-up with the Mega Mushroom!"
+    },
+    {
+      "id": "sonic-flash-flood",
+      "title": "Sonic Flash Flood",
+      "system": "genesis",
+      "file": "Sonic flash flood.bin",
+      "thumb": "Sonic flash flood.jpg",
+      "year": 2021,
+      "hack": true,
+      "description": "Sonic 1 ROM hack where flood waters rise and recede at random, changing how you navigate the island."
+    },
+    {
+      "id": "sonic-super-challenges",
+      "title": "Sonic the Super Challenges",
+      "system": "genesis",
+      "file": "Sonic the super challenges.bin",
+      "thumb": "Sonic the super challenges.png",
+      "year": 2025,
+      "hack": true,
+      "description": "Play as Super/Hyper forms of Sonic, Tails, Knuckles, and Amy. Keep collecting rings or die when they run out!"
+    },
+    {
+      "id": "sonic-vr",
+      "title": "Sonic VR",
+      "system": "genesis",
+      "file": "Sonic VR.bin",
+      "thumb": "Sonic VR.png",
+      "year": 2011,
+      "hack": true,
+      "description": "VR-themed Sonic 2 hack with 40 short challenge levels and a retro PC-style level select."
     }
   ]
 }
