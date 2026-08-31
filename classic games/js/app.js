@@ -21,6 +21,7 @@
         : ("thumbs/" + raw.thumb),
       year: raw.year || "",
       hack: !!raw.hack,
+      homebrew: !!raw.homebrew,
       description: raw.description || ""
     };
   }
@@ -32,14 +33,15 @@
   }
 
   function buildTabs() {
-    // Keep All + Hacks; insert system tabs between them
+    // Keep All + Hacks + Homebrew; insert system tabs between All and Hacks
     const allBtn = tabsNav.querySelector('[data-system="all"]');
     const hacksBtn = tabsNav.querySelector('[data-system="hacks"]');
+    const homebrewBtn = tabsNav.querySelector('[data-system="homebrew"]');
 
     // Remove any previously injected system tabs
     tabsNav.querySelectorAll(".tab[data-system]").forEach((btn) => {
       const s = btn.dataset.system;
-      if (s !== "all" && s !== "hacks") btn.remove();
+      if (s !== "all" && s !== "hacks" && s !== "homebrew") btn.remove();
     });
 
     Object.keys(SYSTEMS).forEach((key) => {
@@ -66,7 +68,9 @@
         ? GAMES
         : currentSystem === "hacks"
           ? GAMES.filter((g) => g.hack)
-          : GAMES.filter((g) => g.system === currentSystem);
+          : currentSystem === "homebrew"
+            ? GAMES.filter((g) => g.homebrew)
+            : GAMES.filter((g) => g.system === currentSystem);
 
     grid.innerHTML = "";
 
@@ -77,8 +81,15 @@
 
     filtered.forEach((game) => {
       const card = document.createElement("article");
-      card.className = "game-card" + (game.hack ? " hack" : "");
+      let extraClass = "";
+      if (game.hack) extraClass += " hack";
+      if (game.homebrew) extraClass += " homebrew";
+      card.className = "game-card" + extraClass;
       card.dataset.id = game.id;
+
+      let metaExtra = "";
+      if (game.hack) metaExtra = " · ROM Hack";
+      else if (game.homebrew) metaExtra = " · Homebrew";
 
       card.innerHTML = `
         <div class="thumb ${game.system}">
@@ -87,7 +98,7 @@
         </div>
         <div class="info">
           <h3>${game.title}</h3>
-          <div class="meta">${game.year}${game.hack ? " · ROM Hack" : ""}</div>
+          <div class="meta">${game.year}${metaExtra}</div>
           <div class="description">${game.description}</div>
           <div class="card-actions">
             <button type="button" class="btn-play" data-id="${game.id}">Play</button>
