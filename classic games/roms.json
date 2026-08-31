@@ -384,6 +384,17 @@
       "hack": true,
       "description": "A Sonic.exe-inspired hack of Sonic 1. Periodically warp into a dark dimension where Sonic.exe hunts you. smash monitors to escape.",
       "homebrew": false
-    }
+    },
+    {
+  "id": "nes-funkin",
+  "title": "NES Funkin'",
+  "system": "nes",
+  "file": "NES Funkin.nes",
+  "thumb": "NES Funkin.webp",
+  "year": 2024,
+  "hack": false,
+  "homebrew": true,
+  "description": "Basically FNF Week 1, but ported to the NES. Rhythm battle the original Friday Night Funkin' tracks on classic hardware."
+}
   ]
 }
