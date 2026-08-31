@@ -50,7 +50,17 @@
       "thumb": "smb3.jpg",
       "year": 1988,
       "hack": false,
-      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser’s army."
+      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser\u2019s army."
+    },
+    {
+      "id": "vs-smb",
+      "title": "VS Super Mario Bros",
+      "system": "nes",
+      "file": "vs super mario bros.nes",
+      "thumb": "vs super mario bros.png",
+      "year": 1986,
+      "hack": false,
+      "description": "The arcade version of Super Mario Bros. for the Nintendo VS. System. Features tougher levels, more enemies, and stages later reused in The Lost Levels. To start the game (with EmulatorJS default controls), press in order: Enter V Z"
     },
     {
       "id": "kirby",
@@ -160,7 +170,7 @@
       "thumb": "smw.png",
       "year": 1990,
       "hack": false,
-      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario’s legendary SNES debut."
+      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario\u2019s legendary SNES debut."
     },
     {
       "id": "smas",
@@ -260,7 +270,7 @@
       "thumb": "sonic-ms.png",
       "year": 1991,
       "hack": false,
-      "description": "Experience Sonic’s high-speed platforming on the Sega Master System."
+      "description": "Experience Sonic\u2019s high-speed platforming on the Sega Master System."
     },
     {
       "id": "famidash",
@@ -290,7 +300,7 @@
       "thumb": "Sonic1_Blastless.png",
       "year": 2021,
       "hack": true,
-      "description": "A unique Sonic 1 hack that strips away most of the graphics—restore them as you play!"
+      "description": "A unique Sonic 1 hack that strips away most of the graphics\u2014restore them as you play!"
     },
     {
       "id": "sonic-mega-mushroom",
@@ -340,7 +350,7 @@
       "thumb": "ordinary-sonic.jpg",
       "year": 2013,
       "hack": true,
-      "description": "A Sonic.exe-inspired hack of Sonic 1. Periodically warp into a dark dimension where Sonic.exe hunts you—smash monitors to escape."
+      "description": "A Sonic.exe-inspired hack of Sonic 1. Periodically warp into a dark dimension where Sonic.exe hunts you. smash monitors to escape."
     }
   ]
 }
