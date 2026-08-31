@@ -30,7 +30,8 @@
       "thumb": "smb.jpg",
       "year": 1985,
       "hack": false,
-      "description": "The iconic platformer that launched a franchise. Jump, stomp Goombas, and race through the Mushroom Kingdom."
+      "description": "The iconic platformer that launched a franchise. Jump, stomp Goombas, and race through the Mushroom Kingdom.",
+      "homebrew": false
     },
     {
       "id": "smb2",
@@ -40,7 +41,8 @@
       "thumb": "smb2.jpg",
       "year": 1988,
       "hack": false,
-      "description": "Pull up vegetables, ride on clouds, and team up with friends in this unique Mario adventure."
+      "description": "Pull up vegetables, ride on clouds, and team up with friends in this unique Mario adventure.",
+      "homebrew": false
     },
     {
       "id": "smb3",
@@ -50,7 +52,8 @@
       "thumb": "smb3.jpg",
       "year": 1988,
       "hack": false,
-      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser\u2019s army."
+      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser’s army.",
+      "homebrew": false
     },
     {
       "id": "vs-smb",
@@ -60,7 +63,8 @@
       "thumb": "vs super mario bros.png",
       "year": 1986,
       "hack": false,
-      "description": "The arcade version of Super Mario Bros. for the Nintendo VS. System. Features tougher levels, more enemies, and stages later reused in The Lost Levels. To start the game (with EmulatorJS default controls), press in order: Enter V Z"
+      "description": "The arcade version of Super Mario Bros. for the Nintendo VS. System. Features tougher levels, more enemies, and stages later reused in The Lost Levels. To start the game (with EmulatorJS default controls), press in order: Enter V Z",
+      "homebrew": false
     },
     {
       "id": "kirby",
@@ -70,7 +74,8 @@
       "thumb": "kirby.png",
       "year": 1993,
       "hack": false,
-      "description": "Inhale enemies, copy their abilities, and save Dream Land in this colorful NES classic."
+      "description": "Inhale enemies, copy their abilities, and save Dream Land in this colorful NES classic.",
+      "homebrew": false
     },
     {
       "id": "nyancat",
@@ -79,8 +84,9 @@
       "file": "nyancat.nes",
       "thumb": "nyancat.png",
       "year": 2020,
-      "hack": true,
-      "description": "The legendary internet meme comes to the NES in this fun homebrew title."
+      "hack": false,
+      "description": "The legendary internet meme comes to the NES in this fun homebrew title.",
+      "homebrew": true
     },
     {
       "id": "pacman",
@@ -90,7 +96,8 @@
       "thumb": "pacman.png",
       "year": 1993,
       "hack": false,
-      "description": "Navigate mazes, gobble pellets, and outrun ghosts in the timeless arcade classic."
+      "description": "Navigate mazes, gobble pellets, and outrun ghosts in the timeless arcade classic.",
+      "homebrew": false
     },
     {
       "id": "duckhunt",
@@ -100,7 +107,8 @@
       "thumb": "duckhunt.png",
       "year": 1984,
       "hack": false,
-      "description": "Grab your Zapper and hunt ducks for the highest score in this NES light-gun staple. (Note: Does not work ;-;)"
+      "description": "Grab your Zapper and hunt ducks for the highest score in this NES light-gun staple. (Note: Does not work ;-;)",
+      "homebrew": false
     },
     {
       "id": "accuracycoin",
@@ -109,8 +117,9 @@
       "file": "AccuracyCoin.nes",
       "thumb": "accuracycoin.png",
       "year": 2024,
-      "hack": true,
-      "description": "A specialized test ROM by 100thCoin designed to measure emulator accuracy. Perfect for testing EmulatorJS."
+      "hack": false,
+      "description": "A specialized test ROM by 100thCoin designed to measure emulator accuracy. Perfect for testing EmulatorJS.",
+      "homebrew": true
     },
     {
       "id": "tictacxo",
@@ -119,8 +128,9 @@
       "file": "tictacxo.nes",
       "thumb": "tictacxo.png",
       "year": 2024,
-      "hack": true,
-      "description": "A simple yet charming homebrew version of Tic-Tac-Toe for the NES."
+      "hack": false,
+      "description": "A simple yet charming homebrew version of Tic-Tac-Toe for the NES.",
+      "homebrew": true
     },
     {
       "id": "snake",
@@ -129,8 +139,9 @@
       "file": "snake.nes",
       "thumb": "snake.png",
       "year": 2024,
-      "hack": true,
-      "description": "The timeless classic Snake game, now playable on NES hardware."
+      "hack": false,
+      "description": "The timeless classic Snake game, now playable on NES hardware.",
+      "homebrew": true
     },
     {
       "id": "excitebike",
@@ -140,7 +151,8 @@
       "thumb": "excitebike.gif",
       "year": 1984,
       "hack": false,
-      "description": "Race motocross bikes, clear big jumps, and build turbo speed in this NES racing favorite."
+      "description": "Race motocross bikes, clear big jumps, and build turbo speed in this NES racing favorite.",
+      "homebrew": false
     },
     {
       "id": "blades-of-steel",
@@ -150,7 +162,8 @@
       "thumb": "blades of steel.gif",
       "year": 1988,
       "hack": false,
-      "description": "Fast-paced ice hockey action with fights, goals, and tournament play on the NES."
+      "description": "Fast-paced ice hockey action with fights, goals, and tournament play on the NES.",
+      "homebrew": false
     },
     {
       "id": "zelda-link-to-the-past",
@@ -160,7 +173,8 @@
       "thumb": "zelda.webp",
       "year": 1991,
       "hack": false,
-      "description": "Explore Hyrule, solve intricate puzzles, and battle Ganon in this SNES masterpiece."
+      "description": "Explore Hyrule, solve intricate puzzles, and battle Ganon in this SNES masterpiece.",
+      "homebrew": false
     },
     {
       "id": "smw",
@@ -170,7 +184,8 @@
       "thumb": "smw.png",
       "year": 1990,
       "hack": false,
-      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario\u2019s legendary SNES debut."
+      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario’s legendary SNES debut.",
+      "homebrew": false
     },
     {
       "id": "smas",
@@ -180,7 +195,8 @@
       "thumb": "smas.jpg",
       "year": 1993,
       "hack": false,
-      "description": "Remastered versions of the classic NES Mario games with enhanced graphics and features."
+      "description": "Remastered versions of the classic NES Mario games with enhanced graphics and features.",
+      "homebrew": false
     },
     {
       "id": "sonic1",
@@ -190,7 +206,8 @@
       "thumb": "sonic1.png",
       "year": 1991,
       "hack": false,
-      "description": "Gotta go fast! The original Genesis platformer that defined a generation."
+      "description": "Gotta go fast! The original Genesis platformer that defined a generation.",
+      "homebrew": false
     },
     {
       "id": "sonic2",
@@ -200,7 +217,8 @@
       "thumb": "sonic2.jpg",
       "year": 1992,
       "hack": false,
-      "description": "Tails joins Sonic for high-speed adventure across more zones and a competitive 2-player mode."
+      "description": "Tails joins Sonic for high-speed adventure across more zones and a competitive 2-player mode.",
+      "homebrew": false
     },
     {
       "id": "sonic3",
@@ -210,7 +228,8 @@
       "thumb": "sonic3.png",
       "year": 1994,
       "hack": false,
-      "description": "Expand the adventure with new moves, larger zones, and the introduction of Knuckles."
+      "description": "Expand the adventure with new moves, larger zones, and the introduction of Knuckles.",
+      "homebrew": false
     },
     {
       "id": "sonic-knuckles",
@@ -220,7 +239,8 @@
       "thumb": "sonic-knuckles.png",
       "year": 1994,
       "hack": false,
-      "description": "Play as Knuckles the Echidna and explore unique levels with the iconic lock-on cartridge."
+      "description": "Play as Knuckles the Echidna and explore unique levels with the iconic lock-on cartridge.",
+      "homebrew": false
     },
     {
       "id": "s3k",
@@ -230,7 +250,8 @@
       "thumb": "s3k.jpg",
       "year": 1994,
       "hack": false,
-      "description": "The definitive combined experience of Sonic 3 and Sonic & Knuckles."
+      "description": "The definitive combined experience of Sonic 3 and Sonic & Knuckles.",
+      "homebrew": false
     },
     {
       "id": "sonic-3-in-1",
@@ -240,7 +261,8 @@
       "thumb": "sonic-3-in-1.png",
       "year": 1994,
       "hack": false,
-      "description": "All three classic Sonic Genesis games packed into a single cartridge."
+      "description": "All three classic Sonic Genesis games packed into a single cartridge.",
+      "homebrew": false
     },
     {
       "id": "s1yourpast",
@@ -250,7 +272,8 @@
       "thumb": "s1yourpast.png",
       "year": 2020,
       "hack": true,
-      "description": "A creative ROM hack of the original Sonic the Hedgehog with a unique narrative twist."
+      "description": "A creative ROM hack of the original Sonic the Hedgehog with a unique narrative twist.",
+      "homebrew": false
     },
     {
       "id": "scheroes",
@@ -260,7 +283,8 @@
       "thumb": "scheroes.jpg",
       "year": 2022,
       "hack": true,
-      "description": "A Genesis ROM hack inspired by the team-based gameplay of Sonic Heroes."
+      "description": "A Genesis ROM hack inspired by the team-based gameplay of Sonic Heroes.",
+      "homebrew": false
     },
     {
       "id": "sonic-ms",
@@ -270,7 +294,8 @@
       "thumb": "sonic-ms.png",
       "year": 1991,
       "hack": false,
-      "description": "Experience Sonic\u2019s high-speed platforming on the Sega Master System."
+      "description": "Experience Sonic’s high-speed platforming on the Sega Master System.",
+      "homebrew": false
     },
     {
       "id": "famidash",
@@ -279,8 +304,9 @@
       "file": "famidash.nes",
       "thumb": "famidash.png",
       "year": 2024,
-      "hack": true,
-      "description": "Geometry Dash comes to the NES in this challenging rhythm-platformer homebrew."
+      "hack": false,
+      "description": "Geometry Dash comes to the NES in this challenging rhythm-platformer homebrew.",
+      "homebrew": true
     },
     {
       "id": "sonic2xl",
@@ -290,7 +316,8 @@
       "thumb": "sonic 2 XL.jpg",
       "year": 2010,
       "hack": true,
-      "description": "A wild Sonic 2 hack where collecting rings makes Sonic grow larger and larger. Find the question-mark box to shrink back down!"
+      "description": "A wild Sonic 2 hack where collecting rings makes Sonic grow larger and larger. Find the question-mark box to shrink back down!",
+      "homebrew": false
     },
     {
       "id": "s1blast",
@@ -300,7 +327,8 @@
       "thumb": "Sonic1_Blastless.png",
       "year": 2021,
       "hack": true,
-      "description": "A unique Sonic 1 hack that strips away most of the graphics\u2014restore them as you play!"
+      "description": "A unique Sonic 1 hack that strips away most of the graphics—restore them as you play!",
+      "homebrew": false
     },
     {
       "id": "sonic-mega-mushroom",
@@ -310,7 +338,8 @@
       "thumb": "Sonic Mega Mushroom.png",
       "year": 2013,
       "hack": true,
-      "description": "Sonic gains a massive power-up with the Mega Mushroom in this fun Genesis hack."
+      "description": "Sonic gains a massive power-up with the Mega Mushroom in this fun Genesis hack.",
+      "homebrew": false
     },
     {
       "id": "sonic-flash-flood",
@@ -320,7 +349,8 @@
       "thumb": "Sonic flash flood.jpg",
       "year": 2021,
       "hack": true,
-      "description": "A Sonic 1 ROM hack where rising and receding flood waters constantly change how you navigate the levels."
+      "description": "A Sonic 1 ROM hack where rising and receding flood waters constantly change how you navigate the levels.",
+      "homebrew": false
     },
     {
       "id": "sonic-super-challenges",
@@ -330,7 +360,8 @@
       "thumb": "Sonic the super challenges.png",
       "year": 2025,
       "hack": true,
-      "description": "Play as Super and Hyper forms of Sonic, Tails, Knuckles, and Amy. Keep collecting rings or perish when they run out!"
+      "description": "Play as Super and Hyper forms of Sonic, Tails, Knuckles, and Amy. Keep collecting rings or perish when they run out!",
+      "homebrew": false
     },
     {
       "id": "sonic-vr",
@@ -340,7 +371,8 @@
       "thumb": "Sonic VR.png",
       "year": 2011,
       "hack": true,
-      "description": "A VR-themed Sonic 2 hack featuring 40 short challenge levels and a retro PC-style level select."
+      "description": "A VR-themed Sonic 2 hack featuring 40 short challenge levels and a retro PC-style level select.",
+      "homebrew": false
     },
     {
       "id": "ordinary-sonic",
@@ -350,7 +382,8 @@
       "thumb": "ordinary-sonic.jpg",
       "year": 2013,
       "hack": true,
-      "description": "A Sonic.exe-inspired hack of Sonic 1. Periodically warp into a dark dimension where Sonic.exe hunts you. smash monitors to escape."
+      "description": "A Sonic.exe-inspired hack of Sonic 1. Periodically warp into a dark dimension where Sonic.exe hunts you. smash monitors to escape.",
+      "homebrew": false
     }
   ]
 }
