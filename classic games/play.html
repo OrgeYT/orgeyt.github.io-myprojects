@@ -134,6 +134,10 @@
       window.EJS_gameName = game.title;
       window.EJS_fullscreenOnLoaded = false;
 
+      // Enable NES Zapper/lightgun support ONLY for Duck Hunt
+      const isDuckHunt = game.rom.toLowerCase().endsWith("duckhunt.nes");
+      window.EJS_lightgun = isDuckHunt;
+
       const s = document.createElement("script");
       s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
       document.body.appendChild(s);
