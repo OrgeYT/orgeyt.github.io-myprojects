@@ -200,6 +200,13 @@ main {
   margin-left: 4px;
 }
 
+.game-card.homebrew .info h3::after {
+  content: ' HOMEBREW';
+  font-size: 0.5rem;
+  color: var(--accent2);
+  margin-left: 4px;
+}
+
 footer {
   text-align: center;
   padding: 1.5rem 1rem 2.5rem;
