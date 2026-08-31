@@ -331,6 +331,16 @@
       "year": 2011,
       "hack": true,
       "description": "VR-themed Sonic 2 hack with 40 short challenge levels and a retro PC-style level select."
+    },
+    {
+      "id": "ordinary-sonic",
+      "title": "An Ordinary Sonic ROM Hack",
+      "system": "genesis",
+      "file": "ordinary-sonic.md",
+      "thumb": "ordinary-sonic.jpg",
+      "year": 2013,
+      "hack": true,
+      "description": "A Sonic the Hedgehog ROM hack where you periodically warp to a dark dimension chased by Sonic.exe; smash item boxes to temporarily escape."
     }
   ]
 }
