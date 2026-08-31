@@ -11,30 +11,86 @@
 </head>
 <body>
   <div class="scanlines"></div>
-  <header>
-    <div class="logo">
-      <h1>CLASSIC GAMES</h1>
-      <p class="tagline">Play classic games &amp; ROM hacks in your browser</p>
+
+  <!-- Library view -->
+  <div id="library-view">
+    <header>
+      <div class="logo">
+        <h1>CLASSIC GAMES</h1>
+        <p class="tagline">Play classic games &amp; ROM hacks in your browser</p>
+      </div>
+      <button type="button" id="upload-btn" class="upload-btn">Upload Your ROM</button>
+    </header>
+
+    <main>
+      <nav class="system-tabs" id="system-tabs">
+        <button class="tab active" data-system="all">All Games</button>
+        <button class="tab" data-system="hacks">Hacks</button>
+        <button class="tab" data-system="homebrew">Homebrew</button>
+      </nav>
+
+      <section class="games-grid" id="games-grid">
+        <p class="loading-msg">Loading games…</p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Powered by <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a></p>
+      <p class="controls-hint">Keyboard: Arrow keys / WASD · Z/X or A/S for buttons · Enter = Start · Shift = Select</p>
+    </footer>
+  </div>
+
+  <!-- Emulator view (shown when playing an uploaded ROM) -->
+  <div id="emulator-view" hidden>
+    <div class="topbar">
+      <h1 id="emu-title">Loading…</h1>
+      <div>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="back-btn">← Library</button>
+      </div>
     </div>
-  </header>
+    <div class="game-area">
+      <div class="emulator-box">
+        <div id="game"></div>
+      </div>
+    </div>
+  </div>
 
-  <main>
-    <nav class="system-tabs" id="system-tabs">
-      <button class="tab active" data-system="all">All Games</button>
-      <!-- System tabs injected from roms.json -->
-      <button class="tab" data-system="hacks">Hacks</button>
-      <button class="tab" data-system="homebrew">Homebrew</button>
-    </nav>
-
-    <section class="games-grid" id="games-grid">
-      <p class="loading-msg">Loading games…</p>
-    </section>
-  </main>
-
-  <footer>
-    <p>Powered by <a href="https://emulatorjs.org" target="_blank" rel="noopener">EmulatorJS</a></p>
-    <p class="controls-hint">Keyboard: Arrow keys / WASD · Z/X or A/S for buttons · Enter = Start · Shift = Select</p>
-  </footer>
+  <!-- Upload modal -->
+  <div id="upload-modal" class="upload-modal" hidden>
+    <div class="upload-modal-backdrop"></div>
+    <div class="upload-modal-panel">
+      <div class="upload-modal-header">
+        <h2>Upload Your ROM</h2>
+        <button type="button" class="upload-close" id="upload-close" aria-label="Close">×</button>
+      </div>
+      <div class="upload-modal-body">
+        <p class="upload-hint">Pick a ROM file supported by EmulatorJS. It stays in your browser — nothing is uploaded to any server.</p>
+        <label class="upload-label">System / Core</label>
+        <select id="upload-system" class="upload-select">
+          <option value="nes">NES / Famicom</option>
+          <option value="snes">SNES / Super Famicom</option>
+          <option value="segaMD">Sega Genesis / Mega Drive</option>
+          <option value="segaMS">Sega Master System</option>
+          <option value="segaGG">Sega Game Gear</option>
+          <option value="gb">Game Boy / Game Boy Color</option>
+          <option value="gba">Game Boy Advance</option>
+          <option value="n64">Nintendo 64</option>
+          <option value="nds">Nintendo DS</option>
+          <option value="psx">PlayStation</option>
+          <option value="atari2600">Atari 2600</option>
+          <option value="arcade">Arcade (FBNeo / MAME)</option>
+        </select>
+        <label class="upload-label">ROM File</label>
+        <div class="file-drop" id="file-drop">
+          <input type="file" id="rom-file" accept=".nes,.fds,.unf,.unif,.smc,.sfc,.fig,.swc,.gen,.md,.smd,.bin,.sms,.gg,.gb,.gbc,.gba,.n64,.z64,.v64,.nds,.iso,.cue,.img,.pbp,.chd,.zip,.a26,.lnx,.ws,.wsc,.pce,.col,.rom">
+          <p id="file-name">Click or drop a ROM here</p>
+        </div>
+        <p id="upload-error" class="upload-error" hidden></p>
+        <button type="button" id="play-upload-btn" class="btn play-upload-btn" disabled>Play ROM</button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/app.js"></script>
 </body>

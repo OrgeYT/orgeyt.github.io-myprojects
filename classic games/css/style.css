@@ -297,21 +297,12 @@ footer a:hover {
   position: relative;
 }
 
+/* Intentionally minimal — EmulatorJS manages its own layout inside #game.
+   Do NOT force absolute positioning on children or the bottom menu breaks. */
 #game {
   width: 100%;
-  height: 0;
-  padding-bottom: 75%; /* 4:3 */
-  max-height: 70vh;
+  height: 100%;
   position: relative;
-}
-
-#game > div,
-#game canvas {
-  position: absolute !important;
-  top: 0;
-  left: 0;
-  width: 100% !important;
-  height: 100% !important;
 }
 
 .modal-footer {
@@ -405,4 +396,236 @@ footer a:hover {
 .btn-download:hover {
   opacity: 0.85;
   transform: translateY(-1px);
+}
+
+/* ===== Upload ROM button & modal ===== */
+.upload-btn {
+  display: block;
+  margin: 1.25rem auto 0;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.65rem;
+  padding: 0.75rem 1.4rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 12px rgba(255, 45, 117, 0.45);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.upload-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.upload-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.upload-modal[hidden] {
+  display: none !important;
+}
+.upload-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+.upload-modal-panel {
+  position: relative;
+  width: min(420px, 96vw);
+  background: var(--bg-card);
+  border: 2px solid var(--border);
+  box-shadow: 0 0 30px rgba(0, 245, 212, 0.15);
+  z-index: 1;
+}
+.upload-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.1rem;
+  border-bottom: 2px solid var(--border);
+  background: #12121f;
+}
+.upload-modal-header h2 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.7rem;
+  color: var(--accent2);
+}
+.upload-close {
+  font-size: 1.5rem;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 0 0.3rem;
+}
+.upload-close:hover {
+  color: var(--accent);
+}
+.upload-modal-body {
+  padding: 1.2rem 1.1rem 1.4rem;
+}
+.upload-hint {
+  font-size: 1.05rem;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  line-height: 1.35;
+}
+.upload-label {
+  display: block;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.5rem;
+  color: var(--accent2);
+  margin-bottom: 0.4rem;
+  margin-top: 0.9rem;
+}
+.upload-select {
+  width: 100%;
+  font-family: 'VT323', monospace;
+  font-size: 1.15rem;
+  padding: 0.45rem 0.5rem;
+  background: #0a0a12;
+  color: var(--text);
+  border: 2px solid var(--border);
+  outline: none;
+}
+.upload-select:focus {
+  border-color: var(--accent2);
+}
+.file-drop {
+  position: relative;
+  border: 2px dashed var(--border);
+  background: #0a0a12;
+  padding: 1.4rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.file-drop:hover,
+.file-drop.dragover {
+  border-color: var(--accent2);
+  background: #12121f;
+}
+.file-drop input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+}
+#file-name {
+  font-size: 1.05rem;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.upload-error {
+  color: #ff6b8a;
+  font-size: 1rem;
+  margin-top: 0.7rem;
+}
+.play-upload-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1.2rem;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.6rem;
+  padding: 0.7rem 1rem;
+  background: var(--accent2);
+  color: #000;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.play-upload-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.play-upload-btn:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+/* ===== Same-page emulator view (for uploaded ROMs) ===== */
+#emulator-view {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background: #0a0a12;
+}
+#emulator-view[hidden] {
+  display: none !important;
+}
+body.playing .scanlines {
+  display: none;
+}
+
+#emulator-view .topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 1rem;
+  background: #12121f;
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+  z-index: 100;
+}
+#emulator-view .topbar h1 {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.75rem;
+  color: var(--accent2);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#emulator-view .topbar button {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.55rem;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+  margin-left: 0.4rem;
+}
+#emulator-view .topbar button:hover {
+  border-color: var(--accent2);
+  color: var(--accent2);
+}
+#emulator-view .game-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+}
+/* Full remaining space so EmulatorJS can layout canvas + bottom menu */
+#emulator-view .emulator-box {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  position: relative;
+  border: none;
+  background: #000;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#emulator-view #game {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
