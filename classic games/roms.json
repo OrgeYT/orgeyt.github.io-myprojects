@@ -127,7 +127,7 @@
       "title": "Excitebike",
       "system": "nes",
       "file": "Excitebike.nes",
-      "thumb": "No.jpg",
+      "thumb": "excitebike.gif",
       "year": 1984,
       "hack": false,
       "description": "Race motocross bikes, clear jumps, and build up speed!"
@@ -137,7 +137,7 @@
       "title": "Blades of Steel",
       "system": "nes",
       "file": "Blades of Steel.nes",
-      "thumb": "No.jpg",
+      "thumb": "blades of steel.gif",
       "year": 1988,
       "hack": false,
       "description": "Hit the ice and play fast-paced hockey on the NES!"
@@ -147,7 +147,7 @@
       "title": "The Legend of Zelda: A Link to the Past",
       "system": "snes",
       "file": "Legend of Zelda, The - A Link to the Past.sfc",
-      "thumb": "No.jpg",
+      "thumb": "zelda.webp",
       "year": 1991,
       "hack": false,
       "description": "Explore Hyrule, solve puzzles, and battle evil in this classic Zelda adventure."
