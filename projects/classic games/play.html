@@ -32,7 +32,7 @@
       font-family: 'Press Start 2P', cursive;
       font-size: 0.75rem;
       color: #00f5d4;
-      max-width: 55%;
+      max-width: 40%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -55,13 +55,43 @@
       color: #00f5d4;
     }
 
-    /* Full remaining space — same scale as uploaded games */
+    .topbar button.corrupt-btn {
+      border-color: #ff6b8a;
+      color: #ff6b8a;
+    }
+
+    .topbar button.corrupt-btn:hover {
+      border-color: #ff9eb3;
+      color: #ff9eb3;
+      background: rgba(255, 107, 138, 0.1);
+    }
+
+    .topbar button.restart-btn {
+      border-color: #f5a623;
+      color: #f5a623;
+    }
+
+    .topbar button.restart-btn:hover {
+      border-color: #ffc857;
+      color: #ffc857;
+      background: rgba(245, 166, 35, 0.1);
+    }
+
+    /* Main layout: game + optional side panel */
+    .main-row {
+      flex: 1;
+      display: flex;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .game-area {
       flex: 1;
       display: flex;
       flex-direction: column;
       background: #000;
       min-height: 0;
+      min-width: 0;
       padding: 0;
       overflow: hidden;
     }
@@ -80,7 +110,6 @@
       flex-direction: column;
     }
 
-    /* Let EmulatorJS manage its own layout (canvas + bottom menu) */
     #game {
       width: 100%;
       height: 100%;
@@ -95,6 +124,211 @@
       text-align: center;
       padding: 2rem;
     }
+
+    /* Side corruptor panel */
+    .corruptor-panel {
+      width: 220px;
+      flex-shrink: 0;
+      background: #12121f;
+      border-left: 2px solid #ff6b8a;
+      display: none;
+      flex-direction: column;
+      padding: 0.9rem;
+      z-index: 90;
+      overflow-y: auto;
+    }
+
+    .corruptor-panel.show {
+      display: flex;
+    }
+
+    .corruptor-panel h3 {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.6rem;
+      color: #ff6b8a;
+      margin-bottom: 0.8rem;
+      text-align: center;
+    }
+
+    .corruptor-panel label {
+      display: block;
+      font-size: 1rem;
+      color: #00f5d4;
+      margin-bottom: 0.3rem;
+    }
+
+    .corruptor-panel input[type="range"] {
+      width: 100%;
+      margin: 0.3rem 0;
+      accent-color: #ff6b8a;
+    }
+
+    .corruptor-panel .level-display {
+      text-align: center;
+      font-size: 1.3rem;
+      color: #ff6b8a;
+      margin-bottom: 0.6rem;
+    }
+
+    .corruptor-panel .hint {
+      font-size: 0.95rem;
+      color: #888;
+      line-height: 1.3;
+      margin-bottom: 0.8rem;
+    }
+
+    .corruptor-panel button {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.5rem;
+      padding: 0.55rem 0.5rem;
+      border: 1px solid #ff6b8a;
+      background: transparent;
+      color: #ff6b8a;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+
+    .corruptor-panel button:hover {
+      background: rgba(255, 107, 138, 0.15);
+      border-color: #ff9eb3;
+      color: #ff9eb3;
+    }
+
+    .corruptor-panel button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .corruptor-panel .panel-restart {
+      border-color: #f5a623;
+      color: #f5a623;
+      margin-top: 0.4rem;
+    }
+
+    .corruptor-panel .panel-restart:hover {
+      border-color: #ffc857;
+      color: #ffc857;
+      background: rgba(245, 166, 35, 0.12);
+    }
+
+    /* Warning modal only */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      background: #12121f;
+      border: 2px solid #ff6b8a;
+      max-width: 480px;
+      width: 100%;
+      padding: 1.5rem;
+      font-family: 'VT323', monospace;
+      color: #e8e8f0;
+      box-shadow: 0 0 30px rgba(255, 107, 138, 0.3);
+    }
+
+    .modal h2 {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.9rem;
+      color: #ff6b8a;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    .modal p {
+      font-size: 1.15rem;
+      line-height: 1.4;
+      margin-bottom: 1rem;
+    }
+
+    .modal .warning-text {
+      color: #ff9eb3;
+      border-left: 3px solid #ff6b8a;
+      padding-left: 0.8rem;
+      margin: 1rem 0;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: flex-end;
+      margin-top: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .modal-actions button {
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.55rem;
+      padding: 0.5rem 0.9rem;
+      border: 1px solid #2a2a40;
+      background: transparent;
+      color: #e8e8f0;
+      cursor: pointer;
+    }
+
+    .modal-actions button:hover {
+      border-color: #00f5d4;
+      color: #00f5d4;
+    }
+
+    .modal-actions button.primary {
+      border-color: #ff6b8a;
+      color: #ff6b8a;
+    }
+
+    .modal-actions button.primary:hover {
+      background: rgba(255, 107, 138, 0.15);
+      border-color: #ff9eb3;
+      color: #ff9eb3;
+    }
+
+    .status-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #12121f;
+      border: 1px solid #00f5d4;
+      color: #00f5d4;
+      padding: 0.6rem 1.2rem;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.55rem;
+      z-index: 1100;
+      display: none;
+      box-shadow: 0 0 20px rgba(0, 245, 212, 0.2);
+    }
+
+    .status-toast.show {
+      display: block;
+    }
+
+    .status-toast.error {
+      border-color: #ff6b8a;
+      color: #ff6b8a;
+    }
+
+    @media (max-width: 700px) {
+      .corruptor-panel {
+        position: fixed;
+        right: 0;
+        top: 52px;
+        bottom: 0;
+        width: 200px;
+        z-index: 200;
+      }
+    }
   </style>
 </head>
 
@@ -102,20 +336,61 @@
   <div class="topbar">
     <h1 id="title">Loading…</h1>
     <div>
+      <button id="corrupt-btn" class="corrupt-btn" title="Open corrupt mode">Corrupt</button>
+      <button id="restart-btn" class="restart-btn" title="Hard restart emulator">Restart</button>
       <button id="fs-btn">Fullscreen</button>
       <a href="index.html">← Library</a>
     </div>
   </div>
 
-  <div class="game-area">
-    <div class="emulator-box">
-      <div id="game"></div>
+  <div class="main-row">
+    <div class="game-area">
+      <div class="emulator-box">
+        <div id="game"></div>
+      </div>
+    </div>
+
+    <!-- Persistent side panel (shown after first warning accept) -->
+    <aside id="corruptor-panel" class="corruptor-panel">
+      <h3>CORRUPTOR</h3>
+      <label for="panel-level">Level</label>
+      <input type="range" id="panel-level" min="0.5" max="1.5" step="0.05" value="1">
+      <div class="level-display"><span id="panel-level-value">50</span>%</div>
+      <p class="hint">0.5→1% · 1→50% · 1.5→100%</p>
+      <button id="panel-corrupt">Corrupt Now</button>
+      <button id="panel-restart" class="panel-restart">True Restart</button>
+    </aside>
+  </div>
+
+  <!-- Warning modal (first open only) -->
+  <div id="warning-modal" class="modal-overlay">
+    <div class="modal">
+      <h2>⚠ CORRUPT MODE</h2>
+      <p class="warning-text">
+        This tool randomly changes bytes in the current emulator save state.
+        It can cause glitches, freezes, crashes, or softlocks. There is no undo.
+      </p>
+      <p>
+        Corruption is applied to the <strong>middle</strong> of the save state
+        (start and end headers are left alone) so the state is more likely to still load.
+      </p>
+      <p>After this, a side panel will stay open so you can corrupt without popups.</p>
+      <div class="modal-actions">
+        <button id="warn-cancel">Cancel</button>
+        <button id="warn-accept" class="primary">I Understand — Continue</button>
+      </div>
     </div>
   </div>
+
+  <div id="status-toast" class="status-toast"></div>
 
   <script>
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
+
+    let emulatorReady = false;
+    let warningAccepted = false;
+    let currentGame = null;
 
     function resolveGame(raw, systems) {
       const sys = (systems && systems[raw.system]) || {};
@@ -133,9 +408,29 @@
       };
     }
 
+    function showToast(msg, isError) {
+      const t = document.getElementById("status-toast");
+      t.textContent = msg;
+      t.className = "status-toast show" + (isError ? " error" : "");
+      clearTimeout(t._timer);
+      t._timer = setTimeout(function () {
+        t.classList.remove("show");
+      }, 2800);
+    }
+
+    function sliderToPercent(v) {
+      // 0.5 → 1%, 1.0 → 50%, 1.5 → 100%
+      return Math.round(1 + (parseFloat(v) - 0.5) * 99);
+    }
+
     function startGame(game) {
+      currentGame = game;
       document.getElementById("title").textContent = game.title;
       document.title = game.title + " – Classic Games";
+
+      // Clear previous instance if any
+      const gameEl = document.getElementById("game");
+      gameEl.innerHTML = "";
 
       window.EJS_player = "#game";
       window.EJS_core = game.core;
@@ -149,6 +444,17 @@
       const isDuckHunt = (game.rom || "").toLowerCase().indexOf("duckhunt") !== -1;
       window.EJS_lightgun = isDuckHunt;
 
+      window.EJS_ready = function () {
+        emulatorReady = true;
+      };
+      window.EJS_onGameStart = function () {
+        emulatorReady = true;
+      };
+
+      // Remove any previous loader script
+      const old = document.querySelector('script[src*="loader.js"]');
+      if (old) old.remove();
+
       const s = document.createElement("script");
       s.src = "https://cdn.emulatorjs.org/stable/data/loader.js";
       s.onerror = function () {
@@ -159,13 +465,22 @@
       document.body.appendChild(s);
     }
 
+    function trueRestart() {
+      // Full page reload is the only reliable way to kill EmulatorJS
+      // (WASM + AudioContext) after a crash. Partial teardown leaves
+      // ghost instances that keep playing audio underneath the new one.
+      showToast("Restarting…");
+      setTimeout(function () {
+        location.reload();
+      }, 80);
+    }
+
     function fail(msg) {
       document.getElementById("title").textContent = msg || "Error";
       setTimeout(function () { location.href = "index.html"; }, 2000);
     }
 
     if (id === "upload") {
-      // Legacy path — uploads now run on index.html
       fail("Upload session expired — use Upload on the library page");
     } else {
       fetch("roms.json")
@@ -193,6 +508,114 @@
       if (el.requestFullscreen) el.requestFullscreen();
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     });
+
+    // Topbar Restart = true restart
+    document.getElementById("restart-btn").addEventListener("click", function () {
+      trueRestart();
+    });
+
+    // ---- Corrupt Mode ----
+    const warningModal = document.getElementById("warning-modal");
+    const panel = document.getElementById("corruptor-panel");
+    const panelLevel = document.getElementById("panel-level");
+    const panelLevelValue = document.getElementById("panel-level-value");
+
+    panelLevel.addEventListener("input", function () {
+      panelLevelValue.textContent = sliderToPercent(panelLevel.value);
+    });
+
+    function openCorruptUI() {
+      if (!emulatorReady || !window.EJS_emulator || !window.EJS_emulator.gameManager) {
+        showToast("Wait for the game to finish loading", true);
+        return;
+      }
+      if (!warningAccepted) {
+        warningModal.classList.add("show");
+      } else {
+        panel.classList.add("show");
+      }
+    }
+
+    document.getElementById("corrupt-btn").addEventListener("click", openCorruptUI);
+
+    document.getElementById("warn-cancel").addEventListener("click", function () {
+      warningModal.classList.remove("show");
+    });
+
+    document.getElementById("warn-accept").addEventListener("click", function () {
+      warningAccepted = true;
+      warningModal.classList.remove("show");
+      panel.classList.add("show");
+    });
+
+    function doCorrupt() {
+      const btn = document.getElementById("panel-corrupt");
+      btn.disabled = true;
+
+      try {
+        if (!window.EJS_emulator || !window.EJS_emulator.gameManager) {
+          showToast("Emulator not ready", true);
+          btn.disabled = false;
+          return;
+        }
+
+        const gm = window.EJS_emulator.gameManager;
+        let state = gm.getState();
+
+        Promise.resolve(state).then(function (rawState) {
+          if (!rawState || (!(rawState instanceof Uint8Array) && !rawState.buffer)) {
+            showToast("Could not read save state", true);
+            btn.disabled = false;
+            return;
+          }
+
+          const data = rawState instanceof Uint8Array ? new Uint8Array(rawState) : new Uint8Array(rawState);
+          const len = data.length;
+
+          if (len < 64) {
+            showToast("Save state too small to safely corrupt", true);
+            btn.disabled = false;
+            return;
+          }
+
+          // Protect header and footer: skip first ~8% and last ~8%
+          const protect = Math.max(16, Math.floor(len * 0.08));
+          const start = protect;
+          const end = len - protect;
+          const regionSize = end - start;
+
+          if (regionSize < 8) {
+            showToast("Save state too small to safely corrupt", true);
+            btn.disabled = false;
+            return;
+          }
+
+          const percent = sliderToPercent(panelLevel.value);
+          let numBytes = Math.max(1, Math.floor(regionSize * (percent / 100)));
+          numBytes = Math.min(numBytes, regionSize);
+
+          for (let i = 0; i < numBytes; i++) {
+            const pos = start + Math.floor(Math.random() * regionSize);
+            data[pos] = Math.floor(Math.random() * 256);
+          }
+
+          gm.loadState(data);
+          showToast("Corrupted " + numBytes + " bytes (" + percent + "%)");
+        }).catch(function (err) {
+          console.error(err);
+          showToast("Corrupt failed — see console", true);
+        }).finally(function () {
+          btn.disabled = false;
+        });
+      } catch (err) {
+        console.error(err);
+        showToast("Corrupt failed — see console", true);
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById("panel-corrupt").addEventListener("click", doCorrupt);
+    document.getElementById("panel-restart").addEventListener("click", trueRestart);
   </script>
 </body>
 </html>
