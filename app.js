@@ -1,6 +1,6 @@
-// ==========================================
-// --- Achievements & Time Tracker Setup ---
-// ==========================================
+// ===========================================
+// --- Achievements & Time Tracker Setup ----
+// ===========================================
 
 const achievementData = {
     "welcome": { title: "Welcome!", desc: "Launch the site with no achievements unlocked." },
