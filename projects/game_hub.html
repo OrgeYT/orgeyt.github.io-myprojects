@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Hub</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #111827, #1e3a8a);
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .hub {
+      width: min(900px, 90%);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #cbd5e1;
+      font-size: 18px;
+      margin-bottom: 40px;
+    }
+
+    .games {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 25px;
+    }
+
+    .game {
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 30px;
+      transition: transform 0.2s, background 0.2s;
+      backdrop-filter: blur(10px);
+    }
+
+    .game:hover {
+      transform: translateY(-8px);
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .icon {
+      font-size: 70px;
+      margin-bottom: 15px;
+    }
+
+    .game h2 {
+      margin: 10px 0;
+      font-size: 28px;
+    }
+
+    .game p {
+      color: #cbd5e1;
+      min-height: 45px;
+    }
+
+    button {
+      border: none;
+      border-radius: 12px;
+      padding: 14px 25px;
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      color: white;
+      background: #2563eb;
+      transition: transform 0.15s, background 0.15s;
+    }
+
+    button:hover {
+      transform: scale(1.05);
+      background: #3b82f6;
+    }
+
+    .snake button {
+      background: #16a34a;
+    }
+
+    .snake button:hover {
+      background: #22c55e;
+    }
+
+    footer {
+      margin-top: 35px;
+      color: #94a3b8;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="hub">
+    <h1>🎮 Game Hub</h1>
+    <div class="subtitle">Choose a game to play!</div>
+
+    <div class="games">
+
+      <div class="game">
+        <div class="icon">❌⭕</div>
+        <h2>Ultimate Tic Tac Toe</h2>
+        <p>Play the ultimate version of Tic Tac Toe!</p>
+        <button onclick="location.href='html_ultimate tic tac toe.html'">
+          ▶ Play
+        </button>
+      </div>
+
+      <div class="game snake">
+        <div class="icon">🐍</div>
+        <h2>Snake Battle</h2>
+        <p>Battle it out as a snake and try to survive!</p>
+        <button onclick="location.href='html_snake battle.html'">
+          ▶ Play
+        </button>
+      </div>
+
+    </div>
+
+    <footer>
+      Select a game above to begin.
+    </footer>
+  </div>
+
+</body>
+</html>
