@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ultimate Tic Tac Toe PLUS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Strict Color Palette Constraint: White, Black, Red, Blue */
+        :root {
+            --c-white: #ffffff;
+            --c-black: #000000;
+            --c-red: #ff0000;
+            --c-blue: #0000ff;
+        }
+
+        body {
+            background-color: var(--c-black);
+            color: var(--c-white);
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        .btn {
+            background-color: var(--c-black);
+            color: var(--c-white);
+            border: 2px solid var(--c-white);
+            padding: 10px 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.1s;
+        }
+        .btn:hover {
+            background-color: var(--c-white);
+            color: var(--c-black);
+        }
+        .btn.active {
+            background-color: var(--c-white);
+            color: var(--c-black);
+            border-color: var(--c-white);
+        }
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        
+        .title-text {
+            text-shadow: 2px 2px 0 var(--c-red), -2px -2px 0 var(--c-blue);
+        }
+
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(4, 1fr); gap: 4px; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 4px; }
+
+        .cell-box {
+            background-color: var(--c-black);
+            border: 1px solid var(--c-white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        .cell-box:hover {
+            outline: 2px solid var(--c-white);
+            outline-offset: -2px;
+            z-index: 10;
+        }
+
+        .global-container {
+            background-color: var(--c-white);
+            padding: 4px;
+        }
+
+        .board-active > .cell-box {
+            background-color: #333333; 
+        }
+        .board-selectable {
+            cursor: pointer;
+        }
+        .board-selectable:hover > .cell-box {
+            background-color: #333333;
+        }
+
+        #view-window {
+            cursor: grab;
+        }
+        #view-window:active {
+            cursor: grabbing;
+        }
+        #pan-container {
+            transform-origin: 0 0;
+            position: absolute;
+            top: 0;
+            left: 0;
+            will-change: transform;
+        }
+
+        .text-red-custom { color: var(--c-red); }
+        .text-blue-custom { color: var(--c-blue); }
+        .bg-black-custom { background-color: var(--c-black); }
+        
+        .huge-symbol {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--c-black);
+            z-index: 20;
+            font-weight: bold;
+        }
+
+        /* SVG Symbols */
+        .sym-svg {
+            width: 70%;
+            height: 70%;
+            display: block;
+        }
+        .huge-symbol .sym-svg {
+            width: 80%;
+            height: 80%;
+        }
+        .sym-svg line,
+        .sym-svg circle {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .sym-x line {
+            stroke: var(--c-red);
+            stroke-width: 10;
+        }
+        .sym-o circle {
+            stroke: var(--c-blue);
+            stroke-width: 10;
+        }
+        .sym-draw line,
+        .sym-draw circle {
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: draw-stroke 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+        }
+        .sym-x.sym-draw line:nth-child(2) {
+            animation-delay: 0.18s;
+        }
+        @keyframes draw-stroke {
+            to { stroke-dashoffset: 0; }
+        }
+        /* Static versions (already drawn) */
+        .sym-static line,
+        .sym-static circle {
+            stroke-dasharray: none;
+            stroke-dashoffset: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Main Menu Screen -->
+    <div id="menu-screen" class="h-screen overflow-y-auto flex flex-col items-center p-4">
+        <div class="my-auto w-full max-w-2xl py-8 flex flex-col items-center">
+            <h1 class="text-4xl md:text-6xl font-black mb-8 title-text text-center tracking-widest">ULTIMATE TIC TAC TOE PLUS</h1>
+            
+            <div class="flex flex-col gap-6 w-full border-4 border-[#ffffff] p-6 bg-[#000000]">
+                
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-xl font-bold border-b-2 border-[#ffffff] pb-2">GAME MODE</h2>
+                    <div class="flex flex-wrap gap-3" id="opts-mode">
+                        <button class="btn active" data-val="normal">Normal</button>
+                        <button class="btn" data-val="ultimate">Ultimate</button>
+                        <button class="btn" data-val="extra">Extra Ultimate</button>
+                        <button class="btn" data-val="extraextra">Extra Extra Ultimate</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-xl font-bold border-b-2 border-[#ffffff] pb-2">GRID SIZE</h2>
+                    <div class="flex flex-wrap gap-3" id="opts-grid">
+                        <button class="btn active" data-val="3">3x3 Classic</button>
+                        <button class="btn" data-val="4">4x4 Connect</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <h2 class="text-xl font-bold border-b-2 border-[#ffffff] pb-2">PLAYERS</h2>
+                    <div class="flex flex-wrap gap-3" id="opts-players">
+                        <button class="btn" data-val="PvP">Player vs Player</button>
+                        <button class="btn active" data-val="PvC">Player vs CPU</button>
+                        <button class="btn" data-val="CvC">CPU vs CPU</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-3" id="cpu-diff-section">
+                    <h2 class="text-xl font-bold border-b-2 border-[#ffffff] pb-2">CPU DIFFICULTY</h2>
+                    <div class="flex flex-wrap gap-3" id="opts-cpu">
+                        <button class="btn" data-val="noob">Noob</button>
+                        <button class="btn active" data-val="pro">Pro</button>
+                        <button class="btn" data-val="toogood">Too Good</button>
+                    </div>
+                    <p id="cpu-hint" class="text-xs text-[#aaaaaa] mt-1">Too Good: You will lose or draw. The CPU is too good.</p>
+                </div>
+
+                <button id="btn-start" class="btn text-2xl py-4 mt-2 border-4">INITIALIZE SYSTEM</button>
+                <a href="game_hub.html" class="btn mt-3 text-center block no-underline" style="text-decoration:none;">← GAME HUB</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden h-screen flex flex-col">
+        <div id="hud" class="h-24 border-b-4 border-[#ffffff] flex items-center justify-between px-6 bg-[#000000] z-50 shrink-0">
+            <button id="btn-menu" class="btn border-2">ABORT</button>
+            <div class="flex flex-col items-center text-center">
+                <div id="status-text" class="text-2xl font-bold tracking-widest uppercase text-[#ffffff]">SYSTEM READY</div>
+                <div id="sub-status-text" class="text-sm uppercase tracking-widest mt-1 text-[#ffffff]">WAITING FOR MOVE...</div>
+            </div>
+            <button id="btn-center" class="btn border-2">CENTER CAM</button>
+        </div>
+
+        <div id="view-window" class="flex-1 relative overflow-hidden bg-[#000000]">
+            <div id="pan-container">
+                <!-- Game Board is injected here -->
+            </div>
+        </div>
+    </div>
+
+<script>
+    /* ================= SYSTEM STATE ================= */
+    const state = {
+        screen: 'menu',
+        mode: 'normal',       // normal, ultimate, extra, extraextra
+        gridSize: 3,          // 3, 4
+        players: 'PvC',       // PvP, PvC, CvC
+        cpuLevel: 'pro',      // noob, pro, toogood
+        turn: 1,              // 1 (Red), 2 (Blue)
+        board: null,
+        activeGlobal: -1,
+        activeSub: -1,
+        activeSubSub: -1,
+        winner: 0,            // 0: none, 1: P1, 2: P2, -1: Draw
+        zoom: 1,
+        panX: 0,
+        panY: 0,
+        cpuThinking: false,
+        winnerKeepsTurn: false,
+        lastMove: null   // used for draw animation
+    };
+
+    /* ================= DOM ELEMENTS ================= */
+    const screens = {
+        menu: document.getElementById('menu-screen'),
+        game: document.getElementById('game-screen')
+    };
+    const panContainer = document.getElementById('pan-container');
+    const viewWindow = document.getElementById('view-window');
+    const statusText = document.getElementById('status-text');
+    const subStatusText = document.getElementById('sub-status-text');
+
+    /* ================= MENU LOGIC ================= */
+    function setupMenuOption(containerId, stateKey, isNumber = false) {
+        const container = document.getElementById(containerId);
+        const buttons = container.querySelectorAll('.btn');
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state[stateKey] = isNumber ? parseInt(btn.dataset.val) : btn.dataset.val;
+                updateCpuSection();
+            });
+        });
+    }
+
+    setupMenuOption('opts-mode', 'mode');
+    setupMenuOption('opts-grid', 'gridSize', true);
+    setupMenuOption('opts-players', 'players');
+    setupMenuOption('opts-cpu', 'cpuLevel');
+
+    function updateCpuSection() {
+        const section = document.getElementById('cpu-diff-section');
+        const hint = document.getElementById('cpu-hint');
+        if (state.players === 'PvP') {
+            section.style.opacity = '0.45';
+            hint.textContent = 'CPU difficulty ignored in Player vs Player.';
+        } else {
+            section.style.opacity = '1';
+            if (state.cpuLevel === 'toogood') {
+                hint.textContent = 'Too Good: You will lose or draw. The CPU is too good.';
+            } else if (state.cpuLevel === 'noob') {
+                hint.textContent = 'Noob: Pure random moves. Easy wins.';
+            } else {
+                hint.textContent = 'Pro: Takes wins and blocks threats.';
+            }
+        }
+    }
+    updateCpuSection();
+
+    document.getElementById('btn-start').addEventListener('click', () => {
+        initGame();
+        switchScreen('game');
+    });
+
+    document.getElementById('btn-menu').addEventListener('click', () => {
+        switchScreen('menu');
+    });
+
+    document.getElementById('btn-center').addEventListener('click', centerCamera);
+
+    function switchScreen(target) {
+        state.screen = target;
+        if (target === 'menu') {
+            screens.menu.classList.remove('hidden');
+            screens.game.classList.add('hidden');
+        } else {
+            screens.menu.classList.add('hidden');
+            screens.game.classList.remove('hidden');
+            screens.game.classList.add('flex');
+            centerCamera();
+        }
+    }
+
+    /* ================= GAME LOGIC ================= */
+
+    function createEmptyBoard() {
+        const s = state.gridSize;
+        if (state.mode === 'normal') {
+            return Array(s * s).fill(0);
+        } else if (state.mode === 'ultimate') {
+            return Array(s * s).fill(null).map(() => ({
+                winner: 0,
+                cells: Array(s * s).fill(0)
+            }));
+        } else if (state.mode === 'extra') {
+            return Array(s * s).fill(null).map(() => ({
+                winner: 0,
+                subBoards: Array(4).fill(null).map(() => ({
+                    winner: 0,
+                    cells: Array(s * s).fill(0)
+                }))
+            }));
+        } else { // extraextra
+            return Array(s * s).fill(null).map(() => ({
+                winner: 0,
+                subBoards: Array(4).fill(null).map(() => ({
+                    winner: 0,
+                    subSubBoards: Array(4).fill(null).map(() => ({
+                        winner: 0,
+                        cells: Array(s * s).fill(0)
+                    }))
+                }))
+            }));
+        }
+    }
+
+    function initGame() {
+        const s = state.gridSize;
+        state.turn = 1;
+        state.winner = 0;
+        state.activeGlobal = -1;
+        state.activeSub = -1;
+        state.activeSubSub = -1;
+        state.cpuThinking = false;
+        state.winnerKeepsTurn = false;
+        state.lastMove = null;
+        state.board = createEmptyBoard();
+        
+        renderBoard();
+        updateHUD();
+
+        if (state.players === 'CvC') {
+            triggerCPU();
+        }
+    }
+
+    function checkWin(arr, size) {
+        // Rows
+        for (let r = 0; r < size; r++) {
+            let p = arr[r * size];
+            if (p !== 0 && p !== -1) {
+                let win = true;
+                for (let c = 1; c < size; c++) {
+                    if (arr[r * size + c] !== p) { win = false; break; }
+                }
+                if (win) return p;
+            }
+        }
+        // Cols
+        for (let c = 0; c < size; c++) {
+            let p = arr[c];
+            if (p !== 0 && p !== -1) {
+                let win = true;
+                for (let r = 1; r < size; r++) {
+                    if (arr[r * size + c] !== p) { win = false; break; }
+                }
+                if (win) return p;
+            }
+        }
+        // Diag 1
+        let p1 = arr[0];
+        if (p1 !== 0 && p1 !== -1) {
+            let win = true;
+            for (let i = 1; i < size; i++) {
+                if (arr[i * size + i] !== p1) { win = false; break; }
+            }
+            if (win) return p1;
+        }
+        // Diag 2
+        let p2 = arr[size - 1];
+        if (p2 !== 0 && p2 !== -1) {
+            let win = true;
+            for (let i = 1; i < size; i++) {
+                if (arr[i * size + (size - 1 - i)] !== p2) { win = false; break; }
+            }
+            if (win) return p2;
+        }
+        
+        if (!arr.includes(0)) return -1; // Draw
+        return 0;
+    }
+
+    // Majority winner among finished boards (used by extra / extraextra layers)
+    function majorityWinner(boards) {
+        let p1 = 0, p2 = 0, unfinished = 0;
+        for (let b of boards) {
+            if (b.winner === 1) p1++;
+            else if (b.winner === 2) p2++;
+            else if (b.winner === 0) {
+                // still has empty cells?
+                let hasEmpty = false;
+                if (b.cells) hasEmpty = b.cells.includes(0);
+                else if (b.subSubBoards) {
+                    for (let ss of b.subSubBoards) {
+                        if (ss.winner === 0 && ss.cells.includes(0)) { hasEmpty = true; break; }
+                    }
+                } else if (b.subBoards) {
+                    for (let s of b.subBoards) {
+                        if (s.winner === 0) {
+                            if (s.cells && s.cells.includes(0)) { hasEmpty = true; break; }
+                            if (s.subSubBoards) {
+                                for (let ss of s.subSubBoards) {
+                                    if (ss.winner === 0 && ss.cells.includes(0)) { hasEmpty = true; break; }
+                                }
+                            }
+                        }
+                    }
+                }
+                if (hasEmpty) unfinished++;
+            }
+        }
+        if (unfinished > 0) return 0;
+        if (p1 > p2) return 1;
+        if (p2 > p1) return 2;
+        return -1;
+    }
+
+    function getValidMoves() {
+        let moves = [];
+        const s = state.gridSize;
+        if (state.winner !== 0) return moves;
+
+        if (state.mode === 'normal') {
+            for (let i = 0; i < s * s; i++) {
+                if (state.board[i] === 0) moves.push({ i });
+            }
+        } else if (state.mode === 'ultimate') {
+            let globalsToCheck = state.activeGlobal === -1 
+                ? Array.from({length: s*s}, (_, i) => i) 
+                : [state.activeGlobal];
+            
+            for (let g of globalsToCheck) {
+                if (state.board[g].winner === 0) {
+                    for (let l = 0; l < s * s; l++) {
+                        if (state.board[g].cells[l] === 0) moves.push({ g, l });
+                    }
+                }
+            }
+        } else if (state.mode === 'extra') {
+            let globalsToCheck = state.activeGlobal === -1 
+                ? Array.from({length: s*s}, (_, i) => i) 
+                : [state.activeGlobal];
+            
+            for (let g of globalsToCheck) {
+                if (state.board[g].winner === 0) {
+                    let subsToCheck = (state.activeGlobal !== -1 && state.activeSub !== -1)
+                        ? [state.activeSub]
+                        : [0, 1, 2, 3];
+                        
+                    for (let sub of subsToCheck) {
+                        if (state.board[g].subBoards[sub].winner === 0) {
+                            for (let l = 0; l < s * s; l++) {
+                                if (state.board[g].subBoards[sub].cells[l] === 0) moves.push({ g, s: sub, l });
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (state.mode === 'extraextra') {
+            let globalsToCheck = state.activeGlobal === -1 
+                ? Array.from({length: s*s}, (_, i) => i) 
+                : [state.activeGlobal];
+            
+            for (let g of globalsToCheck) {
+                if (state.board[g].winner === 0) {
+                    let subsToCheck = (state.activeGlobal !== -1 && state.activeSub !== -1)
+                        ? [state.activeSub]
+                        : [0, 1, 2, 3];
+                        
+                    for (let sub of subsToCheck) {
+                        if (state.board[g].subBoards[sub].winner === 0) {
+                            let subSubsToCheck = (state.activeGlobal !== -1 && state.activeSub !== -1 && state.activeSubSub !== -1)
+                                ? [state.activeSubSub]
+                                : [0, 1, 2, 3];
+                            
+                            for (let ss of subSubsToCheck) {
+                                if (state.board[g].subBoards[sub].subSubBoards[ss].winner === 0) {
+                                    for (let l = 0; l < s * s; l++) {
+                                        if (state.board[g].subBoards[sub].subSubBoards[ss].cells[l] === 0) {
+                                            moves.push({ g, s: sub, ss, l });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return moves;
+    }
+
+    function applyMove(move) {
+        const s = state.gridSize;
+        let p = state.turn;
+
+        if (state.mode === 'normal') {
+            state.board[move.i] = p;
+            state.winner = checkWin(state.board, s);
+        } 
+        else if (state.mode === 'ultimate') {
+            let gBoard = state.board[move.g];
+            gBoard.cells[move.l] = p;
+            
+            let lWin = checkWin(gBoard.cells, s);
+            if (lWin !== 0) {
+                gBoard.winner = lWin;
+                let globalArr = state.board.map(b => b.winner);
+                state.winner = checkWin(globalArr, s);
+                state.activeGlobal = -1; 
+                state.winnerKeepsTurn = true;
+            } else {
+                state.activeGlobal = move.l; // send opponent to the corresponding board
+                // if that board is already finished, free choice
+                if (state.board[state.activeGlobal].winner !== 0) {
+                    state.activeGlobal = -1;
+                }
+            }
+        } 
+        else if (state.mode === 'extra') {
+            let gBoard = state.board[move.g];
+            let sBoard = gBoard.subBoards[move.s];
+            
+            sBoard.cells[move.l] = p;
+            let lWin = checkWin(sBoard.cells, s);
+            
+            if (lWin !== 0) {
+                sBoard.winner = lWin;
+                
+                let allDone = true;
+                let p1Wins = 0, p2Wins = 0;
+                for (let i = 0; i < 4; i++) {
+                    let b = gBoard.subBoards[i];
+                    if (b.winner === 0 && b.cells.includes(0)) { allDone = false; break; }
+                    if (b.winner === 1) p1Wins++;
+                    if (b.winner === 2) p2Wins++;
+                }
+
+                if (allDone) {
+                    if (p1Wins > p2Wins) gBoard.winner = 1;
+                    else if (p2Wins > p1Wins) gBoard.winner = 2;
+                    else gBoard.winner = -1;
+                    
+                    let globalArr = state.board.map(b => b.winner);
+                    state.winner = checkWin(globalArr, s);
+                    
+                    state.activeGlobal = -1;
+                    state.activeSub = -1;
+                    state.winnerKeepsTurn = true;
+                } else {
+                    state.activeGlobal = move.g;
+                    // pick next unfinished sub
+                    state.activeSub = -1;
+                    for (let i = 0; i < 4; i++) {
+                        if (gBoard.subBoards[i].winner === 0 && gBoard.subBoards[i].cells.includes(0)) {
+                            state.activeSub = i;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                state.activeGlobal = move.g;
+                state.activeSub = move.s;
+            }
+        }
+        else if (state.mode === 'extraextra') {
+            let gBoard = state.board[move.g];
+            let sBoard = gBoard.subBoards[move.s];
+            let ssBoard = sBoard.subSubBoards[move.ss];
+            
+            ssBoard.cells[move.l] = p;
+            let lWin = checkWin(ssBoard.cells, s);
+            
+            if (lWin !== 0) {
+                ssBoard.winner = lWin;
+                
+                // Check if the parent subBoard (4 subSubs) is finished
+                let subDone = true;
+                let p1 = 0, p2 = 0;
+                for (let i = 0; i < 4; i++) {
+                    let b = sBoard.subSubBoards[i];
+                    if (b.winner === 0 && b.cells.includes(0)) { subDone = false; break; }
+                    if (b.winner === 1) p1++;
+                    if (b.winner === 2) p2++;
+                }
+                
+                if (subDone) {
+                    if (p1 > p2) sBoard.winner = 1;
+                    else if (p2 > p1) sBoard.winner = 2;
+                    else sBoard.winner = -1;
+                    
+                    // Now check if the global cell (4 subBoards) is finished
+                    let globalCellDone = true;
+                    let gp1 = 0, gp2 = 0;
+                    for (let i = 0; i < 4; i++) {
+                        let b = gBoard.subBoards[i];
+                        if (b.winner === 0) {
+                            // still open?
+                            let open = false;
+                            for (let j = 0; j < 4; j++) {
+                                if (b.subSubBoards[j].winner === 0 && b.subSubBoards[j].cells.includes(0)) {
+                                    open = true; break;
+                                }
+                            }
+                            if (open) { globalCellDone = false; break; }
+                        }
+                        if (b.winner === 1) gp1++;
+                        if (b.winner === 2) gp2++;
+                    }
+                    
+                    if (globalCellDone) {
+                        if (gp1 > gp2) gBoard.winner = 1;
+                        else if (gp2 > gp1) gBoard.winner = 2;
+                        else gBoard.winner = -1;
+                        
+                        let globalArr = state.board.map(b => b.winner);
+                        state.winner = checkWin(globalArr, s);
+                        
+                        state.activeGlobal = -1;
+                        state.activeSub = -1;
+                        state.activeSubSub = -1;
+                        state.winnerKeepsTurn = true;
+                    } else {
+                        // stay in this global, pick next open sub
+                        state.activeGlobal = move.g;
+                        state.activeSub = -1;
+                        state.activeSubSub = -1;
+                        for (let i = 0; i < 4; i++) {
+                            if (gBoard.subBoards[i].winner === 0) {
+                                for (let j = 0; j < 4; j++) {
+                                    if (gBoard.subBoards[i].subSubBoards[j].winner === 0 &&
+                                        gBoard.subBoards[i].subSubBoards[j].cells.includes(0)) {
+                                        state.activeSub = i;
+                                        state.activeSubSub = j;
+                                        break;
+                                    }
+                                }
+                                if (state.activeSub !== -1) break;
+                            }
+                        }
+                    }
+                } else {
+                    // stay in same subBoard, pick next open subSub
+                    state.activeGlobal = move.g;
+                    state.activeSub = move.s;
+                    state.activeSubSub = -1;
+                    for (let i = 0; i < 4; i++) {
+                        if (sBoard.subSubBoards[i].winner === 0 && sBoard.subSubBoards[i].cells.includes(0)) {
+                            state.activeSubSub = i;
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // lock into the current deepest board
+                state.activeGlobal = move.g;
+                state.activeSub = move.s;
+                state.activeSubSub = move.ss;
+            }
+        }
+    }
+
+    function processTurn(move) {
+        if (state.winner !== 0 || state.cpuThinking) return;
+        
+        state.lastMove = move;
+        applyMove(move);
+        
+        if (state.winner === 0) {
+            if (state.winnerKeepsTurn) {
+                state.winnerKeepsTurn = false;
+            } else {
+                state.turn = state.turn === 1 ? 2 : 1;
+            }
+        }
+
+        renderBoard();
+        updateHUD();
+
+        if (state.winner === 0) {
+            if (state.players === 'CvC' || (state.players === 'PvC' && state.turn === 2)) {
+                triggerCPU();
+            }
+        }
+    }
+
+    /* ================= CPU AI ================= */
+    
+    // Simple minimax for normal mode (Too Good)
+    function minimaxNormal(board, size, player, depth, isMax) {
+        const result = checkWin(board, size);
+        if (result !== 0) {
+            if (result === -1) return 0;
+            return result === player ? 10 - depth : depth - 10;
+        }
+        if (depth > 8) return 0; // safety
+        
+        let best = isMax ? -Infinity : Infinity;
+        for (let i = 0; i < size * size; i++) {
+            if (board[i] === 0) {
+                board[i] = isMax ? player : (player === 1 ? 2 : 1);
+                let score = minimaxNormal(board, size, player, depth + 1, !isMax);
+                board[i] = 0;
+                if (isMax) best = Math.max(best, score);
+                else best = Math.min(best, score);
+            }
+        }
+        return best;
+    }
+
+    function findBestNormalMove(player) {
+        const s = state.gridSize;
+        let bestScore = -Infinity;
+        let bestMoves = [];
+        for (let i = 0; i < s * s; i++) {
+            if (state.board[i] === 0) {
+                state.board[i] = player;
+                let score = minimaxNormal(state.board, s, player, 0, false);
+                state.board[i] = 0;
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMoves = [i];
+                } else if (score === bestScore) {
+                    bestMoves.push(i);
+                }
+            }
+        }
+        return bestMoves[Math.floor(Math.random() * bestMoves.length)];
+    }
+
+    function canWinWithMove(mode, move, player) {
+        // Temporarily apply and check immediate local win
+        if (mode === 'normal') {
+            state.board[move.i] = player;
+            let w = checkWin(state.board, state.gridSize);
+            state.board[move.i] = 0;
+            return w === player;
+        } else if (mode === 'ultimate') {
+            let cells = state.board[move.g].cells;
+            cells[move.l] = player;
+            let w = checkWin(cells, state.gridSize);
+            cells[move.l] = 0;
+            return w === player;
+        } else if (mode === 'extra') {
+            let cells = state.board[move.g].subBoards[move.s].cells;
+            cells[move.l] = player;
+            let w = checkWin(cells, state.gridSize);
+            cells[move.l] = 0;
+            return w === player;
+        } else if (mode === 'extraextra') {
+            let cells = state.board[move.g].subBoards[move.s].subSubBoards[move.ss].cells;
+            cells[move.l] = player;
+            let w = checkWin(cells, state.gridSize);
+            cells[move.l] = 0;
+            return w === player;
+        }
+        return false;
+    }
+
+    function triggerCPU() {
+        state.cpuThinking = true;
+        updateHUD();
+        
+        const thinkTime = state.cpuLevel === 'toogood' ? 450 : (state.cpuLevel === 'pro' ? 550 : 350);
+        
+        setTimeout(() => {
+            let moves = getValidMoves();
+            if (moves.length === 0) {
+                state.winner = -1;
+                state.cpuThinking = false;
+                renderBoard();
+                updateHUD();
+                return;
+            }
+
+            let chosenMove = null;
+            const p = state.turn;
+            const opp = p === 1 ? 2 : 1;
+            const level = state.cpuLevel;
+
+            if (level === 'noob') {
+                chosenMove = moves[Math.floor(Math.random() * moves.length)];
+            } 
+            else {
+                // Pro & Too Good: first look for immediate win
+                for (let m of moves) {
+                    if (canWinWithMove(state.mode, m, p)) {
+                        chosenMove = m;
+                        break;
+                    }
+                }
+
+                // Then look for blocking opponent immediate win
+                if (!chosenMove) {
+                    for (let m of moves) {
+                        if (canWinWithMove(state.mode, m, opp)) {
+                            chosenMove = m;
+                            break;
+                        }
+                    }
+                }
+
+                // Too Good special: perfect play on normal boards
+                if (!chosenMove && level === 'toogood' && state.mode === 'normal') {
+                    let bestIdx = findBestNormalMove(p);
+                    chosenMove = moves.find(m => m.i === bestIdx) || moves[0];
+                }
+
+                // Prefer center-ish cells for Too Good / Pro when still random
+                if (!chosenMove) {
+                    if (level === 'toogood' || level === 'pro') {
+                        // Prefer moves closer to center of their local board
+                        const s = state.gridSize;
+                        const center = (s - 1) / 2;
+                        moves.sort((a, b) => {
+                            let la = a.l !== undefined ? a.l : a.i;
+                            let lb = b.l !== undefined ? b.l : b.i;
+                            let ra = Math.floor(la / s), ca = la % s;
+                            let rb = Math.floor(lb / s), cb = lb % s;
+                            let da = Math.abs(ra - center) + Math.abs(ca - center);
+                            let db = Math.abs(rb - center) + Math.abs(cb - center);
+                            return da - db;
+                        });
+                        // take one of the top 30% closest
+                        let topN = Math.max(1, Math.floor(moves.length * 0.3));
+                        chosenMove = moves[Math.floor(Math.random() * topN)];
+                    } else {
+                        chosenMove = moves[Math.floor(Math.random() * moves.length)];
+                    }
+                }
+            }
+
+            state.cpuThinking = false;
+            processTurn(chosenMove);
+            
+        }, thinkTime);
+    }
+
+    /* ================= RENDERING ================= */
+    
+    function movesEqual(a, b) {
+        if (!a || !b) return false;
+        if (a.i !== undefined) return a.i === b.i;
+        if (a.ss !== undefined) return a.g === b.g && a.s === b.s && a.ss === b.ss && a.l === b.l;
+        if (a.s !== undefined) return a.g === b.g && a.s === b.s && a.l === b.l;
+        return a.g === b.g && a.l === b.l;
+    }
+
+    function getSymbolHTML(val, isHuge = false, cellMove = null) {
+        if (val === 0) return '';
+        if (val === -1) {
+            return `<svg class="sym-svg" viewBox="0 0 100 100" aria-hidden="true">
+                <line x1="30" y1="50" x2="70" y2="50" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+            </svg>`;
+        }
+
+        const animate = cellMove && state.lastMove && movesEqual(cellMove, state.lastMove);
+        const animClass = animate ? 'sym-draw' : 'sym-static';
+
+        if (val === 1) {
+            // X
+            return `<svg class="sym-svg sym-x ${animClass}" viewBox="0 0 100 100" aria-hidden="true">
+                <line x1="22" y1="22" x2="78" y2="78"/>
+                <line x1="78" y1="22" x2="22" y2="78"/>
+            </svg>`;
+        } else {
+            // O
+            return `<svg class="sym-svg sym-o ${animClass}" viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="32"/>
+            </svg>`;
+        }
+    }
+
+    function renderBoard() {
+        const s = state.gridSize;
+        let html = '';
+
+        if (state.mode === 'normal') {
+            let sizePx = s === 3 ? 400 : 500;
+            html += `<div class="global-container grid-${s}" style="width: ${sizePx}px; height: ${sizePx}px; margin: auto;">`;
+            for (let i = 0; i < s * s; i++) {
+                html += `<div class="cell-box" data-i="${i}">${getSymbolHTML(state.board[i], false, { i })}</div>`;
+            }
+            html += `</div>`;
+        } 
+        else if (state.mode === 'ultimate') {
+            let sizePx = s === 3 ? 600 : 800;
+            html += `<div class="global-container grid-${s}" style="width: ${sizePx}px; height: ${sizePx}px; margin: auto;">`;
+            
+            for (let g = 0; g < s * s; g++) {
+                let gBoard = state.board[g];
+                
+                html += `<div class="cell-box">`;
+                if (gBoard.winner !== 0) {
+                    html += `<div class="huge-symbol">${getSymbolHTML(gBoard.winner, true)}</div>`;
+                }
+                
+                let isSelectable = (state.activeGlobal === -1 && gBoard.winner === 0 && state.winner === 0);
+                let isActive = (state.activeGlobal === g && state.winner === 0);
+                let stateClass = "";
+                if (isSelectable) stateClass = " board-selectable";
+                if (isActive) stateClass = " board-active";
+                
+                html += `<div class="global-container grid-${s} w-full h-full bg-[#ffffff] p-1${stateClass}">`;
+                for (let l = 0; l < s * s; l++) {
+                    html += `<div class="cell-box" data-g="${g}" data-l="${l}">${getSymbolHTML(gBoard.cells[l], false, { g, l })}</div>`;
+                }
+                html += `</div></div>`;
+            }
+            html += `</div>`;
+        }
+        else if (state.mode === 'extra') {
+            let sizePx = s === 3 ? 900 : 1200;
+            html += `<div class="global-container grid-${s}" style="width: ${sizePx}px; height: ${sizePx}px; margin: auto;">`;
+            
+            for (let g = 0; g < s * s; g++) {
+                let gBoard = state.board[g];
+                
+                html += `<div class="cell-box bg-[#ffffff] p-2">`;
+                
+                if (gBoard.winner !== 0) {
+                    html += `<div class="huge-symbol">${getSymbolHTML(gBoard.winner, true)}</div>`;
+                }
+
+                html += `<div class="grid-2 w-full h-full gap-2">`;
+                for (let sub = 0; sub < 4; sub++) {
+                    let sBoard = gBoard.subBoards[sub];
+                    html += `<div class="relative bg-[#ffffff] border-2 border-[#ffffff] flex flex-col">`;
+                    
+                    if (sBoard.winner !== 0) {
+                        html += `<div class="huge-symbol">${getSymbolHTML(sBoard.winner, true)}</div>`;
+                    }
+                    
+                    let isSelectable = (state.activeGlobal === -1 && gBoard.winner === 0 && sBoard.winner === 0 && state.winner === 0);
+                    let isActive = (state.activeGlobal === g && state.activeSub === sub && state.winner === 0);
+                    let stateClass = "";
+                    if (isSelectable) stateClass = " board-selectable";
+                    if (isActive) stateClass = " board-active";
+                    
+                    html += `<div class="global-container grid-${s} w-full h-full p-1 bg-[#ffffff]${stateClass}">`;
+                    for (let l = 0; l < s * s; l++) {
+                        html += `<div class="cell-box" data-g="${g}" data-s="${sub}" data-l="${l}">${getSymbolHTML(sBoard.cells[l], false, { g, s: sub, l })}</div>`;
+                    }
+                    html += `</div></div>`;
+                }
+                html += `</div></div>`;
+            }
+            html += `</div>`;
+        }
+        else if (state.mode === 'extraextra') {
+            let sizePx = s === 3 ? 1400 : 1800;
+            html += `<div class="global-container grid-${s}" style="width: ${sizePx}px; height: ${sizePx}px; margin: auto;">`;
+            
+            for (let g = 0; g < s * s; g++) {
+                let gBoard = state.board[g];
+                
+                html += `<div class="cell-box bg-[#ffffff] p-1">`;
+                
+                if (gBoard.winner !== 0) {
+                    html += `<div class="huge-symbol">${getSymbolHTML(gBoard.winner, true)}</div>`;
+                }
+
+                html += `<div class="grid-2 w-full h-full gap-1">`;
+                for (let sub = 0; sub < 4; sub++) {
+                    let sBoard = gBoard.subBoards[sub];
+                    html += `<div class="relative bg-[#ffffff] border border-[#ffffff] p-0.5">`;
+                    
+                    if (sBoard.winner !== 0) {
+                        html += `<div class="huge-symbol">${getSymbolHTML(sBoard.winner, true)}</div>`;
+                    }
+                    
+                    html += `<div class="grid-2 w-full h-full gap-0.5">`;
+                    for (let ss = 0; ss < 4; ss++) {
+                        let ssBoard = sBoard.subSubBoards[ss];
+                        html += `<div class="relative bg-[#ffffff] border border-[#ffffff]">`;
+                        
+                        if (ssBoard.winner !== 0) {
+                            html += `<div class="huge-symbol">${getSymbolHTML(ssBoard.winner, true)}</div>`;
+                        }
+                        
+                        let isSelectable = (state.activeGlobal === -1 && gBoard.winner === 0 && sBoard.winner === 0 && ssBoard.winner === 0 && state.winner === 0);
+                        let isActive = (state.activeGlobal === g && state.activeSub === sub && state.activeSubSub === ss && state.winner === 0);
+                        let stateClass = "";
+                        if (isSelectable) stateClass = " board-selectable";
+                        if (isActive) stateClass = " board-active";
+                        
+                        html += `<div class="global-container grid-${s} w-full h-full p-0.5 bg-[#ffffff]${stateClass}">`;
+                        for (let l = 0; l < s * s; l++) {
+                            html += `<div class="cell-box" data-g="${g}" data-s="${sub}" data-ss="${ss}" data-l="${l}">${getSymbolHTML(ssBoard.cells[l], false, { g, s: sub, ss, l })}</div>`;
+                        }
+                        html += `</div></div>`;
+                    }
+                    html += `</div></div>`;
+                }
+                html += `</div></div>`;
+            }
+            html += `</div>`;
+        }
+
+        panContainer.innerHTML = html;
+        updateTransform();
+    }
+
+    function updateHUD() {
+        if (state.winner !== 0) {
+            if (state.winner === -1) {
+                statusText.innerHTML = `<span class="text-[#ffffff]">MUTUAL DESTRUCTION (DRAW)</span>`;
+                subStatusText.innerHTML = "NO WINNER";
+            } else {
+                let colorClass = state.winner === 1 ? 'text-red-custom' : 'text-blue-custom';
+                let playerStr = state.winner === 1 ? 'PLAYER 1 (RED)' : 'PLAYER 2 (BLUE)';
+                statusText.innerHTML = `<span class="${colorClass}">${playerStr} WINS!</span>`;
+                subStatusText.innerHTML = "MATCH CONCLUDED";
+            }
+            return;
+        }
+
+        let pColor = state.turn === 1 ? 'text-red-custom' : 'text-blue-custom';
+        let pName = state.turn === 1 ? 'RED (X)' : 'BLUE (O)';
+        
+        statusText.innerHTML = `TURN: <span class="${pColor}">${pName}</span>`;
+        
+        if (state.cpuThinking) {
+            let lvl = state.cpuLevel.toUpperCase();
+            subStatusText.innerHTML = `CPU (${lvl}) IS CALCULATING...`;
+        } else if (state.activeGlobal === -1 && state.mode !== 'normal') {
+            subStatusText.innerHTML = "SELECT A NEW SQUARE TO START";
+        } else {
+            subStatusText.innerHTML = "AWAITING INPUT";
+        }
+    }
+
+    /* ================= CAMERA LOGIC ================= */
+    
+    function updateTransform() {
+        panContainer.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
+    }
+
+    function centerCamera() {
+        const s = state.gridSize;
+        let w, h;
+        if (state.mode === 'normal') { w = s===3 ? 400 : 500; h = w; }
+        else if (state.mode === 'ultimate') { w = s===3 ? 600 : 800; h = w; }
+        else if (state.mode === 'extra') { w = s===3 ? 900 : 1200; h = w; }
+        else { w = s===3 ? 1400 : 1800; h = w; } // extraextra
+
+        let vw = viewWindow.clientWidth;
+        let vh = viewWindow.clientHeight;
+
+        let padding = 40;
+        let scaleX = (vw - padding) / w;
+        let scaleY = (vh - padding) / h;
+        
+        state.zoom = Math.min(scaleX, scaleY, 1.5);
+        state.panX = vw / 2 - (w * state.zoom) / 2;
+        state.panY = vh / 2 - (h * state.zoom) / 2;
+        
+        updateTransform();
+    }
+
+    /* ================= INPUT HANDLING ================= */
+    
+    let isDragging = false;
+    let startX, startY;
+
+    viewWindow.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        startX = e.clientX - state.panX;
+        startY = e.clientY - state.panY;
+    });
+    
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        state.panX = e.clientX - startX;
+        state.panY = e.clientY - startY;
+        updateTransform();
+    });
+
+    viewWindow.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        
+        const rect = viewWindow.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+        const newZoom = Math.max(0.05, Math.min(state.zoom * zoomDelta, 5));
+        
+        state.panX = mouseX - (mouseX - state.panX) * (newZoom / state.zoom);
+        state.panY = mouseY - (mouseY - state.panY) * (newZoom / state.zoom);
+        state.zoom = newZoom;
+        
+        updateTransform();
+    });
+
+    viewWindow.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - state.panX;
+            startY = e.touches[0].clientY - state.panY;
+        }
+    }, {passive: false});
+
+    viewWindow.addEventListener('touchend', () => {
+        isDragging = false;
+    });
+
+    viewWindow.addEventListener('touchmove', (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        e.preventDefault();
+        state.panX = e.touches[0].clientX - startX;
+        state.panY = e.touches[0].clientY - startY;
+        updateTransform();
+    }, {passive: false});
+
+    // Move Click Delegation
+    panContainer.addEventListener('click', (e) => {
+        if (state.winner !== 0 || state.cpuThinking) return;
+        
+        let cell = e.target.closest('.cell-box');
+        if (!cell) return;
+
+        let moves = getValidMoves();
+        let validMove = null;
+
+        if (state.mode === 'normal') {
+            let idx = parseInt(cell.dataset.i);
+            validMove = moves.find(m => m.i === idx);
+        } else if (state.mode === 'ultimate') {
+            let g = parseInt(cell.dataset.g);
+            let l = parseInt(cell.dataset.l);
+            if (!isNaN(g) && !isNaN(l)) {
+                validMove = moves.find(m => m.g === g && m.l === l);
+            }
+        } else if (state.mode === 'extra') {
+            let g = parseInt(cell.dataset.g);
+            let s = parseInt(cell.dataset.s);
+            let l = parseInt(cell.dataset.l);
+            if (!isNaN(g) && !isNaN(s) && !isNaN(l)) {
+                validMove = moves.find(m => m.g === g && m.s === s && m.l === l);
+            }
+        } else if (state.mode === 'extraextra') {
+            let g = parseInt(cell.dataset.g);
+            let s = parseInt(cell.dataset.s);
+            let ss = parseInt(cell.dataset.ss);
+            let l = parseInt(cell.dataset.l);
+            if (!isNaN(g) && !isNaN(s) && !isNaN(ss) && !isNaN(l)) {
+                validMove = moves.find(m => m.g === g && m.s === s && m.ss === ss && m.l === l);
+            }
+        }
+
+        if (validMove) {
+            processTurn(validMove);
+        }
+    });
+    
+    window.addEventListener('resize', () => {
+        if (state.screen === 'game') {
+            centerCamera();
+        }
+    });
+
+</script>
+</body>
+</html>

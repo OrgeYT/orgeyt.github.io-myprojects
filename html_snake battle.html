@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snake Battle</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@500;700&display=swap');
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    background: #0a0a12;
+    color: #e0e0ff;
+    font-family: 'Orbitron', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  
+  #game-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  canvas {
+    background: #111122;
+    border: 4px solid #333355;
+    border-radius: 8px;
+    box-shadow: 0 0 30px rgba(80, 80, 255, 0.3), inset 0 0 40px rgba(0,0,0,0.5);
+    image-rendering: pixelated;
+  }
+  
+  .screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(8, 8, 20, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 10;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  
+  .hidden { display: none !important; }
+  
+  h1 {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 28px;
+    color: #ff4466;
+    text-shadow: 0 0 10px #ff2244, 0 0 20px #aa0022;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  
+  h2 {
+    font-size: 18px;
+    color: #88aaff;
+    margin-bottom: 8px;
+  }
+  
+  .btn {
+    background: linear-gradient(180deg, #3344aa, #2233aa);
+    border: 2px solid #5566ff;
+    color: white;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 200px;
+    text-align: center;
+  }
+  
+  .btn:hover {
+    background: linear-gradient(180deg, #4455cc, #3344bb);
+    box-shadow: 0 0 15px rgba(80, 100, 255, 0.6);
+    transform: scale(1.03);
+  }
+  
+  .btn:active { transform: scale(0.98); }
+  
+  .btn.selected {
+    background: linear-gradient(180deg, #aa3344, #882233);
+    border-color: #ff5566;
+    box-shadow: 0 0 12px rgba(255, 80, 100, 0.5);
+  }
+  
+  .btn.small {
+    min-width: 120px;
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+  
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 10px 0;
+  }
+  
+  .player-config {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: center;
+    max-width: 520px;
+  }
+  
+  .player-card {
+    background: #1a1a2e;
+    border: 2px solid #333355;
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 150px;
+    text-align: center;
+  }
+  
+  .player-card .color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin: 0 auto 8px;
+    border: 2px solid #fff3;
+  }
+  
+  .player-card label {
+    display: block;
+    font-size: 12px;
+    margin-bottom: 6px;
+    color: #aaaacc;
+  }
+  
+  select {
+    background: #222244;
+    color: white;
+    border: 1px solid #4455aa;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: inherit;
+    font-size: 13px;
+    width: 100%;
+  }
+  
+  #hud {
+    display: flex;
+    gap: 24px;
+    font-size: 14px;
+    color: #aaccff;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .hud-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .hud-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #fff4;
+  }
+  
+  #status {
+    font-size: 14px;
+    color: #ffaa66;
+    min-height: 20px;
+    text-align: center;
+  }
+  
+  #pause-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 5;
+    background: rgba(30, 30, 60, 0.85);
+    border: 2px solid #5566ff;
+    color: #ccd0ff;
+    font-size: 16px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  
+  #pause-btn:hover {
+    background: rgba(50, 50, 100, 0.95);
+    box-shadow: 0 0 12px rgba(80, 100, 255, 0.5);
+  }
+  
+  .controls-info {
+    font-size: 11px;
+    color: #6677aa;
+    text-align: center;
+    max-width: 480px;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  
+  .winner-text {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 22px;
+    color: #ffdd44;
+    text-shadow: 0 0 12px #ffaa00;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="game-container">
+  <canvas id="c" width="600" height="600"></canvas>
+  
+  <!-- Main Menu -->
+  <div id="menu" class="screen">
+    <h1>SNAKE BATTLE</h1>
+    <p style="color:#8899cc; margin-bottom:12px;">Classic + Multiplayer Mayhem</p>
+    <button class="btn" onclick="showModeSelect()">Play</button>
+    <a href="game_hub.html" class="btn small" style="margin-top:10px; text-decoration:none; display:inline-block;">← Game Hub</a>
+    <div class="controls-info">
+      P1: Arrow Keys &nbsp;|&nbsp; P2: WASD &nbsp;|&nbsp; P3: IJKL &nbsp;|&nbsp; P4: TFGH<br>
+      (Up / Left / Down / Right)
+    </div>
+  </div>
+  
+  <!-- Mode Select -->
+  <div id="mode-select" class="screen hidden">
+    <h2>Select Mode</h2>
+    <div class="mode-grid">
+      <button class="btn" onclick="selectMode('classic')">Classic (1v0)</button>
+      <button class="btn" onclick="selectMode('1v1')">1v1</button>
+      <button class="btn" onclick="selectMode('1v1v1')">1v1v1</button>
+      <button class="btn" onclick="selectMode('1v1v1v1')">1v1v1v1</button>
+      <button class="btn" onclick="selectMode('2v2')" style="grid-column: span 2;">Team 2v2</button>
+    </div>
+    <button class="btn small" onclick="showMenu()" style="margin-top:12px;">Back</button>
+  </div>
+  
+  <!-- Player Config -->
+  <div id="player-config" class="screen hidden">
+    <h2>Configure Players</h2>
+    <div id="player-cards" class="player-config"></div>
+    <div style="margin-top:14px; text-align:center;">
+      <label style="display:block; font-size:13px; color:#8899cc; margin-bottom:6px;">Game Speed</label>
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button class="btn small speed-btn" id="spd-slow" onclick="setSpeed('slow')">Slow</button>
+        <button class="btn small speed-btn selected" id="spd-default" onclick="setSpeed('default')">Default</button>
+        <button class="btn small speed-btn" id="spd-fast" onclick="setSpeed('fast')">Fast</button>
+      </div>
+    </div>
+    <div style="margin-top:12px; text-align:center;">
+      <label style="font-size:13px; color:#8899cc; cursor:pointer; display:flex; align-items:center; gap:8px; justify-content:center;">
+        <input type="checkbox" id="ff-cpu" checked style="width:16px; height:16px; accent-color:#5566ff;">
+        Fast-forward when only CPUs left
+      </label>
+    </div>
+    <button class="btn" onclick="startGame()" style="margin-top:16px;">Start Battle!</button>
+    <button class="btn small" onclick="showModeSelect()" style="margin-top:8px;">Back</button>
+  </div>
+  
+  <!-- Pause Menu -->
+  <div id="pause-menu" class="screen hidden">
+    <h2>Paused</h2>
+    <button class="btn" onclick="resumeGame()">Resume</button>
+    <button class="btn" onclick="restartSame()">Restart</button>
+    <button class="btn small" onclick="showMenu()">Menu</button>
+  </div>
+  
+  <!-- Game Over -->
+  <div id="gameover" class="screen hidden">
+    <div id="winner-msg" class="winner-text"></div>
+    <div id="final-stats" style="color:#aaccff; margin:12px 0;"></div>
+    <button class="btn" onclick="restartSame()">Play Again</button>
+    <button class="btn small" onclick="showModeSelect()">Change Mode</button>
+    <button class="btn small" onclick="showMenu()">Main Menu</button>
+  </div>
+  
+  <div id="hud" class="hidden"></div>
+  <button id="pause-btn" class="hidden" onclick="pauseGame()" title="Pause (Esc / P)">❚❚</button>
+  <div id="status"></div>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const GRID = 30;           // cells
+const CELL = 20;           // px
+const START_LEN = 4;
+
+const SPEED_MS = {
+  slow: 140,
+  default: 90,
+  fast: 55
+};
+let currentSpeed = 'default';
+let TICK_MS = SPEED_MS.default;
+
+function setSpeed(s) {
+  currentSpeed = s;
+  TICK_MS = SPEED_MS[s];
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('selected'));
+  const btn = document.getElementById('spd-' + s);
+  if (btn) btn.classList.add('selected');
+}
+
+const COLORS = {
+  classic: ['#33cc66'],
+  battle: ['#ff3344', '#3388ff', '#33cc66', '#ffdd33'],
+  team: ['#ff3344', '#ff7788', '#3388ff', '#77aaff']
+};
+
+const KEY_MAPS = [
+  { up: 'ArrowUp', left: 'ArrowLeft', down: 'ArrowDown', right: 'ArrowRight' },
+  { up: 'w', left: 'a', down: 's', right: 'd' },
+  { up: 'i', left: 'j', down: 'k', right: 'l' },
+  { up: 't', left: 'f', down: 'g', right: 'h' }
+];
+
+let mode = null;
+let playerTypes = []; // 'human' | 'cpu'
+let cpuTypes = [];    // 'default' | 'trapper' | 'evil' | 'scared'
+let snakes = [];
+let apples = [];
+let gameRunning = false;
+let gamePaused = false;
+let tickTimer = null;
+let scores = [];
+let aliveCount = 0;
+let isTeam = false;
+let teams = [[0,1],[2,3]]; // for 2v2
+let fastForwardEnabled = true;
+let isFastForwarding = false;
+const FF_TICK_MS = 22; // very fast when only CPUs remain
+
+const CPU_LABELS = {
+  default: 'Default',
+  trapper: 'Trapper',
+  evil: 'Evil',
+  scared: 'Scared',
+  dummy: 'Dummy',
+  apple: 'Apple Collector'
+};
+
+// --- UI helpers ---
+function show(id) {
+  ['menu','mode-select','player-config','gameover','pause-menu'].forEach(s => {
+    document.getElementById(s).classList.toggle('hidden', s !== id);
+  });
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('pause-btn').classList.add('hidden');
+  document.getElementById('status').textContent = '';
+}
+
+function showMenu() { show('menu'); stopGame(); }
+function showModeSelect() { show('mode-select'); stopGame(); }
+
+function selectMode(m) {
+  mode = m;
+  isTeam = (m === '2v2');
+  const n = m === 'classic' ? 1 :
+            m === '1v1' ? 2 :
+            m === '1v1v1' ? 3 :
+            m === '1v1v1v1' || m === '2v2' ? 4 : 1;
+  
+  playerTypes = Array(n).fill('cpu');
+  cpuTypes = Array(n).fill('default');
+  if (n >= 1) playerTypes[0] = 'human';
+  
+  // build cards
+  const container = document.getElementById('player-cards');
+  container.innerHTML = '';
+  const palette = isTeam ? COLORS.team : (m === 'classic' ? COLORS.classic : COLORS.battle);
+  
+  for (let i = 0; i < n; i++) {
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    const teamLabel = isTeam ? (i < 2 ? ' (Team Red)' : ' (Team Blue)') : '';
+    const isCpu = playerTypes[i] === 'cpu';
+    card.innerHTML = `
+      <div class="color-dot" style="background:${palette[i]}"></div>
+      <label>Player ${i+1}${teamLabel}</label>
+      <select id="ptype-${i}" onchange="onPlayerTypeChange(${i}, this.value)">
+        <option value="human" ${!isCpu?'selected':''}>Human</option>
+        <option value="cpu" ${isCpu?'selected':''}>CPU</option>
+      </select>
+      <div id="cpu-type-wrap-${i}" style="margin-top:6px; ${isCpu?'':'display:none'}">
+        <label style="font-size:11px; color:#7788aa;">CPU Type</label>
+        <select id="ctype-${i}" onchange="cpuTypes[${i}]=this.value" style="margin-top:2px;">
+          <option value="default">Default</option>
+          <option value="trapper">Trapper</option>
+          <option value="evil">Evil</option>
+          <option value="scared">Scared</option>
+          <option value="dummy">Dummy</option>
+          <option value="apple">Apple Collector</option>
+        </select>
+      </div>
+    `;
+    container.appendChild(card);
+  }
+  show('player-config');
+}
+
+function onPlayerTypeChange(i, val) {
+  playerTypes[i] = val;
+  const wrap = document.getElementById('cpu-type-wrap-' + i);
+  if (wrap) wrap.style.display = (val === 'cpu') ? '' : 'none';
+}
+
+function stopGame() {
+  gameRunning = false;
+  gamePaused = false;
+  isFastForwarding = false;
+  if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+}
+
+function pauseGame() {
+  if (!gameRunning || gamePaused) return;
+  gamePaused = true;
+  if (tickTimer) { clearInterval(tickTimer); tickTimer = null; }
+  document.getElementById('pause-menu').classList.remove('hidden');
+  document.getElementById('pause-btn').classList.add('hidden');
+}
+
+function resumeGame() {
+  if (!gameRunning || !gamePaused) return;
+  gamePaused = false;
+  document.getElementById('pause-menu').classList.add('hidden');
+  document.getElementById('pause-btn').classList.remove('hidden');
+  // restore correct speed (normal or FF)
+  const ms = isFastForwarding ? FF_TICK_MS : TICK_MS;
+  tickTimer = setInterval(tick, ms);
+}
+
+// --- Game core ---
+function startGame() {
+  // read selects
+  for (let i = 0; i < playerTypes.length; i++) {
+    const sel = document.getElementById('ptype-' + i);
+    if (sel) playerTypes[i] = sel.value;
+    const csel = document.getElementById('ctype-' + i);
+    if (csel) cpuTypes[i] = csel.value;
+  }
+  const ffBox = document.getElementById('ff-cpu');
+  if (ffBox) fastForwardEnabled = ffBox.checked;
+  
+  initGame();
+  document.getElementById('menu').classList.add('hidden');
+  document.getElementById('mode-select').classList.add('hidden');
+  document.getElementById('player-config').classList.add('hidden');
+  document.getElementById('gameover').classList.add('hidden');
+  document.getElementById('pause-menu').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('pause-btn').classList.remove('hidden');
+  updateHUD();
+  gameRunning = true;
+  gamePaused = false;
+  isFastForwarding = false;
+  if (tickTimer) clearInterval(tickTimer);
+  tickTimer = setInterval(tick, TICK_MS);
+  // If the match starts with no humans, begin fast-forward immediately
+  updateFastForward();
+}
+
+function restartSame() {
+  startGame();
+}
+
+function initGame() {
+  snakes = [];
+  apples = [];
+  scores = Array(playerTypes.length).fill(0);
+  aliveCount = playerTypes.length;
+  
+  const palette = mode === 'classic' ? COLORS.classic :
+                  isTeam ? COLORS.team : COLORS.battle;
+  
+  // spawn positions: corners + mid sides for 3/4
+  const spawns = [
+    {x: 4, y: 4, dir: {x:1, y:0}},
+    {x: GRID-5, y: GRID-5, dir: {x:-1, y:0}},
+    {x: GRID-5, y: 4, dir: {x:-1, y:0}},
+    {x: 4, y: GRID-5, dir: {x:1, y:0}}
+  ];
+  
+  for (let i = 0; i < playerTypes.length; i++) {
+    const s = spawns[i];
+    const body = [];
+    for (let k = 0; k < START_LEN; k++) {
+      body.push({ x: s.x - s.dir.x * k, y: s.y - s.dir.y * k });
+    }
+    const pers = playerTypes[i] === 'cpu' ? (cpuTypes[i] || 'default') : null;
+    snakes.push({
+      id: i,
+      body,
+      dir: {...s.dir},
+      nextDir: {...s.dir},
+      alive: true,
+      color: pers === 'dummy' ? '#888888' : palette[i],
+      isHuman: playerTypes[i] === 'human',
+      personality: pers,
+      team: isTeam ? (i < 2 ? 0 : 1) : i,
+      targetId: null,
+      trapPhase: 'grow',
+      // Dummy stays in a 3x3 zone centered on spawn
+      zoneCenter: { x: s.x, y: s.y },
+      zoneSize: 3
+    });
+  }
+  
+  const appleCount = mode === 'classic' ? 1 : 4;
+  for (let a = 0; a < appleCount; a++) spawnApple();
+  
+  draw();
+}
+
+function spawnApple() {
+  let pos;
+  let tries = 0;
+  do {
+    pos = { x: Math.floor(Math.random() * GRID), y: Math.floor(Math.random() * GRID) };
+    tries++;
+  } while (isOccupied(pos.x, pos.y) && tries < 200);
+  apples.push(pos);
+}
+
+function isOccupied(x, y) {
+  for (const sn of snakes) {
+    if (!sn.alive) continue;
+    for (const seg of sn.body) {
+      if (seg.x === x && seg.y === y) return true;
+    }
+  }
+  for (const a of apples) {
+    if (a.x === x && a.y === y) return true;
+  }
+  return false;
+}
+
+function isSameTeam(a, b) {
+  return isTeam && a.team === b.team;
+}
+
+// --- Input ---
+const keysDown = new Set();
+document.addEventListener('keydown', e => {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  keysDown.add(key);
+  
+  // Pause / unpause with Esc or P
+  if (key === 'escape' || key === 'p') {
+    if (gameRunning && !gamePaused) {
+      pauseGame();
+      e.preventDefault();
+      return;
+    } else if (gameRunning && gamePaused) {
+      resumeGame();
+      e.preventDefault();
+      return;
+    }
+  }
+  
+  if (!gameRunning || gamePaused) return;
+  
+  for (let i = 0; i < snakes.length; i++) {
+    const sn = snakes[i];
+    if (!sn.alive || !sn.isHuman) continue;
+    const map = KEY_MAPS[i];
+    if (!map) continue;
+    
+    let nd = null;
+    if (key === map.up) nd = {x:0, y:-1};
+    else if (key === map.left) nd = {x:-1, y:0};
+    else if (key === map.down) nd = {x:0, y:1};
+    else if (key === map.right) nd = {x:1, y:0};
+    
+    if (nd) {
+      // prevent reverse
+      if (nd.x !== -sn.dir.x || nd.y !== -sn.dir.y) {
+        sn.nextDir = nd;
+      }
+      e.preventDefault();
+    }
+  }
+});
+
+document.addEventListener('keyup', e => {
+  const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+  keysDown.delete(key);
+});
+
+// --- AI ---
+const DIRS4 = [
+  {x: 0, y: -1}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 1, y: 0}
+];
+
+function isCellDangerous(x, y, sn, ignoreTail = true) {
+  if (x < 0 || x >= GRID || y < 0 || y >= GRID) return true;
+  for (const other of snakes) {
+    if (!other.alive) continue;
+    if (isSameTeam(sn, other) && other !== sn) continue;
+    const limit = (other === sn && ignoreTail) ? other.body.length - 1 : other.body.length;
+    for (let i = 0; i < limit; i++) {
+      if (other.body[i].x === x && other.body[i].y === y) return true;
+    }
+  }
+  return false;
+}
+
+function nearestApple(head) {
+  let best = null, bestDist = Infinity;
+  for (const a of apples) {
+    const d = Math.abs(a.x - head.x) + Math.abs(a.y - head.y);
+    if (d < bestDist) { bestDist = d; best = a; }
+  }
+  return { apple: best, dist: bestDist };
+}
+
+function getEnemySnakes(sn) {
+  return snakes.filter(o => o.alive && o !== sn && !isSameTeam(sn, o));
+}
+
+function distTo(a, b) {
+  return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+}
+
+function lookAhead(nx, ny, d, sn, steps) {
+  let look = 0;
+  let lx = nx, ly = ny;
+  for (let s = 0; s < steps; s++) {
+    lx += d.x; ly += d.y;
+    if (isCellDangerous(lx, ly, sn, false)) break;
+    look++;
+  }
+  return look;
+}
+
+// Smarter threat analysis: is this enemy actively attacking / cutting us off?
+function analyzeThreats(sn) {
+  const head = sn.body[0];
+  const enemies = getEnemySnakes(sn);
+  const threats = [];
+
+  for (const e of enemies) {
+    const eh = e.body[0];
+    const dist = distTo(head, eh);
+    if (dist > 12) continue; // too far to care
+
+    const isDummy = e.personality === 'dummy';
+
+    // Dummies are never treated as attackers — free food / ignore fear
+    if (isDummy) {
+      let nearestBody = Infinity;
+      for (const seg of e.body) nearestBody = Math.min(nearestBody, distTo(seg, head));
+      threats.push({
+        enemy: e,
+        dist,
+        nearestBody,
+        aggression: 0,
+        cuttingOff: false,
+        towardHead: false,
+        towardFront: false,
+        passive: true,
+        isDummy: true,
+        eProj1: { x: eh.x, y: eh.y },
+        eProj2: { x: eh.x, y: eh.y }
+      });
+      continue;
+    }
+
+    // Where the enemy is heading (projected 1-3 cells)
+    const eProj1 = { x: eh.x + e.dir.x, y: eh.y + e.dir.y };
+    const eProj2 = { x: eh.x + e.dir.x * 2, y: eh.y + e.dir.y * 2 };
+    const eProj3 = { x: eh.x + e.dir.x * 3, y: eh.y + e.dir.y * 3 };
+
+    // Are they moving toward our head or the space in front of us?
+    const myFront = { x: head.x + sn.dir.x * 2, y: head.y + sn.dir.y * 2 };
+    const towardHead = distTo(eProj2, head) < dist;
+    const towardFront = distTo(eProj2, myFront) < distTo(eh, myFront);
+
+    // Are they about to cross our path / cut us off?
+    let cuttingOff = false;
+    for (let s = 1; s <= 4; s++) {
+      const myFuture = { x: head.x + sn.dir.x * s, y: head.y + sn.dir.y * s };
+      if (distTo(eProj1, myFuture) <= 1 || distTo(eProj2, myFuture) <= 1 || distTo(eProj3, myFuture) <= 1) {
+        cuttingOff = true;
+        break;
+      }
+    }
+
+    // How close is their body to our head? (we die if we hit it)
+    let nearestBody = Infinity;
+    for (const seg of e.body) {
+      nearestBody = Math.min(nearestBody, distTo(seg, head));
+    }
+
+    // Aggression score
+    let aggression = 0;
+    if (towardHead) aggression += 3;
+    if (towardFront) aggression += 4;
+    if (cuttingOff) aggression += 5;
+    if (dist <= 4) aggression += 3;
+    if (e.body.length >= sn.body.length) aggression += 1; // longer = scarier
+    // Moving directly at us
+    const closing = distTo(eProj1, head) < dist;
+    if (closing) aggression += 2;
+
+    // Passive / not attacking: just nearby but heading elsewhere
+    const passive = !towardHead && !towardFront && !cuttingOff && !closing;
+
+    threats.push({
+      enemy: e,
+      dist,
+      nearestBody,
+      aggression,
+      cuttingOff,
+      towardHead,
+      towardFront,
+      passive,
+      isDummy: false,
+      eProj1, eProj2
+    });
+  }
+
+  // Sort most dangerous first
+  threats.sort((a, b) => b.aggression - a.aggression || a.dist - b.dist);
+  return threats;
+}
+
+// Score a candidate cell against known threats (shared by all AIs)
+function applyThreatScores(c, sn, threats, style) {
+  // style: 'balanced' | 'scared' | 'aggressive' | 'trapper'
+  for (const t of threats) {
+    const e = t.enemy;
+    const cell = { x: c.nx, y: c.ny };
+
+    // --- Avoid walking into their body ---
+    let bodyDist = Infinity;
+    for (const seg of e.body) {
+      bodyDist = Math.min(bodyDist, distTo(seg, cell));
+    }
+    if (bodyDist <= 1) c.score -= 40; // almost suicide
+    else if (bodyDist <= 2) c.score -= 12;
+
+    // Dummies are never scary — skip all fear / flee logic
+    if (t.isDummy || e.personality === 'dummy') continue;
+
+    // --- React to active attackers ---
+    if (!t.passive && t.aggression >= 3) {
+      // Don't move into the space they're projecting into
+      if (distTo(cell, t.eProj1) <= 1 || distTo(cell, t.eProj2) <= 1) {
+        c.score -= (style === 'scared' ? 25 : 14);
+      }
+
+      // Escape direction: prefer moving away from the threat's head
+      const awayBonus = distTo(cell, e.body[0]) - t.dist;
+      if (style === 'scared') {
+        c.score += awayBonus * 10;
+      } else if (style === 'balanced') {
+        c.score += awayBonus * 4;
+      } else if (style === 'trapper') {
+        // Trapper only flees if much shorter or very close danger
+        if (sn.body.length < e.body.length - 3 || t.dist <= 3) {
+          c.score += awayBonus * 5;
+        }
+      }
+      // Evil (aggressive) barely flees – only from immediate death
+      if (style === 'aggressive' && t.dist <= 2) {
+        c.score += awayBonus * 6;
+      }
+
+      // If they're cutting us off, heavily prefer the side that opens space
+      if (t.cuttingOff) {
+        const look = lookAhead(c.nx, c.ny, c.dir, sn, 5);
+        c.score += look * (style === 'scared' ? 6 : 3);
+      }
+    } else if (t.passive) {
+      // Passive nearby snakes: mild caution only
+      if (t.dist < 5) c.score -= (5 - t.dist) * (style === 'scared' ? 4 : 1.5);
+    }
+  }
+}
+
+function updateRecent(sn) {
+  if (!sn.recent) sn.recent = [];
+  sn.recent.push({ x: sn.body[0].x, y: sn.body[0].y });
+  if (sn.recent.length > 14) sn.recent.shift();
+  let looping = false;
+  if (sn.recent.length >= 8) {
+    const a = sn.recent[sn.recent.length - 1];
+    const b = sn.recent[sn.recent.length - 5];
+    if (a.x === b.x && a.y === b.y) looping = true;
+  }
+  return looping;
+}
+
+function pickBest(candidates, sn, looping) {
+  if (candidates.length === 0) {
+    sn.nextDir = sn.dir;
+    return;
+  }
+  // break ties / loops
+  for (const c of candidates) {
+    if (looping) {
+      c.score += Math.random() * 35 - 8;
+      if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score -= 12;
+    } else {
+      c.score += Math.random() * 5;
+    }
+    // mild recent penalty
+    if (sn.recent) {
+      for (const r of sn.recent) {
+        if (r.x === sn.body[0].x + c.dir.x && r.y === sn.body[0].y + c.dir.y) {
+          c.score -= 18;
+          break;
+        }
+      }
+    }
+  }
+  candidates.sort((a, b) => b.score - a.score);
+  sn.nextDir = candidates[0].dir;
+}
+
+function gatherCandidates(sn) {
+  const head = sn.body[0];
+  const list = [];
+  for (const d of DIRS4) {
+    if (d.x === -sn.dir.x && d.y === -sn.dir.y) continue;
+    const nx = head.x + d.x;
+    const ny = head.y + d.y;
+    if (isCellDangerous(nx, ny, sn)) continue;
+    list.push({ dir: d, nx, ny, score: 0 });
+  }
+  return list;
+}
+
+// ---------- Personality: DEFAULT ----------
+function aiDefault(sn) {
+  const looping = updateRecent(sn);
+  const head = sn.body[0];
+  const { apple } = nearestApple(head);
+  const threats = analyzeThreats(sn);
+  const candidates = gatherCandidates(sn);
+
+  for (const c of candidates) {
+    if (apple) c.score += (28 - distTo(apple, {x: c.nx, y: c.ny})) * 4;
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 3;
+    c.score += lookAhead(c.nx, c.ny, c.dir, sn, 6) * 4;
+    applyThreatScores(c, sn, threats, 'balanced');
+  }
+  pickBest(candidates, sn, looping);
+}
+
+// ---------- Personality: SCARED (noob) ----------
+function aiScared(sn) {
+  const looping = updateRecent(sn);
+  const head = sn.body[0];
+  const { apple } = nearestApple(head);
+  const threats = analyzeThreats(sn);
+  const candidates = gatherCandidates(sn);
+
+  // If any serious threat exists, pure flight mode (ignore dummies)
+  const bigThreat = threats.find(t => !t.isDummy && (t.aggression >= 4 || t.dist <= 5));
+
+  for (const c of candidates) {
+    c.score += lookAhead(c.nx, c.ny, c.dir, sn, 8) * 8;
+
+    if (apple && !bigThreat) {
+      c.score += (20 - distTo(apple, {x: c.nx, y: c.ny})) * 1.5;
+    } else if (apple && bigThreat) {
+      // Only nibble apples that are also escape routes
+      c.score += (12 - distTo(apple, {x: c.nx, y: c.ny})) * 0.8;
+    }
+
+    applyThreatScores(c, sn, threats, 'scared');
+
+    // Extra wall fear
+    const wallDist = Math.min(c.nx, c.ny, GRID - 1 - c.nx, GRID - 1 - c.ny);
+    if (wallDist < 3) c.score -= (3 - wallDist) * 6;
+
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 2;
+  }
+  pickBest(candidates, sn, looping);
+}
+
+// ---------- Personality: EVIL (aggressive killer) ----------
+function aiEvil(sn) {
+  const looping = updateRecent(sn);
+  const head = sn.body[0];
+  const { apple } = nearestApple(head);
+  const enemies = getEnemySnakes(sn);
+  const threats = analyzeThreats(sn);
+  const candidates = gatherCandidates(sn);
+
+  // Prefer targets that are NOT currently attacking us (easier prey),
+  // or weaker ones. If someone is hard-focusing us, we still fight but more carefully.
+  let target = null;
+  if (enemies.length) {
+    const scored = enemies.map(e => {
+      const tInfo = threats.find(t => t.enemy === e);
+      let s = distTo(head, e.body[0]) + e.body.length * 0.35;
+      // Prefer passive / non-aggressive targets (easier kills)
+      if (tInfo && tInfo.passive) s -= 4;
+      if (tInfo && tInfo.aggression >= 5) s += 3;
+      // Prefer shorter
+      if (e.body.length < sn.body.length) s -= 3;
+      // Dummies are free kills
+      if (e.personality === 'dummy') s -= 15;
+      return { e, s };
+    });
+    scored.sort((a, b) => a.s - b.s);
+    target = scored[0].e;
+    sn.targetId = target.id;
+  }
+
+  for (const c of candidates) {
+    const look = lookAhead(c.nx, c.ny, c.dir, sn, 5);
+    c.score += look * 5;
+
+    if (apple) {
+      c.score += (22 - distTo(apple, {x: c.nx, y: c.ny})) * 2;
+    }
+
+    // Threat awareness (don't suicide into counter-attacks)
+    applyThreatScores(c, sn, threats, 'aggressive');
+
+    if (target) {
+      const th = target.body[0];
+      const cutX = th.x + target.dir.x * 2;
+      const cutY = th.y + target.dir.y * 2;
+      c.score += (18 - distTo({x: cutX, y: cutY}, {x: c.nx, y: c.ny})) * 6;
+
+      let minBody = Infinity;
+      for (const seg of target.body) {
+        minBody = Math.min(minBody, distTo(seg, {x: c.nx, y: c.ny}));
+      }
+      if (minBody < 5) c.score += (5 - minBody) * 4;
+
+      if (sn.body.length > target.body.length) c.score += 8;
+
+      // If THIS target is the one attacking us, be more willing to head-on pressure
+      const tThreat = threats.find(t => t.enemy === target);
+      if (tThreat && tThreat.aggression >= 4) {
+        c.score += (10 - distTo(th, {x: c.nx, y: c.ny})) * 3;
+      }
+    }
+
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 2;
+  }
+  pickBest(candidates, sn, looping);
+}
+
+// ---------- Personality: TRAPPER (elite) ----------
+function aiTrapper(sn) {
+  const looping = updateRecent(sn);
+  const head = sn.body[0];
+  const len = sn.body.length;
+  const { apple } = nearestApple(head);
+  const enemies = getEnemySnakes(sn);
+  const threats = analyzeThreats(sn);
+  let candidates = gatherCandidates(sn);
+
+  // ---- Immediate danger: escape first ----
+  const lethal = threats.filter(t => !t.isDummy && t.dist <= 3 && (t.cuttingOff || t.towardHead || t.aggression >= 5));
+  const mustFlee = lethal.length > 0 && len < 10;
+
+  // ---- Target selection: prefer size advantage ≥ 8 ----
+  let target = null;
+  if (sn.targetId != null) {
+    target = snakes.find(s => s.id === sn.targetId && s.alive && !isSameTeam(sn, s));
+    if (!target) { sn.targetId = null; sn.trapPhase = 'grow'; }
+  }
+
+  if (enemies.length) {
+    const scored = enemies.map(e => {
+      const tInfo = threats.find(t => t.enemy === e);
+      let s = distTo(head, e.body[0]) * 1.2;
+      const sizeDiff = len - e.body.length;
+      if (sizeDiff >= 8) s -= 30;
+      else if (sizeDiff >= 4) s -= 12;
+      else if (sizeDiff >= 0) s -= 3;
+      else s += 15; // avoid longer snakes
+      if (tInfo && tInfo.passive) s -= 6;
+      if (tInfo && tInfo.aggression >= 6) s += 4;
+      if (target && e.id === target.id) s -= 4; // stickiness
+      // Dummies are free trap practice
+      if (e.personality === 'dummy') s -= 18;
+      return { e, s, sizeDiff };
+    });
+    scored.sort((a, b) => a.s - b.s);
+    const best = scored[0];
+    // Adopt / switch to good targets aggressively
+    if (!target || best.sizeDiff >= 8 || (target && len - target.body.length < 3)) {
+      target = best.e;
+      sn.targetId = best.e.id;
+    }
+  }
+
+  // ---- Phase logic (brave: hunts early) ----
+  const sizeDiff = target ? (len - target.body.length) : 0;
+  if (!target || len < 6) {
+    sn.trapPhase = 'grow';
+  } else if (sizeDiff >= 8 || len >= 10) {
+    // Check if we're already wrapping them
+    let nearCount = 0;
+    if (target) {
+      for (const seg of sn.body) {
+        if (distTo(seg, target.body[0]) <= 5) nearCount++;
+      }
+    }
+    if (nearCount >= Math.min(6, Math.floor(len * 0.3))) {
+      sn.trapPhase = 'tighten';
+    } else {
+      sn.trapPhase = 'hunt';
+    }
+  } else {
+    sn.trapPhase = 'grow';
+  }
+
+  // ---- Score candidates ----
+  for (const c of candidates) {
+    // Deep safety look-ahead (smart)
+    const look = lookAhead(c.nx, c.ny, c.dir, sn, 8);
+    c.score += look * 7;
+
+    // Threat reaction (brave: only flee real danger)
+    applyThreatScores(c, sn, threats, mustFlee ? 'scared' : 'trapper');
+
+    // APPLE OBSESSION – always, even mid-fight
+    if (apple) {
+      const ad = distTo(apple, {x: c.nx, y: c.ny});
+      c.score += (34 - ad) * 7;
+      if (ad <= 3) c.score += 25; // instant snatch
+      if (ad <= 1) c.score += 40;
+    }
+
+    // Prefer open space when growing
+    if (sn.trapPhase === 'grow') {
+      const wallDist = Math.min(c.nx, c.ny, GRID - 1 - c.nx, GRID - 1 - c.ny);
+      c.score += Math.min(wallDist, 6) * 1.5;
+    }
+
+    // HUNT: intercept + orbit aggressively
+    if (sn.trapPhase === 'hunt' && target) {
+      const th = target.body[0];
+      // Cut-off point in front of target
+      const cut = { x: th.x + target.dir.x * 3, y: th.y + target.dir.y * 3 };
+      c.score += (16 - distTo(cut, {x: c.nx, y: c.ny})) * 8;
+
+      // Orbit positions
+      const orbit = [
+        {x: th.x + 2, y: th.y}, {x: th.x - 2, y: th.y},
+        {x: th.x, y: th.y + 2}, {x: th.x, y: th.y - 2},
+        {x: th.x + 3, y: th.y + 1}, {x: th.x - 3, y: th.y - 1}
+      ];
+      let bestO = Infinity;
+      for (const op of orbit) bestO = Math.min(bestO, distTo(op, {x: c.nx, y: c.ny}));
+      c.score += (10 - bestO) * 6;
+
+      // Get next to their body (pressure)
+      let minB = Infinity;
+      for (const seg of target.body) minB = Math.min(minB, distTo(seg, {x: c.nx, y: c.ny}));
+      if (minB <= 3) c.score += (4 - minB) * 5;
+    }
+
+    // TIGHTEN: seal the cage
+    if (sn.trapPhase === 'tighten' && target) {
+      const th = target.body[0];
+      // Stay glued to own body (no gaps)
+      let adjOwn = 0, minOwn = Infinity;
+      for (const seg of sn.body) {
+        const d = distTo(seg, {x: c.nx, y: c.ny});
+        if (d === 1) adjOwn++;
+        minOwn = Math.min(minOwn, d);
+      }
+      c.score += adjOwn * 8;
+      if (minOwn > 2) c.score -= (minOwn - 2) * 14;
+
+      // Squeeze toward their center of mass
+      let cx = 0, cy = 0;
+      for (const seg of target.body) { cx += seg.x; cy += seg.y; }
+      cx = Math.round(cx / target.body.length);
+      cy = Math.round(cy / target.body.length);
+      c.score += (12 - distTo({x: cx, y: cy}, {x: c.nx, y: c.ny})) * 6;
+
+      // Keep pressure if they're touching our wall
+      let minBody = Infinity;
+      for (const seg of sn.body) minBody = Math.min(minBody, distTo(seg, th));
+      if (minBody <= 2) c.score += 18;
+    }
+
+    // Momentum
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 4;
+
+    // Anti-corner death
+    const cornerRisk = (c.nx <= 1 || c.nx >= GRID - 2) && (c.ny <= 1 || c.ny >= GRID - 2);
+    if (cornerRisk) c.score -= 15;
+  }
+
+  // If no safe candidates, try ANY non-lethal move
+  if (candidates.length === 0) {
+    candidates = gatherCandidates(sn);
+    for (const c of candidates) {
+      c.score = lookAhead(c.nx, c.ny, c.dir, sn, 4) * 10;
+    }
+  }
+
+  pickBest(candidates, sn, looping);
+}
+
+// ---------- Personality: DUMMY ----------
+function aiDummy(sn) {
+  updateRecent(sn);
+  const head = sn.body[0];
+  const zc = sn.zoneCenter || head;
+  const half = Math.floor((sn.zoneSize || 3) / 2); // 3x3 → radius 1
+
+  const candidates = gatherCandidates(sn);
+  if (candidates.length === 0) {
+    sn.nextDir = sn.dir;
+    return;
+  }
+
+  for (const c of candidates) {
+    // Stay inside the 3x3 zone
+    const inZone =
+      c.nx >= zc.x - half && c.nx <= zc.x + half &&
+      c.ny >= zc.y - half && c.ny <= zc.y + half;
+    c.score = inZone ? 50 : -100;
+
+    // Prefer continuing / mild wander inside zone
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 5;
+    c.score += Math.random() * 8;
+
+    // Soft bounce away from zone edge (turn back toward center)
+    if (!inZone) {
+      c.score += (half - Math.abs(c.nx - zc.x)) * 10;
+      c.score += (half - Math.abs(c.ny - zc.y)) * 10;
+    }
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  sn.nextDir = candidates[0].dir;
+}
+
+// ---------- Personality: APPLE COLLECTOR ----------
+function aiApple(sn) {
+  const looping = updateRecent(sn);
+  const head = sn.body[0];
+  const { apple } = nearestApple(head);
+  const threats = analyzeThreats(sn);
+  const candidates = gatherCandidates(sn);
+
+  // Only care about immediate death — otherwise APPLES
+  const lethal = threats.filter(t => !t.isDummy && t.dist <= 2 && (t.cuttingOff || t.aggression >= 6));
+
+  for (const c of candidates) {
+    const look = lookAhead(c.nx, c.ny, c.dir, sn, 5);
+    c.score += look * 3; // minimal safety
+
+    // Only dodge truly lethal moves
+    if (lethal.length) {
+      applyThreatScores(c, sn, lethal, 'balanced');
+    } else {
+      // Still don't walk into bodies
+      for (const t of threats) {
+        let bodyDist = Infinity;
+        for (const seg of t.enemy.body) {
+          bodyDist = Math.min(bodyDist, distTo(seg, {x: c.nx, y: c.ny}));
+        }
+        if (bodyDist <= 1) c.score -= 50;
+      }
+    }
+
+    // APPLES APPLES APPLES
+    if (apple) {
+      const ad = distTo(apple, {x: c.nx, y: c.ny});
+      c.score += (40 - ad) * 12;
+      if (ad <= 5) c.score += (6 - ad) * 15;
+      if (ad <= 2) c.score += 50;
+      if (ad === 0) c.score += 200;
+    } else {
+      // No apple visible somehow — wander toward center
+      c.score += (20 - Math.abs(c.nx - GRID/2) - Math.abs(c.ny - GRID/2)) * 2;
+    }
+
+    if (c.dir.x === sn.dir.x && c.dir.y === sn.dir.y) c.score += 2;
+    c.score += Math.random() * 3;
+  }
+
+  pickBest(candidates, sn, looping);
+}
+
+// ---------- Dispatcher ----------
+function aiThink(sn) {
+  if (!sn.alive) return;
+  const p = sn.personality || 'default';
+  if (p === 'scared') aiScared(sn);
+  else if (p === 'evil') aiEvil(sn);
+  else if (p === 'trapper') aiTrapper(sn);
+  else if (p === 'dummy') aiDummy(sn);
+  else if (p === 'apple') aiApple(sn);
+  else aiDefault(sn);
+}
+
+// --- Tick ---
+function tick() {
+  if (!gameRunning || gamePaused) return;
+  
+  // AI decisions
+  for (const sn of snakes) {
+    if (sn.alive && !sn.isHuman) aiThink(sn);
+  }
+  
+  // apply nextDir
+  for (const sn of snakes) {
+    if (sn.alive) sn.dir = {...sn.nextDir};
+  }
+  
+  // move heads
+  const newHeads = [];
+  for (const sn of snakes) {
+    if (!sn.alive) { newHeads.push(null); continue; }
+    const h = sn.body[0];
+    newHeads.push({ x: h.x + sn.dir.x, y: h.y + sn.dir.y });
+  }
+  
+  // check collisions & grow
+  const grew = new Array(snakes.length).fill(false);
+  
+  for (let i = 0; i < snakes.length; i++) {
+    const sn = snakes[i];
+    if (!sn.alive) continue;
+    const nh = newHeads[i];
+    
+    // wall
+    if (nh.x < 0 || nh.x >= GRID || nh.y < 0 || nh.y >= GRID) {
+      kill(sn);
+      continue;
+    }
+    
+    // own body (except last if not growing)
+    let hitSelf = false;
+    for (let j = 0; j < sn.body.length - 1; j++) {
+      if (sn.body[j].x === nh.x && sn.body[j].y === nh.y) {
+        hitSelf = true; break;
+      }
+    }
+    if (hitSelf) {
+      kill(sn);
+      continue;
+    }
+    
+    // other snakes
+    let hitOther = false;
+    for (let oi = 0; oi < snakes.length; oi++) {
+      if (oi === i) continue;
+      const other = snakes[oi];
+      if (!other.alive) continue;
+      if (isSameTeam(sn, other)) continue; // phase through teammates
+      
+      for (const seg of other.body) {
+        if (seg.x === nh.x && seg.y === nh.y) {
+          hitOther = true; break;
+        }
+      }
+      if (hitOther) break;
+      
+      // also check if heads collide with each other (mutual or first-come)
+      if (newHeads[oi] && newHeads[oi].x === nh.x && newHeads[oi].y === nh.y) {
+        hitOther = true; break;
+      }
+    }
+    if (hitOther) {
+      kill(sn);
+      continue;
+    }
+    
+    // apple?
+    for (let ai = apples.length - 1; ai >= 0; ai--) {
+      if (apples[ai].x === nh.x && apples[ai].y === nh.y) {
+        apples.splice(ai, 1);
+        grew[i] = true;
+        scores[i]++;
+        spawnApple();
+        break;
+      }
+    }
+  }
+  
+  // apply moves
+  for (let i = 0; i < snakes.length; i++) {
+    const sn = snakes[i];
+    if (!sn.alive) continue;
+    sn.body.unshift(newHeads[i]);
+    if (!grew[i]) sn.body.pop();
+  }
+  
+  // check end conditions
+  checkEnd();
+  updateFastForward();
+  updateHUD();
+  draw();
+}
+
+function kill(sn) {
+  if (!sn.alive) return;
+  sn.alive = false;
+  aliveCount--;
+}
+
+function updateFastForward() {
+  if (!fastForwardEnabled || !gameRunning || gamePaused) return;
+  
+  // Any human still alive?
+  let humanAlive = false;
+  for (const sn of snakes) {
+    if (sn.alive && sn.isHuman) {
+      humanAlive = true;
+      break;
+    }
+  }
+  
+  const shouldFF = !humanAlive && aliveCount > 0;
+  
+  if (shouldFF && !isFastForwarding) {
+    isFastForwarding = true;
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(tick, FF_TICK_MS);
+    document.getElementById('status').textContent = '⚡ Fast-forward (only CPUs left)';
+  } else if (!shouldFF && isFastForwarding) {
+    isFastForwarding = false;
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(tick, TICK_MS);
+    document.getElementById('status').textContent = '';
+  }
+}
+
+function checkEnd() {
+  if (mode === 'classic') {
+    if (!snakes[0].alive) {
+      endGame('Game Over!', `Score: ${scores[0]} apples`);
+    }
+    return;
+  }
+  
+  if (isTeam) {
+    const teamAlive = [false, false];
+    for (const sn of snakes) {
+      if (sn.alive) teamAlive[sn.team] = true;
+    }
+    if (!teamAlive[0] && !teamAlive[1]) {
+      endGame('Draw!', 'Both teams eliminated');
+    } else if (!teamAlive[0]) {
+      endGame('Team Blue Wins!', '');
+    } else if (!teamAlive[1]) {
+      endGame('Team Red Wins!', '');
+    }
+  } else {
+    // free for all
+    const alive = snakes.filter(s => s.alive);
+    if (alive.length <= 1) {
+      if (alive.length === 1) {
+        const w = alive[0];
+        endGame(`Player ${w.id + 1} Wins!`, `Apples: ${scores[w.id]}`);
+      } else {
+        endGame('Draw!', 'Everyone crashed');
+      }
+    }
+  }
+}
+
+function endGame(title, sub) {
+  stopGame();
+  document.getElementById('winner-msg').textContent = title;
+  document.getElementById('final-stats').textContent = sub;
+  document.getElementById('gameover').classList.remove('hidden');
+  document.getElementById('hud').classList.add('hidden');
+  document.getElementById('pause-btn').classList.add('hidden');
+  document.getElementById('pause-menu').classList.add('hidden');
+  document.getElementById('status').textContent = '';
+}
+
+function updateHUD() {
+  const hud = document.getElementById('hud');
+  let html = '';
+  for (let i = 0; i < snakes.length; i++) {
+    const sn = snakes[i];
+    const status = sn.alive ? '●' : '✗';
+    let tag = '';
+    if (!sn.isHuman && sn.personality) {
+      tag = ` <span style="font-size:11px;opacity:0.75">[${CPU_LABELS[sn.personality] || sn.personality}]</span>`;
+    } else if (sn.isHuman) {
+      tag = ` <span style="font-size:11px;opacity:0.75">[You]</span>`;
+    }
+    html += `<div class="hud-item">
+      <div class="hud-dot" style="background:${sn.color}"></div>
+      P${i+1}${tag} ${status} (${scores[i]})
+    </div>`;
+  }
+  hud.innerHTML = html;
+}
+
+// --- Draw ---
+function draw() {
+  ctx.fillStyle = '#111122';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // subtle grid
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= GRID; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * CELL, 0);
+    ctx.lineTo(i * CELL, GRID * CELL);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * CELL);
+    ctx.lineTo(GRID * CELL, i * CELL);
+    ctx.stroke();
+  }
+  
+  // apples
+  for (const a of apples) {
+    ctx.fillStyle = '#ff2244';
+    ctx.beginPath();
+    ctx.arc(a.x * CELL + CELL/2, a.y * CELL + CELL/2, CELL/2 - 2, 0, Math.PI * 2);
+    ctx.fill();
+    // highlight
+    ctx.fillStyle = '#ff8899';
+    ctx.beginPath();
+    ctx.arc(a.x * CELL + CELL/2 - 3, a.y * CELL + CELL/2 - 3, 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  
+  // snakes
+  for (const sn of snakes) {
+    if (!sn.alive) continue;
+    for (let i = sn.body.length - 1; i >= 0; i--) {
+      const seg = sn.body[i];
+      const isHead = i === 0;
+      ctx.fillStyle = isHead ? lighten(sn.color, 30) : sn.color;
+      roundRect(ctx, seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2, isHead ? 6 : 4);
+      ctx.fill();
+      
+      if (isHead) {
+        // eyes
+        ctx.fillStyle = '#111';
+        const dx = sn.dir.x, dy = sn.dir.y;
+        const cx = seg.x * CELL + CELL/2;
+        const cy = seg.y * CELL + CELL/2;
+        const ex = dx * 4, ey = dy * 4;
+        ctx.beginPath();
+        ctx.arc(cx + ex - dy * 3, cy + ey + dx * 3, 2.2, 0, Math.PI*2);
+        ctx.arc(cx + ex + dy * 3, cy + ey - dx * 3, 2.2, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+}
+
+function lighten(hex, amt) {
+  const num = parseInt(hex.slice(1), 16);
+  let r = (num >> 16) + amt;
+  let g = ((num >> 8) & 0xff) + amt;
+  let b = (num & 0xff) + amt;
+  r = Math.min(255, r); g = Math.min(255, g); b = Math.min(255, b);
+  return `#${(r<<16 | g<<8 | b).toString(16).padStart(6,'0')}`;
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// initial draw empty
+draw();
+</script>
+</body>
+</html>
