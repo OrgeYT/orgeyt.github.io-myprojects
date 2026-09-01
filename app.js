@@ -257,7 +257,9 @@ const projects = [
     { name: "AI Meme Generator (Trust me its funny)", path: "https://orgeyt-meme-gen--orgeyt.on.websim.com/" }, // i laughed at the memes
     "CursorHub", // biggest project yet
     { name: "Classic Game", path: "classic games/index.html" }, // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
-    "platformer maker" // make some hard levels idc bro
+    "platformer maker", // make some hard levels idc bro      |
+    "ultimate tic tac toe", // look at the note at the bottom v
+    "snake battle" // yeah... im moving the projects to a projects folder tomorrow, its getting REEAL messy here.
 ];
 
 const fileList = document.getElementById('file-list');
