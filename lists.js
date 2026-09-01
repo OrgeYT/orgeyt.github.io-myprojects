@@ -150,7 +150,8 @@ const projects = [
     { name: "Classic Game", path: "classic games/index.html" }, // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
     "platformer maker", // make some hard levels idc bro      |
     "ultimate tic tac toe", // look at the note at the bottom v
-    "snake battle" // guys i moved the projects to a projects folder is that cool? i thought i would completely kill my website but i didnt.
+    "snake battle", // guys i moved the projects to a projects folder is that cool? i thought i would completely kill my website but i didnt.
+    "scanimation" // cool trick i guess. tricks your eyes into seeing a picture or animation.
 ];
 
 // ==========================================
