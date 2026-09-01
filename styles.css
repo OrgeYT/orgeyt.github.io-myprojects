@@ -1099,3 +1099,41 @@ body.layout-down #file-list { max-height: 200px; }
         max-height: 280px;
     }
 }
+
+/* ==========================================
+   View lists.js Modal Styles
+   ========================================== */
+
+.code-display {
+    flex: 1;
+    overflow-y: auto;
+    background: #0a0a0a;
+    color: #00ff00;
+    border: 1px solid var(--border-main);
+    padding: 12px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin-top: 10px;
+}
+
+.code-display::-webkit-scrollbar {
+    width: 8px;
+}
+
+.code-display::-webkit-scrollbar-track {
+    background: var(--bg-main);
+    border-radius: 4px;
+}
+
+.code-display::-webkit-scrollbar-thumb {
+    background: var(--border-main);
+    border-radius: 4px;
+}
+
+.code-display::-webkit-scrollbar-thumb:hover {
+    background: var(--text-accent);
+}

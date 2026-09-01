@@ -28,9 +28,10 @@
             <button id="open-gallery-btn" class="toggle-btn">Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
             <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
             <button id="downloads-btn" class="toggle-btn">Downloads</button>
-            <button id="download-project-btn" class="toggle-btn">Download Project</button>
+            <button id="view-repo-btn" class="toggle-btn">View Repository</button>
             <button id="effects-btn" class="toggle-btn">Effects</button>
             <button id="line-graph-btn" class="toggle-btn">Line Graph</button>
+            <button id="view-lists-btn" class="toggle-btn">View lists.js</button>
             <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
         </div>
 
@@ -255,6 +256,14 @@
             </div>
             <div id="line-graph-legend"></div>
             <div id="line-graph-totals" class="line-graph-totals"></div>
+        </div>
+    </div>
+
+    <div id="view-lists-modal" class="modal hidden">
+        <div class="modal-content" style="width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <span id="close-view-lists-btn" class="close-btn">&times;</span>
+            <h3>lists.js Source Code</h3>
+            <pre id="lists-code-display" class="code-display"></pre>
         </div>
     </div>
 

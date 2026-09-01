@@ -110,7 +110,6 @@ const runnerFrame = document.getElementById('runner-frame');
 const searchBar = document.getElementById('search-bar');
 const randomProjectBtn = document.getElementById('random-project-btn'); 
 const favoriteBtn = document.getElementById('favorite-btn');
-const downloadProjectBtn = document.getElementById('download-project-btn');
 
 let currentProjectParam = "welcome";
 let currentFilePath = "html_welcome.html";
@@ -247,113 +246,13 @@ if (!filePath.startsWith('http') &&
         isExternalUrl = true;
     }
     
-    // Setup specific logic for the Download Project button
-// Setup specific logic for the Download Project button
-if (downloadProjectBtn) {
-    if (isExternalUrl) {
-        downloadProjectBtn.disabled = true;
-        downloadProjectBtn.title = "This project cannot be downloaded";
-        downloadProjectBtn.onclick = null;
-    } else {
-        downloadProjectBtn.disabled = false;
-        downloadProjectBtn.title = "Download Project";
-
-        // Detect multi-file project: local path that contains a folder
-        const isMultiFile = filePath.includes('/') &&
-                            !filePath.startsWith('http') &&
-                            !filePath.startsWith('data:') &&
-                            !filePath.startsWith('scratch-');
-
-        if (isMultiFile) {
-            downloadProjectBtn.onclick = async () => {
-                const originalText = downloadProjectBtn.textContent;
-                downloadProjectBtn.disabled = true;
-                downloadProjectBtn.textContent = "Zipping...";
-
-                try {
-                    // Ensure JSZip is available
-                    if (typeof JSZip === 'undefined') {
-                        await new Promise((resolve, reject) => {
-                            const s = document.createElement('script');
-                            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
-                            s.onload = resolve;
-                            s.onerror = () => reject(new Error('Failed to load JSZip'));
-                            document.head.appendChild(s);
-                        });
-                    }
-
-                    // Project folder is everything before the last /
-                    const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-                    const zipName = (folderPath.split('/').pop() || projectParam).replace(/[^\w\- ]+/g, '_') + '.zip';
-
-                    // Recursively collect all files via GitHub Contents API
-                    async function collectFiles(dirPath) {
-                        const apiUrl = `https://api.github.com/repos/OrgeYT/orgeyt.github.io-myprojects/contents/${encodeURIComponent(dirPath).replace(/%2F/g, '/')}?ref=main`;
-                        const res = await fetch(apiUrl);
-                        if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-                        const items = await res.json();
-                        let files = [];
-                        for (const item of items) {
-                            if (item.type === 'file') {
-                                files.push({ path: item.path, download_url: item.download_url });
-                            } else if (item.type === 'dir') {
-                                files = files.concat(await collectFiles(item.path));
-                            }
-                        }
-                        return files;
-                    }
-
-                    const files = await collectFiles(folderPath);
-                    if (files.length === 0) throw new Error('No files found in project folder');
-
-                    const zip = new JSZip();
-                    const folderPrefix = folderPath + '/';
-
-                    // Fetch all files in parallel (with a small concurrency limit for safety)
-                    const BATCH = 8;
-                    for (let i = 0; i < files.length; i += BATCH) {
-                        const batch = files.slice(i, i + BATCH);
-                        await Promise.all(batch.map(async (f) => {
-                            const r = await fetch(f.download_url);
-                            if (!r.ok) throw new Error(`Failed to fetch ${f.path}`);
-                            const blob = await r.blob();
-                            // Keep relative path inside the zip (strip the project folder prefix)
-                            const relative = f.path.startsWith(folderPrefix)
-                                ? f.path.slice(folderPrefix.length)
-                                : f.path;
-                            zip.file(relative, blob);
-                        }));
-                    }
-
-                    const content = await zip.generateAsync({ type: 'blob' });
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(content);
-                    a.download = zipName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(a.href);
-                } catch (err) {
-                    console.error(err);
-                    alert('Failed to create ZIP: ' + err.message);
-                } finally {
-                    downloadProjectBtn.disabled = false;
-                    downloadProjectBtn.textContent = originalText;
-                }
-            };
-        } else {
-            // Single-file project – keep original behaviour
-            downloadProjectBtn.onclick = () => {
-                const a = document.createElement('a');
-                a.href = filePath;
-                a.download = filePath.split('/').pop() || `${projectParam}.html`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-            };
-        }
+    // View Repository button - opens GitHub repo
+    const viewRepoBtn = document.getElementById('view-repo-btn');
+    if (viewRepoBtn) {
+        viewRepoBtn.onclick = () => {
+            window.open('https://github.com/OrgeYT/orgeyt.github.io-myprojects', '_blank');
+        };
     }
-}
     
     if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
         unlockAchievement('explorer');
@@ -1102,3 +1001,32 @@ window.addEventListener('resize', () => {
         lgDrawChart();
     }
 });
+
+// ===========================================
+// --- View lists.js Source Code Modal ------
+// ===========================================
+
+const viewListsBtn = document.getElementById('view-lists-btn');
+const viewListsModal = document.getElementById('view-lists-modal');
+const closeViewListsBtn = document.getElementById('close-view-lists-btn');
+const listsCodeDisplay = document.getElementById('lists-code-display');
+
+if (viewListsBtn) {
+    viewListsBtn.addEventListener('click', () => {
+        // Fetch and display lists.js source code
+        fetch('lists.js')
+            .then(response => response.text())
+            .then(code => {
+                listsCodeDisplay.textContent = code;
+                viewListsModal.classList.remove('hidden');
+            })
+            .catch(err => {
+                listsCodeDisplay.textContent = 'Error loading lists.js: ' + err.message;
+                viewListsModal.classList.remove('hidden');
+            });
+    });
+}
+
+if (closeViewListsBtn) {
+    closeViewListsBtn.addEventListener('click', () => viewListsModal.classList.add('hidden'));
+}
