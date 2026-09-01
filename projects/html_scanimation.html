@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GIF & Canvas Scanimation Studio</title>
+<!-- Primary & Fallback CDNs for omggif library -->
+<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.min.js"></script>
+<script>
+    // Fallback script loading if jsDelivr fails or is blocked
+    if (typeof omggif === 'undefined') {
+        document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/omggif/1.0.10/omggif.min.js"><\/script>');
+    }
+</script>
+<style>
+    :root {
+        --bg-color: #0f172a;
+        --card-bg: #1e293b;
+        --card-border: #334155;
+        --text-color: #f8fafc;
+        --text-muted: #94a3b8;
+        --accent-color: #38bdf8;
+        --accent-hover: #0284c7;
+        --success-color: #4ade80;
+        --danger-color: #f43f5e;
+        --danger-hover: #e11d48;
+    }
+
+    * { box-sizing: border-box; }
+
+    body { 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        background: var(--bg-color); 
+        color: var(--text-color);
+        margin: 0;
+        padding: 40px 20px;
+    }
+    
+    header { text-align: center; max-width: 750px; margin-bottom: 30px; }
+    h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: var(--text-muted); font-size: 1.05rem; line-height: 1.6; }
+
+    .main-grid { display: flex; flex-direction: column; gap: 40px; width: 100%; max-width: 720px; }
+
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 24px; border-radius: 16px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3); width: 100%; display: flex; flex-direction: column; }
+    .card-header { width: 100%; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .card-header h2 { margin: 0; font-size: 1.3rem; font-weight: 700; }
+
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    .instructions { 
+        width: 100%;
+        font-size: 0.9em; 
+        color: var(--text-muted); 
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    /* Upload Area */
+    .upload-zone { border: 2px dashed var(--card-border); border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: background 0.2s; position: relative; margin-bottom: 20px; }
+    .upload-zone:hover { background: #233146; }
+    .upload-zone.dragging { background: #2d3e58; border-color: var(--accent-color); }
+    .upload-zone input { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+    .upload-icon { font-size: 3rem; color: var(--text-muted); margin-bottom: 15px; }
+    .file-details { font-size: 0.9rem; color: var(--success-color); font-weight: 600; display: none;}
+
+    /* Viewport & Grid */
+    .viewport { position: relative; width: 100%; max-width: 640px; height: 400px; overflow: hidden; background: #ffffff; border-radius: 10px; box-shadow: inset 0 0 10px rgba(0,0,0,0.1); user-select: none; touch-action: none; cursor: grab; align-self: center; margin-bottom: 16px;}
+    .viewport:active { cursor: grabbing; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; image-rendering: pixelated; }
+    .barrier-grid { position: absolute; top: 0; left: -300px; width: 1200px; height: 100%; background: repeating-linear-gradient(to right, transparent 0px, transparent 2px, #000000 2px, #000000 12px); will-change: transform;}
+
+    /* Control Panel */
+    .controls-panel { display: flex; flex-direction: column; gap: 16px; width: 100%; }
+    .control-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .control-label { font-size: 0.9rem; color: var(--text-muted); font-weight: 600; margin-bottom: 5px; display: block; }
+    
+    /* Config Sliders & Inputs */
+    .config-group { background: #182133; border-radius: 8px; padding: 12px; flex: 1; min-width: 200px; }
+    .slider-container { display: flex; align-items: center; gap: 10px; }
+    input[type=range] { flex: 1; cursor: pointer; accent-color: var(--accent-color); }
+    .slider-value { font-family: monospace; font-size: 1.1rem; width: 3ch; text-align: right;}
+    select, input[type=number] { background: #2d3e58; color: var(--text-color); border: 1px solid var(--card-border); padding: 6px 10px; border-radius: 6px; cursor: pointer;}
+
+    .btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn { background: #334155; color: var(--text-color); border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
+    .btn:hover { background: #475569; }
+    .btn-active { background: var(--accent-color); color: #0f172a; }
+    .btn-active:hover { background: var(--accent-hover); }
+    .btn-danger { background: rgba(244, 63, 94, 0.15); color: var(--danger-color); border: 1px solid var(--danger-color); }
+    .btn-danger:hover { background: var(--danger-color); color: #ffffff; }
+
+    /* Custom Switch Toggle */
+    .toggle-label { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 600; cursor: pointer; user-select: none; }
+    .toggle-switch { position: relative; width: 44px; height: 24px; background-color: #475569; border-radius: 24px; transition: 0.25s; }
+    .toggle-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; background-color: white; border-radius: 50%; transition: 0.25s; }
+    input[type="checkbox"] { display: none; }
+    input[type="checkbox"]:checked + .toggle-switch { background-color: var(--accent-color); }
+    input[type="checkbox"]:checked + .toggle-switch::after { transform: translateX(20px); }
+
+    /* Processing Overlay */
+    .status-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); z-index: 1000; flex-direction: column; align-items: center; justify-content: center; gap: 20px;}
+    .spinner { border: 4px solid rgba(255, 255, 255, 0.1); border-left-color: var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;}
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+    <header>
+        <h1>Barrier-Grid (Scanimation) Studio</h1>
+        <div class="subtitle">
+            Upload any custom animated GIF or play with the built-in examples below. Drag the barrier grid horizontally to animate or reveal the underlying interlaced image!
+        </div>
+    </header>
+
+    <div class="main-grid">
+
+        <!-- ==================== GIF UPLOADER CARD ==================== -->
+        <div class="card" id="card-gif">
+            <div class="card-header">
+                <h2>🎞️ Custom GIF Converter</h2>
+                <div class="header-actions">
+                    <div class="file-details" id="file-name-display">File Loaded ✅</div>
+                    <button class="btn btn-danger" id="unload-btn" style="display: none; padding: 4px 10px; font-size: 0.8rem;">❌ Clear GIF</button>
+                </div>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone" id="upload-zone">
+                <input type="file" id="gif-input" accept="image/gif">
+                <div class="upload-icon">📄</div>
+                <div><strong>Click to upload GIF</strong> or drag and drop</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 5px;">Converts frames to strict black & white</div>
+            </div>
+
+            <!-- Viewport (hidden until GIF uploaded) -->
+            <div class="viewport" id="viewport-gif" style="display: none;">
+                <canvas id="canvas-gif" width="640" height="400"></canvas>
+                <div class="barrier-grid" id="grid-gif"></div>
+            </div>
+
+            <!-- Controls (hidden until GIF uploaded) -->
+            <div class="controls-panel" id="controls-gif" style="display: none;">
+                <div class="control-row">
+                    <div class="config-group">
+                        <label class="control-label" for="threshold-slider">B&W Threshold (0-255)</label>
+                        <div class="slider-container">
+                            <input type="range" id="threshold-slider" min="0" max="255" value="128">
+                            <span class="slider-value" id="threshold-val">128</span>
+                        </div>
+                    </div>
+                    <div class="config-group">
+                        <label class="control-label" for="frames-select">Interlace Cycle (Frames)</label>
+                        <select id="frames-select">
+                            <option value="2">2 Frames (4px cycle)</option>
+                            <option value="3">3 Frames (6px cycle)</option>
+                            <option value="4">4 Frames (8px cycle)</option>
+                            <option value="5">5 Frames (10px cycle)</option>
+                            <option value="6" selected>6 Frames (12px cycle)</option>
+                            <option value="7">7 Frames (14px cycle)</option>
+                            <option value="8">8 Frames (16px cycle)</option>
+                            <option value="9">9 Frames (18px cycle)</option>
+                            <option value="10">10 Frames (20px cycle)</option>
+                            <option value="12">12 Frames (24px cycle)</option>
+                            <option value="14">14 Frames (28px cycle)</option>
+                            <option value="16">16 Frames (32px cycle)</option>
+                            <option value="18">18 Frames (36px cycle)</option>
+                            <option value="20">20 Frames (40px cycle)</option>
+                            <option value="22">22 Frames (44px cycle)</option>
+                            <option value="24">24 Frames (48px cycle)</option>
+                            <option value="25">25 Frames (50px cycle)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="btn-group">
+                        <button class="btn btn-active" id="process-btn">⚙️ Apply Settings & Re-interlace</button>
+                        <button class="btn" id="change-gif-btn">📁 Choose Different GIF</button>
+                    </div>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid var(--card-border); margin: 5px 0; width: 100%;">
+
+                <div class="control-row">
+                    <div class="btn-group">
+                        <button class="btn play-btn" onclick="toggleAutoPlay('gif')">▶ Auto Play</button>
+                        <button class="btn" onclick="resetPosition('gif')">↺ Center Grid</button>
+                    </div>
+                    <label class="toggle-label">
+                        <input type="checkbox" checked onchange="toggleGridVisibility('gif', this.checked)">
+                        <div class="toggle-switch"></div>
+                        <span>Show Barrier Grid</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== EXAMPLE 1: 3D CUBE ==================== -->
+        <div class="card" id="card-cube">
+            <div class="card-header">
+                <h2>1. 3D Wireframe Cube</h2>
+                <div class="btn-group">
+                    <button class="btn play-btn" onclick="toggleAutoPlay('cube')">▶ Auto Play</button>
+                    <button class="btn" onclick="resetPosition('cube')">↺ Center Grid</button>
+                </div>
+            </div>
+            <div class="instructions">
+                <span>👈 Dynamic 3D rotation. Drag the barrier grid left or right over the canvas.</span>
+            </div>
+            <div class="viewport" id="viewport-cube">
+                <canvas id="canvas-cube" width="640" height="400"></canvas>
+                <div class="barrier-grid" id="grid-cube"></div>
+            </div>
+            <div class="control-row">
+                <label class="toggle-label">
+                    <input type="checkbox" checked onchange="toggleGridVisibility('cube', this.checked)">
+                    <div class="toggle-switch"></div>
+                    <span>Show Barrier Grid</span>
+                </label>
+            </div>
+        </div>
+
+
+        <!-- ==================== EXAMPLE 2: CONCENTRIC RINGS ==================== -->
+        <div class="card" id="card-rings">
+            <div class="card-header">
+                <h2>2. Concentric Ring Pulsar</h2>
+                <div class="btn-group">
+                    <button class="btn play-btn" onclick="toggleAutoPlay('rings')">▶ Auto Play</button>
+                    <button class="btn" onclick="resetPosition('rings')">↺ Center Grid</button>
+                </div>
+            </div>
+            <div class="instructions">
+                <span>🌊 Radial ripple effect based on line-spectrum optical illusions.</span>
+            </div>
+            <div class="viewport" id="viewport-rings">
+                <canvas id="canvas-rings" width="640" height="400"></canvas>
+                <div class="barrier-grid" id="grid-rings"></div>
+            </div>
+            <div class="control-row">
+                <label class="toggle-label">
+                    <input type="checkbox" checked onchange="toggleGridVisibility('rings', this.checked)">
+                    <div class="toggle-switch"></div>
+                    <span>Show Barrier Grid</span>
+                </label>
+            </div>
+        </div>
+
+
+        <!-- ==================== EXAMPLE 3: RUNNING FIGURE ==================== -->
+        <div class="card" id="card-runner">
+            <div class="card-header">
+                <h2>3. Running Figure</h2>
+                <div class="btn-group">
+                    <button class="btn play-btn" onclick="toggleAutoPlay('runner')">▶ Auto Play</button>
+                    <button class="btn" onclick="resetPosition('runner')">↺ Center Grid</button>
+                </div>
+            </div>
+            <div class="instructions">
+                <span>🏃 Multi-frame motion walk cycle (classic Scanimation book style).</span>
+            </div>
+            <div class="viewport" id="viewport-runner">
+                <canvas id="canvas-runner" width="640" height="400"></canvas>
+                <div class="barrier-grid" id="grid-runner"></div>
+            </div>
+            <div class="control-row">
+                <label class="toggle-label">
+                    <input type="checkbox" checked onchange="toggleGridVisibility('runner', this.checked)">
+                    <div class="toggle-switch"></div>
+                    <span>Show Barrier Grid</span>
+                </label>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Processing Overlay -->
+    <div class="status-overlay" id="status-overlay">
+        <div class="spinner"></div>
+        <div id="status-text">Processing GIF...</div>
+    </div>
+
+<script>
+    // --- GLOBAL CONFIG & STATE ---
+    const FRAMES_COUNT = 6;      
+    const SLICE_WIDTH = 2;       
+    const CYCLE_LENGTH = SLICE_WIDTH * FRAMES_COUNT; // 12px
+
+    const demos = {
+        cube:   { id: 'cube',   x: -300, autoPlay: false, animId: null, cycleLen: 12 },
+        rings:  { id: 'rings',  x: -300, autoPlay: false, animId: null, cycleLen: 12 },
+        runner: { id: 'runner', x: -300, autoPlay: false, animId: null, cycleLen: 12 },
+        gif:    { id: 'gif',    x: -300, autoPlay: false, animId: null, cycleLen: 12, reader: null, totalFrames: 0, threshold: 128, frameCount: 6 }
+    };
+
+    // --- DOM REFERENCES FOR GIF CONVERTER ---
+    const gifEls = {
+        input: document.getElementById('gif-input'),
+        uploadZone: document.getElementById('upload-zone'),
+        viewport: document.getElementById('viewport-gif'),
+        canvas: document.getElementById('canvas-gif'),
+        grid: document.getElementById('grid-gif'),
+        controls: document.getElementById('controls-gif'),
+        fileName: document.getElementById('file-name-display'),
+        unloadBtn: document.getElementById('unload-btn'),
+        changeGifBtn: document.getElementById('change-gif-btn'),
+        status: document.getElementById('status-overlay'),
+        statusText: document.getElementById('status-text'),
+        threshSlider: document.getElementById('threshold-slider'),
+        threshVal: document.getElementById('threshold-val'),
+        framesSelect: document.getElementById('frames-select'),
+        processBtn: document.getElementById('process-btn')
+    };
+
+    // --- PROCEDURAL DRAWING FUNCTIONS FOR THE 3 EXAMPLES ---
+
+    Math.Cos = Math.cos;
+    Math.Sin = Math.sin;
+
+    // 1. 3D Cube
+    function drawCubeFrame(ctx, width, height, frameIndex) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+        
+        const angle = (frameIndex / FRAMES_COUNT) * (Math.PI / 2);
+        const cx = width / 2;
+        const cy = height / 2;
+        const size = 110;
+
+        const vertices = [
+            [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+            [-1, -1,  1], [1, -1,  1], [1, 1,  1], [-1, 1,  1]
+        ];
+
+        const projected = vertices.map(([x, y, z]) => {
+            const rx = x * Math.Cos(angle) - z * Math.Sin(angle);
+            const rz = x * Math.Sin(angle) + z * Math.Cos(angle);
+            const ry = y * Math.Cos(0.35) - rz * Math.Sin(0.35);
+            
+            const fov = 350;
+            const distance = 4;
+            const scale = fov / (distance + rz * 0.8);
+
+            return [cx + rx * scale * (size/150), cy + ry * scale * (size/150)];
+        });
+
+        const edges = [
+            [0,1], [1,2], [2,3], [3,0],
+            [4,5], [5,6], [6,7], [7,4],
+            [0,4], [1,5], [2,6], [3,7]
+        ];
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        edges.forEach(([i, j]) => {
+            ctx.beginPath();
+            ctx.moveTo(projected[i][0], projected[i][1]);
+            ctx.lineTo(projected[j][0], projected[j][1]);
+            ctx.stroke();
+        });
+    }
+
+    // 2. Concentric Rings
+    function drawRingsFrame(ctx, width, height, frameIndex) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+
+        const cx = width / 2;
+        const cy = height / 2;
+        const numRings = 9;
+        const phaseShift = (frameIndex / FRAMES_COUNT) * 28;
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 12;
+
+        for (let r = 0; r < numRings; r++) {
+            const radius = 25 + (r * 24) + phaseShift;
+            ctx.beginPath();
+            ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+    }
+
+    // 3. Running Figure
+    function drawRunnerFrame(ctx, width, height, frameIndex) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, width, height);
+
+        const cx = width / 2;
+        const cy = height / 2 - 10;
+        const t = (frameIndex / FRAMES_COUNT) * Math.PI * 2;
+
+        ctx.strokeStyle = '#000000';
+        ctx.fillStyle = '#000000';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+
+        // Head
+        ctx.beginPath();
+        ctx.arc(cx + Math.sin(t)*5, cy - 75, 22, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Torso
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 50);
+        ctx.lineTo(cx - Math.sin(t)*8, cy + 20);
+        ctx.stroke();
+
+        // Legs
+        const leg1Angle = Math.sin(t) * 0.9;
+        const leg2Angle = Math.sin(t + Math.PI) * 0.9;
+
+        ctx.beginPath();
+        ctx.moveTo(cx - Math.sin(t)*8, cy + 20);
+        ctx.lineTo(cx + Math.sin(leg1Angle)*45, cy + 65 + Math.cos(leg1Angle)*20);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx - Math.sin(t)*8, cy + 20);
+        ctx.lineTo(cx + Math.sin(leg2Angle)*45, cy + 65 + Math.cos(leg2Angle)*20);
+        ctx.stroke();
+
+        // Arms
+        const arm1Angle = Math.sin(t + Math.PI) * 0.8;
+        const arm2Angle = Math.sin(t) * 0.8;
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 40);
+        ctx.lineTo(cx + Math.sin(arm1Angle)*35, cy - 10 + Math.cos(arm1Angle)*25);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - 40);
+        ctx.lineTo(cx + Math.sin(arm2Angle)*35, cy - 10 + Math.cos(arm2Angle)*25);
+        ctx.stroke();
+    }
+
+    // --- INTERLACING RENDERER FOR PROCEDURAL EXAMPLES ---
+    function renderInterlacedProcedural(canvasId, drawFrameFn) {
+        const canvas = document.getElementById(canvasId);
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        const frames = [];
+        for (let i = 0; i < FRAMES_COUNT; i++) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = width;
+            tempCanvas.height = height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            drawFrameFn(tempCtx, width, height, i);
+            frames.push(tempCtx.getImageData(0, 0, width, height));
+        }
+
+        const outputData = ctx.createImageData(width, height);
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const frameIndex = Math.floor(x / SLICE_WIDTH) % FRAMES_COUNT;
+                const framePixels = frames[frameIndex].data;
+
+                const pixelIdx = (y * width + x) * 4;
+                outputData.data[pixelIdx]     = framePixels[pixelIdx];     
+                outputData.data[pixelIdx + 1] = framePixels[pixelIdx + 1]; 
+                outputData.data[pixelIdx + 2] = framePixels[pixelIdx + 2]; 
+                outputData.data[pixelIdx + 3] = 255;                       
+            }
+        }
+
+        ctx.putImageData(outputData, 0, 0);
+    }
+
+    // --- CUSTOM GIF PROCESSING LOGIC ---
+
+    async function handleGifUpload(file) {
+        if (!file) return;
+
+        if (file.type !== 'image/gif' && !file.name.toLowerCase().endsWith('.gif')) {
+            alert('Please select an animated GIF file.');
+            return;
+        }
+
+        const GifReader = (typeof omggif !== 'undefined' && omggif.GifReader) ? omggif.GifReader : window.GifReader;
+
+        if (!GifReader) {
+            alert('The GIF parser library is still loading or failed to load. Please try again in a moment.');
+            return;
+        }
+
+        if (demos.gif.autoPlay) stopAutoPlay('gif');
+
+        gifEls.status.style.display = 'flex';
+        gifEls.statusText.innerText = 'Reading GIF...';
+
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const byteArray = new Uint8Array(arrayBuffer);
+            demos.gif.reader = new GifReader(byteArray);
+            demos.gif.totalFrames = demos.gif.reader.numFrames();
+
+            if (demos.gif.totalFrames < 2) {
+                alert('This GIF only has 1 frame. Please upload an animated GIF.');
+                gifEls.status.style.display = 'none';
+                return;
+            }
+
+            // Update UI layout
+            gifEls.fileName.innerText = `${file.name} (${demos.gif.totalFrames} frames) loaded ✅`;
+            gifEls.fileName.style.display = 'block';
+            gifEls.unloadBtn.style.display = 'inline-flex';
+            gifEls.uploadZone.style.display = 'none';
+            gifEls.viewport.style.display = 'block';
+            gifEls.controls.style.display = 'flex';
+
+            // Maintain standardized 640x400 canvas resolution to match barrier grid pitch exactly
+            gifEls.canvas.width = 640;
+            gifEls.canvas.height = 400;
+
+            await processAndRenderGif();
+
+        } catch (e) {
+            console.error('GIF parse error:', e);
+            alert('Could not decode this GIF. Please try another GIF file.');
+        } finally {
+            gifEls.status.style.display = 'none';
+        }
+    }
+
+    function triggerFilePicker() {
+        // Clear file input value first to ensure selecting the same file triggers change event
+        gifEls.input.value = '';
+        gifEls.input.click();
+    }
+
+    function unloadGif() {
+        if (demos.gif.autoPlay) stopAutoPlay('gif');
+        
+        // Reset state
+        demos.gif.reader = null;
+        demos.gif.totalFrames = 0;
+        demos.gif.x = -300;
+        
+        // Reset File input
+        gifEls.input.value = '';
+
+        // Clear canvas
+        const ctx = gifEls.canvas.getContext('2d');
+        ctx.clearRect(0, 0, gifEls.canvas.width, gifEls.canvas.height);
+
+        // Reset UI visibility
+        gifEls.fileName.style.display = 'none';
+        gifEls.unloadBtn.style.display = 'none';
+        gifEls.viewport.style.display = 'none';
+        gifEls.controls.style.display = 'none';
+        gifEls.uploadZone.style.display = 'block';
+    }
+
+    async function processAndRenderGif() {
+        if (!demos.gif.reader) return;
+
+        gifEls.status.style.display = 'flex';
+        gifEls.statusText.innerText = `Extracting ${demos.gif.frameCount} frames & interlacing...`;
+
+        const targetW = 640;
+        const targetH = 400;
+        const gw = demos.gif.reader.width;
+        const gh = demos.gif.reader.height;
+        const nFrames = demos.gif.frameCount;
+
+        // Calculate aspect ratio fit (contain within 640x400 canvas)
+        const scale = Math.min(targetW / gw, targetH / gh);
+        const fitW = Math.round(gw * scale);
+        const fitH = Math.round(gh * scale);
+        const offsetX = Math.round((targetW - fitW) / 2);
+        const offsetY = Math.round((targetH - fitH) / 2);
+
+        // Native GIF frame buffer
+        const rawCanvas = document.createElement('canvas');
+        rawCanvas.width = gw;
+        rawCanvas.height = gh;
+        const rawCtx = rawCanvas.getContext('2d', { willReadFrequently: true });
+
+        // Scaled target frame buffer
+        const fitCanvas = document.createElement('canvas');
+        fitCanvas.width = targetW;
+        fitCanvas.height = targetH;
+        const fitCtx = fitCanvas.getContext('2d', { willReadFrequently: true });
+
+        const bwFramesData = [];
+
+        for (let i = 0; i < nFrames; i++) {
+            const gifFrameIdx = Math.floor((i / nFrames) * demos.gif.totalFrames);
+            const rawImageData = rawCtx.createImageData(gw, gh);
+            
+            demos.gif.reader.decodeAndBlitFrameRGBA(gifFrameIdx, rawImageData.data);
+            rawCtx.putImageData(rawImageData, 0, 0);
+
+            // Fill background with solid white
+            fitCtx.fillStyle = '#ffffff';
+            fitCtx.fillRect(0, 0, targetW, targetH);
+            // Scale raw GIF frame into center of 640x400 canvas
+            fitCtx.drawImage(rawCanvas, 0, 0, gw, gh, offsetX, offsetY, fitW, fitH);
+
+            const decodedData = fitCtx.getImageData(0, 0, targetW, targetH);
+            const pixels = decodedData.data;
+
+            // Strict thresholding: pure black or pure white
+            for (let j = 0; j < pixels.length; j += 4) {
+                const r = pixels[j];
+                const g = pixels[j+1];
+                const b = pixels[j+2];
+                const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+                const val = (luma > demos.gif.threshold) ? 255 : 0;
+
+                pixels[j] = val;
+                pixels[j+1] = val;
+                pixels[j+2] = val;
+            }
+
+            bwFramesData.push(decodedData);
+        }
+
+        // Weave interlaced Scanimation image at 640x400
+        const ctx = gifEls.canvas.getContext('2d');
+        const finalOutput = ctx.createImageData(targetW, targetH);
+
+        for (let y = 0; y < targetH; y++) {
+            for (let x = 0; x < targetW; x++) {
+                const interlaceFrameIdx = Math.floor(x / SLICE_WIDTH) % nFrames;
+                const framePixels = bwFramesData[interlaceFrameIdx].data;
+                const pixelIdx = (y * targetW + x) * 4;
+
+                finalOutput.data[pixelIdx]     = framePixels[pixelIdx];
+                finalOutput.data[pixelIdx + 1] = framePixels[pixelIdx + 1];
+                finalOutput.data[pixelIdx + 2] = framePixels[pixelIdx + 2];
+                finalOutput.data[pixelIdx + 3] = 255;
+            }
+        }
+
+        ctx.putImageData(finalOutput, 0, 0);
+
+        // Update barrier grid gradient cycle for GIF
+        demos.gif.cycleLen = nFrames * SLICE_WIDTH;
+        gifEls.grid.style.background = `repeating-linear-gradient(to right, transparent 0px, transparent 2px, #000000 2px, #000000 ${demos.gif.cycleLen}px)`;
+        
+        if (demos.gif.autoPlay) stopAutoPlay('gif');
+        gifEls.status.style.display = 'none';
+    }
+
+
+    // --- UNIVERSAL DRAGGING SYSTEM ---
+    function setupDragging(key) {
+        const viewport = document.getElementById(`viewport-${key}`);
+        const grid = document.getElementById(`grid-${key}`);
+        const demo = demos[key];
+
+        let isDragging = false;
+        let startX = 0;
+        let startGridX = 0;
+
+        function updateGridPosition() {
+            grid.style.transform = `translateX(${demo.x}px)`;
+        }
+
+        function onPointerDown(e) {
+            if (key === 'gif' && !demo.reader) return;
+            if (demo.autoPlay) stopAutoPlay(key);
+            isDragging = true;
+            startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+            startGridX = demo.x;
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging) return;
+            const currentX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+            const deltaX = currentX - startX;
+            demo.x = startGridX + deltaX;
+            updateGridPosition();
+        }
+
+        function onPointerUp() {
+            isDragging = false;
+        }
+
+        viewport.addEventListener('mousedown', onPointerDown);
+        window.addEventListener('mousemove', onPointerMove);
+        window.addEventListener('mouseup', onPointerUp);
+
+        viewport.addEventListener('touchstart', onPointerDown, { passive: true });
+        window.addEventListener('touchmove', onPointerMove, { passive: true });
+        window.addEventListener('touchend', onPointerUp);
+
+        updateGridPosition();
+    }
+
+
+    // --- PLAYBACK & UI CONTROL FUNCTIONS ---
+
+    function toggleGridVisibility(key, show) {
+        const grid = document.getElementById(`grid-${key}`);
+        grid.style.opacity = show ? '1' : '0';
+    }
+
+    function resetPosition(key) {
+        if (demos[key].autoPlay) stopAutoPlay(key);
+        demos[key].x = -300;
+        document.getElementById(`grid-${key}`).style.transform = `translateX(${demos[key].x}px)`;
+    }
+
+    function toggleAutoPlay(key) {
+        const demo = demos[key];
+        if (demo.autoPlay) {
+            stopAutoPlay(key);
+        } else {
+            startAutoPlay(key);
+        }
+    }
+
+    function startAutoPlay(key) {
+        const demo = demos[key];
+        const card = document.getElementById(`card-${key}`);
+        const playBtn = card.querySelector('.play-btn');
+        
+        demo.autoPlay = true;
+        playBtn.classList.add('btn-active');
+        playBtn.innerText = '⏸ Pause';
+
+        let lastTime = performance.now();
+        function animate(now) {
+            const dt = (now - lastTime) / 1000;
+            lastTime = now;
+
+            demo.x -= dt * 14; 
+            document.getElementById(`grid-${key}`).style.transform = `translateX(${demo.x}px)`;
+
+            demo.animId = requestAnimationFrame(animate);
+        }
+        demo.animId = requestAnimationFrame(animate);
+    }
+
+    function stopAutoPlay(key) {
+        const demo = demos[key];
+        const card = document.getElementById(`card-${key}`);
+        const playBtn = card.querySelector('.play-btn');
+
+        demo.autoPlay = false;
+        if (demo.animId) cancelAnimationFrame(demo.animId);
+        playBtn.classList.remove('btn-active');
+        playBtn.innerText = '▶ Auto Play';
+    }
+
+
+    // --- INITIALIZATION ON LOAD ---
+    window.onload = function() {
+        // Render Procedural Examples
+        renderInterlacedProcedural('canvas-cube', drawCubeFrame);
+        renderInterlacedProcedural('canvas-rings', drawRingsFrame);
+        renderInterlacedProcedural('canvas-runner', drawRunnerFrame);
+
+        // Setup Dragging for all cards
+        setupDragging('cube');
+        setupDragging('rings');
+        setupDragging('runner');
+        setupDragging('gif');
+
+        // Setup GIF Upload & Unload Listeners
+        gifEls.input.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleGifUpload(e.target.files[0]);
+            }
+        });
+        
+        gifEls.unloadBtn.addEventListener('click', unloadGif);
+        gifEls.changeGifBtn.addEventListener('click', triggerFilePicker);
+
+        gifEls.uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); gifEls.uploadZone.classList.add('dragging'); });
+        gifEls.uploadZone.addEventListener('dragleave', () => gifEls.uploadZone.classList.remove('dragging'));
+        gifEls.uploadZone.addEventListener('drop', (e) => { 
+            e.preventDefault(); 
+            gifEls.uploadZone.classList.remove('dragging'); 
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                handleGifUpload(e.dataTransfer.files[0]); 
+            }
+        });
+
+        gifEls.threshSlider.addEventListener('input', (e) => {
+            demos.gif.threshold = parseInt(e.target.value);
+            gifEls.threshVal.innerText = demos.gif.threshold;
+        });
+
+        gifEls.framesSelect.addEventListener('change', (e) => {
+            demos.gif.frameCount = parseInt(e.target.value);
+        });
+
+        gifEls.processBtn.addEventListener('click', () => {
+            processAndRenderGif();
+        });
+    };
+</script>
+</body>
+</html>
