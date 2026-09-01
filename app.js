@@ -105,163 +105,6 @@ if (unlockedAchievements.length === 0) unlockAchievement('welcome');
 renderAchievements();
 updateTimeDisplay();
 
-// ==========================================
-// --- Core Project Array & Setup ---
-// ==========================================
-
-const projects = [
-    "welcome", // the first one
-    "fnftools",
-    "spritesheetmerger",
-    "3danimator",
-    "catmemory",
-    "midiplayer",
-    "mandelbrot",
-    "gswitch",
-    "pfpmaker",
-    "platformer",
-    "throwplayground",
-    { name: "boyfriend test", path: "boyfriend test/index.html" },
-    "grapplinghook",
-    "physicsandbox",
-    "stacktower",
-    "airhockey",
-    "chess",
-    "flappyarena",
-    "solarsystem",
-    "3dplatformerengine",
-    "synchronizedsouls",
-    { name: "midiplayerplus", path: "midiplayerplus/index.html" },
-    "flockybird",
-    { name: "bumfuzzle preview", path: "bumfuzzlepreview/index.html" },
-    "bsodprank",
-    { name: "speedysphere", path: "speedysphere/index.html" },
-    { name: "cube brawlers", path: "cubebrawlers/index.html" },
-    "randomwordgenerator",
-    "fnfworldrecords",
-    "easiestgameever",
-    { name: "ragebait quiz", path: "ragebaitquiz/index.html" },
-    "hexofthehour",
-    "conwaysgameoflife",
-    "fnfengine",
-    { name: "DFJK Remake", path: "dfjkremake/index.html" },
-    "sunset",
-    { name: "Cardboard Ragdoll", path: "cardboard ragdoll/index.html" },
-    { name: "Ultimate Dodging TWO", path: "scratch-1331390137" },
-    { name: "Notepad", path: "notepad/index.html" },
-    "jumpscareprank",
-    { name: "Rubix Cube", path: "rubixcube/index.html" },
-    "rubixcubefixed",
-    { name: "FNF Playground", path: "fnf playground/index.html" },
-    "blobfighting",
-    "faviconextractor",
-    "freegamesorgeyt",
-    "calculator",
-    "orgeytbradwordle",
-    "arrownesetranslator",
-    "scratchlinker",
-    "orgeytaccounts",
-    { name: "COLOR MIX!", path: "color mix/index.html" },
-    "sadfunsandbox",
-    { name: "My OC's lore", path: "loredrop.txt" },
-    "pongbutitsmadewithscratchblocks",
-    "FCR",
-    { name: "idk (By Brad)", path: "idk/index.html" }, // silly project
-    { name: "magnet playground", path: "magnet/index.html" },
-    "batsurvival",
-    "websimprojects",
-    "wheelmaker",
-    "popit",
-    "sb3corrupter",
-    { name: "Polygon printer 2", path: "scratch-1328269671" },
-    { name: "Polygon printer 1", path: "scratch-1288760669" },
-    "jsrunner",
-    "rainbowparkour", // "GAYYYY gAY GAY" stfu rainbow is not the gay flag
-    { name: "First version of my website", path: "may20/index.html" },
-    { name: "what the", path: "index.html" },
-    "onlinebuilding",
-    "piano",
-    { name: "bounce and roll", path: "bounceandroll/index.html" },
-    "makeyourownai",
-    "midisinger",
-    "art",
-    "svgtopng",
-    "beastbrawl",
-    { name: "3d platformer turbowarp", path: "3dplatformerturbowarp/index.html" },
-    "cubecare",
-    { name: "pixel art creator", path: "scratch-1350162529" },
-    "shapemaker",
-    { name: "beat catch", path: "scratch-1350648798" },
-    "beatcatchautocharter",
-    "buddiner", // hey can i get a 10k big mac
-    { name: "control yeah", path: "control.png" }, // the txt was not for the young i changed it
-    "faviconplatformer",
-    "hp", // just hp huh? i wonder why????
-    "nyancatlostinspace",
-    "nyancatlostinspaceairemakebygemini",
-    { name: "cursor death", path: "scratch-1361998604" },
-    "bfdiragdollplayground",
-    { name: "Turbowarp hidden urls", path: "turbowarp hidden urls.md" },
-    { name: "Minimal Snake", path: "minimal snake/index.html" },
-    "3ddonut",
-    "oscilloscope",
-    { name: "Bad apple dodge", path: "https://bad-apple-dodge--orgeyt.on.websim.com/" },
-    "climber",
-    "chess10025",
-    "cmmmplus",
-    "AI remake of cmmm",
-    { name: "Ball game :)", path: "https://rolling-skybound--orgeyt.on.websim.com/" },
-    "emoji games",
-    { name: "3D FNF chart loader", path: "3d FNF" },
-    "infplatformer",
-    { name: "Beat to Pitch MIDI Generator", path: "https://beat-to-pitch-midi-generator--orgeyt.on.websim.com/" },
-    { name: "Neon Synth Piano", path: "https://neon-synth-piano--orgeyt.on.websim.com/" },
-    { name: "My OCs list", path: "my OCs.txt" },
-    { name: "FNF Chart Playground Turbowarp", path: "scratch-1364891540" },
-    "classic mobile game",
-    { name: "3D game in scratch", path: "scratch-1365316275" },
-    { name: "Maze game", path: "scratch-1365697884" },
-    "pass the bomb 3D",
-    { name: "Spider Escape", path: "scratch-1365895767" },
-    "hot potato",
-    { name: "Percision hopper", path: "scratch-1365781683" },
-    "scratch explorer",
-    { name: "Pass the bomb 3d expanded", path: "https://pass-the-bomb-3d--orgeyt.on.websim.com/?v=30" },
-    { name: "Verity™ playground", path: "https://verity-playground--orgeyt.on.websim.com/" },
-    "claudescratchtools", // claude, who made scratch?
-    "coinpuzzle", // flip flip
-    "ABP worldpack extractor", // Cats are liquid game. thats what it supports only. yes cats are liquid is an actual game, and its rlly peak
-    "obbygenerator",
-    "noobmaker", // best friend for making noobs, but classic roblox obby is more than that bro
-    { name: "Huzzrooms - Webrooms (not my game)", path: "data:text/html;base64,YGBgaHRtbAo8IURPQ1RZUEUgaHRtbD4KPGh0bWwgbGFuZz0iZW4iPgo8aGVhZD4KICA8bWV0YSBjaGFyc2V0PSJVVEYtOCI+CiAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9IndpZHRoPWRldmljZS13aWR0aCwgaW5pdGlhbC1zY2FsZT0xLjAiPgogIDx0aXRsZT5XZWJzaW0gR2FtZTwvdGl0bGU+CgogIDxzdHlsZT4KICAgIGgKICAgICogewogICAgICBib3gtc2l6aW5nOiBib3JkZXItYm94OwogICAgfQoKICAgIGh0bWwsIGJvZHkgewogICAgICBtYXJnaW46IDA7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICAgIGZvbnQtZmFtaWx5OiBBcmlhbCwgc2Fucy1zZXJpZjsKICAgIGgKICAgICAgYmFja2dyb3VuZDogIzExMTsKICAgIH0KCiAgICAjZ2FtZSB7CiAgICAgIGRpc3BsYXk6IG5vbmU7CiAgICAgIHdpZHRoOiAxMDAlOwogICAgICBoZWlnaHQ6IDEwMCU7CiAgICAgIGJvcmRlcjogbm9uZTsKICAgIH0KCiAgICAjcG9wdXBPdmVybGF5IHsKICAgICAgcG9zaXRpb246IGZpeGVkOwogICAgICBpbnNldDogMDsKICAgICAgZGlzcGxheTogZmxleDsKICAgICAgYWxpZ24taXRlbXM6IGNlbnRlcjsKICAgICAganVzdGlmeS1jb250ZW50OiBjZW50ZXI7CiAgICAgIGJhY2tncm91bmQ6IHJnYmEocCwgMCwgMCwgMC43NSk7CiAgICAgIHotaW5kZXg6IDEwOwogICAgfQoKICAgICNwb3B1cCB7CiAgICAgIHdpZHRoOiBtaW4oOTAlLCA1MDBweCk7CiAgICAgIHBhZGRpbmc6IDI4cHg7CiAgICAgIGJhY2tncm91bmQ6IHdoaXRlOwogICAgICBib3JkZXItcmFkaXVzOiAxMnB4OwogICAgICBib3gtc2hhZG93OiAwIDEwcHggNDBweCByZ2JhKDAsIDAsIDAsIDAuNSk7CiAgICAgIHRleHQtYWxpZ246IGNlbnRlcjsKICAgIH0KCiAgICAjcG9wdXAgcCB7CiAgICAgIG1hcmdpbjogMCAwIDI0cHg7CiAgICAgIGZvbnQtc2l6ZTogMThweDsKICAgICAgbGluZS1oZWlnaHQ6IDEuNTsKICAgICAgY29sb3I6ICMyMjI7CiAgICB9CgogICAgI29rQnV0dG9uIHsKICAgICAgcGFkZGluZzogMTBweCAyOHB4OwogICAgICBib3JkZXI6IG5vbmU7CiAgICAgIGJvcmRlci1yYWRpdXM6IDdweDsKICAgICAgYmFja2dyb3VuZDogIzU4NjVmMjsKICAgICAgY29sb3I6IHdoaXRlOwogICAgICBmb250LXNpemU6IDE2cHg7CiAgICAgIGZvbnQtd2VpZ2h0OiBib2xkOwogICAgICBjdXJzb3I6IHBvaW50ZXI7CiAgICB9CgogICAgI29rQnV0dG9uOmhvdmVyIHsKICAgICAgYmFja2dyb3VuZDogIzQ3NTJjNDsKICAgIH0KIHN0eWxlPgo8L2hlYWQ+Cgo8Ym9keT4KCiAgPGRpdiBpZD0icG9wdXBPdmVybGF5Ij4KICAgIDxkaXYgaWQ9InBvcHVwIj4KICAgICAgPHA+VGhpcyBpcyBub3QgbXkgZ2FtZS4gdGhpcyBnYW1lIGlzIG1hZGUgYnkgTGFycHNvbGV0ZV9nYW1pbmcgb24gd2Vic2ltPC9wPgogICAgICA8YnV0dG9uIGlkPSJva0J1dHRvbiI+T0s8L2J1dHRvbj4KICAgIDwvZGl2PgogIDwvZGl2PgoKICA8aWZyYW1lCiAgICBpZD0iZ2FtZSIKICAgIHNyYz0iYWJvdXQ6YmxhbmsiCiAgICBhbGxvd2Z1bGxzY3JlZW4+CiAgPC9pZnJhbWU+CgogIDxzY3JpcHQ+CiAgICBjb25zdCBwb3B1cE92ZXJsYXkgPSBkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgicG9wdXBPdmVybGF5Iik7CiAgICBjb25zdCBva0J1dHRvbiA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJva0J1dHRvbiIpOwogICAgY29uc3QgZ2FtZSA9IGRvY3VtZW50LmdldEVsZW1lbnRCeUlkKCJnYW1lIik7CgogICAgb2tCdXR0b24uYWRkRXZlbnRMaXN0ZW5lcigiY2xpY2siLCAoKSA9PiB7CiAgICAgIGdhbWUuc3JjID0gImh0dHBzOi8vd2Vicm9vbXMtLWxhcnBzb2xldGVfZ2FtaW5nLm9uLndlYnNpbS5jb20vIjsKICAgICAgZ2FtZS5zdHlsZS5kaXNwbGF5ID0gImJsb2NrIjsKICAgICAgcG9wdXBPdmVybGF5LnN0eWxlLmRpc3BsYXkgPSAibm9uZSI7CiAgICB9KTsKICA8L3NjcmlwdD4KCjwvYm9keT4KPC9odG1sPgpgYGA=" },
-    "emojibattle", // thank god we left the insane url
-    "embed",
-    "Vibin (Not my project)", // yeah not mine lol
-    "imagefinder",
-    "memorydrawing",
-    "errormaker", // three new projects in a row! holy s\it bro!!
-    "translate scratch projects", // when its japanese and you rlly want to understand it
-    "oiiatranslator", // oiia? oiiaiooiaioaia!!
-    "classicrobloxobby", // GROK@!!!!! GROK MADE THIS!!!!!! and its sooooooo PEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEAK
-    "ascii wheel", // wow
-    "translate smt 500 times", // what?????????? WHAT THE FU- youtube has banned your account, please check your email for further advice. // lollll
-    "bombparty offline", // my fav, totally
-    "bombparty practice", // i never use this lol
-    "physics quest",
-    "NoEscape",
-    "⛓️‍💥Ultimate Breakout", // ping pong boom pow OH SHIT TEN TRILLION BALLS???
-    "color war",
-    "softbody", // softer than my- ok nvm
-    "breath if prime",
-    { name: "Utopia Recreation", path: "https://utopia-ecosystem--orgeyt.on.websim.com/" },
-    { name: "AI Meme Generator (Trust me its funny)", path: "https://orgeyt-meme-gen--orgeyt.on.websim.com/" }, // i laughed at the memes
-    "CursorHub", // biggest project yet
-    { name: "Classic Game", path: "classic games/index.html" }, // sonic, mario, kirby, wowwwwwwwwww!!!!! :3
-    "platformer maker", // make some hard levels idc bro      |
-    "ultimate tic tac toe", // look at the note at the bottom v
-    "snake battle" // yeah... im moving the projects to a projects folder tomorrow, its getting REEAL messy here.
-];
-
 const fileList = document.getElementById('file-list');
 const runnerFrame = document.getElementById('runner-frame');
 const searchBar = document.getElementById('search-bar');
@@ -386,6 +229,13 @@ function renderProjectList() {
 function loadProject(project) {
     let projectParam = (typeof project === 'object') ? project.name : project;
     let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
+
+if (!filePath.startsWith('http') &&
+    !filePath.startsWith('data:') &&
+    !filePath.startsWith('scratch-') &&
+    !filePath.startsWith('projects/')) {
+    filePath = `projects/${filePath}`;
+}
     
     let isExternalUrl = false;
     
@@ -871,20 +721,6 @@ const galleryImg = document.getElementById('gallery-img');
 const galleryCaption = document.getElementById('gallery-caption');
 const prevBtn = document.getElementById('prev-btn');
 const nextBtn = document.getElementById('next-btn');
-
-const galleryItems = [
-    { src: "Gallery/AAUGH.png", caption: '"Fun fact, this was actually the first file uploaded."' },
-    { src: "Gallery/NOO.png", caption: '"NOO THEY CHANGED THE GOOGLE DRIVE LOGO"' },
-    { src: "Gallery/avatar.png", caption: '"this is fine"' },
-    { src: "Gallery/cards.jpg", caption: "" },
-    { src: "Gallery/finaltest.jpg", caption: "" },
-    { src: "Gallery/darn.jpg", caption: "fr"},
-    { src: "Gallery/amongus art.png", caption: "among us art i made on my phone. not my original character" },
-    { src: "Gallery/Untitled178.png", caption: "more art i made on my phone xd"},
-    { src: "Gallery/ugh....png", caption: "ok so something just happened (jul 8), and it actually scared me. i was updating my site with gemini, until my css got nuked. idk what happened but something happened with the css. luckly github had back ups which i used."},
-    { src: "Gallery/ABP.png", caption: "I played 'cats are liquid: a better place' and it was peak. i played the full story, all 12 worlds, on my phone. the lore was awesome, and the new machanics every new world was awesome. the game was a 10/10, i highly recommend the game if your bored or smt. im some what in the game's community now, so maybe expect some content about the game on my channel or smt. this game is also old, but still getting updates (i hope)"},
-    { src: "Gallery/ugh....png", caption: "Gemini decided to nuke the gallery lol but i fixed it"},
-];
 
 let galleryIndex = 0;
 let viewedGalleryIndices = new Set();
