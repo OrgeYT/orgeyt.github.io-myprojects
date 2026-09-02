@@ -386,26 +386,48 @@
       "homebrew": false
     },
     {
-  "id": "nes-funkin",
-  "title": "NES Funkin'",
-  "system": "nes",
-  "file": "NES Funkin.nes",
-  "thumb": "NES Funkin.webp",
-  "year": 2024,
-  "hack": false,
-  "homebrew": true,
-  "description": "Basically FNF Week 1, but ported to the NES. Rhythm battle the original Friday Night Funkin' tracks on classic hardware."
-},
-{
-  "id": "super-boy",
-  "title": "Super boy",
-  "system": "sms",
-  "file": "Super boy.sms",
-  "thumb": "Super boy.png",
-  "year": 1989,
-  "hack": false,
-  "homebrew": false,
-  "description": "An infamous South Korean bootleg clone of Super Mario Bros. developed by Zemina, porting the iconic 8-bit platformer to Sega hardware."
-}
+      "id": "nes-funkin",
+      "title": "NES Funkin'",
+      "system": "nes",
+      "file": "NES Funkin.nes",
+      "thumb": "NES Funkin.webp",
+      "year": 2024,
+      "hack": false,
+      "homebrew": true,
+      "description": "Basically FNF Week 1, but ported to the NES. Rhythm battle the original Friday Night Funkin' tracks on classic hardware."
+    },
+    {
+      "id": "super-boy",
+      "title": "Super boy",
+      "system": "sms",
+      "file": "Super boy.sms",
+      "thumb": "Super boy.png",
+      "year": 1989,
+      "hack": false,
+      "homebrew": false,
+      "description": "An infamous South Korean bootleg clone of Super Mario Bros. developed by Zemina, porting the iconic 8-bit platformer to Sega hardware."
+    },
+    {
+      "id": "sonic-snes",
+      "title": "Sonic SNES",
+      "system": "snes",
+      "file": "Sonic-snes.smc",
+      "thumb": "sonic snes.png",
+      "year": 2020,
+      "hack": false,
+      "description": "A fan-made Sonic adventure built from scratch for the SNES, recreating the classic Mega Drive game with faithful graphics, precise gameplay, and its iconic soundtrack.",
+      "homebrew": true
+    },
+    {
+      "id": "sonic-mixed",
+      "title": "Sonic 1 Mixed",
+      "system": "genesis",
+      "file": "Sonic 1 Mixed Beta 1.3.bin",
+      "thumb": "sonic mixed.png",
+      "year": 2024,
+      "hack": true,
+      "description": "A fan-made Sonic 1 hack that mixes elements from Sonic Mania and the 8-bit and 16-bit Sonic games, with remastered palettes, new abilities, and playable characters including Tails and Knuckles.",
+      "homebrew": false
+    }
   ]
 }
