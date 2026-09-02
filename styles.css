@@ -1137,3 +1137,138 @@ body.layout-down #file-list { max-height: 200px; }
 .code-display::-webkit-scrollbar-thumb:hover {
     background: var(--text-accent);
 }
+
+/* ==========================================
+   Project of Time & Visited Projects Styles
+   ========================================== */
+
+.pot-time-btn.active {
+    background-color: var(--btn-primary-hover) !important;
+    box-shadow: 0 0 8px var(--accent-solid);
+}
+
+.pot-time-btn:hover {
+    background-color: var(--btn-primary-hover);
+}
+
+#pot-project-display {
+    text-align: center;
+}
+
+#pot-project-name {
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+#pot-project-info {
+    font-style: italic;
+    color: var(--text-accent);
+}
+
+/* ==========================================
+   AI Themes
+   ========================================== */
+
+/* ChatGPT Theme */
+:root[data-theme="chatgpt"] {
+    --bg-main: #0d0d0d;
+    --bg-sidebar: #1a1a1a;
+    --border-main: #2d2d2d;
+    --text-main: #ececec;
+    --text-accent: #10A37F;
+    --btn-primary: #10A37F;
+    --btn-primary-hover: #1a9970;
+    --btn-secondary: #2d2d2d;
+    --btn-secondary-hover: #3d3d3d;
+    --accent-transparent: rgba(16, 163, 127, 0.2);
+    --accent-solid: #10A37F;
+}
+
+/* Gemini Theme */
+:root[data-theme="gemini"] {
+    --bg-main: #0a0e27;
+    --bg-sidebar: #131829;
+    --border-main: #1e2749;
+    --text-main: #ffffff;
+    --text-accent: #007FFF;
+    --btn-primary: #007FFF;
+    --btn-primary-hover: #0066cc;
+    --btn-secondary: #1e2749;
+    --btn-secondary-hover: #2a3a5c;
+    --accent-transparent: rgba(0, 127, 255, 0.2);
+    --accent-solid: #007FFF;
+}
+
+/* Claude Dark Theme */
+:root[data-theme="claude-dark"] {
+    --bg-main: #1a1410;
+    --bg-sidebar: #2d1f1a;
+    --border-main: #4a3430;
+    --text-main: #ffffff;
+    --text-accent: #FFA500;
+    --btn-primary: #FFA500;
+    --btn-primary-hover: #ff9400;
+    --btn-secondary: #3d2d25;
+    --btn-secondary-hover: #4a3430;
+    --accent-transparent: rgba(255, 165, 0, 0.2);
+    --accent-solid: #FFA500;
+}
+
+/* Grok Theme */
+:root[data-theme="grok"] {
+    --bg-main: #ffffff;
+    --bg-sidebar: #f5f5f5;
+    --border-main: #e0e0e0;
+    --text-main: #000000;
+    --text-accent: #666666;
+    --btn-primary: #000000;
+    --btn-primary-hover: #333333;
+    --btn-secondary: #f5f5f5;
+    --btn-secondary-hover: #e0e0e0;
+    --accent-transparent: rgba(0, 0, 0, 0.1);
+    --accent-solid: #000000;
+}
+
+/* DeepSeek Theme */
+:root[data-theme="deepseek"] {
+    --bg-main: #0f0f1e;
+    --bg-sidebar: #1a1a2e;
+    --border-main: #2d2d4a;
+    --text-main: #ffffff;
+    --text-accent: #4D6BFE;
+    --btn-primary: #4D6BFE;
+    --btn-primary-hover: #3d5aee;
+    --btn-secondary: #2d2d4a;
+    --btn-secondary-hover: #3d3d5a;
+    --accent-transparent: rgba(77, 107, 254, 0.2);
+    --accent-solid: #4D6BFE;
+}
+
+/* WebSim Agent Theme */
+:root[data-theme="websim"] {
+    --bg-main: #0a0a0a;
+    --bg-sidebar: #1a1a1a;
+    --border-main: #333333;
+    --text-main: #ffffff;
+    --text-accent: #FF1493;
+    --btn-primary: #00D9FF;
+    --btn-primary-hover: #00CCFF;
+    --btn-secondary: #2a2a2a;
+    --btn-secondary-hover: #3a3a3a;
+    --accent-transparent: rgba(0, 217, 255, 0.2);
+    --accent-solid: #00D9FF;
+}
+
+:root[data-theme="websim"] .modal-btn {
+    background: linear-gradient(135deg, #FF1493 0%, #00D9FF 25%, #FFD700 50%, #00FF00 75%, #FF1493 100%);
+    background-size: 400% 400%;
+    animation: websim-gradient 3s ease infinite;
+    color: #000;
+    font-weight: bold;
+}
+
+@keyframes websim-gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}

@@ -30,6 +30,103 @@ let hasChangedTheme = false;
 let hasChangedFavicon = false;
 let isInitialLoad = true;
 
+// ==========================================
+// --- Visit Tracking System ---
+// ==========================================
+
+let visitedProjects = JSON.parse(localStorage.getItem('orgeyt-visited-projects')) || {};
+
+function getProjectVisitCount(projectName) {
+    const key = projectName.toLowerCase();
+    if (visitedProjects[key]) {
+        return visitedProjects[key].count || 0;
+    }
+    return 0;
+}
+
+function getProjectLastVisit(projectName) {
+    const key = projectName.toLowerCase();
+    if (visitedProjects[key]) {
+        return visitedProjects[key].lastVisit || null;
+    }
+    return null;
+}
+
+function recordProjectVisit(projectName) {
+    const key = projectName.toLowerCase();
+    const now = Date.now();
+    if (!visitedProjects[key]) {
+        visitedProjects[key] = { count: 0, visits: [] };
+    }
+    visitedProjects[key].count++;
+    visitedProjects[key].lastVisit = now;
+    if (!visitedProjects[key].visits) {
+        visitedProjects[key].visits = [];
+    }
+    visitedProjects[key].visits.push(now);
+    localStorage.setItem('orgeyt-visited-projects', JSON.stringify(visitedProjects));
+}
+
+function getRelativeTimeText(timestamp) {
+    if (!timestamp) return 'Never';
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (seconds < 60) return 'Visited just now';
+    if (minutes < 60) {
+        return `Visited ${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+    if (hours < 24) {
+        return `Visited ${hours} hour${hours === 1 ? '' : 's'} ago`;
+    }
+    if (days === 1) return 'Visited yesterday';
+    if (days < 7) {
+        return `Visited ${days} days ago`;
+    }
+    if (days < 30) {
+        const weeks = Math.floor(days / 7);
+        return `Visited ${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    }
+    if (days < 365) {
+        const months = Math.floor(days / 30);
+        return `Visited ${months} month${months === 1 ? '' : 's'} ago`;
+    }
+    const years = Math.floor(days / 365);
+    return `Visited ${years} year${years === 1 ? '' : 's'} ago`;
+}
+
+function clearVisitedProjects() {
+    if (confirm('Are you sure you want to clear all visit history? This cannot be undone.')) {
+        visitedProjects = {};
+        localStorage.removeItem('orgeyt-visited-projects');
+        renderProjectList();
+    }
+}
+
+// Keep "Visited X minutes/hours ago" text updated live
+setInterval(() => {
+    const buttons = fileList?.querySelectorAll('.file-btn');
+    if (!buttons) return;
+
+    buttons.forEach(button => {
+        const projectName = button.dataset.projectName;
+        if (!projectName) return;
+
+        const lastVisit = getProjectLastVisit(projectName);
+        if (!lastVisit) return;
+
+        const visitInfo = button.querySelector('[data-visit-info]');
+        if (visitInfo) {
+            visitInfo.textContent = `Visited ${getProjectVisitCount(projectName)} time${getProjectVisitCount(projectName) === 1 ? '' : 's'} • ${getRelativeTimeText(lastVisit).replace('Visited ', '')}`;
+        }
+    });
+}, 1000);
+
 function unlockAchievement(id) {
     if (!unlockedAchievements.includes(id)) {
         unlockedAchievements.push(id);
@@ -193,11 +290,27 @@ function renderProjectList() {
         return path.startsWith('scratch-');
     };
 
-    const welcomeProjects = projects.filter(p => isWelcome(p));
-    const favoritedProjects = projects.filter(p => !isWelcome(p) && isFavorite(p));
-    const regularProjects = projects.filter(p => !isWelcome(p) && !isFavorite(p));
+    const isVisited = (p) => {
+        let name = typeof p === 'object' ? p.name : p;
+        return getProjectVisitCount(name) > 0;
+    };
 
-    const sortedProjects = [...welcomeProjects, ...favoritedProjects, ...regularProjects];
+    let sortedProjects;
+    
+    if (currentProjectTab === 'visited') {
+        // Show only visited projects, sorted by visit count (descending)
+        const visitedProjectsList = projects.filter(p => isVisited(p));
+        sortedProjects = visitedProjectsList.sort((a, b) => {
+            const nameA = typeof a === 'object' ? a.name : a;
+            const nameB = typeof b === 'object' ? b.name : b;
+            return getProjectVisitCount(nameB) - getProjectVisitCount(nameA);
+        });
+    } else {
+        const welcomeProjects = projects.filter(p => isWelcome(p));
+        const favoritedProjects = projects.filter(p => !isWelcome(p) && isFavorite(p));
+        const regularProjects = projects.filter(p => !isWelcome(p) && !isFavorite(p));
+        sortedProjects = [...welcomeProjects, ...favoritedProjects, ...regularProjects];
+    }
 
     sortedProjects.forEach(project => {
         let projectParam = (typeof project === 'object') ? project.name : project;
@@ -206,6 +319,7 @@ function renderProjectList() {
         if (currentProjectTab === 'favorites' && !isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'scratch' && !isScratch(project)) return;
+        if (currentProjectTab === 'visited' && !isVisited(project)) return;
 
         const button = document.createElement('button');
         
@@ -217,7 +331,20 @@ function renderProjectList() {
         let btnText = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
         if (isFav) btnText += " ⭐";
         
-        button.textContent = btnText;
+        // Add visit information to all buttons
+        const visitCount = getProjectVisitCount(projectParam);
+        const lastVisitTime = getProjectLastVisit(projectParam);
+        const relativeTime = getRelativeTimeText(lastVisitTime);
+        
+        if (visitCount > 0) {
+            button.innerHTML = `<div style="display: flex; flex-direction: column; align-items: flex-start; width: 100%;">
+                <div>${btnText}</div>
+<div data-visit-info style="font-size: 0.8rem; color: var(--text-accent); margin-top: 2px;">Visited ${visitCount} time${visitCount === 1 ? '' : 's'} • ${relativeTime}</div>
+            </div>`;
+        } else {
+            button.textContent = btnText;
+        }
+        
         button.onclick = () => { loadProject(project); };
         fileList.appendChild(button);
     });
@@ -263,6 +390,54 @@ if (!filePath.startsWith('http') &&
     }
     
     isInitialLoad = false;
+    
+// Record the visit
+recordProjectVisit(projectParam);
+
+const clickedButton = fileList?.querySelector(
+    `[data-project-name="${CSS.escape(projectParam.toLowerCase())}"]`
+);
+
+if (clickedButton) {
+    const count = getProjectVisitCount(projectParam);
+    const lastVisit = getProjectLastVisit(projectParam);
+
+    let visitInfo = clickedButton.querySelector('[data-visit-info]');
+
+    // Create the visit info if this is the first visit
+    if (!visitInfo) {
+        let container = clickedButton.querySelector('div');
+
+        if (!container) {
+            const oldText = clickedButton.textContent;
+
+            clickedButton.innerHTML = '';
+
+            container = document.createElement('div');
+            container.style.display = 'flex';
+            container.style.flexDirection = 'column';
+            container.style.alignItems = 'flex-start';
+            container.style.width = '100%';
+
+            const title = document.createElement('div');
+            title.textContent = oldText;
+            container.appendChild(title);
+
+            clickedButton.appendChild(container);
+        }
+
+        visitInfo = document.createElement('div');
+        visitInfo.dataset.visitInfo = '';
+        visitInfo.style.fontSize = '0.8rem';
+        visitInfo.style.color = 'var(--text-accent)';
+        visitInfo.style.marginTop = '2px';
+
+        container.appendChild(visitInfo);
+    }
+
+    visitInfo.textContent =
+        `Visited ${count} time${count === 1 ? '' : 's'} • ${getRelativeTimeText(lastVisit).replace(/^Visited /, '')}`;
+}
     
     runnerFrame.src = filePath;
     currentProjectParam = projectParam;
@@ -1001,6 +1176,118 @@ window.addEventListener('resize', () => {
         lgDrawChart();
     }
 });
+
+// ===========================================
+// --- Project of the Hour/Day/Year Feature ---
+// ===========================================
+
+function getHashSeed(type) {
+    const now = new Date();
+    let period;
+    
+    if (type === 'hour') {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        const hour = String(now.getHours()).padStart(2, '0');
+        period = `${year}-${month}-${date}-${hour}`;
+    } else if (type === 'day') {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const date = String(now.getDate()).padStart(2, '0');
+        period = `${year}-${month}-${date}`;
+    } else if (type === 'year') {
+        const year = now.getFullYear();
+        period = `${year}`;
+    }
+    
+    return period;
+}
+
+function getProjectOfThePeriod(type) {
+    if (projects.length === 0) return null;
+    
+    const seed = getHashSeed(type);
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+    }
+    
+    const index = Math.abs(hash) % projects.length;
+    return projects[index];
+}
+
+function displayProjectOfTime(type) {
+    const project = getProjectOfThePeriod(type);
+    if (!project) return;
+    
+    const projectName = typeof project === 'object' ? project.name : project;
+    const displayName = typeof project === 'object' ? project.name : project;
+    
+    let timeLabel = type.charAt(0).toUpperCase() + type.slice(1);
+    
+    document.getElementById('pot-project-name').textContent = `Project of the ${timeLabel}`;
+    document.getElementById('pot-project-info').textContent = displayName;
+}
+
+const projectOfTimeBtn = document.getElementById('project-of-time-btn');
+const projectOfTimeModal = document.getElementById('project-of-time-modal');
+const closeProjectOfTimeBtn = document.getElementById('close-project-of-time-btn');
+const potPlayBtn = document.getElementById('pot-play-btn');
+
+let currentPotType = 'hour';
+let currentPotProject = null;
+
+if (projectOfTimeBtn) {
+    projectOfTimeBtn.addEventListener('click', () => {
+        currentPotType = 'hour';
+        currentPotProject = getProjectOfThePeriod('hour');
+        displayProjectOfTime('hour');
+        
+        // Update button states
+        document.querySelectorAll('.pot-time-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector('[data-pot-type="hour"]').classList.add('active');
+        
+        projectOfTimeModal.classList.remove('hidden');
+    });
+}
+
+if (closeProjectOfTimeBtn) {
+    closeProjectOfTimeBtn.addEventListener('click', () => projectOfTimeModal.classList.add('hidden'));
+}
+
+document.querySelectorAll('.pot-time-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        const type = e.target.dataset.potType;
+        currentPotType = type;
+        currentPotProject = getProjectOfThePeriod(type);
+        displayProjectOfTime(type);
+        
+        // Update button states
+        document.querySelectorAll('.pot-time-btn').forEach(b => {
+            b.classList.remove('active');
+        });
+        e.target.classList.add('active');
+    });
+});
+
+if (potPlayBtn) {
+    potPlayBtn.addEventListener('click', () => {
+        if (currentPotProject) {
+            loadProject(currentPotProject);
+            projectOfTimeModal.classList.add('hidden');
+        }
+    });
+}
+
+const clearVisitedBtn = document.getElementById('clear-visited-btn');
+if (clearVisitedBtn) {
+    clearVisitedBtn.addEventListener('click', clearVisitedProjects);
+}
 
 // ===========================================
 // --- View lists.js Source Code Modal ------

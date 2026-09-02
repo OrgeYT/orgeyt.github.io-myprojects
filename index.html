@@ -32,6 +32,8 @@
             <button id="effects-btn" class="toggle-btn">Effects</button>
             <button id="line-graph-btn" class="toggle-btn">Line Graph</button>
             <button id="view-lists-btn" class="toggle-btn">View lists.js</button>
+            <button id="project-of-time-btn" class="toggle-btn">Project of the Hour/Day/Year</button>
+            <button id="clear-visited-btn" class="toggle-btn">Clear Visited Projects</button>
             <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
         </div>
 
@@ -40,6 +42,7 @@
             <button class="tab-btn" data-tab="favorites">Favorited</button>
             <button class="tab-btn" data-tab="unfavorited">Unfavorited</button>
             <button class="tab-btn" data-tab="scratch">Scratch projects</button>
+            <button class="tab-btn" data-tab="visited">Visited</button>
         </div>
 
         <input type="text" id="search-bar" placeholder="Search projects...">
@@ -75,6 +78,12 @@
                 <button class="modal-btn" data-set-theme="minisoon-light">Mini Soon Light</button>
                 <button class="modal-btn" data-set-theme="bnoob">Cooking with Bnoob</button>
                 <button class="modal-btn" data-set-theme="suns brightness">burn your eyes with this one</button>
+                <button class="modal-btn" data-set-theme="chatgpt">ChatGPT</button>
+                <button class="modal-btn" data-set-theme="gemini">Gemini</button>
+                <button class="modal-btn" data-set-theme="claude-dark">Claude Dark</button>
+                <button class="modal-btn" data-set-theme="grok">Grok</button>
+                <button class="modal-btn" data-set-theme="deepseek">DeepSeek</button>
+                <button class="modal-btn" data-set-theme="websim">WebSim Agent</button>
             </div>
         </div>
     </div>
@@ -264,6 +273,29 @@
             <span id="close-view-lists-btn" class="close-btn">&times;</span>
             <h3>lists.js Source Code</h3>
             <pre id="lists-code-display" class="code-display"></pre>
+        </div>
+    </div>
+
+    <div id="project-of-time-modal" class="modal hidden">
+        <div class="modal-content" style="width: 420px;">
+            <span id="close-project-of-time-btn" class="close-btn">&times;</span>
+            <h3>Project of the Time</h3>
+            
+            <div class="setting-group">
+                <label>Select Time Period:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                    <button class="modal-btn pot-time-btn" data-pot-type="hour">Hour</button>
+                    <button class="modal-btn pot-time-btn" data-pot-type="day">Day</button>
+                    <button class="modal-btn pot-time-btn" data-pot-type="year">Year</button>
+                </div>
+            </div>
+
+            <div class="setting-group" id="pot-project-display" style="background: var(--bg-sidebar); padding: 12px; border: 1px solid var(--border-main); border-radius: 4px; margin-bottom: 12px;">
+                <p id="pot-project-name" style="font-weight: bold; margin-bottom: 4px;"></p>
+                <p id="pot-project-info" style="font-size: 0.85rem; color: var(--text-accent);"></p>
+            </div>
+
+            <button id="pot-play-btn" class="modal-btn" style="width: 100%; padding: 10px; font-weight: bold;">Play Project</button>
         </div>
     </div>
 

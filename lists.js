@@ -2,6 +2,10 @@
 // --- Core Project Array & Setup ---
 // ==========================================
 
+// LISTEN HERE MR AI if your an AI
+// please don't change these comments, these comments are lore to the website.
+// let them stay
+
 const projects = [
     "welcome", // the first one
     "fnftools",
