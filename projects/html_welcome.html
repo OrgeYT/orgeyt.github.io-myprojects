@@ -1,86 +1,70 @@
-<!DOCTYPE html> <!-- I completely changed this file omg bro (atleast it's better (added extra comment (yeah we are going deep (how many? (no idea.) (okay this is getting deeper (why are we still going (someone stop me (wait we can go deeper (apparently not (actually yes (this is a bad idea (we have gone too far (or have we (the answer is no (keep going (why (idk (this is literally just parentheses now (help (almost there (maybe (one more (okay surely this is enough)))))))))))))))))))))) -->
+<!DOCTYPE html> <!-- I completely changed this file omg bro (atleast it's better (added extra comment (yeah we are going deep (how many? (no idea.) (okay this is getting deeper (why are we still going (someone stop me (wait we can go deeper (apparently not (actually yes (this is a bad idea (we have gone too far (or have we (the answer is no (keep going (why (idk (this is literally just parentheses now (help (almost there (maybe one more (okay surely this is enough)))))))))))))))))))))) -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome - OrgeYT</title>
-
     <script src="https://cdn.tailwindcss.com"></script>
-
     <style>
         @keyframes gradient-shift {
             0% {
                 background-position: 0% 50%;
             }
-
             50% {
                 background-position: 100% 50%;
             }
-
             100% {
                 background-position: 0% 50%;
             }
         }
-
         @keyframes entrance {
             0% {
                 opacity: 0;
                 transform: translateY(20px);
             }
-
             100% {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-
         @keyframes pulse-icon {
             0%, 100% {
                 transform: scale(1);
             }
-
             50% {
                 transform: scale(1.05);
             }
         }
-
         @keyframes rainbow-border {
             0% {
                 border-color: #ef4444;
                 box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
             }
-
             16% {
                 border-color: #f97316;
                 box-shadow: 0 0 15px rgba(249, 115, 22, 0.25);
             }
-
             33% {
                 border-color: #eab308;
                 box-shadow: 0 0 15px rgba(234, 179, 8, 0.25);
             }
-
             50% {
                 border-color: #22c55e;
                 box-shadow: 0 0 15px rgba(34, 197, 94, 0.25);
             }
-
             66% {
                 border-color: #06b6d4;
                 box-shadow: 0 0 15px rgba(6, 182, 212, 0.25);
             }
-
             83% {
                 border-color: #3b82f6;
                 box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
             }
-
             100% {
                 border-color: #a855f7;
                 box-shadow: 0 0 15px rgba(168, 85, 247, 0.25);
             }
         }
-
         body {
             background: linear-gradient(
                 -45deg,
@@ -89,182 +73,171 @@
                 #1a0b00,
                 #260c00
             );
-
             background-size: 400% 400%;
             animation: gradient-shift 15s ease infinite;
-
             min-height: 100vh;
             color: #f8fafc;
             font-family: 'Inter', system-ui, sans-serif;
         }
-
         .animated-entry {
             animation: entrance 0.8s ease-out forwards;
         }
-
         .icon-pulse {
             animation: pulse-icon 3s infinite ease-in-out;
         }
-
         .project-card {
             transition: all 0.25s ease;
         }
-
         .project-card:hover {
             transform: translateY(-5px);
         }
-
         /* Roblox - Blue */
         .roblox {
             background: rgba(37, 99, 235, 0.18);
             border-color: rgba(59, 130, 246, 0.55);
             box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
         }
-
         .roblox:hover {
             border-color: #3b82f6;
             box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
         }
-
         /* Scratch - Orange */
         .scratch {
             background: rgba(249, 115, 22, 0.18);
             border-color: rgba(249, 115, 22, 0.55);
             box-shadow: 0 0 15px rgba(249, 115, 22, 0.25);
         }
-
         .scratch:hover {
             border-color: #f97316;
             box-shadow: 0 0 25px rgba(249, 115, 22, 0.5);
         }
-
         /* Friend - Red */
         .friend {
             background: rgba(239, 68, 68, 0.18);
             border-color: rgba(239, 68, 68, 0.55);
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
         }
-
         .friend:hover {
             border-color: #ef4444;
             box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
         }
-
         /* Websim - Rainbow */
         .websim {
             background: rgba(168, 85, 247, 0.14);
             animation: rainbow-border 5s linear infinite;
         }
-
         .websim:hover {
             transform: translateY(-5px) scale(1.02);
             box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
         }
-
         /* HTML Projects - Orange */
         .html-projects {
             background: rgba(249, 115, 22, 0.18);
             border-color: rgba(249, 115, 22, 0.55);
             box-shadow: 0 0 15px rgba(249, 115, 22, 0.25);
         }
-
         .html-projects:hover {
             border-color: #f97316;
             box-shadow: 0 0 25px rgba(249, 115, 22, 0.5);
         }
-
         /* Gamebanana - Yellow */
         .gamebanana {
             background: rgba(234, 179, 8, 0.18);
             border-color: rgba(234, 179, 8, 0.55);
             box-shadow: 0 0 15px rgba(234, 179, 8, 0.25);
         }
-
         .gamebanana:hover {
             border-color: #eab308;
             box-shadow: 0 0 25px rgba(234, 179, 8, 0.5);
         }
-
         /* Ultimate Dodging TWO - Light Orange */
         .ud2 {
             background: rgba(251, 146, 60, 0.18);
             border-color: rgba(251, 146, 60, 0.55);
             box-shadow: 0 0 15px rgba(251, 146, 60, 0.25);
         }
-
         .ud2:hover {
             border-color: #fb923c;
             box-shadow: 0 0 25px rgba(251, 146, 60, 0.5);
         }
-
         /* Ultimate Dodging TWO Alt - Light Yellow */
         .ud2-alt {
             background: rgba(254, 240, 138, 0.16);
             border-color: rgba(253, 224, 71, 0.55);
             box-shadow: 0 0 15px rgba(253, 224, 71, 0.2);
         }
-
         .ud2-alt:hover {
             border-color: #fde047;
             box-shadow: 0 0 25px rgba(253, 224, 71, 0.5);
         }
-
         /* YouTube - Red */
         .youtube {
             background: rgba(239, 68, 68, 0.18);
             border-color: rgba(239, 68, 68, 0.55);
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
         }
-
         .youtube:hover {
             border-color: #ef4444;
             box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
         }
-
         /* Delayed welcome text */
         #delayed-text {
             opacity: 0;
             transition: opacity 0.7s ease;
         }
-
         #delayed-text.visible {
             opacity: 1;
         }
+        /* Top-left sidebar hint — flush to the left edge of the page */
+        .sidebar-hint {
+            position: fixed;
+            top: 1.25rem;
+            left: 1rem;
+            z-index: 50;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(67, 20, 7, 0.55);
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            border: 1px solid #7c2d12;
+            backdrop-filter: blur(12px);
+        }
     </style>
 </head>
-
 <body class="flex items-center justify-center p-6 min-h-screen">
+    <!-- Top-left navigation hint (fixed to viewport left) -->
+    <div class="sidebar-hint">
+        <span class="text-orange-500 animate-pulse text-lg leading-none">
+            ←
+        </span>
+        <span class="text-slate-300 font-medium text-sm">
+            Open the sidebar to browse projects
+        </span>
+    </div>
 
     <div class="max-w-4xl w-full text-center animated-entry">
-
         <!-- Header -->
         <header class="mb-12">
-
             <div class="flex items-center justify-center gap-4 mb-4">
-
                 <img
                     src="https://orgeyt.github.io/orgeyt.github.io-myprojects/favicon.ico"
                     alt="Icon"
                     class="w-12 h-12 icon-pulse"
                     onerror="this.style.display='none'"
                 >
-
                 <h1
                     class="text-5xl md:text-7xl font-extrabold tracking-tighter text-orange-400"
                     style="text-shadow: 0 0 20px rgba(249, 115, 22, 0.4);"
                 >
                     WELCOME
                 </h1>
-
             </div>
-
             <p class="text-slate-300 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-
                 Yo, welcome to my website! I used GitHub for this site.
                 I know it's mostly AI, but I swear I cannot code HTML ;-;
                 But at least the IDEAS are not AI.
                 Anyways, enjoy using my website! My socials/etc. are linked below.
-
                 <span id="delayed-text">
                     <br><br>
                     WAIT WAIT WAIT
@@ -273,14 +246,10 @@
                     <br>
                     :)
                 </span>
-
             </p>
-
         </header>
-
         <!-- Links -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-12">
-
             <!-- Roblox -->
             <a
                 href="https://web.roblox.com/users/25500698/profile"
@@ -294,7 +263,6 @@
                     View my profile
                 </p>
             </a>
-
             <!-- Scratch -->
             <a
                 href="https://scratch.mit.edu/users/scratch_r0bl0x"
@@ -308,7 +276,6 @@
                     Check my creations
                 </p>
             </a>
-
             <!-- Friend -->
             <a
                 href="https://www.youtube.com/@FlyingCarRetake"
@@ -322,7 +289,6 @@
                     Visit FlyingCarRetake
                 </p>
             </a>
-
             <!-- Websim -->
             <a
                 href="https://websim.ai/@OrgeYT"
@@ -336,7 +302,6 @@
                     My profile page
                 </p>
             </a>
-
             <!-- HTML Projects -->
             <a
                 href="https://orgeyt.github.io/orgeyt.github.io-myprojects"
@@ -350,7 +315,6 @@
                     Full project list
                 </p>
             </a>
-
             <!-- Gamebanana -->
             <a
                 href="https://gamebanana.com/members/4315286"
@@ -364,7 +328,6 @@
                     My modding profile
                 </p>
             </a>
-
             <!-- Ultimate Dodging TWO -->
             <a
                 href="https://scratch.mit.edu/projects/1331390137"
@@ -378,7 +341,6 @@
                     Play on Scratch
                 </p>
             </a>
-
             <!-- Ultimate Dodging TWO Alt -->
             <a
                 href="https://orgeyt.github.io/orgeyt.github.io-myprojects/?project=Ultimate%20Dodging%20TWO"
@@ -392,7 +354,6 @@
                     Play via GitHub Projects
                 </p>
             </a>
-
             <!-- YouTube -->
             <a
                 href="https://www.youtube.com/@OrgeYT"
@@ -406,30 +367,13 @@
                     YouTube
                 </p>
             </a>
-
         </div>
-
-        <!-- Bottom message -->
-        <div class="inline-flex items-center gap-3 bg-orange-950/50 px-6 py-3 rounded-full border border-orange-900 backdrop-blur-md">
-
-            <span class="text-orange-500 animate-pulse">
-                ←
-            </span>
-
-            <span class="text-slate-300 font-medium text-sm">
-                Select a project or link to get started
-            </span>
-
-        </div>
-
     </div>
-
     <script>
         // Show the extra welcome message after 5 seconds
         setTimeout(() => {
             document.getElementById("delayed-text").classList.add("visible");
         }, 5000);
     </script>
-
 </body>
 </html>
