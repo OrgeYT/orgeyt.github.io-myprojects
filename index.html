@@ -7,56 +7,67 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <div class="sidebar">
-        <img id="sidebar-logo" src="Logo.png" alt="OrgeYT Logo">
-        
+<body class="sidebar-closed">
+    <!-- Minimized rail (always visible when closed) -->
+    <div id="sidebar-rail" class="sidebar-rail">
+        <button id="sidebar-open-btn" class="rail-btn rail-open-btn" data-tooltip="Open menu" aria-label="Open menu">☰</button>
+        <button id="rail-open-full-btn" class="rail-btn" data-tooltip="View full project" aria-label="View full project">↗</button>
+        <button id="rail-share-btn" class="rail-btn" data-tooltip="Copy project link" aria-label="Copy project link">🔗</button>
+        <button id="rail-fullscreen-btn" class="rail-btn" data-tooltip="Full screen" aria-label="Full screen">⛶</button>
+    </div>
+
+    <!-- Full sidebar panel (slides in) -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <img id="sidebar-logo" src="Logo.png" alt="OrgeYT Logo">
+            <button id="sidebar-close-btn" class="sidebar-close-btn" title="Close menu">✕</button>
+        </div>
+
         <h2>My Projects</h2>
         <p class="subtitle">Choose a project to load</p>
-
         <div id="project-counter" style="font-size: 0.8rem; color: var(--text-accent);"></div>
         <div id="time-counter">Time: 0s</div>
 
         <div class="sidebar-controls" id="sidebar-controls">
-            <button id="toggle-ui-btn" class="toggle-btn">Toggle UI (`)</button>
-            <button id="tab-modifier-btn" class="toggle-btn">Tab Settings</button>
-            <button id="theme-settings-btn" class="toggle-btn">Theme Settings</button>
-            <button id="random-project-btn" class="toggle-btn">Random Project</button>
-            <button id="favorite-btn" class="toggle-btn">Favorite Project</button>
-            <button id="friends-website-btn" class="toggle-btn">Friend's Website</button>
-            <button id="achievements-btn" class="toggle-btn">Achievements</button>
-            <button id="open-gallery-btn" class="toggle-btn">Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
-            <button id="sidebar-pos-btn" class="toggle-btn">Sidebar: Left</button>
-            <button id="downloads-btn" class="toggle-btn">Downloads</button>
-            <button id="view-repo-btn" class="toggle-btn">View Repository</button>
-            <button id="effects-btn" class="toggle-btn">Effects</button>
-            <button id="line-graph-btn" class="toggle-btn">Line Graph</button>
-            <button id="view-lists-btn" class="toggle-btn">View lists.js</button>
-            <button id="project-of-time-btn" class="toggle-btn">Project of the Hour/Day/Year</button>
-            <button id="clear-visited-btn" class="toggle-btn">Clear Visited Projects</button>
-            <button id="admin-btn" class="toggle-btn hidden">ADMIN</button>
+            <button id="tab-modifier-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏷️</span> Tab Settings</button>
+            <button id="theme-settings-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎨</span> Theme</button>
+            <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
+            <button id="favorite-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⭐</span> Favorite</button>
+            <button id="friends-website-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🤝</span> Friends</button>
+            <button id="achievements-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏆</span> Achievements</button>
+            <button id="open-gallery-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🖼️</span> Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
+            <button id="downloads-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⬇️</span> Downloads</button>
+            <button id="view-repo-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📦</span> Repository</button>
+            <button id="effects-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">✨</span> Effects</button>
+            <button id="line-graph-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📈</span> Line Graph</button>
+            <button id="view-lists-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📄</span> lists.js</button>
+            <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Project of Time</button>
+            <button id="clear-visited-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🗑️</span> Clear Visited</button>
+            <button id="admin-btn" class="toggle-btn hidden" data-sound="true"><span class="btn-icon">🔐</span> ADMIN</button>
         </div>
 
         <div class="project-tabs">
-            <button class="tab-btn active" data-tab="all">All</button>
-            <button class="tab-btn" data-tab="favorites">Favorited</button>
-            <button class="tab-btn" data-tab="unfavorited">Unfavorited</button>
-            <button class="tab-btn" data-tab="scratch">Scratch projects</button>
-            <button class="tab-btn" data-tab="visited">Visited</button>
+            <button class="tab-btn active" data-tab="all" data-sound="true">All</button>
+            <button class="tab-btn" data-tab="favorites" data-sound="true">Favorited</button>
+            <button class="tab-btn" data-tab="unfavorited" data-sound="true">Unfavorited</button>
+            <button class="tab-btn" data-tab="scratch" data-sound="true">Scratch</button>
+            <button class="tab-btn" data-tab="visited" data-sound="true">Visited</button>
         </div>
-
         <input type="text" id="search-bar" placeholder="Search projects...">
-
         <div id="file-list"></div>
     </div>
-    
+
     <div class="main-content">
-        <button id="open-full-btn">View Full Project</button>
-        <button id="share-btn">Share Project</button>
-        <button id="fullscreen-btn">Full Screen</button>
+        <button id="open-full-btn" class="overlay-btn">View Full Project</button>
+        <button id="share-btn" class="overlay-btn">Share Project</button>
+        <button id="fullscreen-btn" class="overlay-btn">Full Screen</button>
+        <div id="project-pause-overlay" class="project-pause-overlay hidden">
+            <span>Project paused — menu open</span>
+        </div>
         <iframe id="runner-frame" src="about:blank" title="Project Runner"></iframe>
     </div>
 
+    <!-- Theme Modal -->
     <div id="theme-modal" class="modal hidden">
         <div class="modal-content">
             <span id="close-theme-btn" class="close-btn">&times;</span>
@@ -88,6 +99,7 @@
         </div>
     </div>
 
+    <!-- Effects Modal -->
     <div id="effects-modal" class="modal hidden">
         <div class="modal-content" style="width: 380px;">
             <span id="close-effects-btn" class="close-btn">&times;</span>
@@ -105,12 +117,10 @@
                 <button class="modal-btn fx-btn" data-effect="color">Color</button>
                 <button class="modal-btn fx-btn" data-effect="discration">Discration</button>
             </div>
-
             <div class="setting-group" id="posterize-control" style="margin-top: 10px;">
                 <label for="posterize-slider">Posterize Levels: <span id="posterize-val">4</span></label>
                 <input type="range" id="posterize-slider" min="2" max="16" value="4" style="width: 100%;">
             </div>
-
             <div class="setting-group" id="color-hue-control" style="margin-top: 10px;">
                 <label for="color-hue-slider">Color Hue: <span id="color-hue-val">0°</span></label>
                 <input type="range" id="color-hue-slider" min="0" max="360" value="0" style="width: 100%;">
@@ -118,17 +128,16 @@
         </div>
     </div>
 
+    <!-- Tab Settings Modal -->
     <div id="tab-modal" class="modal hidden">
         <div class="modal-content">
             <span id="close-modal-btn" class="close-btn">&times;</span>
             <h3>Tab Settings</h3>
-            
             <div class="setting-group">
                 <label for="tab-title-input">Tab Title:</label>
                 <input type="text" id="tab-title-input" placeholder="Enter new title...">
                 <button id="apply-title-btn" class="modal-btn">Apply Title</button>
             </div>
-
             <div class="setting-group">
                 <label>Quick Icons:</label>
                 <div class="icon-buttons">
@@ -138,13 +147,11 @@
                     <button class="modal-btn icon-btn" data-icon="icons/fcr.ico">RETAKE</button>
                 </div>
             </div>
-
             <div class="setting-group">
                 <label for="icon-url-input">Custom Icon URL:</label>
                 <input type="text" id="icon-url-input" placeholder="https://example.com/icon.ico">
                 <button id="apply-url-btn" class="modal-btn">Apply URL</button>
             </div>
-
             <div class="setting-group">
                 <label for="icon-file-input">Upload Icon File:</label>
                 <input type="file" id="icon-file-input" accept="image/*,.ico">
@@ -152,6 +159,7 @@
         </div>
     </div>
 
+    <!-- Friends Modal -->
     <div id="friends-modal" class="modal hidden">
         <div class="modal-content">
             <span id="close-friends-modal-btn" class="close-btn">&times;</span>
@@ -166,6 +174,7 @@
         </div>
     </div>
 
+    <!-- Achievements Modal -->
     <div id="achievements-modal" class="modal hidden">
         <div class="modal-content" style="width: 350px;">
             <span id="close-achievements-btn" class="close-btn">&times;</span>
@@ -174,6 +183,7 @@
         </div>
     </div>
 
+    <!-- Gallery Modal -->
     <div id="gallery-modal" class="modal hidden">
         <div class="modal-content gallery-modal-content">
             <span id="close-gallery-btn" class="close-btn">&times;</span>
@@ -189,6 +199,7 @@
         </div>
     </div>
 
+    <!-- Dev Grid Modal -->
     <div id="dev-grid-modal" class="modal hidden">
         <div class="modal-content" style="width: 280px; text-align: center;">
             <span id="close-dev-grid-btn" class="close-btn">&times;</span>
@@ -199,11 +210,11 @@
         </div>
     </div>
 
+    <!-- Admin Modal -->
     <div id="admin-modal" class="modal hidden">
         <div class="modal-content" style="width: 420px; max-height: 85vh; overflow-y: auto;">
             <span id="close-admin-btn" class="close-btn">&times;</span>
             <h3 style="color: #ff5555; text-align: center;">ADMIN PANEL</h3>
-            
             <div class="admin-section">
                 <h4>Local Storage Configuration</h4>
                 <button id="admin-clear-ls" class="modal-btn" style="background-color: #8b0000;">Clear All Local Storage</button>
@@ -211,13 +222,11 @@
                 <textarea id="admin-ls-editor" rows="6" style="width: 100%; background: #111; color: #00ff00; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;"></textarea>
                 <button id="admin-save-ls" class="modal-btn" style="width: 100%;">Save Local Storage Variables</button>
             </div>
-
             <div class="admin-section">
                 <h4>Achievement Manager</h4>
                 <select id="admin-achievements-select" style="width: 100%; padding: 8px; margin-bottom: 5px; background: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-main);"></select>
                 <button id="admin-unlock-ach" class="modal-btn" style="width: 100%;">Force Unlock Achievement</button>
             </div>
-
             <div class="admin-section">
                 <h4>Theme Architect</h4>
                 <div id="theme-creator-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; margin-bottom: 10px;"></div>
@@ -227,13 +236,13 @@
                 </div>
                 <textarea id="admin-css-output" rows="5" style="width: 100%; background: #111; color: #fff; margin-top: 10px; border: 1px solid var(--border-main); padding: 5px; font-family: monospace;" readonly placeholder="CSS code will appear here..."></textarea>
             </div>
-
             <div class="admin-section">
                 <button id="admin-remove-dev" class="modal-btn" style="background-color: #ff0000; color: white; width: 100%; font-weight: bold;">DISABLE DEV MODE</button>
             </div>
         </div>
     </div>
-    
+
+    <!-- Downloads Modal -->
     <div id="downloads-modal" class="modal hidden">
         <div class="modal-content">
             <span id="close-downloads-btn" class="close-btn">&times;</span>
@@ -250,6 +259,7 @@
         </div>
     </div>
 
+    <!-- Line Graph Modal -->
     <div id="line-graph-modal" class="modal hidden">
         <div class="modal-content line-graph-modal-content">
             <span id="close-line-graph-btn" class="close-btn">&times;</span>
@@ -268,6 +278,7 @@
         </div>
     </div>
 
+    <!-- View lists.js Modal -->
     <div id="view-lists-modal" class="modal hidden">
         <div class="modal-content" style="width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
             <span id="close-view-lists-btn" class="close-btn">&times;</span>
@@ -276,11 +287,11 @@
         </div>
     </div>
 
+    <!-- Project of Time Modal -->
     <div id="project-of-time-modal" class="modal hidden">
         <div class="modal-content" style="width: 420px;">
             <span id="close-project-of-time-btn" class="close-btn">&times;</span>
             <h3>Project of the Time</h3>
-            
             <div class="setting-group">
                 <label>Select Time Period:</label>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
@@ -289,12 +300,10 @@
                     <button class="modal-btn pot-time-btn" data-pot-type="year">Year</button>
                 </div>
             </div>
-
             <div class="setting-group" id="pot-project-display" style="background: var(--bg-sidebar); padding: 12px; border: 1px solid var(--border-main); border-radius: 4px; margin-bottom: 12px;">
                 <p id="pot-project-name" style="font-weight: bold; margin-bottom: 4px;"></p>
                 <p id="pot-project-info" style="font-size: 0.85rem; color: var(--text-accent);"></p>
             </div>
-
             <button id="pot-play-btn" class="modal-btn" style="width: 100%; padding: 10px; font-weight: bold;">Play Project</button>
         </div>
     </div>
@@ -306,7 +315,6 @@
         </div>
     </div>
 
-    <!-- Posterize Filter Definition -->
     <svg style="display: none;">
         <defs>
             <filter id="posterize-filter">
@@ -320,6 +328,8 @@
     </svg>
 
     <script src="lists.js"></script>
-    <script src="app.js"></script>
+    <script src="achievements.js"></script>
+    <script src="projects.js"></script>
+    <script src="ui.js"></script>
 </body>
 </html>
