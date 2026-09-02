@@ -395,6 +395,17 @@
   "hack": false,
   "homebrew": true,
   "description": "Basically FNF Week 1, but ported to the NES. Rhythm battle the original Friday Night Funkin' tracks on classic hardware."
+},
+{
+  "id": "super-boy",
+  "title": "Super boy",
+  "system": "sms",
+  "file": "Super boy.sms",
+  "thumb": "Super boy.png",
+  "year": 1989,
+  "hack": false,
+  "homebrew": false,
+  "description": "An infamous South Korean bootleg clone of Super Mario Bros. developed by Zemina, porting the iconic 8-bit platformer to Sega hardware."
 }
   ]
 }
