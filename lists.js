@@ -157,7 +157,8 @@ const projects = [
     "snake battle", // guys i moved the projects to a projects folder is that cool? i thought i would completely kill my website but i didnt.
     "scanimation", // cool trick i guess. tricks your eyes into seeing a picture or animation.
     "dodge the scams", // 150th project!!
-    "pixelartcreatorhtml" // yeah
+    "pixelartcreatorhtml", // yeah
+    "shapestyles"
 ];
 
 // ==========================================
