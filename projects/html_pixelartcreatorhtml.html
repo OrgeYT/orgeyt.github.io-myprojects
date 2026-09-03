@@ -1,0 +1,1839 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pixel Art Creator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary: #667eea;
+    --secondary: #764ba2;
+    --dark: #252538;
+    --text: #333;
+    --muted: #777;
+    --panel: #f7f7fb;
+    --border: #dedee8;
+}
+
+body {
+    min-height: 100vh;
+    padding: 30px 16px;
+    font-family: Arial, Helvetica, sans-serif;
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,.18), transparent 30%),
+        linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: var(--text);
+}
+
+.container {
+    width: min(1100px, 100%);
+    margin: auto;
+    background: rgba(255,255,255,.97);
+    border-radius: 22px;
+    padding: 30px;
+    box-shadow: 0 25px 70px rgba(0,0,0,.25);
+}
+
+header {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+header h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin-bottom: 8px;
+    color: var(--dark);
+}
+
+header p {
+    color: var(--muted);
+    font-size: 15px;
+}
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 18px;
+}
+
+.panel-title {
+    font-size: 17px;
+    font-weight: bold;
+    margin-bottom: 14px;
+    color: var(--dark);
+}
+
+.controls {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.control {
+    flex: 1;
+    min-width: 180px;
+}
+
+label {
+    display: block;
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 7px;
+    color: #444;
+}
+
+input[type="number"],
+input[type="text"],
+select {
+    width: 100%;
+    padding: 11px 13px;
+    border: 2px solid var(--border);
+    border-radius: 9px;
+    background: white;
+    font-size: 14px;
+    transition: .2s;
+}
+
+input:focus,
+select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(102,126,234,.12);
+}
+
+button {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 16px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, opacity .15s;
+    font-size: 14px;
+}
+
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 15px rgba(102,126,234,.25);
+}
+
+button:active {
+    transform: translateY(0) scale(.98);
+}
+
+button.secondary {
+    background: #e9e9f2;
+    color: #333;
+    box-shadow: none;
+}
+
+button.success {
+    background: #43a047;
+}
+
+button.danger {
+    background: #ef5350;
+}
+
+.button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+}
+
+.mode-toggle {
+    display: flex;
+    background: #e4e4ed;
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.mode-button {
+    flex: 1;
+    min-width: 130px;
+    background: transparent;
+    color: #555;
+    box-shadow: none;
+    padding: 10px 15px;
+}
+
+.mode-button:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+.mode-button.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.mode-description {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #777;
+    text-align: center;
+}
+
+.workspace {
+    display: grid;
+    grid-template-columns: minmax(300px, 1fr) minmax(280px, 350px);
+    gap: 20px;
+    align-items: start;
+}
+
+.canvas-card,
+.palette-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+}
+
+.section-heading {
+    font-weight: bold;
+    margin-bottom: 14px;
+    color: var(--dark);
+}
+
+.canvas-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    overflow: auto;
+    padding: 10px;
+}
+
+#canvas {
+    display: block;
+    border: 3px solid #45455c;
+    border-radius: 10px;
+    background: white;
+    cursor: crosshair;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    height: auto;
+    touch-action: none;
+    box-shadow: 0 8px 20px rgba(0,0,0,.12);
+}
+
+.large-grid #canvas {
+    max-width: none;
+}
+
+.canvas-info {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+.palette {
+    max-height: 470px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+.palette::-webkit-scrollbar {
+    width: 8px;
+}
+
+.palette::-webkit-scrollbar-track {
+    background: #e7e7ee;
+    border-radius: 10px;
+}
+
+.palette::-webkit-scrollbar-thumb {
+    background: #aaaabd;
+    border-radius: 10px;
+}
+
+.palette-section {
+    margin-bottom: 18px;
+}
+
+.palette-section:last-child {
+    margin-bottom: 0;
+}
+
+.palette-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: #777;
+    font-weight: bold;
+    margin-bottom: 9px;
+}
+
+.colors {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+}
+
+.color-btn {
+    position: relative;
+    min-width: 0;
+    aspect-ratio: 1;
+    border: 3px solid transparent;
+    border-radius: 9px;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.8);
+    cursor: pointer;
+    transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+
+.color-btn:hover {
+    transform: scale(1.07);
+}
+
+.color-btn.selected {
+    border-color: #222;
+    box-shadow:
+        0 0 0 2px white,
+        0 0 0 4px var(--primary);
+    transform: scale(1.04);
+}
+
+.color-key {
+    font-size: 15px;
+}
+
+.color-name {
+    display: block;
+    font-size: 8px;
+    margin-top: 2px;
+    opacity: .9;
+}
+
+.brush-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.brush-button {
+    min-width: 65px;
+    background: #e9e9f2;
+    color: #333;
+    box-shadow: none;
+}
+
+.brush-button:hover {
+    box-shadow: none;
+}
+
+.brush-button.active {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.rainbow-preview {
+    background:
+        linear-gradient(
+            135deg,
+            red,
+            orange,
+            yellow,
+            lime,
+            cyan,
+            blue,
+            violet,
+            red
+        );
+    background-size: 300% 300%;
+    animation: rainbowMove 2s linear infinite;
+}
+
+@keyframes rainbowMove {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 300% 50%;
+    }
+}
+
+.output-section {
+    margin-top: 18px;
+}
+
+.output-box {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 13px;
+    min-height: 55px;
+    max-height: 190px;
+    overflow: auto;
+    word-break: break-all;
+    font-family: monospace;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.emoji-output {
+    font-family:
+        "Segoe UI Emoji",
+        "Apple Color Emoji",
+        sans-serif;
+    font-size: 21px;
+    line-height: 1.15;
+    white-space: pre;
+    overflow-x: auto;
+    word-break: normal;
+}
+
+.output-actions {
+    margin-top: 10px;
+}
+
+.info {
+    margin-top: 18px;
+    padding: 15px;
+    border-radius: 11px;
+    background: #edf2ff;
+    border-left: 4px solid var(--primary);
+    line-height: 1.6;
+    font-size: 13px;
+}
+
+.info strong {
+    color: var(--dark);
+}
+
+.status {
+    position: fixed;
+    left: 50%;
+    bottom: 22px;
+    transform: translate(-50%, 100px);
+    padding: 11px 18px;
+    border-radius: 999px;
+    background: #252538;
+    color: white;
+    font-size: 13px;
+    font-weight: bold;
+    box-shadow: 0 8px 30px rgba(0,0,0,.25);
+    transition: transform .25s;
+    z-index: 100;
+}
+
+.status.show {
+    transform: translate(-50%, 0);
+}
+
+@media (max-width: 800px) {
+    .workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .container {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 500px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        padding: 14px;
+        border-radius: 15px;
+    }
+
+    .colors {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .button-row button {
+        flex: 1;
+        min-width: 110px;
+    }
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<header>
+    <h1>🎨 Pixel Art Creator</h1>
+    <p>Create, save, load and convert pixel art into emoji art.</p>
+</header>
+
+<div class="panel">
+
+<div class="panel-title">🎨 Color Mode</div>
+
+<div class="mode-toggle">
+
+
+<button
+    id="classicModeButton"
+    class="mode-button active"
+    onclick="setMode('classic')"
+>
+    🕹️ Classic
+</button>
+
+<button
+    id="modernModeButton"
+    class="mode-button"
+    onclick="setMode('modern')"
+>
+    ✨ Modern
+</button>
+
+
+</div>
+
+<div class="mode-description" id="modeDescription">
+    Classic mode uses the original Scratch color system.
+</div>
+
+</div>
+
+<div class="panel">
+
+<div class="panel-title">⚙️ Canvas</div>
+
+<div class="controls">
+
+
+<div class="control">
+
+    <label for="gridSize">
+        Grid Size
+    </label>
+
+    <input
+        type="number"
+        id="gridSize"
+        value="5"
+        min="1"
+        max="35"
+    >
+
+</div>
+
+<div class="button-row">
+
+    <button onclick="createGrid()">
+        Create Grid
+    </button>
+
+    <button
+        class="secondary"
+        onclick="clearCanvas()"
+    >
+        🧹 Clear
+    </button>
+
+    <button
+        class="secondary"
+        onclick="generateRandom()"
+    >
+        🎲 Random
+    </button>
+
+</div>
+
+
+</div>
+
+<div
+    id="modernGridNotice"
+    style="
+        display:none;
+        margin-top:10px;
+        font-size:12px;
+        color:#777;
+    "
+>
+    ✨ Modern mode supports grids up to <b>100 × 100</b>.
+</div>
+
+</div>
+
+<div class="panel">
+
+<div class="panel-title">🖌️ Brush Size</div>
+
+<div class="brush-options">
+
+
+<button
+    class="brush-button active"
+    data-size="1"
+    onclick="setBrushSize(1)"
+>
+    1 × 1
+</button>
+
+<button
+    class="brush-button"
+    data-size="2"
+    onclick="setBrushSize(2)"
+>
+    2 × 2
+</button>
+
+<button
+    class="brush-button"
+    data-size="3"
+    onclick="setBrushSize(3)"
+>
+    3 × 3
+</button>
+
+<button
+    class="brush-button"
+    data-size="5"
+    onclick="setBrushSize(5)"
+>
+    5 × 5
+</button>
+
+<button
+    class="brush-button"
+    data-size="10"
+    onclick="setBrushSize(10)"
+>
+    10 × 10
+</button>
+
+
+</div>
+
+<div
+    style="
+        margin-top:10px;
+        font-size:12px;
+        color:#777;
+    "
+>
+    Current brush:
+    <b id="brushSizeLabel">1 × 1</b>
+</div>
+
+</div>
+
+<div class="workspace">
+
+<div class="canvas-card">
+
+
+<div class="section-heading">
+    🖼️ Pixel Canvas
+</div>
+
+<div class="canvas-wrapper">
+
+    <canvas
+        id="canvas"
+        width="400"
+        height="400"
+    ></canvas>
+
+</div>
+
+<div
+    class="canvas-info"
+    id="canvasInfo"
+>
+    5 × 5 • 25 pixels
+</div>
+
+
+</div>
+
+<div class="palette-card">
+
+
+<div class="section-heading">
+    🎨 Color Palette
+</div>
+
+<div
+    class="palette"
+    id="colorPalette"
+></div>
+
+<div class="info">
+
+    <strong>Selected:</strong>
+
+    <span id="selectedColorName">
+        Black
+    </span>
+
+</div>
+
+
+</div>
+
+</div>
+
+<div class="panel output-section">
+
+<div class="panel-title">
+    💾 Save Pixel Art
+</div>
+
+<div class="button-row">
+
+
+<button onclick="saveToCode()">
+    Generate Save Code
+</button>
+
+<button
+    class="success"
+    onclick="copyCode()"
+>
+    📋 Copy Code
+</button>
+
+
+</div>
+
+<div
+    class="output-box"
+    id="output"
+>
+    Your pixel art code will appear here.
+</div>
+
+</div>
+
+<div class="panel">
+
+<div class="panel-title">
+    📥 Load Pixel Art
+</div>
+
+<div class="controls">
+
+
+<div class="control">
+
+    <label for="codeInput">
+        Pixel Code
+        <span style="font-weight:normal;color:#888;">
+            (comma or period supported)
+        </span>
+    </label>
+
+    <input
+        type="text"
+        id="codeInput"
+        placeholder="000001010101,5"
+    >
+
+</div>
+
+<div class="button-row">
+
+    <button onclick="loadFromCode()">
+        Load Code
+    </button>
+
+</div>
+
+
+</div>
+
+</div>
+
+<div class="panel output-section">
+
+<div class="panel-title">
+    😀 Emoji Art
+</div>
+
+<div class="button-row">
+
+
+<button onclick="generateEmoji()">
+    Convert to Emoji
+</button>
+
+<button
+    class="success"
+    onclick="copyEmoji()"
+>
+    📋 Copy Emoji
+</button>
+
+
+</div>
+
+<div
+    class="output-box emoji-output"
+    id="emojiOutput"
+>
+    Your emoji art will appear here.
+</div>
+
+</div>
+
+<div class="info">
+
+<strong>💡 How to use</strong><br>
+
+Set a grid size and click <b>Create Grid</b>.<br>
+
+Select a color and brush size, then
+click or drag across the canvas to paint.<br>
+
+<b>Classic</b> supports grids from <b>1 × 1 to 35 × 35</b> and uses your
+original Scratch color codes.<br>
+
+<b>Modern</b> supports grids from <b>1 × 1 to 100 × 100</b> and adds
+50 color codes using numbers, letters and symbols.<br>
+
+Save codes always use a <b>comma</b>, while both commas and
+periods can be loaded.
+
+</div>
+
+</div>
+
+<div
+    class="status"
+    id="status"
+>
+    Done!
+</div>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const colorPalette = document.getElementById("colorPalette");
+const outputDiv = document.getElementById("output");
+const emojiOutput = document.getElementById("emojiOutput");
+const statusDiv = document.getElementById("status");
+const selectedColorName = document.getElementById("selectedColorName");
+const canvasInfo = document.getElementById("canvasInfo");
+const gridSizeInput = document.getElementById("gridSize");
+const modernGridNotice = document.getElementById("modernGridNotice");
+
+let gridSize = 5;
+let pixelSize = 80;
+let selectedColor = "0";
+let gridData = [];
+let isDrawing = false;
+let rainbowOffset = 0;
+let currentMode = "classic";
+let brushSize = 1;
+
+const classicColors = {
+    "0": { hex: "#000000", name: "Black", emoji: "⬛" },
+    "1": { hex: "#FFFFFF", name: "White", emoji: "⬜" },
+    "2": { hex: "#808080", name: "Gray", emoji: "🩶" },
+    "3": { hex: "#FF0000", name: "Red", emoji: "🟥" },
+    "4": { hex: "#FFA500", name: "Orange", emoji: "🟧" },
+    "5": { hex: "#FFFF00", name: "Yellow", emoji: "🟨" },
+    "6": { hex: "#00FF00", name: "Green", emoji: "🟩" },
+    "7": { hex: "#00FFFF", name: "Cyan", emoji: "🩵" },
+    "8": { hex: "#0000FF", name: "Blue", emoji: "🟦" },
+    "9": { hex: "#FF00FF", name: "Purple", emoji: "🟪" },
+    "a": { hex: "#FF1493", name: "Pink", emoji: "🩷" },
+    "b": { hex: "#8B4513", name: "Brown", emoji: "🟫" },
+    "c": { hex: "#D3A625", name: "Tan", emoji: "📔" },
+    "d": { hex: "#FF7F50", name: "Coral", emoji: "🪸" },
+    "e": { hex: null, name: "Rainbow", emoji: "🌈" },
+    "f": { hex: "#555555", name: "B&W", emoji: "🦓" }
+};
+
+const modernAlphabet =
+    "0123456789abcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=";
+
+const modernColors = {};
+
+const modernColorList = [
+    "#050505", "#242424", "#555555", "#888888", "#BBBBBB", "#EEEEEE", "#FFFFFF",
+    "#800000", "#FF0000", "#FF5555", "#FF8800", "#FFAA00", "#FFFF00",
+    "#AAFF00", "#55FF00", "#00FF00", "#00AA55", "#00FFAA", "#00FFFF",
+    "#00AAFF", "#0088FF", "#0000FF", "#5555FF", "#8800FF", "#AA00FF",
+    "#FF00FF", "#FF55DD", "#FF1493", "#FF6699", "#FF7777", "#CC5533",
+    "#8B4513", "#B87333", "#D3A625", "#FFD700", "#F5DEB3", "#C0A060",
+    "#6B8E23", "#228B22", "#008080", "#4682B4", "#4169E1", "#663399",
+    "#9933CC", "#CC33AA", "#E066FF", "#FF99CC", "#FFB6C1", "#DDA0DD"
+];
+
+for (let i = 0; i < modernAlphabet.length; i++) {
+    const key = modernAlphabet[i];
+
+    modernColors[key] = {
+        hex: modernColorList[i] || "#000000",
+        name:
+            key === "e"
+                ? "Rainbow"
+                : key === "f"
+                    ? "B&W"
+                    : `Color ${key}`,
+        emoji: getEmojiForModernColor(i, key)
+    };
+}
+
+function getEmojiForModernColor(index, key) {
+    if (key === "e") return "🌈";
+    if (key === "f") return "🦓";
+
+    const emojis = [
+        "⬛","⬛","🩶","🩶","⬜","⬜","⬜",
+        "🟥","🟥","🩷","🟧","🟧","🟨",
+        "🟩","🟩","🟩","🟢","🩵","🩵",
+        "🩵","🟦","🟦","🟦","🟦","🟪","🟪",
+        "🟪","🩷","🩷","🩷","🟥","🟫",
+        "🟫","🟫","🟨","🟨","🟫","🟨",
+        "🟩","🟩","🩵","🟦","🟦","🟪",
+        "🟪","🩷","🩷","🩷","🩷","🟪"
+    ];
+
+    return emojis[index] || "⬛";
+}
+
+function getActiveColors() {
+    return currentMode === "classic" ? classicColors : modernColors;
+}
+
+function setMode(mode) {
+    currentMode = mode;
+
+    const classicButton = document.getElementById("classicModeButton");
+    const modernButton = document.getElementById("modernModeButton");
+    const description = document.getElementById("modeDescription");
+
+    classicButton.classList.remove("active");
+    modernButton.classList.remove("active");
+
+    if (mode === "classic") {
+        classicButton.classList.add("active");
+
+        description.textContent =
+            "Classic mode uses the original Scratch color system.";
+
+        gridSizeInput.max = 35;
+        modernGridNotice.style.display = "none";
+
+        if (gridSize > 35) {
+            gridSizeInput.value = 35;
+            createGrid();
+        }
+
+        if (!classicColors[selectedColor]) {
+            selectedColor = "0";
+        }
+    } else {
+        modernButton.classList.add("active");
+
+        description.textContent =
+            "Modern mode supports up to 100 × 100 and uses 50 color codes.";
+
+        gridSizeInput.max = 100;
+        modernGridNotice.style.display = "block";
+
+        if (!modernColors[selectedColor]) {
+            selectedColor = "0";
+        }
+    }
+
+    initializeColors();
+
+    selectedColorName.textContent =
+        getActiveColors()[selectedColor].name;
+
+    drawGrid();
+
+    showStatus(
+        mode === "classic"
+            ? "Classic mode"
+            : "Modern mode"
+    );
+}
+
+function createColorButton(key, color) {
+    const button = document.createElement("button");
+
+    button.className = "color-btn";
+
+    if (key === "e") {
+        button.classList.add("rainbow-preview");
+    } else {
+        button.style.background = color.hex;
+    }
+
+    button.innerHTML = `
+        <div class="color-key">
+            ${escapeHtml(key.toUpperCase())}
+        </div>
+
+        <span class="color-name">
+            ${escapeHtml(color.name)}
+        </span>
+    `;
+
+    button.title = `${key} — ${color.name}`;
+
+    if (key === selectedColor) {
+        button.classList.add("selected");
+    }
+
+    button.onclick = () => selectColor(key);
+
+    return button;
+}
+
+function initializeColors() {
+    colorPalette.innerHTML = "";
+
+    const colors = getActiveColors();
+
+    if (currentMode === "classic") {
+        const section =
+            createPaletteSection("🕹️ Classic Scratch Colors");
+
+        Object.keys(colors).forEach(key => {
+            section.grid.appendChild(
+                createColorButton(key, colors[key])
+            );
+        });
+
+        colorPalette.appendChild(section.element);
+        return;
+    }
+
+    addPaletteGroup(
+        "🔢 Numbers",
+        "0123456789".split("")
+    );
+
+    addPaletteGroup(
+        "🔤 Letters",
+        "abcdefghijklmnopqrstuvwxyz".split("")
+    );
+
+    addPaletteGroup(
+        "🔣 Symbols",
+        "!@#$%^&*()_+-=".split("")
+    );
+}
+
+function createPaletteSection(title) {
+    const element = document.createElement("div");
+    element.className = "palette-section";
+
+    const heading = document.createElement("div");
+    heading.className = "palette-title";
+    heading.textContent = title;
+
+    const grid = document.createElement("div");
+    grid.className = "colors";
+
+    element.appendChild(heading);
+    element.appendChild(grid);
+
+    return { element, grid };
+}
+
+function addPaletteGroup(title, keys) {
+    const section = createPaletteSection(title);
+    const colors = getActiveColors();
+
+    keys.forEach(key => {
+        if (!colors[key]) return;
+
+        section.grid.appendChild(
+            createColorButton(key, colors[key])
+        );
+    });
+
+    colorPalette.appendChild(section.element);
+}
+
+function selectColor(color) {
+    const colors = getActiveColors();
+
+    if (!colors[color]) return;
+
+    selectedColor = color;
+
+    document
+        .querySelectorAll(".color-btn")
+        .forEach(button => {
+            button.classList.remove("selected");
+        });
+
+    const button = [
+        ...document.querySelectorAll(".color-btn")
+    ].find(button =>
+        button.title.startsWith(`${color} —`)
+    );
+
+    if (button) {
+        button.classList.add("selected");
+    }
+
+    selectedColorName.textContent =
+        colors[color].name;
+}
+
+function setBrushSize(size) {
+    brushSize = size;
+
+    document
+        .querySelectorAll(".brush-button")
+        .forEach(button => {
+            button.classList.toggle(
+                "active",
+                Number(button.dataset.size) === size
+            );
+        });
+
+    document.getElementById(
+        "brushSizeLabel"
+    ).textContent = `${size} × ${size}`;
+
+    updateCanvasInfo();
+}
+
+function createGrid() {
+    let requestedSize =
+        parseInt(gridSizeInput.value);
+
+    if (isNaN(requestedSize)) {
+        showStatus("Enter a grid size");
+        return;
+    }
+
+    const maxSize =
+        currentMode === "modern"
+            ? 100
+            : 35;
+
+    if (
+        requestedSize < 1 ||
+        requestedSize > maxSize
+    ) {
+        showStatus(
+            `Grid size must be 1–${maxSize} in ${currentMode} mode`
+        );
+        return;
+    }
+
+    gridSize = requestedSize;
+
+    gridData =
+        new Array(
+            gridSize * gridSize
+        ).fill("0");
+
+    pixelSize =
+        Math.min(
+            400 / gridSize,
+            80
+        );
+
+    canvas.width =
+        gridSize * pixelSize;
+
+    canvas.height =
+        gridSize * pixelSize;
+
+    if (gridSize > 35) {
+        canvas.parentElement
+            .parentElement
+            .classList.add("large-grid");
+    } else {
+        canvas.parentElement
+            .parentElement
+            .classList.remove("large-grid");
+    }
+
+    updateCanvasInfo();
+    drawGrid();
+
+    showStatus(
+        `Created ${gridSize} × ${gridSize} grid`
+    );
+}
+
+function updateCanvasInfo() {
+    canvasInfo.textContent =
+        `${gridSize} × ${gridSize} • ${gridSize * gridSize} pixels • Brush ${brushSize}×${brushSize}`;
+}
+
+function getRainbowColor(x, y) {
+    const hue =
+        (
+            rainbowOffset +
+            x * 35 +
+            y * 35
+        ) % 360;
+
+    return `hsl(${hue}, 100%, 50%)`;
+}
+
+function drawGrid() {
+    const colors = getActiveColors();
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+    for (
+        let i = 0;
+        i < gridData.length;
+        i++
+    ) {
+        const key = gridData[i];
+
+        const row =
+            Math.floor(i / gridSize);
+
+        const col =
+            i % gridSize;
+
+        const x = col * pixelSize;
+        const y = row * pixelSize;
+
+        if (key === "e") {
+            ctx.fillStyle =
+                getRainbowColor(col, row);
+        } else {
+            ctx.fillStyle =
+                colors[key]?.hex ||
+                "#000000";
+        }
+
+        ctx.fillRect(
+            x,
+            y,
+            pixelSize,
+            pixelSize
+        );
+    }
+
+    ctx.strokeStyle =
+        "rgba(30,30,40,.55)";
+
+    ctx.lineWidth =
+        Math.max(
+            0.5,
+            Math.min(
+                2,
+                pixelSize / 15
+            )
+        );
+
+    if (gridSize <= 100) {
+        for (
+            let i = 0;
+            i <= gridSize;
+            i++
+        ) {
+            const position =
+                i * pixelSize;
+
+            ctx.beginPath();
+            ctx.moveTo(position, 0);
+            ctx.lineTo(position, canvas.height);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, position);
+            ctx.lineTo(canvas.width, position);
+            ctx.stroke();
+        }
+    }
+}
+
+function animateRainbow() {
+    if (gridData.includes("e")) {
+        rainbowOffset =
+            (rainbowOffset + 2) % 360;
+
+        drawGrid();
+    }
+
+    requestAnimationFrame(
+        animateRainbow
+    );
+}
+
+function paintAtEvent(event) {
+    const rect =
+        canvas.getBoundingClientRect();
+
+    const scaleX =
+        canvas.width / rect.width;
+
+    const scaleY =
+        canvas.height / rect.height;
+
+    const x =
+        (event.clientX - rect.left) *
+        scaleX;
+
+    const y =
+        (event.clientY - rect.top) *
+        scaleY;
+
+    const centerCol =
+        Math.floor(x / pixelSize);
+
+    const centerRow =
+        Math.floor(y / pixelSize);
+
+    if (
+        centerCol < 0 ||
+        centerCol >= gridSize ||
+        centerRow < 0 ||
+        centerRow >= gridSize
+    ) {
+        return;
+    }
+
+    const startCol =
+        centerCol -
+        Math.floor(brushSize / 2);
+
+    const startRow =
+        centerRow -
+        Math.floor(brushSize / 2);
+
+    for (
+        let brushY = 0;
+        brushY < brushSize;
+        brushY++
+    ) {
+        for (
+            let brushX = 0;
+            brushX < brushSize;
+            brushX++
+        ) {
+            const col =
+                startCol + brushX;
+
+            const row =
+                startRow + brushY;
+
+            if (
+                col < 0 ||
+                col >= gridSize ||
+                row < 0 ||
+                row >= gridSize
+            ) {
+                continue;
+            }
+
+            const index =
+                row * gridSize + col;
+
+            gridData[index] =
+                selectedColor;
+        }
+    }
+
+    drawGrid();
+}
+
+canvas.addEventListener(
+    "pointerdown",
+    event => {
+        isDrawing = true;
+
+        canvas.setPointerCapture(
+            event.pointerId
+        );
+
+        paintAtEvent(event);
+    }
+);
+
+canvas.addEventListener(
+    "pointermove",
+    event => {
+        if (!isDrawing) return;
+
+        paintAtEvent(event);
+    }
+);
+
+canvas.addEventListener(
+    "pointerup",
+    event => {
+        isDrawing = false;
+
+        try {
+            canvas.releasePointerCapture(
+                event.pointerId
+            );
+        } catch {}
+    }
+);
+
+canvas.addEventListener(
+    "pointercancel",
+    () => {
+        isDrawing = false;
+    }
+);
+
+function clearCanvas() {
+    gridData.fill("0");
+
+    drawGrid();
+
+    showStatus(
+        "Canvas cleared"
+    );
+}
+
+function generateRandom() {
+    const colors =
+        getActiveColors();
+
+    const keys =
+        Object.keys(colors);
+
+    for (
+        let i = 0;
+        i < gridData.length;
+        i++
+    ) {
+        if (Math.random() < 0.5) {
+            gridData[i] = "0";
+        } else {
+            gridData[i] =
+                keys[
+                    Math.floor(
+                        Math.random() *
+                        keys.length
+                    )
+                ];
+        }
+    }
+
+    drawGrid();
+
+    showStatus(
+        "Random art generated"
+    );
+}
+
+function saveToCode() {
+    const code =
+        gridData.join("") +
+        "," +
+        gridSize;
+
+    outputDiv.textContent =
+        code;
+
+    document.getElementById(
+        "codeInput"
+    ).value =
+        code;
+
+    showStatus(
+        "Save code generated!"
+    );
+}
+
+function loadFromCode() {
+    let code =
+        document
+            .getElementById("codeInput")
+            .value
+            .trim();
+
+    if (!code) {
+        showStatus(
+            "Enter a pixel code first"
+        );
+        return;
+    }
+
+    const match =
+        code.match(
+            /^([0-9a-zA-Z!@#$%^&*()_+\-=]+)[,.](\d+)$/
+        );
+
+    if (!match) {
+        showStatus(
+            "Invalid code format"
+        );
+        return;
+    }
+
+    const pixelString =
+        match[1].toLowerCase();
+
+    const size =
+        parseInt(match[2]);
+
+    const classicValid =
+        [...pixelString]
+            .every(char =>
+                classicColors[char]
+            );
+
+    const modernValid =
+        [...pixelString]
+            .every(char =>
+                modernColors[char]
+            );
+
+    if (
+        !classicValid &&
+        !modernValid
+    ) {
+        showStatus(
+            "Code contains invalid color characters"
+        );
+        return;
+    }
+
+    let detectedMode =
+        currentMode;
+
+    if (
+        !classicValid &&
+        modernValid
+    ) {
+        detectedMode =
+            "modern";
+    }
+
+    if (
+        classicValid &&
+        !modernValid
+    ) {
+        detectedMode =
+            "classic";
+    }
+
+    const maxSize =
+        detectedMode === "modern"
+            ? 100
+            : 35;
+
+    if (
+        size < 1 ||
+        size > maxSize
+    ) {
+        showStatus(
+            `Grid size must be 1–${maxSize} in ${detectedMode} mode`
+        );
+        return;
+    }
+
+    if (
+        pixelString.length !==
+        size * size
+    ) {
+        showStatus(
+            `Expected ${size * size} pixels, got ${pixelString.length}`
+        );
+        return;
+    }
+
+    currentMode =
+        detectedMode;
+
+    gridSize =
+        size;
+
+    gridData =
+        pixelString.split("");
+
+    pixelSize =
+        Math.min(
+            400 / gridSize,
+            80
+        );
+
+    canvas.width =
+        gridSize * pixelSize;
+
+    canvas.height =
+        gridSize * pixelSize;
+
+    gridSizeInput.value =
+        gridSize;
+
+    gridSizeInput.max =
+        currentMode === "modern"
+            ? 100
+            : 35;
+
+    modernGridNotice.style.display =
+        currentMode === "modern"
+            ? "block"
+            : "none";
+
+    document
+        .getElementById(
+            "classicModeButton"
+        )
+        .classList.toggle(
+            "active",
+            currentMode === "classic"
+        );
+
+    document
+        .getElementById(
+            "modernModeButton"
+        )
+        .classList.toggle(
+            "active",
+            currentMode === "modern"
+        );
+
+    document.getElementById(
+        "modeDescription"
+    ).textContent =
+        currentMode === "classic"
+            ? "Classic mode uses the original Scratch color system."
+            : "Modern mode supports up to 100 × 100 and uses 50 color codes.";
+
+    initializeColors();
+
+    updateCanvasInfo();
+    drawGrid();
+
+    const normalizedCode =
+        pixelString +
+        "," +
+        size;
+
+    outputDiv.textContent =
+        normalizedCode;
+
+    document.getElementById(
+        "codeInput"
+    ).value =
+        normalizedCode;
+
+    showStatus(
+        `Loaded ${currentMode} pixel art!`
+    );
+}
+
+function generateEmoji() {
+    if (!gridData.length) {
+        showStatus(
+            "Create a grid first"
+        );
+        return;
+    }
+
+    const colors =
+        getActiveColors();
+
+    const rows = [];
+
+    for (
+        let row = 0;
+        row < gridSize;
+        row++
+    ) {
+        let line = "";
+
+        for (
+            let col = 0;
+            col < gridSize;
+            col++
+        ) {
+            const index =
+                row * gridSize + col;
+
+            const key =
+                gridData[index];
+
+            line +=
+                colors[key]?.emoji ||
+                "⬛";
+        }
+
+        rows.push(line);
+    }
+
+    emojiOutput.textContent =
+        rows.join("\n");
+
+    showStatus(
+        "Emoji art generated!"
+    );
+}
+
+async function copyText(
+    text,
+    successMessage
+) {
+    try {
+        await navigator.clipboard.writeText(
+            text
+        );
+
+        showStatus(
+            successMessage
+        );
+    } catch {
+        const textarea =
+            document.createElement(
+                "textarea"
+            );
+
+        textarea.value =
+            text;
+
+        document.body.appendChild(
+            textarea
+        );
+
+        textarea.select();
+
+        document.execCommand(
+            "copy"
+        );
+
+        textarea.remove();
+
+        showStatus(
+            successMessage
+        );
+    }
+}
+
+function copyCode() {
+    const code =
+        outputDiv.textContent;
+
+    if (
+        !code ||
+        code ===
+        "Your pixel art code will appear here."
+    ) {
+        showStatus(
+            "Generate save code first"
+        );
+        return;
+    }
+
+    copyText(
+        code,
+        "Pixel code copied!"
+    );
+}
+
+function copyEmoji() {
+    const emoji =
+        emojiOutput.textContent;
+
+    if (
+        !emoji ||
+        emoji ===
+        "Your emoji art will appear here."
+    ) {
+        showStatus(
+            "Generate emoji art first"
+        );
+        return;
+    }
+
+    copyText(
+        emoji,
+        "Emoji art copied!"
+    );
+}
+
+function escapeHtml(text) {
+    return text
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+let statusTimeout;
+
+function showStatus(message) {
+    statusDiv.textContent =
+        message;
+
+    statusDiv.classList.add(
+        "show"
+    );
+
+    clearTimeout(
+        statusTimeout
+    );
+
+    statusTimeout =
+        setTimeout(
+            () => {
+                statusDiv.classList.remove(
+                    "show"
+                );
+            },
+            1800
+        );
+}
+
+document.addEventListener(
+    "keydown",
+    event => {
+        if (
+            (event.ctrlKey ||
+             event.metaKey) &&
+            event.key.toLowerCase() === "s"
+        ) {
+            event.preventDefault();
+            saveToCode();
+        }
+
+        if (
+            (event.ctrlKey ||
+             event.metaKey) &&
+            event.key === "Enter"
+        ) {
+            event.preventDefault();
+            generateEmoji();
+        }
+    }
+);
+
+initializeColors();
+createGrid();
+animateRainbow();
+</script>
+
+</body>
+</html>
