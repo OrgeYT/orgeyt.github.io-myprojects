@@ -175,5 +175,5 @@ const galleryItems = [
     { src: "Gallery/ugh....png", caption: "ok so something just happened (jul 8), and it actually scared me. i was updating my site with gemini, until my css got nuked. idk what happened but something happened with the css. luckly github had back ups which i used."},
     { src: "Gallery/ABP.png", caption: "I played 'cats are liquid: a better place' and it was peak. i played the full story, all 12 worlds, on my phone. the lore was awesome, and the new machanics every new world was awesome. the game was a 10/10, i highly recommend the game if your bored or smt. im some what in the game's community now, so maybe expect some content about the game on my channel or smt. this game is also old, but still getting updates (i hope)"},
     { src: "Gallery/ugh....png", caption: "Gemini decided to nuke the gallery lol but i fixed it"},
-    { src: "Gallery/booo.png", caption: "Brad never updates his website, boooo (seriously tho, why?)"},
+    { src: "Gallery/booo.jpeg", caption: "Brad never updates his website, boooo (seriously tho, why?)"},
 ];
