@@ -1,4 +1,4 @@
-// ui.js VERSION 2026-09-02-share-v3
+// ui.js VERSION 2026-09-04-menu-music
 // ===========================================
 // --- UI: Sidebar, sounds, modals, effects ---
 // ===========================================
@@ -41,6 +41,262 @@ function attachSidebarSounds() {
     });
 }
 
+// ===========================================
+// --- Menu Theme Song System ---
+// Easy to add songs: just push a new object into menuSongs.
+// id = localStorage key, name = button label, src = path to mp3
+// ===========================================
+const menuSongs = [
+    { id: 'lock-in',        name: 'Lock In',         src: 'music/lock-in.mp3' },
+    { id: 'ultimate-fight', name: 'Ultimate Fight',  src: 'music/ultimate-fight.mp3' },
+    { id: 'mechanics',      name: 'Mechanics',       src: 'music/mechanics.mp3' },
+    { id: 'boss-master',    name: 'Boss Master',     src: 'music/Boss master.mp3' },
+    { id: 'focus-prog',     name: 'Focus on Programming', src: 'music/Focus on programming.mp3' },
+    { id: 'longname-two',   name: 'LONGNAME TWO',    src: 'music/LONGNAME TWO..mp3' },
+    { id: 'soon-cult',      name: 'SOON CULT',       src: 'music/SOON CULT.mp3' },
+    { id: 'settle-master',  name: 'Settle Master',   src: 'music/Settle Master.mp3' },
+    { id: 'window',         name: 'Window',          src: 'music/Window.mp3' },
+];
+
+const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
+const MENU_VOL_LS_KEY = 'orgeyt-menu-volume';
+
+let menuAudio = null;
+let currentMenuSongId = localStorage.getItem(MENU_SONG_LS_KEY) || 'lock-in'; // default to first song
+let menuMusicVolume = parseInt(localStorage.getItem(MENU_VOL_LS_KEY) || '40', 10) / 100;
+// When true, music keeps playing even if the sidebar is closed (user pressed play on the rail)
+let menuMusicPinned = false;
+let menuFadeTimer = null;
+const MENU_FADE_MS = 450;
+const MENU_FADE_STEPS = 18;
+
+function getMenuSongById(id) {
+    return menuSongs.find(s => s.id === id) || null;
+}
+
+function isMenuMusicPlaying() {
+    return !!(menuAudio && !menuAudio.paused);
+}
+
+function clearMenuFade() {
+    if (menuFadeTimer) {
+        clearInterval(menuFadeTimer);
+        menuFadeTimer = null;
+    }
+}
+
+function updateRailMusicToggleIcon() {
+    const btn = document.getElementById('rail-music-toggle-btn');
+    if (!btn) return;
+    if (isMenuMusicPlaying()) {
+        btn.textContent = '⏸';
+        btn.setAttribute('data-tooltip', 'Pause theme song');
+    } else {
+        btn.textContent = '▶';
+        btn.setAttribute('data-tooltip', 'Play / continue theme song');
+    }
+}
+
+function fadeMenuVolume(from, to, onDone) {
+    clearMenuFade();
+    if (!menuAudio) {
+        if (onDone) onDone();
+        return;
+    }
+    const steps = MENU_FADE_STEPS;
+    const stepMs = MENU_FADE_MS / steps;
+    let i = 0;
+    menuAudio.volume = from;
+    menuFadeTimer = setInterval(() => {
+        i++;
+        const t = i / steps;
+        const v = from + (to - from) * t;
+        if (menuAudio) menuAudio.volume = Math.max(0, Math.min(1, v));
+        if (i >= steps) {
+            clearMenuFade();
+            if (menuAudio) menuAudio.volume = to;
+            if (onDone) onDone();
+        }
+    }, stepMs);
+}
+
+// Pause only — keeps currentTime so reopening continues the track (with fade out)
+function pauseMenuMusic() {
+    clearMenuFade();
+    if (!menuAudio || menuAudio.paused) {
+        updateRailMusicToggleIcon();
+        return;
+    }
+    const startVol = menuAudio.volume;
+    fadeMenuVolume(startVol, 0, () => {
+        if (menuAudio) {
+            menuAudio.pause();
+            // do NOT reset currentTime — continue from here next time
+            menuAudio.volume = menuMusicVolume; // restore for next play
+        }
+        updateRailMusicToggleIcon();
+    });
+}
+
+// Hard stop + rewind (only used when switching songs or muting)
+function stopMenuMusic() {
+    clearMenuFade();
+    if (menuAudio) {
+        menuAudio.pause();
+        menuAudio.currentTime = 0;
+        menuAudio.volume = menuMusicVolume;
+    }
+    updateRailMusicToggleIcon();
+}
+
+function playMenuMusic() {
+    if (currentMenuSongId === 'mute') {
+        pauseMenuMusic();
+        return;
+    }
+    const song = getMenuSongById(currentMenuSongId);
+    if (!song) {
+        pauseMenuMusic();
+        return;
+    }
+
+    clearMenuFade();
+
+    // Reuse same Audio element when possible (preserves position)
+    if (!menuAudio || menuAudio._songId !== song.id) {
+        if (menuAudio) {
+            menuAudio.pause();
+            menuAudio = null;
+        }
+        menuAudio = new Audio(song.src);
+        menuAudio._songId = song.id;
+        menuAudio.loop = true;
+        menuAudio.volume = 0;
+        menuAudio.addEventListener('play', updateRailMusicToggleIcon);
+        menuAudio.addEventListener('pause', updateRailMusicToggleIcon);
+    }
+
+    // Start silent, then fade in
+    menuAudio.volume = 0;
+    menuAudio.play().then(() => {
+        fadeMenuVolume(0, menuMusicVolume);
+        updateRailMusicToggleIcon();
+    }).catch(() => {
+        // Autoplay may be blocked until user interacts; ignore
+        updateRailMusicToggleIcon();
+    });
+}
+
+function toggleMenuMusic() {
+    if (currentMenuSongId === 'mute') return;
+    if (isMenuMusicPlaying()) {
+        menuMusicPinned = false;
+        pauseMenuMusic();
+    } else {
+        menuMusicPinned = true;
+        playMenuMusic();
+    }
+}
+
+function setMenuSong(id) {
+    const wasPlaying = isMenuMusicPlaying() || document.body.classList.contains('sidebar-open') || menuMusicPinned;
+    currentMenuSongId = id;
+    localStorage.setItem(MENU_SONG_LS_KEY, id);
+
+    if (id === 'mute') {
+        menuMusicPinned = false;
+        stopMenuMusic();
+    } else if (wasPlaying) {
+        // Switch track: load new song from the start
+        stopMenuMusic();
+        playMenuMusic();
+    }
+    updateMenuMusicButtons();
+    updateRailMusicToggleIcon();
+}
+
+function setMenuMusicVolume(pct) {
+    menuMusicVolume = Math.max(0, Math.min(1, pct / 100));
+    localStorage.setItem(MENU_VOL_LS_KEY, String(Math.round(pct)));
+    // Only apply immediately if not mid-fade and currently playing
+    if (menuAudio && !menuFadeTimer && isMenuMusicPlaying()) {
+        menuAudio.volume = menuMusicVolume;
+    }
+    const valEl = document.getElementById('menu-music-vol-val');
+    if (valEl) valEl.textContent = Math.round(pct) + '%';
+}
+
+function updateMenuMusicButtons() {
+    const container = document.getElementById('menu-music-options');
+    if (!container) return;
+    container.querySelectorAll('[data-menu-song]').forEach(btn => {
+        const id = btn.dataset.menuSong;
+        if (id === currentMenuSongId) {
+            btn.style.backgroundColor = 'var(--accent-solid)';
+            btn.style.fontWeight = 'bold';
+        } else {
+            btn.style.backgroundColor = '';
+            btn.style.fontWeight = '';
+        }
+    });
+}
+
+function initMenuMusicUI() {
+    const container = document.getElementById('menu-music-options');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    // Mute option first
+    const muteBtn = document.createElement('button');
+    muteBtn.className = 'modal-btn';
+    muteBtn.dataset.menuSong = 'mute';
+    muteBtn.textContent = '🔇 Mute';
+    muteBtn.addEventListener('click', () => setMenuSong('mute'));
+    container.appendChild(muteBtn);
+
+    menuSongs.forEach(song => {
+        const btn = document.createElement('button');
+        btn.className = 'modal-btn';
+        btn.dataset.menuSong = song.id;
+        btn.textContent = '🎵 ' + song.name;
+        btn.addEventListener('click', () => setMenuSong(song.id));
+        container.appendChild(btn);
+    });
+
+    updateMenuMusicButtons();
+
+    // Volume slider
+    const volSlider = document.getElementById('menu-music-volume');
+    const volVal = document.getElementById('menu-music-vol-val');
+    if (volSlider) {
+        const savedPct = Math.round(menuMusicVolume * 100);
+        volSlider.value = savedPct;
+        if (volVal) volVal.textContent = savedPct + '%';
+        // Avoid stacking multiple listeners if modal is opened repeatedly
+        volSlider.oninput = (e) => {
+            setMenuMusicVolume(parseInt(e.target.value, 10));
+        };
+    }
+}
+
+function openMenuMusicModal() {
+    initMenuMusicUI();
+    document.getElementById('menu-music-modal')?.classList.remove('hidden');
+}
+
+// Modal open/close (sidebar button + rail button)
+document.getElementById('menu-music-btn')?.addEventListener('click', openMenuMusicModal);
+document.getElementById('close-menu-music-btn')?.addEventListener('click', () => {
+    document.getElementById('menu-music-modal')?.classList.add('hidden');
+});
+
+// Rail: play/pause toggle + open settings
+document.getElementById('rail-music-toggle-btn')?.addEventListener('click', () => {
+    toggleMenuMusic();
+});
+document.getElementById('rail-music-settings-btn')?.addEventListener('click', openMenuMusicModal);
+
 // Sidebar open / close
 const pauseOverlay = document.getElementById('project-pause-overlay');
 
@@ -55,6 +311,8 @@ function openSidebar() {
             frame.contentWindow.postMessage({ type: 'pause' }, '*');
         }
     } catch (_) {}
+    // Resume / start menu theme song (continues from last position)
+    playMenuMusic();
 }
 
 function closeSidebar() {
@@ -67,6 +325,10 @@ function closeSidebar() {
             frame.contentWindow.postMessage({ type: 'resume' }, '*');
         }
     } catch (_) {}
+    // Pause (don't reset) unless user pinned playback from the rail
+    if (!menuMusicPinned) {
+        pauseMenuMusic();
+    }
 }
 
 document.getElementById('sidebar-open-btn')?.addEventListener('click', openSidebar);
@@ -338,11 +600,16 @@ applyTitleBtn?.addEventListener('click', () => {
 });
 
 function changeFavicon(src) {
-    let link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+    // Prefer existing icon link; keep rel="icon" (works in all modern browsers)
+    let link = document.querySelector("link[rel='icon']") ||
+               document.querySelector("link[rel*='icon']") ||
+               document.createElement('link');
     link.type = 'image/x-icon';
-    link.rel = 'shortcut icon';
+    link.rel = 'icon';
     link.href = src;
-    document.getElementsByTagName('head')[0].appendChild(link);
+    if (!link.parentNode) {
+        document.getElementsByTagName('head')[0].appendChild(link);
+    }
     hasChangedFavicon = true;
     if (hasChangedTheme) unlockAchievement('customisation');
 }

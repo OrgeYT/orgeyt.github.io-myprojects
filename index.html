@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OrgeYT's HTML Projects</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="favicon.ico">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body class="sidebar-closed">
@@ -14,6 +15,8 @@
         <button id="rail-open-full-btn" class="rail-btn" data-tooltip="View full project" aria-label="View full project">↗</button>
         <button id="rail-share-btn" class="rail-btn" data-tooltip="Copy project link" aria-label="Copy project link">🔗</button>
         <button id="rail-fullscreen-btn" class="rail-btn" data-tooltip="Full screen" aria-label="Full screen">⛶</button>
+        <button id="rail-music-toggle-btn" class="rail-btn" data-tooltip="Play / pause theme song" aria-label="Play or pause theme song">▶</button>
+        <button id="rail-music-settings-btn" class="rail-btn" data-tooltip="Menu music settings" aria-label="Menu music settings">🎵</button>
     </div>
 
     <!-- Full sidebar panel (slides in) -->
@@ -39,6 +42,7 @@
             <button id="downloads-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⬇️</span> Downloads</button>
             <button id="view-repo-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📦</span> Repository</button>
             <button id="effects-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">✨</span> Effects</button>
+            <button id="menu-music-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎵</span> Menu Music</button>
             <button id="line-graph-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📈</span> Line Graph</button>
             <button id="view-lists-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📄</span> lists.js</button>
             <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Project of Time</button>
@@ -124,6 +128,22 @@
             <div class="setting-group" id="color-hue-control" style="margin-top: 10px;">
                 <label for="color-hue-slider">Color Hue: <span id="color-hue-val">0°</span></label>
                 <input type="range" id="color-hue-slider" min="0" max="360" value="0" style="width: 100%;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Music Modal -->
+    <div id="menu-music-modal" class="modal hidden">
+        <div class="modal-content" style="width: 340px;">
+            <span id="close-menu-music-btn" class="close-btn">&times;</span>
+            <h3>Menu Theme Song</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 12px;">Plays while the menu is open. Choice is saved.</p>
+            <div class="setting-group" id="menu-music-options" style="display: flex; flex-direction: column; gap: 6px;">
+                <!-- Filled by JS from menuSongs array — easy to extend -->
+            </div>
+            <div class="setting-group" style="margin-top: 12px;">
+                <label for="menu-music-volume">Volume: <span id="menu-music-vol-val">40%</span></label>
+                <input type="range" id="menu-music-volume" min="0" max="100" value="40" style="width: 100%;">
             </div>
         </div>
     </div>
