@@ -56,6 +56,12 @@
             <button class="tab-btn" data-tab="unfavorited" data-sound="true">Unfavorited</button>
             <button class="tab-btn" data-tab="scratch" data-sound="true">Scratch</button>
             <button class="tab-btn" data-tab="visited" data-sound="true">Visited</button>
+            <button class="tab-btn" data-tab="archive" data-sound="true">Archive</button>
+            <button class="tab-btn" data-tab="games" data-sound="true">🎮 Games</button>
+            <button class="tab-btn" data-tab="tools" data-sound="true">🛠️ Tools</button>
+            <button class="tab-btn" data-tab="math" data-sound="true">🧮 Math</button>
+            <button class="tab-btn" data-tab="music" data-sound="true">🎵 Music</button>
+            <button class="tab-btn" data-tab="simulation" data-sound="true">⚙️ Simulation</button>
         </div>
         <input type="text" id="search-bar" placeholder="Search projects...">
         <div id="file-list"></div>
@@ -140,6 +146,13 @@
             <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 12px;">Plays while the menu is open. Choice is saved.</p>
             <div class="setting-group" id="menu-music-options" style="display: flex; flex-direction: column; gap: 6px;">
                 <!-- Filled by JS from menuSongs array — easy to extend -->
+            </div>
+            <div class="setting-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="menu-music-nonrepeat" style="width:16px; height:16px;">
+                    <span>Non-repeating mode (auto next song)</span>
+                </label>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin: 4px 0 0 24px;">When on, plays a different song each time one ends. Uses session tracking.</p>
             </div>
             <div class="setting-group" style="margin-top: 12px;">
                 <label for="menu-music-volume">Volume: <span id="menu-music-vol-val">40%</span></label>
@@ -325,6 +338,21 @@
                 <p id="pot-project-info" style="font-size: 0.85rem; color: var(--text-accent);"></p>
             </div>
             <button id="pot-play-btn" class="modal-btn" style="width: 100%; padding: 10px; font-weight: bold;">Play Project</button>
+        </div>
+    </div>
+
+
+    <!-- Project Card Modal -->
+    <div id="project-card-modal" class="modal hidden">
+        <div class="modal-content project-card-content">
+            <span id="close-project-card-btn" class="close-btn">&times;</span>
+            <h3 id="project-card-title">Project</h3>
+            <div id="project-card-tags" class="project-card-tags"></div>
+            <p id="project-card-desc" class="project-card-desc"></p>
+            <div class="project-card-actions">
+                <button id="project-card-launch-btn" class="modal-btn" style="flex:1; font-weight:bold; padding:10px;">▶ Launch Project</button>
+                <button id="project-card-cancel-btn" class="modal-btn" style="flex:0 0 auto;">Cancel</button>
+            </div>
         </div>
     </div>
 

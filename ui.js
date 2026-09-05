@@ -67,6 +67,71 @@ let menuMusicVolume = parseInt(localStorage.getItem(MENU_VOL_LS_KEY) || '40', 10
 // When true, music keeps playing even if the sidebar is closed (user pressed play on the rail)
 let menuMusicPinned = false;
 let menuFadeTimer = null;
+
+// Non-repeating menu music (sessionStorage)
+const MENU_NONREPEAT_LS_KEY = 'orgeyt-menu-nonrepeat';
+const MENU_PLAYED_SS_KEY = 'orgeyt-menu-played';
+let menuNonRepeat = localStorage.getItem(MENU_NONREPEAT_LS_KEY) === 'true';
+
+function getPlayedSongIds() {
+    try {
+        return JSON.parse(sessionStorage.getItem(MENU_PLAYED_SS_KEY) || '[]');
+    } catch (_) {
+        return [];
+    }
+}
+
+function setPlayedSongIds(ids) {
+    sessionStorage.setItem(MENU_PLAYED_SS_KEY, JSON.stringify(ids));
+}
+
+function clearPlayedSongIds() {
+    sessionStorage.removeItem(MENU_PLAYED_SS_KEY);
+}
+
+function markSongPlayed(id) {
+    if (!id || id === 'mute') return;
+    const played = getPlayedSongIds();
+    if (!played.includes(id)) {
+        played.push(id);
+        setPlayedSongIds(played);
+    }
+}
+
+function pickNextNonRepeatSong(excludeId) {
+    const available = menuSongs.map(s => s.id).filter(id => id !== excludeId);
+    if (available.length === 0) return excludeId; // only one song total
+    let played = getPlayedSongIds();
+    // Candidates not yet played this cycle
+    let candidates = available.filter(id => !played.includes(id));
+    if (candidates.length === 0) {
+        // Cycle complete — clear and start fresh (still avoid immediate repeat)
+        clearPlayedSongIds();
+        played = [];
+        candidates = available.filter(id => id !== excludeId);
+        if (candidates.length === 0) candidates = available;
+    }
+    const next = candidates[Math.floor(Math.random() * candidates.length)];
+    return next;
+}
+
+function onMenuSongEnded() {
+    if (!menuNonRepeat || currentMenuSongId === 'mute') return;
+    const finished = currentMenuSongId;
+    markSongPlayed(finished);
+    const nextId = pickNextNonRepeatSong(finished);
+    if (nextId && nextId !== finished) {
+        currentMenuSongId = nextId;
+        localStorage.setItem(MENU_SONG_LS_KEY, nextId);
+        // Load and play next without treating as manual select (do not clear played list)
+        if (menuAudio) {
+            menuAudio.pause();
+            menuAudio = null;
+        }
+        playMenuMusic();
+        updateMenuMusicButtons();
+    }
+}
 const MENU_FADE_MS = 450;
 const MENU_FADE_STEPS = 18;
 
@@ -170,11 +235,17 @@ function playMenuMusic() {
         }
         menuAudio = new Audio(song.src);
         menuAudio._songId = song.id;
-        menuAudio.loop = true;
+        menuAudio.loop = !menuNonRepeat;
         menuAudio.volume = 0;
         menuAudio.addEventListener('play', updateRailMusicToggleIcon);
         menuAudio.addEventListener('pause', updateRailMusicToggleIcon);
+        menuAudio.addEventListener('ended', onMenuSongEnded);
+    } else {
+        // Keep loop flag in sync with toggle
+        menuAudio.loop = !menuNonRepeat;
     }
+    // Track as played when starting in non-repeat mode
+    if (menuNonRepeat) markSongPlayed(song.id);
 
     // Start silent, then fade in
     menuAudio.volume = 0;
@@ -202,6 +273,10 @@ function setMenuSong(id) {
     const wasPlaying = isMenuMusicPlaying() || document.body.classList.contains('sidebar-open') || menuMusicPinned;
     currentMenuSongId = id;
     localStorage.setItem(MENU_SONG_LS_KEY, id);
+
+    // Manual selection always clears played-song tracking
+    clearPlayedSongIds();
+    if (id !== 'mute') markSongPlayed(id);
 
     if (id === 'mute') {
         menuMusicPinned = false;
@@ -265,6 +340,26 @@ function initMenuMusicUI() {
     });
 
     updateMenuMusicButtons();
+
+    // Non-repeat toggle
+    const nonRepeatCb = document.getElementById('menu-music-nonrepeat');
+    if (nonRepeatCb) {
+        nonRepeatCb.checked = menuNonRepeat;
+        nonRepeatCb.onchange = (e) => {
+            menuNonRepeat = !!e.target.checked;
+            localStorage.setItem(MENU_NONREPEAT_LS_KEY, menuNonRepeat ? 'true' : 'false');
+            if (menuAudio) {
+                menuAudio.loop = !menuNonRepeat;
+            }
+            if (menuNonRepeat) {
+                // Starting non-repeat from current song
+                clearPlayedSongIds();
+                if (currentMenuSongId && currentMenuSongId !== 'mute') markSongPlayed(currentMenuSongId);
+            } else {
+                clearPlayedSongIds();
+            }
+        };
+    }
 
     // Volume slider
     const volSlider = document.getElementById('menu-music-volume');

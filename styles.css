@@ -582,12 +582,12 @@ body.sidebar-open .sidebar {
 }
 
 .tab-btn {
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 70px;
     background-color: var(--btn-secondary);
     color: var(--text-main);
     border: 1px solid var(--border-main);
-    padding: 6px 8px;
+    padding: 6px 10px;
     border-radius: 5px;
     cursor: pointer;
     font-size: 0.75rem;
@@ -1391,4 +1391,49 @@ body.sidebar-closed #open-full-btn {
 #pot-project-info {
     font-style: italic;
     color: var(--text-accent);
+}
+
+/* ==========================================
+   Project Card Modal
+   ========================================== */
+.project-card-content {
+    width: 380px;
+    max-width: 92vw;
+}
+
+.project-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.card-tag {
+    display: inline-block;
+    background: var(--accent-transparent);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+}
+
+.card-tag-none {
+    font-size: 0.8rem;
+    color: var(--text-accent);
+    font-style: italic;
+}
+
+.project-card-desc {
+    font-size: 0.9rem;
+    color: var(--text-accent);
+    line-height: 1.45;
+    margin-bottom: 16px;
+    min-height: 2.5em;
+}
+
+.project-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
 }

@@ -14,8 +14,54 @@ window.currentProjectParam = currentProjectParam;
 window.currentFilePath = currentFilePath;
 let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
 let currentProjectTab = 'all';
+let pendingCardProject = null; // project object waiting for launch from card
 
-document.getElementById('project-counter').textContent = `Total Projects: ${typeof projects !== 'undefined' ? projects.length : 0}`;
+document.getElementById('project-counter').textContent = `Total Projects: ${typeof projects !== 'undefined' ? projects.filter(p => !(p && p.archive)).length : 0}`;
+
+// Helpers that work with the normalized object format
+function getProjectName(p) {
+    return (typeof p === 'object' && p !== null) ? p.name : p;
+}
+
+function getProjectPath(p) {
+    if (typeof p === 'object' && p !== null && p.path) return p.path;
+    const name = getProjectName(p);
+    return `html_${name}.html`;
+}
+
+function isProjectArchived(p) {
+    return !!(typeof p === 'object' && p !== null && p.archive === true);
+}
+
+function getProjectDescription(p) {
+    if (typeof p === 'object' && p !== null && p.description) return p.description;
+    return 'NEEDS DESCRIPTION';
+}
+
+function getProjectTags(p) {
+    if (typeof p === 'object' && p !== null && Array.isArray(p.tags)) return p.tags;
+    return [];
+}
+
+function getTagEmojisFor(p) {
+    if (typeof getTagEmojis === 'function') return getTagEmojis(p);
+    const tags = getProjectTags(p);
+    const map = { 'Games': '🎮', 'Tools': '🛠️', 'Math': '🧮', 'Music': '🎵', 'Simulation': '⚙️' };
+    return tags.map(t => map[t] || '').filter(Boolean).join('');
+}
+
+// Map tab data-tab values to the canonical tag names stored on projects
+const TAG_TAB_MAP = {
+    games: 'Games',
+    tools: 'Tools',
+    math: 'Math',
+    music: 'Music',
+    simulation: 'Simulation'
+};
+
+function projectHasTag(p, tagName) {
+    return getProjectTags(p).includes(tagName);
+}
 
 // Tab buttons
 const tabBtns = document.querySelectorAll('.tab-btn');
@@ -56,50 +102,47 @@ function renderProjectList() {
     if (!fileList || typeof projects === 'undefined') return;
     fileList.innerHTML = '';
 
-    const isWelcome = (p) => {
-        let name = typeof p === 'object' ? p.name : p;
-        return name.toLowerCase() === 'welcome';
-    };
-
-    const isFavorite = (p) => {
-        let name = typeof p === 'object' ? p.name : p;
-        return favorites.includes(name.toLowerCase());
-    };
-
+    const isWelcome = (p) => getProjectName(p).toLowerCase() === 'welcome';
+    const isFavorite = (p) => favorites.includes(getProjectName(p).toLowerCase());
     const isScratch = (p) => {
-        let path = typeof p === 'object' ? p.path : `html_${p}.html`;
+        const path = getProjectPath(p);
         return path.startsWith('scratch-');
     };
+    const isVisited = (p) => getProjectVisitCount(getProjectName(p)) > 0;
 
-    const isVisited = (p) => {
-        let name = typeof p === 'object' ? p.name : p;
-        return getProjectVisitCount(name) > 0;
-    };
+    // Archive tab shows only archived; all other tabs exclude archived
+    let candidateProjects;
+    if (currentProjectTab === 'archive') {
+        candidateProjects = projects.filter(p => isProjectArchived(p));
+    } else {
+        candidateProjects = projects.filter(p => !isProjectArchived(p));
+    }
 
     let sortedProjects;
 
     if (currentProjectTab === 'visited') {
-        const visitedProjectsList = projects.filter(p => isVisited(p));
+        const visitedProjectsList = candidateProjects.filter(p => isVisited(p));
         sortedProjects = visitedProjectsList.sort((a, b) => {
-            const nameA = typeof a === 'object' ? a.name : a;
-            const nameB = typeof b === 'object' ? b.name : b;
-            return getProjectVisitCount(nameB) - getProjectVisitCount(nameA);
+            return getProjectVisitCount(getProjectName(b)) - getProjectVisitCount(getProjectName(a));
         });
+    } else if (currentProjectTab === 'archive') {
+        sortedProjects = candidateProjects.slice();
     } else {
-        const welcomeProjects = projects.filter(p => isWelcome(p));
-        const favoritedProjects = projects.filter(p => !isWelcome(p) && isFavorite(p));
-        const regularProjects = projects.filter(p => !isWelcome(p) && !isFavorite(p));
+        const welcomeProjects = candidateProjects.filter(p => isWelcome(p));
+        const favoritedProjects = candidateProjects.filter(p => !isWelcome(p) && isFavorite(p));
+        const regularProjects = candidateProjects.filter(p => !isWelcome(p) && !isFavorite(p));
         sortedProjects = [...welcomeProjects, ...favoritedProjects, ...regularProjects];
     }
 
     sortedProjects.forEach(project => {
-        let projectParam = (typeof project === 'object') ? project.name : project;
-        let isFav = isFavorite(project);
+        const projectParam = getProjectName(project);
+        const isFav = isFavorite(project);
 
         if (currentProjectTab === 'favorites' && !isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'scratch' && !isScratch(project)) return;
         if (currentProjectTab === 'visited' && !isVisited(project)) return;
+        if (TAG_TAB_MAP[currentProjectTab] && !projectHasTag(project, TAG_TAB_MAP[currentProjectTab])) return;
 
         const button = document.createElement('button');
         button.className = 'file-btn';
@@ -110,7 +153,9 @@ function renderProjectList() {
         button.dataset.projectName = projectParam.toLowerCase();
         button.dataset.sound = 'true';
 
-        let btnText = (typeof project === 'object') ? `Launch ${project.name}` : `Launch ${project}`;
+        const tagEmojis = getTagEmojisFor(project);
+        let btnText = `Launch ${projectParam}`;
+        if (tagEmojis) btnText = `${tagEmojis} ${btnText}`;
         if (isFav) btnText += " ⭐";
 
         const visitCount = getProjectVisitCount(projectParam);
@@ -126,21 +171,79 @@ function renderProjectList() {
             button.textContent = btnText;
         }
 
+        // Open project card instead of launching immediately
         button.onclick = () => {
-            loadProject(project);
-            if (typeof closeSidebar === 'function') closeSidebar();
+            openProjectCard(project);
         };
         fileList.appendChild(button);
     });
 
     applySearchFilter();
-    // Re-attach sounds for new buttons
     if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
 }
 
+// ===========================================
+// --- Project Card Modal ---
+// ===========================================
+
+function openProjectCard(project) {
+    pendingCardProject = project;
+    const modal = document.getElementById('project-card-modal');
+    if (!modal) return;
+
+    const name = getProjectName(project);
+    const desc = getProjectDescription(project);
+    const tags = getProjectTags(project);
+    const emojis = getTagEmojisFor(project);
+
+    const titleEl = document.getElementById('project-card-title');
+    const descEl = document.getElementById('project-card-desc');
+    const tagsEl = document.getElementById('project-card-tags');
+    const launchBtn = document.getElementById('project-card-launch-btn');
+
+    if (titleEl) titleEl.textContent = (emojis ? emojis + ' ' : '') + name;
+    if (descEl) descEl.textContent = desc;
+
+    if (tagsEl) {
+        if (tags.length === 0) {
+            tagsEl.innerHTML = '<span class="card-tag-none">No tags</span>';
+        } else {
+            const map = { 'Games': '🎮', 'Tools': '🛠️', 'Math': '🧮', 'Music': '🎵', 'Simulation': '⚙️' };
+            tagsEl.innerHTML = tags.map(t => {
+                const emoji = map[t] || '';
+                return `<span class="card-tag">${emoji} ${t}</span>`;
+            }).join('');
+        }
+    }
+
+    if (launchBtn) {
+        launchBtn.onclick = () => {
+            closeProjectCard();
+            loadProject(project);
+            if (typeof closeSidebar === 'function') closeSidebar();
+        };
+    }
+
+    modal.classList.remove('hidden');
+}
+
+function closeProjectCard() {
+    const modal = document.getElementById('project-card-modal');
+    if (modal) modal.classList.add('hidden');
+    pendingCardProject = null;
+}
+
+document.getElementById('close-project-card-btn')?.addEventListener('click', closeProjectCard);
+document.getElementById('project-card-cancel-btn')?.addEventListener('click', closeProjectCard);
+
+// Close card when clicking backdrop
+document.getElementById('project-card-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'project-card-modal') closeProjectCard();
+});
+
 function loadProject(project) {
-    let projectParam = (typeof project === 'object') ? project.name : project;
-    let filePath = (typeof project === 'object') ? project.path : `html_${project}.html`;
+    let projectParam = getProjectName(project);
+    let filePath = getProjectPath(project);
 
     if (!filePath.startsWith('http') &&
         !filePath.startsWith('data:') &&
@@ -224,7 +327,6 @@ function loadProject(project) {
     window.currentFilePath = currentFilePath;
     updateFavoriteButtonText();
 
-    // Highlight active project in the list without full re-render when possible
     if (fileList) {
         fileList.querySelectorAll('.file-btn').forEach(btn => {
             const name = (btn.dataset.projectName || '').toLowerCase();
@@ -258,15 +360,19 @@ if (favoriteBtn) {
     });
 }
 
-// Random — minimize sidebar and load
+// Random — open card for a random visible project (does not auto-launch)
 if (randomProjectBtn) {
     randomProjectBtn.addEventListener('click', () => {
         const buttons = Array.from(fileList.querySelectorAll('.file-btn')).filter(btn => btn.style.display !== 'none');
         if (buttons.length > 0) {
             const randomBtn = buttons[Math.floor(Math.random() * buttons.length)];
-            randomBtn.click();
-            unlockAchievement('randomizer');
-            if (typeof closeSidebar === 'function') closeSidebar();
+            // Find the project object and open its card
+            const name = randomBtn.dataset.projectName;
+            const found = projects.find(p => getProjectName(p).toLowerCase() === name);
+            if (found) {
+                openProjectCard(found);
+                unlockAchievement('randomizer');
+            }
         }
     });
 }
@@ -280,16 +386,12 @@ const urlParams = new URLSearchParams(window.location.search);
 const projectToLoad = urlParams.get('project');
 
 if (projectToLoad && typeof projects !== 'undefined') {
-    const foundProject = projects.find(p => {
-        if (typeof p === 'object') {
-            return p.name.toLowerCase() == projectToLoad.toLowerCase();
-        }
-        return p.toLowerCase() === projectToLoad.toLowerCase();
-    });
+    const foundProject = projects.find(p => getProjectName(p).toLowerCase() === projectToLoad.toLowerCase());
     if (foundProject) loadProject(foundProject);
-    else loadProject("welcome");
+    else loadProject(projects.find(p => getProjectName(p).toLowerCase() === 'welcome') || projects[0]);
 } else {
-    loadProject("welcome");
+    const welcome = projects.find(p => getProjectName(p).toLowerCase() === 'welcome');
+    loadProject(welcome || projects[0]);
 }
 
 // ==========================================
@@ -307,7 +409,7 @@ const LG_SERIES = [
 ];
 
 function lgClassify(project) {
-    const path = (typeof project === 'object') ? project.path : `html_${project}.html`;
+    const path = getProjectPath(project);
     if (path.startsWith('scratch-')) return 'scratch';
     if (path.startsWith('http') || path.startsWith('data:')) return 'embed';
     if (/\.(txt|md|png)$/i.test(path)) return 'text';
@@ -316,12 +418,12 @@ function lgClassify(project) {
 }
 
 function lgIsDownloadable(project) {
-    const path = (typeof project === 'object') ? project.path : `html_${project}.html`;
+    const path = getProjectPath(project);
     return !(path.startsWith('scratch-') || path.startsWith('http') || path.startsWith('data:'));
 }
 
 function lgName(project) {
-    return (typeof project === 'object') ? project.name : project;
+    return getProjectName(project);
 }
 
 function lgBuildCumulativeData() {
@@ -329,6 +431,7 @@ function lgBuildCumulativeData() {
     const series = {};
     LG_SERIES.forEach(s => { series[s.key] = []; });
 
+    // Line graph uses full list including archived for historical order
     projects.forEach((p) => {
         const type = lgClassify(p);
         const dl = lgIsDownloadable(p);
@@ -553,7 +656,9 @@ function getHashSeed(type) {
 }
 
 function getProjectOfThePeriod(type) {
-    if (projects.length === 0) return null;
+    // Exclude archived from Project of Time
+    const active = projects.filter(p => !isProjectArchived(p));
+    if (active.length === 0) return null;
 
     const seed = getHashSeed(type);
     let hash = 0;
@@ -563,15 +668,15 @@ function getProjectOfThePeriod(type) {
         hash = hash & hash;
     }
 
-    const index = Math.abs(hash) % projects.length;
-    return projects[index];
+    const index = Math.abs(hash) % active.length;
+    return active[index];
 }
 
 function displayProjectOfTime(type) {
     const project = getProjectOfThePeriod(type);
     if (!project) return;
 
-    const displayName = typeof project === 'object' ? project.name : project;
+    const displayName = getProjectName(project);
     let timeLabel = type.charAt(0).toUpperCase() + type.slice(1);
 
     document.getElementById('pot-project-name').textContent = `Project of the ${timeLabel}`;

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dot Eater</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+    user-select: none;
+}
+
+button {
+    padding: 12px 30px;
+    margin: 8px;
+    border: 2px solid white;
+    border-radius: 8px;
+    background: #222;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+    transform: scale(1.04);
+}
+
+.screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    background:
+        radial-gradient(circle at center, #202020 0%, #111 70%);
+    z-index: 300;
+}
+
+.screen h1 {
+    font-size: 64px;
+    margin: 0 0 10px;
+}
+
+.subtitle {
+    color: #aaa;
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+#settingsScreen {
+    display: none;
+}
+
+.setting {
+    width: 350px;
+    padding: 20px;
+    margin: 10px;
+    border: 2px solid #444;
+    border-radius: 10px;
+    background: #181818;
+}
+
+.setting-title {
+    font-size: 20px;
+    margin-bottom: 12px;
+}
+
+.option {
+    display: inline-block;
+    padding: 10px 15px;
+    margin: 3px;
+    border: 2px solid #555;
+    border-radius: 7px;
+    cursor: pointer;
+}
+
+.option:hover {
+    background: #292929;
+}
+
+.option.selected {
+    border-color: white;
+    background: #333;
+}
+
+#game {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at center, #202020 0%, #111 70%);
+    display: none;
+}
+
+.dot {
+    position: absolute;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+
+#player {
+    background: red;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+    z-index: 10;
+}
+
+.enemy {
+    z-index: 5;
+}
+
+#hud {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    z-index: 100;
+    font-size: 18px;
+    line-height: 1.5;
+    text-shadow: 2px 2px 4px black;
+}
+
+#gameOver {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 0, 0, 0.75);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+}
+
+#gameOver h1 {
+    font-size: 50px;
+    margin: 0 0 10px;
+}
+
+#gameOver p {
+    font-size: 22px;
+    margin: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<!-- TITLE SCREEN -->
+<div id="titleScreen" class="screen">
+    <h1>Dot Eater</h1>
+    <div class="subtitle">
+        Eat smaller dots. Avoid bigger dots.
+    </div>
+
+    <button onclick="startGame()">Play</button>
+    <button onclick="openSettings()">Settings</button>
+</div>
+
+<!-- SETTINGS -->
+<div id="settingsScreen" class="screen">
+    <h1>Settings</h1>
+
+    <div class="setting">
+        <div class="setting-title">Player Movement</div>
+
+        <div
+            id="literalOption"
+            class="option"
+            onclick="setMovement('literal')"
+        >
+            Literal
+        </div>
+
+        <div
+            id="smoothOption"
+            class="option"
+            onclick="setMovement('smooth')"
+        >
+            Smooth
+        </div>
+    </div>
+
+    <button onclick="closeSettings()">Back</button>
+</div>
+
+<!-- GAME -->
+<div id="game">
+
+    <div id="hud">
+        Score: <span id="score">0</span><br>
+        Time: <span id="time">0.0</span>s<br>
+        Size: <span id="sizeText">20</span>
+    </div>
+
+    <div id="player" class="dot"></div>
+
+    <div id="gameOver">
+        <h1>GAME OVER 💀</h1>
+        <p>Score: <span id="finalScore">0</span></p>
+        <p>Survived: <span id="finalTime">0.0</span>s</p>
+
+        <button onclick="restart()">Play Again</button>
+        <button onclick="returnToTitle()">Title Screen</button>
+    </div>
+
+</div>
+
+<script>
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+
+const scoreText = document.getElementById("score");
+const timeText = document.getElementById("time");
+const sizeText = document.getElementById("sizeText");
+
+const gameOverScreen = document.getElementById("gameOver");
+const finalScore = document.getElementById("finalScore");
+const finalTime = document.getElementById("finalTime");
+
+const titleScreen = document.getElementById("titleScreen");
+const settingsScreen = document.getElementById("settingsScreen");
+
+let playerX = innerWidth / 2;
+let playerY = innerHeight / 2;
+
+let playerSize = 20;
+
+let score = 0;
+let startTime = 0;
+
+let enemies = [];
+let running = false;
+let lastSpawn = 0;
+
+const mouse = {
+    x: playerX,
+    y: playerY
+};
+
+// ==========================================
+// SETTINGS
+// ==========================================
+
+let movementMode =
+    localStorage.getItem("dotEaterMovement") || "smooth";
+
+function setMovement(mode) {
+    movementMode = mode;
+
+    localStorage.setItem(
+        "dotEaterMovement",
+        movementMode
+    );
+
+    updateSettingButtons();
+}
+
+function updateSettingButtons() {
+    document
+        .getElementById("literalOption")
+        .classList.toggle(
+            "selected",
+            movementMode === "literal"
+        );
+
+    document
+        .getElementById("smoothOption")
+        .classList.toggle(
+            "selected",
+            movementMode === "smooth"
+        );
+}
+
+function openSettings() {
+    titleScreen.style.display = "none";
+    settingsScreen.style.display = "flex";
+
+    updateSettingButtons();
+}
+
+function closeSettings() {
+    settingsScreen.style.display = "none";
+    titleScreen.style.display = "flex";
+}
+
+// ==========================================
+// INPUT
+// ==========================================
+
+document.addEventListener("mousemove", e => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+});
+
+document.addEventListener("touchmove", e => {
+    if (e.touches.length > 0) {
+        mouse.x = e.touches[0].clientX;
+        mouse.y = e.touches[0].clientY;
+    }
+}, { passive: true });
+
+// ==========================================
+// GAME
+// ==========================================
+
+function randomColor() {
+    const colors = [
+        "#00ff66",
+        "#00ccff",
+        "#ffcc00",
+        "#aa66ff",
+        "#ff66cc",
+        "#66ffff",
+        "#ffffff"
+    ];
+
+    return colors[
+        Math.floor(Math.random() * colors.length)
+    ];
+}
+
+function spawnEnemy() {
+    const enemy = document.createElement("div");
+    enemy.className = "dot enemy";
+
+    let size;
+
+    const type = Math.random();
+
+    if (type < 0.45) {
+        // Smaller dots
+        size = Math.max(
+            5,
+            playerSize * (0.25 + Math.random() * 0.65)
+        );
+    }
+    else if (type < 0.9) {
+        // Bigger dots
+        size =
+            playerSize *
+            (1.1 + Math.random() * 1.5);
+    }
+    else {
+        // Tiny bonus dot
+        size = Math.max(
+            4,
+            playerSize * 0.15
+        );
+    }
+
+    let x;
+    let y;
+
+    const side = Math.floor(Math.random() * 4);
+
+    if (side === 0) {
+        x = -size;
+        y = Math.random() * innerHeight;
+    }
+    else if (side === 1) {
+        x = innerWidth + size;
+        y = Math.random() * innerHeight;
+    }
+    else if (side === 2) {
+        x = Math.random() * innerWidth;
+        y = -size;
+    }
+    else {
+        x = Math.random() * innerWidth;
+        y = innerHeight + size;
+    }
+
+    const targetX =
+        innerWidth / 2 +
+        (Math.random() - 0.5) * 500;
+
+    const targetY =
+        innerHeight / 2 +
+        (Math.random() - 0.5) * 500;
+
+    const dx = targetX - x;
+    const dy = targetY - y;
+
+    const distance = Math.hypot(dx, dy);
+
+    const speed =
+        30 + Math.random() * 60;
+
+    enemy.style.width = size + "px";
+    enemy.style.height = size + "px";
+    enemy.style.background = randomColor();
+
+    game.appendChild(enemy);
+
+    enemies.push({
+        element: enemy,
+        x,
+        y,
+        size,
+        vx: dx / distance * speed,
+        vy: dy / distance * speed
+    });
+}
+
+function updatePlayer() {
+
+    if (movementMode === "literal") {
+
+        // Directly match cursor position
+        playerX = mouse.x;
+        playerY = mouse.y;
+
+    } else {
+
+        // Smooth movement
+        playerX +=
+            (mouse.x - playerX) * 0.15;
+
+        playerY +=
+            (mouse.y - playerY) * 0.15;
+    }
+
+    player.style.left =
+        playerX + "px";
+
+    player.style.top =
+        playerY + "px";
+
+    player.style.width =
+        playerSize + "px";
+
+    player.style.height =
+        playerSize + "px";
+}
+
+function updateEnemies(delta) {
+
+    for (let i = enemies.length - 1; i >= 0; i--) {
+
+        const enemy = enemies[i];
+
+        enemy.x += enemy.vx * delta;
+        enemy.y += enemy.vy * delta;
+
+        enemy.element.style.left =
+            enemy.x + "px";
+
+        enemy.element.style.top =
+            enemy.y + "px";
+
+        const distance = Math.hypot(
+            enemy.x - playerX,
+            enemy.y - playerY
+        );
+
+        const touchingDistance =
+            playerSize / 2 +
+            enemy.size / 2;
+
+        if (distance < touchingDistance) {
+
+            if (enemy.size < playerSize) {
+
+                // EAT
+                score += Math.max(
+                    1,
+                    Math.floor(enemy.size)
+                );
+
+                playerSize +=
+                    enemy.size * 0.025;
+
+                enemy.element.remove();
+                enemies.splice(i, 1);
+
+                continue;
+
+            } else {
+
+                // DIE
+                die();
+                return;
+            }
+        }
+
+        if (
+            enemy.x < -200 ||
+            enemy.x > innerWidth + 200 ||
+            enemy.y < -200 ||
+            enemy.y > innerHeight + 200
+        ) {
+            enemy.element.remove();
+            enemies.splice(i, 1);
+        }
+    }
+}
+
+function die() {
+
+    if (!running) return;
+
+    running = false;
+
+    const survived =
+        (performance.now() - startTime) / 1000;
+
+    finalScore.textContent =
+        Math.floor(score);
+
+    finalTime.textContent =
+        survived.toFixed(1);
+
+    gameOverScreen.style.display =
+        "flex";
+}
+
+function startGame() {
+
+    titleScreen.style.display =
+        "none";
+
+    settingsScreen.style.display =
+        "none";
+
+    game.style.display =
+        "block";
+
+    gameOverScreen.style.display =
+        "none";
+
+    restart();
+}
+
+function restart() {
+
+    for (const enemy of enemies) {
+        enemy.element.remove();
+    }
+
+    enemies = [];
+
+    playerSize = 20;
+
+    score = 0;
+
+    playerX = innerWidth / 2;
+    playerY = innerHeight / 2;
+
+    mouse.x = playerX;
+    mouse.y = playerY;
+
+    running = true;
+
+    gameOverScreen.style.display =
+        "none";
+
+    startTime =
+        performance.now();
+
+    lastSpawn =
+        performance.now();
+
+    requestAnimationFrame(gameLoop);
+}
+
+function returnToTitle() {
+
+    running = false;
+
+    for (const enemy of enemies) {
+        enemy.element.remove();
+    }
+
+    enemies = [];
+
+    game.style.display =
+        "none";
+
+    gameOverScreen.style.display =
+        "none";
+
+    titleScreen.style.display =
+        "flex";
+}
+
+// ==========================================
+// GAME LOOP
+// ==========================================
+
+function gameLoop(timestamp) {
+
+    if (!running) return;
+
+    const delta = 1 / 60;
+
+    const spawnInterval =
+        Math.max(
+            250,
+            850 - score * 2
+        );
+
+    if (
+        timestamp - lastSpawn >
+        spawnInterval
+    ) {
+        spawnEnemy();
+        lastSpawn = timestamp;
+    }
+
+    updatePlayer();
+    updateEnemies(delta);
+
+    const time =
+        (timestamp - startTime) / 1000;
+
+    score += delta * 2;
+
+    scoreText.textContent =
+        Math.floor(score);
+
+    timeText.textContent =
+        time.toFixed(1);
+
+    sizeText.textContent =
+        playerSize.toFixed(1);
+
+    requestAnimationFrame(gameLoop);
+}
+
+updateSettingButtons();
+</script>
+
+</body>
+</html>
