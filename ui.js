@@ -56,6 +56,12 @@ const menuSongs = [
     { id: 'soon-cult',      name: 'SOON CULT',       src: 'music/SOON CULT.mp3' },
     { id: 'settle-master',  name: 'Settle Master',   src: 'music/Settle Master.mp3' },
     { id: 'window',         name: 'Window',          src: 'music/Window.mp3' },
+    { id: 'oiia',           name: 'Oiia',            src: 'music/oiia.mp3' },
+    { id: 'ultraname',      name: 'Ultraname',       src: 'music/Ultraname.mp3' },
+    { id: 'piano-master',   name: 'Piano Master',    src: 'music/Piano master.mp3' },
+    { id: 'catpanic',       name: 'Catpanic',        src: 'music/Catpanic.mp3' },
+    { id: 'settle-peace',   name: 'Settle Peace',    src: 'music/Settle peace.mp3' },
+    { id: 'yowie-master',   name: 'Yowie Master PIANO Remix', src: 'music/Yowie Master PIANO Remix (1).mp3' },
 ];
 
 const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
