@@ -62,7 +62,6 @@ const menuSongs = [
     { id: 'catpanic',       name: 'Catpanic',        src: 'music/Catpanic.mp3' },
     { id: 'settle-peace',   name: 'Settle Peace',    src: 'music/Settle peace.mp3' },
     { id: 'yowie-master',   name: 'Yowie Master PIANO Remix', src: 'music/Yowie Master PIANO Remix (1).mp3' },
-    { id: 'slide-master',   name: 'Slide Master', src: 'music/Slide master.mp3' },
 ];
 
 const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
