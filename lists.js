@@ -1122,7 +1122,14 @@ const projects = [
         description: "Eat dots, and get bigger! Don't try to eat the bigger dots, they will eat you!",
         tags: ["Games"],
         archive: false
-    }
+    },
+    {
+        name: "Recovery Center Midi Player",
+        path: "recovery center midi player/index.html",
+        description: "Play Midi files, but on a Recovery Center from BFDI??",
+        tags: ["Music"],
+        archive: false
+    } // Recovery center, recover me!!
 ];
 
 // ==========================================
