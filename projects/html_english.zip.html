@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>English.zip Translator</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #111;
+    color: white;
+    min-height: 100vh;
+    padding: 25px;
+}
+
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: auto;
+}
+
+h1 {
+    text-align: center;
+    font-size: 42px;
+    margin-bottom: 5px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #aaa;
+    margin-bottom: 25px;
+}
+
+.box {
+    background: #1c1c1c;
+    border: 1px solid #333;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+h2 {
+    margin-top: 0;
+}
+
+textarea {
+    width: 100%;
+    min-height: 150px;
+    resize: vertical;
+    background: #101010;
+    color: white;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 17px;
+    outline: none;
+}
+
+textarea:focus {
+    border-color: #777;
+}
+
+.output {
+    white-space: pre-wrap;
+    min-height: 100px;
+    background: #101010;
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 15px;
+    font-size: 18px;
+    line-height: 1.5;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+button {
+    border: none;
+    border-radius: 9px;
+    padding: 11px 16px;
+    background: #333;
+    color: white;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+button:hover {
+    background: #444;
+}
+
+.main-button {
+    background: white;
+    color: #111;
+    font-weight: bold;
+}
+
+.main-button:hover {
+    background: #ddd;
+}
+
+.switch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.switch input {
+    width: 17px;
+    height: 17px;
+}
+
+.stats {
+    color: #888;
+    margin-top: 10px;
+    font-size: 13px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>English.zip</h1>
+
+<div class="subtitle">
+Compress and decompress internet English 💀
+</div>
+
+
+<!-- =====================================================
+     ENGLISH → ENGLISH.ZIP
+===================================================== -->
+
+<div class="box">
+
+<h2>📦 English → English.zip</h2>
+
+<textarea
+id="compressInput"
+placeholder="Type normal English here..."
+></textarea>
+
+<div class="controls">
+
+<button class="main-button" onclick="compressText()">
+Compress English
+</button>
+
+<button onclick="clearCompressor()">
+Clear
+</button>
+
+</div>
+
+<div class="switch">
+<input type="checkbox" id="chaos">
+<label for="chaos">Maximum internet chaos 💀</label>
+</div>
+
+<br>
+
+<div class="output" id="compressOutput">
+Your compressed English will appear here...
+</div>
+
+<div class="stats" id="compressStats"></div>
+
+<div class="controls">
+<button onclick="copyText('compressOutput')">
+Copy
+</button>
+</div>
+
+</div>
+
+
+<!-- =====================================================
+     ENGLISH.ZIP → ENGLISH
+===================================================== -->
+
+<div class="box">
+
+<h2>📂 English.zip → English</h2>
+
+<textarea
+id="uncompressInput"
+placeholder="Type internet English here...
+
+Example:
+ngl ts peak fr, gj bro 😭💀"
+></textarea>
+
+<div class="controls">
+
+<button class="main-button" onclick="uncompressText()">
+Uncompress English
+</button>
+
+<button onclick="clearUncompressor()">
+Clear
+</button>
+
+</div>
+
+<br>
+
+<div class="output" id="uncompressOutput">
+Your normal English will appear here...
+</div>
+
+<div class="stats" id="uncompressStats"></div>
+
+<div class="controls">
+<button onclick="copyText('uncompressOutput')">
+Copy
+</button>
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   ENGLISH → ENGLISH.ZIP
+========================================================= */
+
+const compressReplacements = [
+
+    /* ---------- Important phrases ---------- */
+
+    [/\bnot gonna lie\b/gi, "ngl"],
+    [/\bto be honest\b/gi, "tbh"],
+    [/\bin my humble opinion\b/gi, "imho"],
+    [/\bin my opinion\b/gi, "imo"],
+    [/\bas far as I know\b/gi, "afaik"],
+    [/\bfor real for real\b/gi, "frfr"],
+    [/\bfor real\b/gi, "fr"],
+    [/\bright now\b/gi, "rn"],
+    [/\bat this point\b/gi, "atp"],
+    [/\bat the moment\b/gi, "atm"],
+    [/\bwhat are you doing\b/gi, "wyd"],
+    [/\bwhat do you mean\b/gi, "wdym"],
+    [/\bwhat the fuck\b/gi, "wtf"],
+    [/\bwhat the heck\b/gi, "wth"],
+    [/\bI don't know\b/gi, "idk"],
+    [/\bI don't care\b/gi, "idc"],
+    [/\bI know, right\b/gi, "ikr"],
+    [/\bI know\b/gi, "ik"],
+    [/\bmy bad\b/gi, "mb"],
+    [/\bthank you so much\b/gi, "tysm"],
+    [/\bthank you\b/gi, "ty"],
+    [/\bgood job\b/gi, "gj"],
+    [/\bhit me up\b/gi, "hmu"],
+    [/\blet me know\b/gi, "lmk"],
+    [/\btalk to you later\b/gi, "ttyl"],
+    [/\bbe right back\b/gi, "brb"],
+    [/\bgood game\b/gi, "gg"],
+    [/\bgot to go\b/gi, "gtg"],
+    [/\baway from keyboard\b/gi, "afk"],
+    [/\bon my way\b/gi, "omw"],
+    [/\bof course\b/gi, "ofc"],
+    [/\bno problem\b/gi, "np"],
+    [/\bnever mind\b/gi, "nvm"],
+    [/\byou're welcome\b/gi, "yw"],
+    [/\bI swear to God\b/gi, "istg"],
+    [/\bon God\b/gi, "ong"],
+    [/\bif you know, you know\b/gi, "iykyk"],
+    [/\btoo long, didn't read\b/gi, "tl;dr"],
+    [/\bfor fuck's sake\b/gi, "ffs"],
+    [/\boh my fucking god\b/gi, "omfg"],
+    [/\boh my god\b/gi, "omg"],
+    [/\blaughing my ass off\b/gi, "lmao"],
+    [/\blaughing out loud\b/gi, "lol"],
+    [/\brolling on the floor laughing\b/gi, "rofl"],
+    [/\bI just burst out laughing\b/gi, "ijbol"],
+    [/\bI can't lie\b/gi, "icl"],
+    [/\bbe fucking for real\b/gi, "bffr"],
+    [/\bput me on\b/gi, "pmo"],
+    [/\bpissing me off\b/gi, "pmo"],
+
+    /* ---------- TS ---------- */
+
+    [/\bthis shit\b/gi, "ts"],
+
+    /* =====================================================
+       50 CUSTOM SHORT FORMS
+       These are translator-specific additions.
+    ===================================================== */
+
+    [/\bprobably\b/gi, "prob"],
+    [/\bprobably not\b/gi, "probn"],
+    [/\bdefinitely\b/gi, "def"],
+    [/\bdefinitely not\b/gi, "defn"],
+    [/\bactually\b/gi, "act"],
+    [/\bseriously\b/gi, "srsly"],
+    [/\bsomehow\b/gi, "smhw"],
+    [/\bsomebody\b/gi, "smbdy"],
+    [/\bsomeone\b/gi, "sm1"],
+    [/\bsomething\b/gi, "smth"],
+    [/\beverything\b/gi, "evth"],
+    [/\beveryone\b/gi, "ev1"],
+    [/\bnothing\b/gi, "nth"],
+    [/\banything\b/gi, "anyth"],
+    [/\beverywhere\b/gi, "evwhr"],
+    [/\bsomewhere\b/gi, "smwhr"],
+    [/\banywhere\b/gi, "anywhr"],
+    [/\bwithout\b/gi, "w/o"],
+    [/\bwithin\b/gi, "w/in"],
+    [/\bbetween\b/gi, "btwn"],
+    [/\bprobably\b/gi, "prbly"],
+    [/\btonight\b/gi, "2nite"],
+    [/\btomorrow\b/gi, "2moro"],
+    [/\btoday\b/gi, "2day"],
+    [/\byesterday\b/gi, "ystrdy"],
+    [/\bweekend\b/gi, "wknd"],
+    [/\bmorning\b/gi, "morn"],
+    [/\bafternoon\b/gi, "aft"],
+    [/\bmessage\b/gi, "msg"],
+    [/\bmessages\b/gi, "msgs"],
+    [/\bconversation\b/gi, "conv"],
+    [/\bconversations\b/gi, "convos"],
+    [/\binformation\b/gi, "info"],
+    [/\bproblem\b/gi, "prob"],
+    [/\bproblems\b/gi, "probs"],
+    [/\bpeople\b/gi, "ppl"],
+    [/\bperson\b/gi, "prsn"],
+    [/\bfriend\b/gi, "frnd"],
+    [/\bfriends\b/gi, "frnds"],
+    [/\bplease\b/gi, "pls"],
+    [/\bthanks\b/gi, "thx"],
+    [/\bthankfully\b/gi, "thxfully"],
+    [/\bprobably\b/gi, "prob"],
+    [/\bminute\b/gi, "min"],
+    [/\bminutes\b/gi, "mins"],
+    [/\bseconds\b/gi, "secs"],
+    [/\bexample\b/gi, "ex"],
+    [/\bexamples\b/gi, "exs"],
+    [/\bmessage me\b/gi, "msg me"],
+    [/\bcall me\b/gi, "cm"],
+
+    /* ---------- Common word compression ---------- */
+
+    [/\byou're\b/gi, "ur"],
+    [/\byour\b/gi, "ur"],
+    [/\byou\b/gi, "u"],
+    [/\bare\b/gi, "r"],
+    [/\bwhy\b/gi, "y"],
+    [/\bplease\b/gi, "pls"],
+    [/\babout\b/gi, "abt"],
+    [/\bbecause\b/gi, "bc"],
+    [/\bwith\b/gi, "w/"],
+    [/\bthough\b/gi, "tho"],
+    [/\blater\b/gi, "l8r"],
+    [/\bbefore\b/gi, "b4"],
+
+    /* ---------- Casual shortening ---------- */
+
+    [/\bgoing to\b/gi, "gonna"],
+    [/\bwant to\b/gi, "wanna"],
+    [/\bkind of\b/gi, "kinda"],
+    [/\bsort of\b/gi, "sorta"],
+    [/\breally\b/gi, "rly"],
+    [/\bvery\b/gi, "rly"],
+    [/\bjust\b/gi, "js"]
+
+];
+
+
+/* =========================================================
+   ENGLISH.ZIP → ENGLISH
+========================================================= */
+
+const uncompressReplacements = [
+
+    /* ---------- Long forms first ---------- */
+
+    [/\bfrfr\b/gi, "for real for real"],
+    [/\biykyk\b/gi, "if you know, you know"],
+    [/\bafaik\b/gi, "as far as I know"],
+    [/\bimho\b/gi, "in my humble opinion"],
+    [/\blmao\b/gi, "laughing my ass off"],
+    [/\brofl\b/gi, "rolling on the floor laughing"],
+    [/\bomfg\b/gi, "oh my fucking god"],
+    [/\bwdym\b/gi, "what do you mean"],
+    [/\bwyd\b/gi, "what are you doing"],
+    [/\btysm\b/gi, "thank you so much"],
+    [/\bttyl\b/gi, "talk to you later"],
+    [/\bistg\b/gi, "I swear to God"],
+    [/\blmk\b/gi, "let me know"],
+    [/\bhmu\b/gi, "hit me up"],
+    [/\bgtg\b/gi, "got to go"],
+    [/\bafk\b/gi, "away from keyboard"],
+    [/\bomw\b/gi, "on my way"],
+    [/\btl;dr\b/gi, "too long, didn't read"],
+
+    /* ---------- Modern slang ---------- */
+
+    [/\bbffr\b/gi, "be fucking for real"],
+    [/\bijbol\b/gi, "I just burst out laughing"],
+    [/\bicl\b/gi, "I can't lie"],
+    [/\bpmo\b/gi, "put me on"],
+    [/\batp\b/gi, "at this point"],
+    [/\bong\b/gi, "on God"],
+
+    /* ---------- TS ---------- */
+
+    [/\bts\b/gi, "this shit"],
+
+    /* ---------- Common abbreviations ---------- */
+
+    [/\bngl\b/gi, "not gonna lie"],
+    [/\btbh\b/gi, "to be honest"],
+    [/\bimo\b/gi, "in my opinion"],
+    [/\bfr\b/gi, "for real"],
+    [/\brn\b/gi, "right now"],
+    [/\batm\b/gi, "at the moment"],
+    [/\bidk\b/gi, "I don't know"],
+    [/\bidc\b/gi, "I don't care"],
+    [/\bikr\b/gi, "I know, right"],
+    [/\bik\b/gi, "I know"],
+    [/\bmb\b/gi, "my bad"],
+    [/\bty\b/gi, "thank you"],
+    [/\bthx\b/gi, "thanks"],
+    [/\bgj\b/gi, "good job"],
+    [/\bofc\b/gi, "of course"],
+    [/\bnp\b/gi, "no problem"],
+    [/\bnvm\b/gi, "never mind"],
+    [/\byw\b/gi, "you're welcome"],
+    [/\bbrb\b/gi, "be right back"],
+    [/\bgg\b/gi, "good game"],
+    [/\blol\b/gi, "laughing out loud"],
+    [/\bomg\b/gi, "oh my god"],
+    [/\bwtf\b/gi, "what the fuck"],
+    [/\bwth\b/gi, "what the heck"],
+    [/\bffs\b/gi, "for fuck's sake"],
+
+    /* =====================================================
+       50 CUSTOM SHORT FORMS
+    ===================================================== */
+
+    [/\bprob\b/gi, "probably"],
+    [/\bprobn\b/gi, "probably not"],
+    [/\bdefn\b/gi, "definitely not"],
+    [/\bdef\b/gi, "definitely"],
+    [/\bact\b/gi, "actually"],
+    [/\bsrsly\b/gi, "seriously"],
+    [/\bsmhw\b/gi, "somehow"],
+    [/\bsmbdy\b/gi, "somebody"],
+    [/\bsm1\b/gi, "someone"],
+    [/\bsmth\b/gi, "something"],
+    [/\bevth\b/gi, "everything"],
+    [/\bev1\b/gi, "everyone"],
+    [/\bnth\b/gi, "nothing"],
+    [/\banyth\b/gi, "anything"],
+    [/\bevwhr\b/gi, "everywhere"],
+    [/\bsmwhr\b/gi, "somewhere"],
+    [/\banywhr\b/gi, "anywhere"],
+    [/\bw\/o\b/gi, "without"],
+    [/\bw\/in\b/gi, "within"],
+    [/\bbtwn\b/gi, "between"],
+    [/\b2nite\b/gi, "tonight"],
+    [/\b2moro\b/gi, "tomorrow"],
+    [/\b2day\b/gi, "today"],
+    [/\bystrdy\b/gi, "yesterday"],
+    [/\bwknd\b/gi, "weekend"],
+    [/\bmorn\b/gi, "morning"],
+    [/\baft\b/gi, "afternoon"],
+    [/\bmsgs\b/gi, "messages"],
+    [/\bmsg\b/gi, "message"],
+    [/\bconvos\b/gi, "conversations"],
+    [/\bconv\b/gi, "conversation"],
+    [/\binfo\b/gi, "information"],
+    [/\bprobs\b/gi, "problems"],
+    [/\bprsn\b/gi, "person"],
+    [/\bfrnds\b/gi, "friends"],
+    [/\bfrnd\b/gi, "friend"],
+    [/\bthxfully\b/gi, "thankfully"],
+    [/\bmins\b/gi, "minutes"],
+    [/\bmin\b/gi, "minute"],
+    [/\bsecs\b/gi, "seconds"],
+    [/\bexs\b/gi, "examples"],
+    [/\bex\b/gi, "example"],
+    [/\bcm\b/gi, "call me"],
+
+    /* ---------- Common words ---------- */
+
+    [/\bur\b/gi, "your"],
+    [/\bu\b/gi, "you"],
+    [/\br\b/gi, "are"],
+    [/\by\b/gi, "why"],
+    [/\bpls\b/gi, "please"],
+    [/\bppl\b/gi, "people"],
+    [/\babt\b/gi, "about"],
+    [/\bbc\b/gi, "because"],
+    [/\bw\/\b/gi, "with"],
+    [/\btho\b/gi, "though"],
+    [/\bl8r\b/gi, "later"],
+    [/\bb4\b/gi, "before"],
+
+    /* ---------- Casual forms ---------- */
+
+    [/\bgonna\b/gi, "going to"],
+    [/\bwanna\b/gi, "want to"],
+    [/\bkinda\b/gi, "kind of"],
+    [/\bsorta\b/gi, "sort of"],
+    [/\brly\b/gi, "really"],
+    [/\bjs\b/gi, "just"],
+
+    /* ---------- Number shortcuts ---------- */
+
+    [/\b4ever\b/gi, "forever"],
+    [/\b4u\b/gi, "for you"],
+    [/\b2nite\b/gi, "tonight"],
+    [/\b2moro\b/gi, "tomorrow"],
+    [/\b2day\b/gi, "today"],
+    [/\bl8r\b/gi, "later"],
+    [/\bb4\b/gi, "before"],
+    [/\b2\b/gi, "to"],
+    [/\b4\b/gi, "for"]
+
+];
+
+
+/* =========================================================
+   COMPRESSOR
+========================================================= */
+
+function compressText() {
+
+    const input =
+        document.getElementById("compressInput").value;
+
+    if (!input.trim()) {
+
+        document.getElementById("compressOutput").textContent =
+            "Type something first ;-;";
+
+        document.getElementById("compressStats").textContent = "";
+
+        return;
+    }
+
+    let result = input;
+
+    for (const [pattern, replacement]
+        of compressReplacements) {
+
+        result =
+            result.replace(pattern, replacement);
+    }
+
+    /* Number compression */
+
+    result =
+        result.replace(/\bto\b/gi, "2");
+
+    result =
+        result.replace(/\btoo\b/gi, "2");
+
+    result =
+        result.replace(/\bfor\b/gi, "4");
+
+    result = result.toLowerCase();
+
+    /* Maximum chaos */
+
+    if (
+        document.getElementById("chaos").checked
+    ) {
+
+        result =
+            result.replace(/\breally\b/g, "rly");
+
+        result =
+            result.replace(/\bvery\b/g, "rly");
+
+        result =
+            result.replace(/\bgreat\b/g, "gr8");
+
+        result =
+            result.replace(/\bthanks\b/g, "thx");
+
+        result =
+            result.replace(/\bsomething\b/g, "smth");
+
+        result =
+            result.replace(/\btonight\b/g, "2nite");
+
+        result =
+            result.replace(/\btomorrow\b/g, "2moro");
+
+        result =
+            result.replace(/\./g, "");
+
+        const endings = [
+
+            " fr",
+            " ngl",
+            " tbh",
+            " ong",
+            " frfr",
+            " 😭",
+            " 💀",
+            " 😭💀",
+            " 🥹",
+            " 👍"
+
+        ];
+
+        if (Math.random() < 0.6) {
+
+            result +=
+                endings[
+                    Math.floor(
+                        Math.random() *
+                        endings.length
+                    )
+                ];
+        }
+    }
+
+    document.getElementById("compressOutput")
+        .textContent = result;
+
+    updateStats(
+        input,
+        result,
+        "compressStats"
+    );
+}
+
+
+/* =========================================================
+   UNCOMPRESSOR
+========================================================= */
+
+function uncompressText() {
+
+    const input =
+        document.getElementById("uncompressInput").value;
+
+    if (!input.trim()) {
+
+        document.getElementById("uncompressOutput")
+            .textContent =
+            "Type some English.zip first ;-;";
+
+        document.getElementById("uncompressStats")
+            .textContent = "";
+
+        return;
+    }
+
+    let result = input;
+
+    for (const [pattern, replacement]
+        of uncompressReplacements) {
+
+        result =
+            result.replace(pattern, replacement);
+    }
+
+    /* Capitalize sentence beginnings */
+
+    result =
+        result.replace(
+            /(^\s*[a-z])|([.!?]\s*[a-z])/g,
+            match => match.toUpperCase()
+        );
+
+    document.getElementById("uncompressOutput")
+        .textContent = result;
+
+    updateStats(
+        input,
+        result,
+        "uncompressStats"
+    );
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function updateStats(
+    input,
+    output,
+    element
+) {
+
+    const saved =
+        input.length - output.length;
+
+    let percentage = 0;
+
+    if (input.length > 0) {
+
+        percentage =
+            Math.round(
+                (saved / input.length) * 100
+            );
+    }
+
+    document.getElementById(element)
+        .textContent =
+        `${input.length} characters → ` +
+        `${output.length} characters | ` +
+        `${saved >= 0
+            ? saved + " characters saved"
+            : Math.abs(saved) +
+              " characters added"} ` +
+        `(${percentage}% compression)`;
+}
+
+
+/* =========================================================
+   COPY
+========================================================= */
+
+function copyText(elementId) {
+
+    const text =
+        document.getElementById(elementId)
+            .textContent;
+
+    if (
+        !text ||
+        text.includes("will appear here")
+    ) {
+        return;
+    }
+
+    navigator.clipboard.writeText(text);
+
+    const button = event.target;
+
+    const oldText =
+        button.textContent;
+
+    button.textContent =
+        "Copied 👍";
+
+    setTimeout(() => {
+
+        button.textContent =
+            oldText;
+
+    }, 1200);
+}
+
+
+/* =========================================================
+   CLEAR BUTTONS
+========================================================= */
+
+function clearCompressor() {
+
+    document.getElementById("compressInput")
+        .value = "";
+
+    document.getElementById("compressOutput")
+        .textContent =
+        "Your compressed English will appear here...";
+
+    document.getElementById("compressStats")
+        .textContent = "";
+}
+
+
+function clearUncompressor() {
+
+    document.getElementById("uncompressInput")
+        .value = "";
+
+    document.getElementById("uncompressOutput")
+        .textContent =
+        "Your normal English will appear here...";
+
+    document.getElementById("uncompressStats")
+        .textContent = "";
+}
+
+
+/* =========================================================
+   LIVE COMPRESSION
+========================================================= */
+
+document
+    .getElementById("compressInput")
+    .addEventListener(
+        "input",
+        compressText
+    );
+
+</script>
+
+</body>
+</html>
