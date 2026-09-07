@@ -23,7 +23,7 @@ const whatsNew = {
         "Added localStorage export/import",
         "Added What's New",
         "Added Lists.js comments button",
-        "Added New projects"
+        "Added New projects (3 NEW)"
     ]
 };
 
@@ -1174,6 +1174,12 @@ const projects = [
         tags: ["Tools"],
         archive: false
     }, // this might be useful, who knows... but ChatGPT is far better, this is just an example of a "good" AI.
+    {
+        name: "english.zip",
+        description: "Turn English into heavy, HEAVY slang. 😭",
+        tags: ["Tools"],
+        archive: false
+    } // ts so peak
 ];
 
 
