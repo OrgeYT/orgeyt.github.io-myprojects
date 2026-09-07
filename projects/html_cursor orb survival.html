@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Orb Survival</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #1a1a24;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            user-select: none;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: none; /* Hide default cursor to draw our own reticle */
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            font-size: 24px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+        #health-bar-container {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        #health-bar {
+            width: 100%;
+            height: 100%;
+            background: #ff3333;
+            transition: width 0.2s;
+        }
+        #screens {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto; /* Allow clicking on screens */
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            background: #222;
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid #444;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            text-align: center;
+            max-width: 800px;
+        }
+        .screen.active {
+            display: flex;
+        }
+        h1 { margin: 0 0 20px 0; font-size: 48px; color: #fff; }
+        h2 { margin: 0 0 15px 0; font-size: 32px; color: #add8e6; }
+        p { margin: 0 0 30px 0; font-size: 18px; color: #ccc; line-height: 1.5; }
+        .button-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            background: #3a86ff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+            margin: 5px;
+        }
+        button:hover { background: #4a96ff; transform: scale(1.05); }
+        button:active { transform: scale(0.95); }
+        
+        .btn-danger {
+            background: #ff3a3a;
+        }
+        .btn-danger:hover {
+            background: #ff5a5a;
+        }
+        
+        #upgrades-container {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .upgrade-card {
+            background: #333;
+            border: 2px solid #555;
+            border-radius: 15px;
+            padding: 20px;
+            width: 200px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .upgrade-card:hover {
+            border-color: #3a86ff;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(58, 134, 255, 0.4);
+            background: #3a4a5a;
+        }
+        .upgrade-title { font-weight: bold; font-size: 20px; margin-bottom: 10px; color: #fff; }
+        .upgrade-desc { font-size: 14px; color: #aaa; text-align: center; }
+        .rare { border-color: #ffb703; box-shadow: 0 0 10px rgba(255, 183, 3, 0.3); }
+        .rare .upgrade-title { color: #ffb703; }
+        
+    </style>
+</head>
+<body>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="ui-layer">
+        <div class="hud" id="hud-top" style="display: none;">
+            <div>
+                Wave: <span id="ui-wave">1</span> <span id="ui-chaos" style="color:#ff3a3a; display:none;">(CHAOS)</span><br>
+                Score: <span id="ui-score">0</span>
+            </div>
+            <div>
+                Health
+                <div id="health-bar-container"><div id="health-bar"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="screens">
+        <!-- Main Menu -->
+        <div id="screen-menu" class="screen active">
+            <h1>Cursor Orb Survival</h1>
+            <p>
+                Move with <b>W A S D</b>. Aim with your <b>Mouse</b>.<br>
+                Your blue orb(s) follow your mouse. Swing them to attack!<br>
+                Survive the green cursor zombies. Press <b>P</b> or <b>Esc</b> to pause.
+            </p>
+            <div class="button-group">
+                <button onclick="startGame(false)">Play Normal</button>
+                <button onclick="startGame(true)" class="btn-danger">Chaos Mode</button>
+                <button id="btn-cheat-menu" onclick="toggleCheat()" style="background: #9d4edd;">Cheat: OFF</button>
+            </div>
+        </div>
+
+        <!-- Pause Screen -->
+        <div id="screen-pause" class="screen">
+            <h1>Paused</h1>
+            <div class="button-group">
+                <button onclick="togglePause()">Resume</button>
+                <button onclick="returnToTitle()" class="btn-danger">Quit to Title</button>
+                <button id="btn-cheat-pause" onclick="toggleCheat()" style="background: #9d4edd;">Cheat: OFF</button>
+            </div>
+        </div>
+
+        <!-- Upgrade Screen -->
+        <div id="screen-upgrade" class="screen">
+            <h2>Wave Cleared!</h2>
+            <p>Choose an upgrade to enhance your abilities:</p>
+            <div id="upgrades-container"></div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="screen-gameover" class="screen">
+            <h1>Game Over</h1>
+            <p>You survived to Wave <span id="go-wave"></span><br>Final Score: <span id="go-score"></span></p>
+            <button onclick="returnToTitle()">Return to Menu</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Resize Canvas with high-DPI handling to prevent blurriness
+        function resize() {
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            ctx.scale(dpr, dpr);
+            canvas.style.width = `${window.innerWidth}px`;
+            canvas.style.height = `${window.innerHeight}px`;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Game State variables
+        let gameState = 'MENU'; // MENU, PLAYING, PAUSED, UPGRADE, GAMEOVER
+        let animationId;
+        
+        // Input tracking
+        const keys = { w: false, a: false, s: false, d: false };
+        const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+        window.addEventListener('keydown', e => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = true;
+            
+            // Pause Toggle
+            if (key === 'escape' || key === 'p') {
+                togglePause();
+            }
+            
+            // Cheat Toggle Hotkey
+            if (key === 'c') {
+                toggleCheat();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            const key = e.key.toLowerCase();
+            if (keys.hasOwnProperty(key)) keys[key] = false;
+        });
+        window.addEventListener('mousemove', e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        // --- GAME OBJECTS & VARIABLES ---
+        
+        let score = 0;
+        let wave = 1;
+        let isChaosMode = false;
+        let cheatMode = false;
+        
+        let player = {
+            x: 0, y: 0,
+            vx: 0, vy: 0,
+            speed: 0.4,
+            friction: 0.85,
+            size: 20,
+            hp: 5,
+            maxHp: 5,
+            invuln: 0,
+            timeSinceLastHit: 0,
+            regenTimer: 0
+        };
+
+        let orbStats = {
+            baseRadius: 15,
+            springForce: 0.03, // How fast it moves to cursor
+            friction: 0.9,     // Air resistance
+            damage: 1
+        };
+
+        let orbs = [];
+        let enemies = [];
+        let particles = [];
+        let walls = [];
+        let shakeAmount = 0;
+        
+        // Map & Camera variables
+        const mapConfig = { width: 3000, height: 3000 };
+        let camera = { x: 0, y: 0 };
+        let worldMouse = { x: 0, y: 0 };
+        
+        let waveConfig = {
+            zombiesToSpawn: 0,
+            spawnTimer: 0,
+            spawnInterval: 60, // Frames between spawns
+        };
+
+        // --- UPGRADE DEFINITIONS ---
+        
+        const upgradePool = [
+            { id: 'size', title: 'Orb Size', desc: 'Increases the radius and mass of your orbs.', weight: 10, rarity: 'common', apply: () => { orbStats.baseRadius += 5; updateOrbsStats(); } },
+            { id: 'speed', title: 'Orb Speed', desc: 'Orbs accelerate towards your cursor faster.', weight: 10, rarity: 'common', apply: () => { orbStats.springForce += 0.01; updateOrbsStats(); } },
+            { id: 'player_speed', title: 'Agility', desc: 'Increases your WASD movement speed.', weight: 10, rarity: 'common', apply: () => { player.speed += 0.1; } },
+            { id: 'heal', title: 'Repair', desc: 'Heal to maximum health.', weight: 8, rarity: 'common', apply: () => { player.hp = player.maxHp; updateHUD(); } },
+            { id: 'max_hp', title: 'Max Health', desc: 'Increases maximum health by 2.', weight: 5, rarity: 'uncommon', apply: () => { player.maxHp += 2; player.hp += 2; updateHUD(); } },
+            { id: 'extra_orb', title: 'Extra Orb', desc: 'Spawns an additional orb to swing around!', weight: 2, rarity: 'rare', apply: () => { spawnOrb(); } }
+        ];
+
+        // --- CLASSES & FUNCTIONS ---
+
+        function applyCheatStats() {
+            orbStats.baseRadius = 50; // Massive size
+            orbStats.springForce = 0.15; // Lightning fast tracking
+            orbStats.damage = 50; // Instant kill
+            player.speed = 1.2; // Zoom zoom
+            player.maxHp = 999;
+            player.hp = 999;
+            updateOrbsStats();
+            
+            // Instantly grant up to 5 orbs
+            while (orbs.length < 5) {
+                spawnOrb();
+            }
+            updateHUD();
+        }
+
+        function toggleCheat() {
+            cheatMode = !cheatMode;
+            
+            const btnMenu = document.getElementById('btn-cheat-menu');
+            const btnPause = document.getElementById('btn-cheat-pause');
+            const txt = `Cheat: ${cheatMode ? 'ON' : 'OFF'}`;
+            const shadow = cheatMode ? '0 0 20px #9d4edd' : 'none';
+            
+            if (btnMenu) { btnMenu.innerText = txt; btnMenu.style.boxShadow = shadow; }
+            if (btnPause) { btnPause.innerText = txt; btnPause.style.boxShadow = shadow; }
+            
+            // If toggled ON mid-game, apply the god stats instantly
+            if (cheatMode && (gameState === 'PLAYING' || gameState === 'PAUSED')) {
+                applyCheatStats();
+            }
+        }
+
+        function spawnOrb() {
+            orbs.push({
+                x: player.x,
+                y: player.y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                radius: orbStats.baseRadius,
+                spring: orbStats.springForce,
+                friction: orbStats.friction,
+                history: [] // Trail history array
+            });
+        }
+
+        function updateOrbsStats() {
+            orbs.forEach(orb => {
+                orb.radius = orbStats.baseRadius;
+                orb.spring = orbStats.springForce;
+                orb.friction = orbStats.friction;
+            });
+        }
+
+        function createParticles(x, y, color, count, speed) {
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * speed,
+                    vy: (Math.random() - 0.5) * speed,
+                    life: 1,
+                    decay: Math.random() * 0.03 + 0.02,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        // --- COLLISION HELPERS ---
+        function resolveCircleWallCollision(circle, rect, isOrb) {
+            let radius = circle.size || circle.radius;
+            let cx = Math.max(rect.x, Math.min(circle.x, rect.x + rect.w));
+            let cy = Math.max(rect.y, Math.min(circle.y, rect.y + rect.h));
+            let dx = circle.x - cx;
+            let dy = circle.y - cy;
+            let distSq = dx * dx + dy * dy;
+
+            if (distSq < radius * radius) {
+                let dist = Math.sqrt(distSq);
+                if (dist > 0) {
+                    let overlap = radius - dist;
+                    let nx = dx / dist;
+                    let ny = dy / dist;
+                    circle.x += nx * overlap;
+                    circle.y += ny * overlap;
+
+                    if (isOrb) {
+                        let dot = circle.vx * nx + circle.vy * ny;
+                        if (dot < 0) {
+                            circle.vx -= 1.5 * dot * nx; // Bounciness
+                            circle.vy -= 1.5 * dot * ny;
+                        }
+                    } else {
+                        // Kill velocity moving into the wall for player/enemies
+                        let dot = circle.vx * nx + circle.vy * ny;
+                        if (dot < 0) {
+                            circle.vx -= dot * nx;
+                            circle.vy -= dot * ny;
+                        }
+                    }
+                }
+            }
+        }
+
+        function spawnEnemy() {
+            // Spawn just outside the current camera view
+            let edge = Math.floor(Math.random() * 4);
+            let ex, ey;
+            const margin = 50;
+            if (edge === 0) { ex = camera.x + Math.random() * window.innerWidth; ey = camera.y - margin; } // Top
+            else if (edge === 1) { ex = camera.x + window.innerWidth + margin; ey = camera.y + Math.random() * window.innerHeight; } // Right
+            else if (edge === 2) { ex = camera.x + Math.random() * window.innerWidth; ey = camera.y + window.innerHeight + margin; } // Bottom
+            else { ex = camera.x - margin; ey = camera.y + Math.random() * window.innerHeight; } // Left
+
+            // Calculate HP based on wave. Every 3 waves, +1 HP.
+            let baseHp = 2;
+            let hpBonus = Math.floor((wave - 1) / 3);
+            
+            enemies.push({
+                x: ex, y: ey,
+                vx: 0, vy: 0,
+                size: 18,
+                speed: 1.5 + Math.random() * 0.5 + (wave * 0.1), // Slowly gets faster each wave
+                hp: baseHp + hpBonus,
+                maxHp: baseHp + hpBonus,
+                invuln: 0,
+                flashTimer: 0
+            });
+            waveConfig.zombiesToSpawn--;
+        }
+
+        function drawCursorShape(ctx, x, y, angle, size, color, outlineColor) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            // Draw a mouse cursor pointing "right" (0 angle)
+            ctx.beginPath();
+            ctx.moveTo(size, 0); // Tip
+            ctx.lineTo(-size, size * 0.7);
+            ctx.lineTo(-size * 0.4, 0);
+            ctx.lineTo(-size, -size * 0.7);
+            ctx.closePath();
+            
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = outlineColor;
+            ctx.stroke();
+
+            // Draw vertical black line eyes
+            ctx.fillStyle = '#000';
+            // Eye 1
+            ctx.fillRect(-size * 0.2, -size * 0.4, size * 0.15, size * 0.3);
+            // Eye 2
+            ctx.fillRect(-size * 0.2, size * 0.1, size * 0.15, size * 0.3);
+
+            ctx.restore();
+        }
+
+        // --- GAME LOOP ---
+
+        function update() {
+            if (gameState !== 'PLAYING') return;
+
+            // Screen shake decay
+            if (shakeAmount > 0) {
+                shakeAmount *= 0.85;
+                if (shakeAmount < 0.5) shakeAmount = 0;
+            }
+
+            // --- Player Movement ---
+            let ax = 0, ay = 0;
+            if (keys.w) ay -= 1;
+            if (keys.s) ay += 1;
+            if (keys.a) ax -= 1;
+            if (keys.d) ax += 1;
+
+            // Normalize
+            if (ax !== 0 || ay !== 0) {
+                let len = Math.hypot(ax, ay);
+                ax /= len; ay /= len;
+            }
+
+            player.vx += ax * player.speed;
+            player.vy += ay * player.speed;
+            player.vx *= player.friction;
+            player.vy *= player.friction;
+            player.x += player.vx;
+            player.y += player.vy;
+
+            walls.forEach(w => resolveCircleWallCollision(player, w, false));
+
+            // Keep player inside the expanded map boundaries
+            player.x = Math.max(player.size, Math.min(mapConfig.width - player.size, player.x));
+            player.y = Math.max(player.size, Math.min(mapConfig.height - player.size, player.y));
+            if (player.invuln > 0) player.invuln--;
+
+            // Health Regeneration (5 seconds no damage -> +1 HP every 2 seconds)
+            player.timeSinceLastHit++;
+            if (player.timeSinceLastHit > 300 && player.hp < player.maxHp) { 
+                player.regenTimer++;
+                if (player.regenTimer > 120) { 
+                    player.hp++;
+                    player.regenTimer = 0;
+                    updateHUD();
+                }
+            }
+
+            // Smooth camera follow
+            let targetCamX = player.x - window.innerWidth / 2;
+            let targetCamY = player.y - window.innerHeight / 2;
+            camera.x += (targetCamX - camera.x) * 0.1;
+            camera.y += (targetCamY - camera.y) * 0.1;
+
+            // Calculate world mouse position
+            worldMouse.x = mouse.x + camera.x;
+            worldMouse.y = mouse.y + camera.y;
+
+            // --- Orb Physics ---
+            orbs.forEach((orb, i) => {
+                // Update history for trails
+                orb.history.push({x: orb.x, y: orb.y});
+                if (orb.history.length > 15) orb.history.shift(); // Length of the trail
+
+                // Spring towards world mouse
+                let dx = worldMouse.x - orb.x;
+                let dy = worldMouse.y - orb.y;
+                orb.vx += dx * orb.spring;
+                orb.vy += dy * orb.spring;
+                orb.vx *= orb.friction;
+                orb.vy *= orb.friction;
+                orb.x += orb.vx;
+                orb.y += orb.vy;
+
+                walls.forEach(w => resolveCircleWallCollision(orb, w, true));
+
+                // Collision with other orbs
+                for (let j = i + 1; j < orbs.length; j++) {
+                    let o2 = orbs[j];
+                    let odx = o2.x - orb.x;
+                    let ody = o2.y - orb.y;
+                    let dist = Math.hypot(odx, ody);
+                    let minDist = orb.radius + o2.radius;
+                    if (dist < minDist && dist > 0) {
+                        // Resolve overlap
+                        let overlap = (minDist - dist) / 2;
+                        let nx = odx / dist;
+                        let ny = ody / dist;
+                        
+                        orb.x -= nx * overlap;
+                        orb.y -= ny * overlap;
+                        o2.x += nx * overlap;
+                        o2.y += ny * overlap;
+
+                        // Exchange velocity (simple bounce)
+                        let relativeVx = orb.vx - o2.vx;
+                        let relativeVy = orb.vy - o2.vy;
+                        orb.vx -= relativeVx * 0.5;
+                        orb.vy -= relativeVy * 0.5;
+                        o2.vx += relativeVx * 0.5;
+                        o2.vy += relativeVy * 0.5;
+                    }
+                }
+            });
+
+            // --- Wave & Enemy Spawning ---
+            if (waveConfig.zombiesToSpawn > 0) {
+                waveConfig.spawnTimer--;
+                if (waveConfig.spawnTimer <= 0) {
+                    spawnEnemy();
+                    waveConfig.spawnTimer = waveConfig.spawnInterval;
+                }
+            } else if (enemies.length === 0 && waveConfig.zombiesToSpawn <= 0) {
+                // Wave Complete!
+                gameState = 'UPGRADE';
+                showUpgradeScreen();
+                return;
+            }
+
+            // --- Enemies ---
+            for (let i = enemies.length - 1; i >= 0; i--) {
+                let e = enemies[i];
+                if (e.invuln > 0) e.invuln--;
+                if (e.flashTimer > 0) e.flashTimer--;
+
+                // Move towards player
+                let dx = player.x - e.x;
+                let dy = player.y - e.y;
+                let dist = Math.hypot(dx, dy);
+                if (dist > 0) {
+                    e.vx = (dx / dist) * e.speed;
+                    e.vy = (dy / dist) * e.speed;
+                }
+                e.x += e.vx;
+                e.y += e.vy;
+
+                walls.forEach(w => resolveCircleWallCollision(e, w, false));
+
+                // Enemy vs Player collision
+                if (dist < e.size + player.size) {
+                    if (player.invuln <= 0) {
+                        player.hp--;
+                        player.invuln = 60; // 1 second invuln (at 60fps)
+                        player.timeSinceLastHit = 0; // Reset health regen
+                        player.regenTimer = 0;
+                        updateHUD();
+                        createParticles(player.x, player.y, '#fff', 15, 8);
+                        
+                        // Knockback player
+                        player.vx -= (dx / dist) * 15;
+                        player.vy -= (dy / dist) * 15;
+                        
+                        if (player.hp <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                    // Bounce enemy slightly
+                    e.x -= e.vx * 2;
+                    e.y -= e.vy * 2;
+                }
+
+                // Enemy vs Orbs
+                let hitByOrb = false;
+                for (let o of orbs) {
+                    let odx = e.x - o.x;
+                    let ody = e.y - o.y;
+                    let odist = Math.hypot(odx, ody);
+                    if (odist < e.size + o.radius) {
+                        // Collision!
+                        if (e.invuln <= 0) {
+                            // Calculate impact speed for hard hits
+                            let impactSpeed = Math.hypot(o.vx, o.vy);
+                            let speedMultiplier = Math.max(1, impactSpeed / 10); // Damage scales linearly with speed
+                            let damageDealt = orbStats.damage * speedMultiplier;
+                            let isHardHit = impactSpeed > 25; // Visual threshold for hard hits
+
+                            e.hp -= damageDealt;
+                            e.invuln = 15; // Short cooldown between hits
+                            e.flashTimer = 10;
+                            hitByOrb = true;
+
+                            if (isHardHit) {
+                                // Hard hit visuals: screen shake + fiery explosion
+                                shakeAmount = Math.min(shakeAmount + impactSpeed * 0.8, 25);
+                                createParticles(e.x, e.y, '#ffb703', 25, 12); // Orange burst
+                                createParticles(e.x, e.y, '#ffffff', 10, 18); // White sparks
+                            } else {
+                                // Normal hit visuals
+                                createParticles(e.x, e.y, '#add8e6', 5, 5);
+                            }
+
+                            // Orb knockback physics
+                            let force = isHardHit ? 8 : 4;
+                            o.vx -= (odx / odist) * force;
+                            o.vy -= (ody / odist) * force;
+                            
+                            // Enemy knockback
+                            let enemyKnockback = isHardHit ? (o.radius * 1.5) : (o.radius * 0.5);
+                            e.x += (odx / odist) * enemyKnockback;
+                            e.y += (ody / odist) * enemyKnockback;
+
+                            if (e.hp <= 0) {
+                                // Kill enemy
+                                score += 10 * wave;
+                                updateHUD();
+                                createParticles(e.x, e.y, '#0f0', 20, 6);
+                                enemies.splice(i, 1);
+                                break; // Stop checking other orbs for this dead enemy
+                            }
+                        } else {
+                            // Just physical push if invuln
+                             let overlap = (e.size + o.radius) - odist;
+                             e.x += (odx / odist) * overlap * 0.1;
+                             e.y += (ody / odist) * overlap * 0.1;
+                        }
+                    }
+                }
+                
+                // Keep enemies apart from each other
+                if(!hitByOrb && e.hp > 0) {
+                    for(let j = i - 1; j >= 0; j--) {
+                        let e2 = enemies[j];
+                        let dx2 = e2.x - e.x;
+                        let dy2 = e2.y - e.y;
+                        let dist2 = Math.hypot(dx2, dy2);
+                        let minDist = e.size + e2.size;
+                        if(dist2 < minDist && dist2 > 0) {
+                            let overlap = (minDist - dist2) / 2;
+                            e.x -= (dx2 / dist2) * overlap * 0.5;
+                            e.y -= (dy2 / dist2) * overlap * 0.5;
+                        }
+                    }
+                }
+            }
+
+            // --- Particles ---
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= p.decay;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function draw() {
+            // Clear entire screen
+            ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+            // Draw game elements if playing or paused
+            if (gameState === 'PLAYING' || gameState === 'PAUSED') {
+                ctx.save();
+                
+                // 1. Apply Screen Shake
+                if (shakeAmount > 0) {
+                    let dx = (Math.random() - 0.5) * shakeAmount;
+                    let dy = (Math.random() - 0.5) * shakeAmount;
+                    ctx.translate(dx, dy);
+                }
+
+                // 2. Apply Camera Transform (Move world opposite to camera)
+                ctx.translate(-camera.x, -camera.y);
+
+                // --- Draw Map Grid & Boundaries ---
+                ctx.strokeStyle = '#2d2d3d';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                
+                // Only draw grid lines that are visible or within map
+                let startX = Math.max(0, Math.floor(camera.x / 50) * 50);
+                let endX = Math.min(mapConfig.width, camera.x + window.innerWidth + 50);
+                let startY = Math.max(0, Math.floor(camera.y / 50) * 50);
+                let endY = Math.min(mapConfig.height, camera.y + window.innerHeight + 50);
+
+                for (let x = startX; x <= endX; x += 50) { 
+                    ctx.moveTo(x, Math.max(0, startY)); 
+                    ctx.lineTo(x, Math.min(mapConfig.height, endY)); 
+                }
+                for (let y = startY; y <= endY; y += 50) { 
+                    ctx.moveTo(Math.max(0, startX), y); 
+                    ctx.lineTo(Math.min(mapConfig.width, endX), y); 
+                }
+                ctx.stroke();
+
+                // Draw solid red map boundaries
+                ctx.strokeStyle = '#ff3a3a';
+                ctx.lineWidth = 5;
+                ctx.strokeRect(0, 0, mapConfig.width, mapConfig.height);
+                
+                // Dim the "Out of Bounds" void area
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(-2000, -2000, mapConfig.width + 4000, 2000); // Top
+                ctx.fillRect(-2000, mapConfig.height, mapConfig.width + 4000, 2000); // Bottom
+                ctx.fillRect(-2000, 0, 2000, mapConfig.height); // Left
+                ctx.fillRect(mapConfig.width, 0, 2000, mapConfig.height); // Right
+
+                // Draw Walls
+                ctx.fillStyle = '#22222b';
+                ctx.strokeStyle = '#3a86ff';
+                ctx.lineWidth = 3;
+                walls.forEach(w => {
+                    ctx.shadowColor = 'rgba(58, 134, 255, 0.4)';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(w.x, w.y, w.w, w.h);
+                    ctx.strokeRect(w.x, w.y, w.w, w.h);
+                });
+                ctx.shadowBlur = 0; // reset shadow for other elements
+
+                // --- Draw Game Objects ---
+
+                // Draw Target Reticle at WORLD mouse position
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(worldMouse.x, worldMouse.y, 8, 0, Math.PI * 2);
+                ctx.moveTo(worldMouse.x - 12, worldMouse.y); ctx.lineTo(worldMouse.x + 12, worldMouse.y);
+                ctx.moveTo(worldMouse.x, worldMouse.y - 12); ctx.lineTo(worldMouse.x, worldMouse.y + 12);
+                ctx.stroke();
+
+                // Draw Orbs
+                orbs.forEach(orb => {
+                    // Draw Trail
+                    if (orb.history.length > 1) {
+                        ctx.beginPath();
+                        ctx.moveTo(orb.history[0].x, orb.history[0].y);
+                        for (let i = 1; i < orb.history.length; i++) {
+                            ctx.lineTo(orb.history[i].x, orb.history[i].y);
+                        }
+                        ctx.strokeStyle = 'rgba(58, 134, 255, 0.4)'; // Soft blue glow
+                        ctx.lineWidth = orb.radius * 0.8;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        ctx.stroke();
+                    }
+
+                    // Tether line
+                    ctx.beginPath();
+                    ctx.moveTo(player.x, player.y);
+                    ctx.lineTo(orb.x, orb.y);
+                    ctx.strokeStyle = 'rgba(100, 180, 255, 0.6)';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Orb body
+                    ctx.beginPath();
+                    ctx.arc(orb.x, orb.y, orb.radius, 0, Math.PI * 2);
+                    
+                    let grad = ctx.createRadialGradient(orb.x - orb.radius*0.3, orb.y - orb.radius*0.3, 0, orb.x, orb.y, orb.radius);
+                    grad.addColorStop(0, '#ffffff');
+                    grad.addColorStop(0.3, '#88ccff');
+                    grad.addColorStop(1, '#1166ff');
+                    
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                    ctx.strokeStyle = '#0044aa';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                });
+
+                // Draw Particles
+                particles.forEach(p => {
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+
+                // Draw Enemies
+                enemies.forEach(e => {
+                    let angle = Math.atan2(player.y - e.y, player.x - e.x);
+                    let color = e.flashTimer > 0 ? '#ffffff' : '#33ff33';
+                    let outlineColor = '#008800';
+                    drawCursorShape(ctx, e.x, e.y, angle, e.size, color, outlineColor);
+
+                    if (e.hp < e.maxHp) {
+                        let hpRatio = e.hp / e.maxHp;
+                        ctx.fillStyle = '#f00';
+                        ctx.fillRect(e.x - 15, e.y - e.size - 10, 30, 4);
+                        ctx.fillStyle = '#0f0';
+                        ctx.fillRect(e.x - 15, e.y - e.size - 10, 30 * hpRatio, 4);
+                    }
+                });
+
+                // Draw Player
+                let pAngle = Math.atan2(worldMouse.y - player.y, worldMouse.x - player.x);
+                let pColor = (player.invuln > 0 && Math.floor(player.invuln / 5) % 2 === 0) ? '#ffcccc' : '#ffffff';
+                drawCursorShape(ctx, player.x, player.y, pAngle, player.size, pColor, '#333');
+                
+                ctx.restore();
+            }
+        }
+
+        function gameLoop(time) {
+            update();
+            draw();
+            animationId = requestAnimationFrame(gameLoop);
+        }
+
+        // --- GAME STATE MANAGEMENT ---
+
+        function setScreen(id) {
+            document.querySelectorAll('.screen').forEach(el => el.classList.remove('active'));
+            const screensContainer = document.getElementById('screens');
+            
+            if(id) {
+                document.getElementById(id).classList.add('active');
+                screensContainer.style.display = 'flex';
+                screensContainer.style.pointerEvents = 'auto';
+            } else {
+                screensContainer.style.display = 'none';
+                screensContainer.style.pointerEvents = 'none';
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('ui-wave').innerText = wave;
+            document.getElementById('ui-score').innerText = score;
+            let hpRatio = Math.max(0, player.hp / player.maxHp);
+            document.getElementById('health-bar').style.width = (hpRatio * 100) + '%';
+            
+            if (isChaosMode) {
+                document.getElementById('ui-chaos').style.display = 'inline';
+            } else {
+                document.getElementById('ui-chaos').style.display = 'none';
+            }
+        }
+
+        function togglePause() {
+            if (gameState === 'PLAYING') {
+                gameState = 'PAUSED';
+                setScreen('screen-pause');
+            } else if (gameState === 'PAUSED') {
+                gameState = 'PLAYING';
+                setScreen(null);
+            }
+        }
+
+        function returnToTitle() {
+            gameState = 'MENU';
+            document.getElementById('hud-top').style.display = 'none';
+            setScreen('screen-menu');
+        }
+
+        function resetGame() {
+            score = 0;
+            wave = 1;
+            shakeAmount = 0;
+            
+            // Spawn player in the center of the big map
+            player = {
+                x: mapConfig.width / 2, y: mapConfig.height / 2,
+                vx: 0, vy: 0,
+                speed: 0.5, friction: 0.85, size: 20,
+                hp: 5, maxHp: 5, invuln: 0,
+                timeSinceLastHit: 0, regenTimer: 0
+            };
+            
+            // Generate Random Walls
+            walls = [];
+            for (let i = 0; i < 25; i++) {
+                let w = {
+                    x: Math.random() * (mapConfig.width - 300) + 150,
+                    y: Math.random() * (mapConfig.height - 300) + 150,
+                    w: Math.random() * 200 + 80,
+                    h: Math.random() * 200 + 80
+                };
+                // Don't spawn walls right on top of the player
+                if (Math.abs((w.x + w.w/2) - player.x) > 250 || Math.abs((w.y + w.h/2) - player.y) > 250) {
+                    walls.push(w);
+                }
+            }
+            
+            // Set initial camera position
+            camera = { 
+                x: player.x - window.innerWidth / 2, 
+                y: player.y - window.innerHeight / 2 
+            };
+
+            orbStats = { baseRadius: 15, springForce: 0.03, friction: 0.9, damage: 1 };
+            orbs = [];
+            spawnOrb();
+            
+            // Apply cheats immediately if toggled on before starting
+            if (cheatMode) {
+                applyCheatStats();
+            }
+
+            enemies = [];
+            particles = [];
+            
+            startWave();
+        }
+
+        function startGame(chaos) {
+            isChaosMode = chaos;
+            setScreen(null);
+            document.getElementById('hud-top').style.display = 'flex';
+            resetGame();
+            if(!animationId) gameLoop(0);
+        }
+
+        function startWave() {
+            gameState = 'PLAYING';
+            
+            let baseZombies = 5 + (wave * 3);
+            
+            if (isChaosMode) {
+                waveConfig.zombiesToSpawn = baseZombies * 5; // 5x multiplier for chaos mode
+                waveConfig.spawnInterval = Math.max(5, 20 - (wave * 2)); // Blistering fast spawns
+            } else {
+                waveConfig.zombiesToSpawn = baseZombies;
+                waveConfig.spawnInterval = Math.max(20, 60 - (wave * 2)); // Faster spawns over time
+            }
+            
+            waveConfig.spawnTimer = 30;
+            updateHUD();
+            setScreen(null);
+        }
+
+        function showUpgradeScreen() {
+            setScreen('screen-upgrade');
+            const container = document.getElementById('upgrades-container');
+            container.innerHTML = '';
+            
+            // Pick 3 random unique upgrades based on weights
+            let choices = [];
+            let poolCopy = [...upgradePool];
+            
+            for(let i=0; i<3; i++) {
+                if (poolCopy.length === 0) break;
+                
+                // Calculate total weight
+                let totalWeight = poolCopy.reduce((sum, item) => sum + item.weight, 0);
+                let rand = Math.random() * totalWeight;
+                let currentWeight = 0;
+                let selectedIndex = 0;
+                
+                for (let j = 0; j < poolCopy.length; j++) {
+                    currentWeight += poolCopy[j].weight;
+                    if (rand <= currentWeight) {
+                        selectedIndex = j;
+                        break;
+                    }
+                }
+                
+                choices.push(poolCopy[selectedIndex]);
+                poolCopy.splice(selectedIndex, 1); // Ensure unique options
+            }
+
+            choices.forEach(upgrade => {
+                const card = document.createElement('div');
+                card.className = `upgrade-card ${upgrade.rarity === 'rare' ? 'rare' : ''}`;
+                card.innerHTML = `
+                    <div class="upgrade-title">${upgrade.title}</div>
+                    <div class="upgrade-desc">${upgrade.desc}</div>
+                    ${upgrade.rarity === 'rare' ? '<div style="color:#ffb703; font-size: 12px; margin-top:5px; font-weight:bold;">RARE</div>' : ''}
+                `;
+                card.onclick = () => {
+                    upgrade.apply();
+                    wave++;
+                    startWave();
+                };
+                container.appendChild(card);
+            });
+        }
+
+        function gameOver() {
+            gameState = 'GAMEOVER';
+            document.getElementById('go-wave').innerText = wave;
+            document.getElementById('go-score').innerText = score;
+            document.getElementById('hud-top').style.display = 'none';
+            setScreen('screen-gameover');
+        }
+
+        // Initialize display
+        updateHUD();
+        // Request animation frame initialized when Start button is clicked.
+    </script>
+</body>
+</html>
