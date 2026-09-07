@@ -120,7 +120,10 @@ function renderProjectList() {
 
     let sortedProjects;
 
-    if (currentProjectTab === 'visited') {
+    if (currentProjectTab === 'newest') {
+        // Last 5 non-archived projects in list order (most recently added at end of lists.js)
+        sortedProjects = candidateProjects.slice(-5).reverse();
+    } else if (currentProjectTab === 'visited') {
         const visitedProjectsList = candidateProjects.filter(p => isVisited(p));
         sortedProjects = visitedProjectsList.sort((a, b) => {
             return getProjectVisitCount(getProjectName(b)) - getProjectVisitCount(getProjectName(a));

@@ -9,6 +9,29 @@
 // Tag emojis (only these five are valid):
 // Games: 🎮  Tools: 🛠️  Math: 🧮  Music: 🎵  Simulation: ⚙️
 
+// ==========================================
+// --- What's New ---
+// Edit the date and items below when you publish an update.
+// Changing the date triggers the "Website updated!" notification.
+// Changing only the items (without changing the date) does NOT notify.
+// ==========================================
+
+const whatsNew = {
+    date: "Monday, September 7",
+    items: [
+        "Added Newest Projects tab",
+        "Added localStorage export/import",
+        "Added What's New",
+        "Added Lists.js comments button"
+    ]
+};
+
+// ==========================================
+// --- Projects ---
+// the projects, down there, right?
+// ==========================================
+
+
 const projects = [
     {
         name: "welcome",
@@ -1137,6 +1160,7 @@ const projects = [
         archive: false
     } // oh no spooky dooky cursor zombies!! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHH
 ];
+
 
 // ==========================================
 // --- Gallery List ---

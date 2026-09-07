@@ -918,3 +918,270 @@ document.getElementById('admin-remove-dev')?.addEventListener('click', () => {
 attachSidebarSounds();
 // Re-attach after short delay for any late buttons
 setTimeout(attachSidebarSounds, 500);
+
+// ===========================================
+// --- localStorage Export / Import ---
+// ===========================================
+
+const ORGEYT_LS_KEYS = [
+    'orgeyt-achievements',
+    'orgeyt-time',
+    'orgeyt-visited-projects',
+    'orgeyt-favorites',
+    'orgeyt-theme',
+    'orgeyt-menu-song',
+    'orgeyt-menu-volume',
+    'orgeyt-menu-nonrepeat',
+    'orgeyt-whats-new-date',
+    'orgeyt-whats-new-collapsed'
+];
+
+function exportOrgeytData() {
+    const data = {
+        _meta: {
+            type: 'orgeyt-website-backup',
+            version: 1,
+            exportedAt: new Date().toISOString()
+        }
+    };
+    ORGEYT_LS_KEYS.forEach(key => {
+        const val = localStorage.getItem(key);
+        if (val !== null) data[key] = val;
+    });
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.download = `orgeyt-backup-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+function importOrgeytData(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const text = e.target.result;
+            const data = JSON.parse(text);
+            if (!data || typeof data !== 'object') {
+                alert('Invalid backup file: not a valid JSON object.');
+                return;
+            }
+            // Accept either our meta-tagged format or a plain object of orgeyt-* keys
+            let imported = 0;
+            for (const key of ORGEYT_LS_KEYS) {
+                if (Object.prototype.hasOwnProperty.call(data, key) && typeof data[key] === 'string') {
+                    localStorage.setItem(key, data[key]);
+                    imported++;
+                }
+            }
+            if (imported === 0) {
+                alert('No recognized website data found in this file.');
+                return;
+            }
+            alert(`Import successful! Restored ${imported} setting(s). The page will reload.`);
+            location.reload();
+        } catch (err) {
+            alert('Could not import file: invalid or corrupted JSON.\n' + (err && err.message ? err.message : ''));
+        }
+    };
+    reader.onerror = () => {
+        alert('Failed to read the selected file.');
+    };
+    reader.readAsText(file);
+}
+
+// Data Backup modal
+document.getElementById('data-backup-btn')?.addEventListener('click', () => {
+    document.getElementById('data-backup-modal')?.classList.remove('hidden');
+});
+document.getElementById('close-data-backup-btn')?.addEventListener('click', () => {
+    document.getElementById('data-backup-modal')?.classList.add('hidden');
+});
+document.getElementById('data-backup-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'data-backup-modal') e.target.classList.add('hidden');
+});
+
+document.getElementById('export-data-btn')?.addEventListener('click', () => {
+    exportOrgeytData();
+});
+
+document.getElementById('import-data-btn')?.addEventListener('click', () => {
+    const input = document.getElementById('import-data-file');
+    if (input) input.click();
+});
+
+document.getElementById('import-data-file')?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) {
+        importOrgeytData(file);
+        e.target.value = ''; // allow re-selecting same file later
+    }
+});
+
+// ===========================================
+// --- lists.js Comments viewer ---
+// ===========================================
+
+function parseListsJsComments(source) {
+    // Extract trailing // comments on the same line as a project object close (}, // lore)
+    // and associate them with the nearest preceding name: "..."
+    const results = [];
+    const lines = source.split(/\r?\n/);
+    let lastName = null;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        const nameMatch = line.match(/^\s*name:\s*["']([^"']+)["']/);
+        if (nameMatch) {
+            lastName = nameMatch[1];
+        }
+
+        // Object-close with trailing comment: }, // comment   OR   } // comment
+        const closeComment = line.match(/^\s*\},?\s*\/\/\s*(.+)\s*$/);
+        if (closeComment && lastName) {
+            const text = closeComment[1].trim();
+            if (text && !text.startsWith('===')) {
+                results.push({ project: lastName, comment: text });
+            }
+            lastName = null;
+        }
+    }
+    return results;
+}
+
+function openListsCommentsModal() {
+    const modal = document.getElementById('lists-comments-modal');
+    const list = document.getElementById('lists-comments-list');
+    if (!modal || !list) return;
+
+    list.innerHTML = '<div class="lists-comments-empty">Loading comments…</div>';
+    modal.classList.remove('hidden');
+
+    fetch('lists.js')
+        .then(r => r.text())
+        .then(code => {
+            const comments = parseListsJsComments(code);
+            list.innerHTML = '';
+            if (comments.length === 0) {
+                list.innerHTML = '<div class="lists-comments-empty">No project comments found.</div>';
+                return;
+            }
+            comments.forEach(entry => {
+                const item = document.createElement('div');
+                item.className = 'lists-comment-item';
+                const project = document.createElement('div');
+                project.className = 'lists-comment-project';
+                project.textContent = entry.project;
+                const text = document.createElement('div');
+                text.className = 'lists-comment-text';
+                text.textContent = '// ' + entry.comment;
+                item.appendChild(project);
+                item.appendChild(text);
+                list.appendChild(item);
+            });
+        })
+        .catch(err => {
+            list.innerHTML = '<div class="lists-comments-empty">Failed to load lists.js: ' + (err && err.message ? err.message : 'unknown error') + '</div>';
+        });
+}
+
+document.getElementById('lists-comments-btn')?.addEventListener('click', openListsCommentsModal);
+document.getElementById('close-lists-comments-btn')?.addEventListener('click', () => {
+    document.getElementById('lists-comments-modal')?.classList.add('hidden');
+});
+document.getElementById('lists-comments-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'lists-comments-modal') e.target.classList.add('hidden');
+});
+
+// ===========================================
+// --- What's New (data from lists.js) ---
+// ===========================================
+
+const WHATS_NEW_DATE_KEY = 'orgeyt-whats-new-date';
+const WHATS_NEW_COLLAPSED_KEY = 'orgeyt-whats-new-collapsed';
+
+function setWhatsNewCollapsed(collapsed) {
+    const root = document.getElementById('whats-new');
+    const toggle = document.getElementById('whats-new-toggle');
+    if (!root) return;
+    if (collapsed) {
+        root.classList.add('collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    } else {
+        root.classList.remove('collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    }
+    localStorage.setItem(WHATS_NEW_COLLAPSED_KEY, collapsed ? 'true' : 'false');
+}
+
+function initWhatsNew() {
+    const root = document.getElementById('whats-new');
+    const listEl = document.getElementById('whats-new-list');
+    const dateLabel = document.getElementById('whats-new-date-label');
+    const toggle = document.getElementById('whats-new-toggle');
+    if (!root || !listEl || typeof whatsNew === 'undefined' || !whatsNew) {
+        if (root) root.classList.add('hidden');
+        return;
+    }
+
+    const currentDate = String(whatsNew.date || '').trim();
+    const items = Array.isArray(whatsNew.items) ? whatsNew.items : [];
+
+    if (dateLabel) dateLabel.textContent = currentDate;
+
+    listEl.innerHTML = '';
+    items.forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = String(text);
+        listEl.appendChild(li);
+    });
+
+    // Detect update: only the date is stored / compared
+    const storedDate = localStorage.getItem(WHATS_NEW_DATE_KEY);
+    const isNewUpdate = currentDate && storedDate !== currentDate;
+
+    if (isNewUpdate) {
+        // Force open on new update, then remember date
+        setWhatsNewCollapsed(false);
+        localStorage.setItem(WHATS_NEW_DATE_KEY, currentDate);
+        if (typeof showAchievementToast === 'function') {
+            showAchievementToast('Website updated!');
+        } else {
+            const toast = document.getElementById('achievement-toast');
+            if (toast) {
+                const textEl = document.getElementById('toast-text');
+                if (textEl) textEl.textContent = 'Website updated!';
+                toast.classList.remove('hidden');
+                setTimeout(() => toast.classList.add('show'), 10);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.classList.add('hidden'), 400);
+                }, 4000);
+            }
+        }
+    } else {
+        // Restore remembered collapse state (default open if never set)
+        const wasCollapsed = localStorage.getItem(WHATS_NEW_COLLAPSED_KEY) === 'true';
+        setWhatsNewCollapsed(wasCollapsed);
+    }
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            const nowCollapsed = !root.classList.contains('collapsed');
+            setWhatsNewCollapsed(nowCollapsed);
+        });
+    }
+}
+
+// Run after DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWhatsNew);
+} else {
+    initWhatsNew();
+}

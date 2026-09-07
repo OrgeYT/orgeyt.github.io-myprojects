@@ -45,13 +45,17 @@
             <button id="menu-music-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎵</span> Menu Music</button>
             <button id="line-graph-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📈</span> Line Graph</button>
             <button id="view-lists-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📄</span> lists.js</button>
+            <button id="lists-comments-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💬</span> lists.js Comments</button>
             <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Project of Time</button>
+            <button id="data-backup-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💾</span> Data Backup</button>
+            <input type="file" id="import-data-file" accept=".json,application/json" style="display:none;">
             <button id="clear-visited-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🗑️</span> Clear Visited</button>
             <button id="admin-btn" class="toggle-btn hidden" data-sound="true"><span class="btn-icon">🔐</span> ADMIN</button>
         </div>
 
         <div class="project-tabs">
             <button class="tab-btn active" data-tab="all" data-sound="true">All</button>
+            <button class="tab-btn" data-tab="newest" data-sound="true">Newest</button>
             <button class="tab-btn" data-tab="favorites" data-sound="true">Favorited</button>
             <button class="tab-btn" data-tab="unfavorited" data-sound="true">Unfavorited</button>
             <button class="tab-btn" data-tab="scratch" data-sound="true">Scratch</button>
@@ -64,6 +68,16 @@
             <button class="tab-btn" data-tab="simulation" data-sound="true">⚙️ Simulation</button>
         </div>
         <input type="text" id="search-bar" placeholder="Search projects...">
+        <div id="whats-new" class="whats-new">
+            <button type="button" id="whats-new-toggle" class="whats-new-toggle" data-sound="true" aria-expanded="true">
+                <span class="whats-new-title">What's New</span>
+                <span id="whats-new-date-label" class="whats-new-date-label"></span>
+                <span id="whats-new-chevron" class="whats-new-chevron">▼</span>
+            </button>
+            <div id="whats-new-body" class="whats-new-body">
+                <ul id="whats-new-list" class="whats-new-list"></ul>
+            </div>
+        </div>
         <div id="file-list"></div>
     </div>
 
@@ -317,6 +331,33 @@
             <span id="close-view-lists-btn" class="close-btn">&times;</span>
             <h3>lists.js Source Code</h3>
             <pre id="lists-code-display" class="code-display"></pre>
+        </div>
+    </div>
+
+    <!-- lists.js Comments Modal -->
+    <div id="lists-comments-modal" class="modal hidden">
+        <div class="modal-content" style="width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
+            <span id="close-lists-comments-btn" class="close-btn">&times;</span>
+            <h3>lists.js Comments 😂</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 10px;">Developer lore attached to projects in lists.js.</p>
+            <div id="lists-comments-list" class="lists-comments-list"></div>
+        </div>
+    </div>
+
+    <!-- Data Backup Modal (Export / Import) -->
+    <div id="data-backup-modal" class="modal hidden">
+        <div class="modal-content" style="width: 380px;">
+            <span id="close-data-backup-btn" class="close-btn">&times;</span>
+            <h3>Data Backup</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 14px;">Export or import your website data (favorites, visits, achievements, theme, settings, and more).</p>
+            <div class="setting-group">
+                <button id="export-data-btn" class="modal-btn" style="width: 100%; padding: 10px;">📤 Export Data</button>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin-top: 4px;">Downloads a JSON backup file you can save.</p>
+            </div>
+            <div class="setting-group">
+                <button id="import-data-btn" class="modal-btn" style="width: 100%; padding: 10px;">📥 Import Data</button>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin-top: 4px;">Restore from a previously exported backup file.</p>
+            </div>
         </div>
     </div>
 
