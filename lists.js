@@ -1129,7 +1129,13 @@ const projects = [
         description: "Play Midi files, but on a Recovery Center from BFDI??",
         tags: ["Music"],
         archive: false
-    } // Recovery center, recover me!!
+    }, // Recovery center, recover me!!
+    {
+        name: "cursor orb survival",
+        description: "Your a cursor, but theres cursor zombies, so you gotta use orb to kill them.",
+        tags: ["Games", "Simulation"],
+        archive: false
+    } // oh no spooky dooky cursor zombies!! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHH
 ];
 
 // ==========================================
