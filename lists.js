@@ -22,7 +22,8 @@ const whatsNew = {
         "Added Newest Projects tab",
         "Added localStorage export/import",
         "Added What's New",
-        "Added Lists.js comments button"
+        "Added Lists.js comments button",
+        "Added New projects"
     ]
 };
 
@@ -1158,7 +1159,14 @@ const projects = [
         description: "Your a cursor, but theres cursor zombies, so you gotta use orb to kill them.",
         tags: ["Games", "Simulation"],
         archive: false
-    } // oh no spooky dooky cursor zombies!! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHH
+    }, // oh no spooky dooky cursor zombies!! AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHHH
+    {
+        name: "Blender AI",
+        path: "https://blender-ai--orgeyt.on.websim.com/",
+        description: "Websim project that puts your word in a blender.",
+        tags: [],
+        archive: false
+    }, // HELPPPP MY DING IS IN THE BLENDER!!!
 ];
 
 
