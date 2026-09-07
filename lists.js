@@ -1167,6 +1167,13 @@ const projects = [
         tags: [],
         archive: false
     }, // HELPPPP MY DING IS IN THE BLENDER!!!
+    {
+        name: "Neuron AI",
+        path: "https://ai-with-a-brain--orgeyt.on.websim.com/",
+        description: "An AI which has a brain it can read and write to.",
+        tags: ["Tools"],
+        archive: false
+    }, // this might be useful, who knows... but ChatGPT is far better, this is just an example of a "good" AI.
 ];
 
 
