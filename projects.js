@@ -8,8 +8,8 @@ const searchBar = document.getElementById('search-bar');
 const randomProjectBtn = document.getElementById('random-project-btn');
 const favoriteBtn = document.getElementById('favorite-btn');
 
-let currentProjectParam = "welcome";
-let currentFilePath = "html_welcome.html";
+let currentProjectParam = "fnftools";
+let currentFilePath = "projects/html_fnftools.html";
 window.currentProjectParam = currentProjectParam;
 window.currentFilePath = currentFilePath;
 let favorites = JSON.parse(localStorage.getItem('orgeyt-favorites')) || [];
@@ -391,10 +391,9 @@ const projectToLoad = urlParams.get('project');
 if (projectToLoad && typeof projects !== 'undefined') {
     const foundProject = projects.find(p => getProjectName(p).toLowerCase() === projectToLoad.toLowerCase());
     if (foundProject) loadProject(foundProject);
-    else loadProject(projects.find(p => getProjectName(p).toLowerCase() === 'welcome') || projects[0]);
+    else loadProject(projects[0]);
 } else {
-    const welcome = projects.find(p => getProjectName(p).toLowerCase() === 'welcome');
-    loadProject(welcome || projects[0]);
+    loadProject(projects[0]);
 }
 
 // ==========================================
@@ -650,6 +649,10 @@ function getHashSeed(type) {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const date = String(now.getDate()).padStart(2, '0');
         period = `${year}-${month}-${date}`;
+    } else if (type === 'month') {
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        period = `${year}-${month}`;
     } else if (type === 'year') {
         const year = now.getFullYear();
         period = `${year}`;

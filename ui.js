@@ -933,7 +933,8 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-menu-volume',
     'orgeyt-menu-nonrepeat',
     'orgeyt-whats-new-date',
-    'orgeyt-whats-new-collapsed'
+    'orgeyt-whats-new-collapsed',
+    'orgeyt-welcome-dont-show'
 ];
 
 function exportOrgeytData() {
@@ -1184,4 +1185,62 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initWhatsNew);
 } else {
     initWhatsNew();
+}
+
+// ===========================================
+// --- Welcome Modal ---
+// ===========================================
+
+const WELCOME_DONT_SHOW_KEY = 'orgeyt-welcome-dont-show';
+
+function shouldShowWelcomeOnLoad() {
+    return localStorage.getItem(WELCOME_DONT_SHOW_KEY) !== 'true';
+}
+
+function openWelcomeModal() {
+    const modal = document.getElementById('welcome-modal');
+    if (!modal) return;
+    const cb = document.getElementById('welcome-dont-show-again');
+    if (cb) cb.checked = localStorage.getItem(WELCOME_DONT_SHOW_KEY) === 'true';
+    modal.classList.remove('hidden');
+}
+
+function closeWelcomeModal() {
+    const modal = document.getElementById('welcome-modal');
+    if (!modal) return;
+    const cb = document.getElementById('welcome-dont-show-again');
+    if (cb && cb.checked) {
+        localStorage.setItem(WELCOME_DONT_SHOW_KEY, 'true');
+    } else if (cb && !cb.checked) {
+        localStorage.removeItem(WELCOME_DONT_SHOW_KEY);
+    }
+    modal.classList.add('hidden');
+}
+
+document.getElementById('welcome-btn')?.addEventListener('click', openWelcomeModal);
+document.getElementById('close-welcome-btn')?.addEventListener('click', closeWelcomeModal);
+document.getElementById('welcome-continue-btn')?.addEventListener('click', closeWelcomeModal);
+
+document.getElementById('welcome-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'welcome-modal') closeWelcomeModal();
+});
+
+// Show welcome for new visitors (sidebar already open on first paint if needed)
+function initWelcomeOnLoad() {
+    if (!shouldShowWelcomeOnLoad()) return;
+    // Open sidebar so the home menu is visible, then show welcome
+    if (typeof openSidebar === 'function') {
+        openSidebar();
+    } else {
+        document.body.classList.remove('sidebar-closed');
+        document.body.classList.add('sidebar-open');
+    }
+    // Slight delay so sidebar animation can start
+    setTimeout(openWelcomeModal, 150);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWelcomeOnLoad);
+} else {
+    initWelcomeOnLoad();
 }

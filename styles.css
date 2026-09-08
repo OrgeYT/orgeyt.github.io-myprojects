@@ -269,16 +269,42 @@
 
 :root[data-theme="grok"] {
     --bg-main: #ffffff;
-    --bg-sidebar: #f5f5f5;
-    --border-main: #e0e0e0;
-    --text-main: #000000;
-    --text-accent: #666666;
-    --btn-primary: #000000;
-    --btn-primary-hover: #333333;
-    --btn-secondary: #f5f5f5;
-    --btn-secondary-hover: #e0e0e0;
-    --accent-transparent: rgba(0, 0, 0, 0.1);
-    --accent-solid: #000000;
+    --bg-sidebar: #f4f4f5;
+    --border-main: #d4d4d8;
+    --text-main: #18181b;
+    --text-accent: #52525b;
+    --btn-primary: #18181b;
+    --btn-primary-hover: #3f3f46;
+    --btn-secondary: #e4e4e7;
+    --btn-secondary-hover: #d4d4d8;
+    --accent-transparent: rgba(24, 24, 27, 0.08);
+    --accent-solid: #18181b;
+}
+
+/* Grok: dark primary buttons need light text; secondary stays dark-on-light */
+:root[data-theme="grok"] .toggle-btn,
+:root[data-theme="grok"] .modal-btn,
+:root[data-theme="grok"] .rail-btn,
+:root[data-theme="grok"] .rail-open-btn,
+:root[data-theme="grok"] .tab-btn.active,
+:root[data-theme="grok"] .sidebar-close-btn {
+    color: #fafafa;
+}
+:root[data-theme="grok"] .tab-btn:not(.active),
+:root[data-theme="grok"] .file-btn {
+    color: #18181b;
+}
+:root[data-theme="grok"] .file-btn.favorited-item,
+:root[data-theme="grok"] .file-btn.active-project {
+    color: #18181b;
+}
+:root[data-theme="grok"] #search-bar {
+    background: #ffffff;
+    color: #18181b;
+}
+:root[data-theme="grok"] .code-display {
+    background: #18181b;
+    color: #22c55e;
 }
 
 :root[data-theme="deepseek"] {
@@ -1551,4 +1577,256 @@ body.sidebar-closed #open-full-btn {
     color: var(--text-accent);
     text-align: center;
     padding: 20px;
+}
+
+/* ==========================================
+   Welcome Modal
+   ========================================== */
+.welcome-modal-content {
+    width: 520px;
+    max-width: 94vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.welcome-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.welcome-icon {
+    width: 36px;
+    height: 36px;
+}
+
+.welcome-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--accent-solid);
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.welcome-intro {
+    font-size: 0.9rem;
+    color: var(--text-accent);
+    line-height: 1.5;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.welcome-scratch-note {
+    font-size: 0.85rem;
+    color: var(--text-main);
+    line-height: 1.45;
+    margin-bottom: 14px;
+    text-align: center;
+    font-style: italic;
+}
+
+.welcome-links {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 480px) {
+    .welcome-links {
+        grid-template-columns: 1fr;
+    }
+}
+
+.welcome-link-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.welcome-link-btn:hover {
+    transform: translateY(-3px);
+}
+
+.welcome-link-title {
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.welcome-link-desc {
+    font-size: 0.75rem;
+    opacity: 0.85;
+}
+
+/* Colored link buttons (kept from original welcome page) */
+.welcome-roblox {
+    background: rgba(37, 99, 235, 0.18);
+    border-color: rgba(59, 130, 246, 0.55);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+}
+.welcome-roblox .welcome-link-title { color: #60a5fa; }
+.welcome-roblox .welcome-link-desc { color: rgba(191, 219, 254, 0.85); }
+.welcome-roblox:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.45);
+}
+
+.welcome-scratch {
+    background: rgba(249, 115, 22, 0.18);
+    border-color: rgba(249, 115, 22, 0.55);
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
+}
+.welcome-scratch .welcome-link-title { color: #fb923c; }
+.welcome-scratch .welcome-link-desc { color: rgba(254, 215, 170, 0.85); }
+.welcome-scratch:hover {
+    border-color: #f97316;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.45);
+}
+
+.welcome-friend {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.55);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+.welcome-friend .welcome-link-title { color: #f87171; }
+.welcome-friend .welcome-link-desc { color: rgba(254, 202, 202, 0.85); }
+.welcome-friend:hover {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+}
+
+.welcome-websim {
+    background: rgba(168, 85, 247, 0.14);
+    border-color: rgba(168, 85, 247, 0.55);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+    animation: welcome-rainbow-border 5s linear infinite;
+}
+.welcome-websim .welcome-link-title { color: #e9d5ff; }
+.welcome-websim .welcome-link-desc { color: rgba(226, 232, 240, 0.85); }
+.welcome-websim:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 0 0 24px rgba(168, 85, 247, 0.5);
+}
+
+@keyframes welcome-rainbow-border {
+    0% { border-color: #ef4444; box-shadow: 0 0 12px rgba(239, 68, 68, 0.25); }
+    16% { border-color: #f97316; box-shadow: 0 0 12px rgba(249, 115, 22, 0.25); }
+    33% { border-color: #eab308; box-shadow: 0 0 12px rgba(234, 179, 8, 0.25); }
+    50% { border-color: #22c55e; box-shadow: 0 0 12px rgba(34, 197, 94, 0.25); }
+    66% { border-color: #06b6d4; box-shadow: 0 0 12px rgba(6, 182, 212, 0.25); }
+    83% { border-color: #3b82f6; box-shadow: 0 0 12px rgba(59, 130, 246, 0.25); }
+    100% { border-color: #a855f7; box-shadow: 0 0 12px rgba(168, 85, 247, 0.25); }
+}
+
+.welcome-html {
+    background: rgba(249, 115, 22, 0.18);
+    border-color: rgba(249, 115, 22, 0.55);
+    box-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
+}
+.welcome-html .welcome-link-title { color: #fb923c; }
+.welcome-html .welcome-link-desc { color: rgba(254, 215, 170, 0.85); }
+.welcome-html:hover {
+    border-color: #f97316;
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.45);
+}
+
+.welcome-gamebanana {
+    background: rgba(234, 179, 8, 0.18);
+    border-color: rgba(234, 179, 8, 0.55);
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.2);
+}
+.welcome-gamebanana .welcome-link-title { color: #fde047; }
+.welcome-gamebanana .welcome-link-desc { color: rgba(254, 240, 138, 0.85); }
+.welcome-gamebanana:hover {
+    border-color: #eab308;
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.45);
+}
+
+.welcome-ud2 {
+    background: rgba(251, 146, 60, 0.18);
+    border-color: rgba(251, 146, 60, 0.55);
+    box-shadow: 0 0 12px rgba(251, 146, 60, 0.2);
+}
+.welcome-ud2 .welcome-link-title { color: #fdba74; }
+.welcome-ud2 .welcome-link-desc { color: rgba(255, 237, 213, 0.85); }
+.welcome-ud2:hover {
+    border-color: #fb923c;
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.45);
+}
+
+.welcome-ud2-alt {
+    background: rgba(254, 240, 138, 0.16);
+    border-color: rgba(253, 224, 71, 0.55);
+    box-shadow: 0 0 12px rgba(253, 224, 71, 0.2);
+}
+.welcome-ud2-alt .welcome-link-title { color: #fef08a; }
+.welcome-ud2-alt .welcome-link-desc { color: rgba(254, 249, 195, 0.85); }
+.welcome-ud2-alt:hover {
+    border-color: #fde047;
+    box-shadow: 0 0 20px rgba(253, 224, 71, 0.45);
+}
+
+.welcome-youtube {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.55);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+.welcome-youtube .welcome-link-title { color: #f87171; }
+.welcome-youtube .welcome-link-desc { color: rgba(254, 202, 202, 0.85); }
+.welcome-youtube:hover {
+    border-color: #ef4444;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.45);
+}
+
+/* Light themes: darken title/desc colors for readability */
+:root[data-theme="white"] .welcome-link-title,
+:root[data-theme="minisoon-light"] .welcome-link-title,
+:root[data-theme="grok"] .welcome-link-title,
+:root[data-theme="suns brightness"] .welcome-link-title {
+    filter: brightness(0.75);
+}
+:root[data-theme="white"] .welcome-link-desc,
+:root[data-theme="minisoon-light"] .welcome-link-desc,
+:root[data-theme="grok"] .welcome-link-desc,
+:root[data-theme="suns brightness"] .welcome-link-desc {
+    color: #444 !important;
+    opacity: 1;
+}
+
+.welcome-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border-main);
+    padding-top: 14px;
+    margin-top: 4px;
+}
+
+.welcome-dont-show {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--text-accent);
+    cursor: pointer;
+    flex: 1;
+    min-width: 140px;
+}
+
+.welcome-dont-show input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }

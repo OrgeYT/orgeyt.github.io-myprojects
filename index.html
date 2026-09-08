@@ -32,6 +32,7 @@
         <div id="time-counter">Time: 0s</div>
 
         <div class="sidebar-controls" id="sidebar-controls">
+            <button id="welcome-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">👋</span> Welcome</button>
             <button id="tab-modifier-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏷️</span> Tab Settings</button>
             <button id="theme-settings-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎨</span> Theme</button>
             <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
@@ -368,9 +369,10 @@
             <h3>Project of the Time</h3>
             <div class="setting-group">
                 <label>Select Time Period:</label>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
                     <button class="modal-btn pot-time-btn" data-pot-type="hour">Hour</button>
                     <button class="modal-btn pot-time-btn" data-pot-type="day">Day</button>
+                    <button class="modal-btn pot-time-btn" data-pot-type="month">Month</button>
                     <button class="modal-btn pot-time-btn" data-pot-type="year">Year</button>
                 </div>
             </div>
@@ -382,6 +384,71 @@
         </div>
     </div>
 
+
+    <!-- Welcome Modal -->
+    <div id="welcome-modal" class="modal hidden">
+        <div class="modal-content welcome-modal-content">
+            <span id="close-welcome-btn" class="close-btn">&times;</span>
+            <div class="welcome-header">
+                <img src="favicon.ico" alt="Icon" class="welcome-icon" onerror="this.style.display='none'">
+                <h3 class="welcome-title">WELCOME</h3>
+            </div>
+            <p class="welcome-intro">
+                Yo, welcome to my website! I used GitHub for this site.
+                I know it's mostly AI, but I swear I cannot code HTML ;-;
+                But at least the IDEAS are not AI.
+                Anyways, enjoy using my website! My socials/etc. are linked below.
+            </p>
+            <p class="welcome-scratch-note">
+                Just remember, the Scratch projects here are not AI and are completely coded by me. :)
+            </p>
+            <div class="welcome-links">
+                <a href="https://web.roblox.com/users/25500698/profile" target="_blank" class="welcome-link-btn welcome-roblox">
+                    <span class="welcome-link-title">Roblox</span>
+                    <span class="welcome-link-desc">View my profile</span>
+                </a>
+                <a href="https://scratch.mit.edu/users/scratch_r0bl0x" target="_blank" class="welcome-link-btn welcome-scratch">
+                    <span class="welcome-link-title">Scratch</span>
+                    <span class="welcome-link-desc">Check my creations</span>
+                </a>
+                <a href="https://www.youtube.com/@PresidentCar" target="_blank" class="welcome-link-btn welcome-friend">
+                    <span class="welcome-link-title">My Friend</span>
+                    <span class="welcome-link-desc">Visit Brad's channel</span>
+                </a>
+                <a href="https://websim.ai/@OrgeYT" target="_blank" class="welcome-link-btn welcome-websim">
+                    <span class="welcome-link-title">Websim</span>
+                    <span class="welcome-link-desc">My profile page</span>
+                </a>
+                <a href="https://orgeyt.github.io/orgeyt.github.io-myprojects" target="_blank" class="welcome-link-btn welcome-html">
+                    <span class="welcome-link-title">HTML Projects</span>
+                    <span class="welcome-link-desc">Full project list</span>
+                </a>
+                <a href="https://gamebanana.com/members/4315286" target="_blank" class="welcome-link-btn welcome-gamebanana">
+                    <span class="welcome-link-title">Gamebanana</span>
+                    <span class="welcome-link-desc">My modding profile</span>
+                </a>
+                <a href="https://scratch.mit.edu/projects/1331390137" target="_blank" class="welcome-link-btn welcome-ud2">
+                    <span class="welcome-link-title">Ultimate Dodging TWO</span>
+                    <span class="welcome-link-desc">Play on Scratch</span>
+                </a>
+                <a href="https://orgeyt.github.io/orgeyt.github.io-myprojects/?project=Ultimate%20Dodging%20TWO" target="_blank" class="welcome-link-btn welcome-ud2-alt">
+                    <span class="welcome-link-title">Ultimate Dodging TWO Alt</span>
+                    <span class="welcome-link-desc">Play via GitHub Projects</span>
+                </a>
+                <a href="https://www.youtube.com/@OrgeYT" target="_blank" class="welcome-link-btn welcome-youtube">
+                    <span class="welcome-link-title">My Channel</span>
+                    <span class="welcome-link-desc">YouTube</span>
+                </a>
+            </div>
+            <div class="welcome-footer">
+                <label class="welcome-dont-show">
+                    <input type="checkbox" id="welcome-dont-show-again">
+                    <span>Don't show this again</span>
+                </label>
+                <button id="welcome-continue-btn" class="modal-btn" style="flex:1; font-weight:bold; padding:10px;">Continue</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Project Card Modal -->
     <div id="project-card-modal" class="modal hidden">

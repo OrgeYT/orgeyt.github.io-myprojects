@@ -17,13 +17,13 @@
 // ==========================================
 
 const whatsNew = {
-    date: "Monday, September 7",
+    date: "Tuesday, September 8",
     items: [
-        "Added Newest Projects tab",
-        "Added localStorage export/import",
-        "Added What's New",
-        "Added Lists.js comments button",
-        "Added New projects (3 NEW)"
+        "Integrated Welcome menu into the site (no longer a project)",
+        "Welcome shows for new visitors; optional Don't show again",
+        "Added Welcome button in the sidebar",
+        "Added Project of the Month",
+        "Fixed Grok theme for readable buttons and contrast"
     ]
 };
 
@@ -34,13 +34,6 @@ const whatsNew = {
 
 
 const projects = [
-    {
-        name: "welcome",
-        description: "The default landing / intro project for the site.",
-        tags: [],
-        archive: false
-    }, // the first one
-
     {
         name: "fnftools",
         description: "Tools related to Friday Night Funkin'.",
@@ -1166,7 +1159,7 @@ const projects = [
         description: "Websim project that puts your word in a blender.",
         tags: [],
         archive: false
-    }, // HELPPPP MY DING IS IN THE BLENDER!!!
+    }, // HELPPPP MY AA IS IN THE BLENDER!!!
     {
         name: "Neuron AI",
         path: "https://ai-with-a-brain--orgeyt.on.websim.com/",
