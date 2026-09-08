@@ -7,7 +7,7 @@
 // let them stay
 
 // Tag emojis (only these five are valid):
-// Games: 🎮  Tools: 🛠️  Math: 🧮  Music: 🎵  Simulation: ⚙️
+// Games: 🎮  Tools: 🛠️  Math: 🧮  Music: 🎵  Simulation: ⚙️.
 
 // ==========================================
 // --- What's New ---
