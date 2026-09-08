@@ -1225,22 +1225,25 @@ document.getElementById('welcome-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'welcome-modal') closeWelcomeModal();
 });
 
-// Show welcome for new visitors (sidebar already open on first paint if needed)
-function initWelcomeOnLoad() {
-    if (!shouldShowWelcomeOnLoad()) return;
-    // Open sidebar so the home menu is visible, then show welcome
+// Always open the menu on load; show welcome only for new visitors
+function initMenuAndWelcomeOnLoad() {
+    // Instant open: body already has sidebar-open; still run openSidebar for pause overlay + music
     if (typeof openSidebar === 'function') {
         openSidebar();
     } else {
         document.body.classList.remove('sidebar-closed');
         document.body.classList.add('sidebar-open');
+        const pauseOverlay = document.getElementById('project-pause-overlay');
+        if (pauseOverlay) pauseOverlay.classList.remove('hidden');
     }
-    // Slight delay so sidebar animation can start
-    setTimeout(openWelcomeModal, 150);
+
+    if (shouldShowWelcomeOnLoad()) {
+        setTimeout(openWelcomeModal, 150);
+    }
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWelcomeOnLoad);
+    document.addEventListener('DOMContentLoaded', initMenuAndWelcomeOnLoad);
 } else {
-    initWelcomeOnLoad();
+    initMenuAndWelcomeOnLoad();
 }
