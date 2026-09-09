@@ -1180,7 +1180,7 @@ const projects = [
         description: "Fun sonic game where you collect rings to pass levels!",
         tags: ["Simulation", "Games"],
         archive: false
-    }, // Sonic has to collect rings to win each level. pretty normal, eh?
+    } // Sonic has to collect rings to win each level. pretty normal, eh? (God FUCKING dang it, i forgot to remove that , at the end of }. which caused errors. fixed now!)
 ];
 
 
