@@ -17,14 +17,9 @@
 // ==========================================
 
 const whatsNew = {
-    date: "Tuesday, September 8",
+    date: "Wednesday, September 9",
     items: [
-        "Integrated Welcome menu into the site (no longer a project)",
-        "Welcome shows for new visitors; optional Don't show again",
-        "Added Welcome button in the sidebar",
-        "Added Project of the Month",
-        "Fixed Grok theme for readable buttons and contrast", // fixed that...
-        "At 10:00 PM: New Sonic game"
+        "One new project ;["
     ]
 };
 
@@ -1180,7 +1175,14 @@ const projects = [
         description: "Fun sonic game where you collect rings to pass levels!",
         tags: ["Simulation", "Games"],
         archive: false
-    } // Sonic has to collect rings to win each level. pretty normal, eh? (God FUCKING dang it, i forgot to remove that , at the end of }. which caused errors. fixed now!)
+    }, // Sonic has to collect rings to win each level. pretty normal, eh? (God FUCKING dang it, i forgot to remove that , at the end of }. which caused errors. fixed now!)
+    {
+        name: "Ultrabox json player",
+        path: "ultrabox-player/index.html",
+        description: "Project that reads and plays ultrabox jsons, with 100% accuracy",
+        tags: ["Tools"],
+        archive: false
+    }
 ];
 
 
