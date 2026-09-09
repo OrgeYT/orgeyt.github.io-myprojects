@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UltraBox Player</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>UltraBox Player</h1>
+      <p class="subtitle">Play UltraBox / BeepBox JSON files or URLs with the official synth</p>
+    </header>
+
+    <section class="load-panel">
+      <div class="drop-zone" id="dropZone">
+        <div class="drop-content">
+          <p class="drop-title">Drop a .json song here</p>
+          <p class="drop-or">or</p>
+          <label class="file-btn">
+            Choose file
+            <input type="file" id="fileInput" accept=".json,application/json" hidden />
+          </label>
+        </div>
+      </div>
+
+      <div class="url-box">
+        <label for="urlInput">Or paste an UltraBox URL / song hash</label>
+        <div class="url-row">
+          <input type="text" id="urlInput" placeholder="https://ultraabox.github.io/#song=…  or  #song=u5N08…" spellcheck="false" />
+          <button type="button" id="btnLoadUrl" class="primary">Load</button>
+        </div>
+        <p class="hint">Paste here and click Load — the song stays in memory only (never written to the browser address bar, so large songs work fine).</p>
+      </div>
+    </section>
+
+    <section class="controls" id="controls" hidden>
+      <div class="song-meta">
+        <h2 id="songTitle">—</h2>
+        <div class="meta-row">
+          <span id="songInfo">—</span>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button id="btnPlay" class="primary" title="Play / Pause (Space)">▶ Play</button>
+        <button id="btnStop" title="Stop">■ Stop</button>
+        <button id="btnRestart" title="Restart from beginning">↻ Restart</button>
+        <button id="btnPianoRoll" class="secondary" title="Toggle piano roll (P)">🎹 Piano roll</button>
+        <button id="btnShowPianos" class="secondary" title="Toggle live piano (K)">🎹 Show pianos</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-playhead" id="progressPlayhead"></div>
+        </div>
+        <div class="time-row">
+          <span id="timeCurrent">0:00.0</span>
+          <span id="barInfo">Bar 0</span>
+          <span id="timeTotal">0:00.0</span>
+        </div>
+      </div>
+
+      <div class="volume-row">
+        <label for="volume">Volume</label>
+        <input type="range" id="volume" min="0" max="100" value="80" />
+        <span id="volumeLabel">80%</span>
+      </div>
+
+      <div class="channel-list" id="channelList"></div>
+
+      <!-- Live piano keyboard -->
+      <div class="piano-keys-wrap" id="pianoKeysWrap" hidden>
+        <div class="piano-keys-toolbar">
+          <span class="pr-label">Live piano</span>
+          <label class="pr-ch-select">
+            Channel
+            <select id="pianoKeysChannel"></select>
+          </label>
+        </div>
+        <div class="piano-keys-scroll">
+          <div id="pianoKeys" class="piano-keys"></div>
+        </div>
+      </div>
+
+      <!-- Piano roll -->
+      <div class="piano-roll-wrap" id="pianoRollWrap" hidden>
+        <div class="piano-roll-toolbar">
+          <span class="pr-label">Piano roll</span>
+          <label class="pr-ch-select">
+            Channel
+            <select id="pianoRollChannel"></select>
+          </label>
+        </div>
+        <div class="piano-roll-scroll" id="pianoRollScroll">
+          <canvas id="pianoRollCanvas" width="800" height="320"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="examples">
+      <h3>Example</h3>
+      <button id="loadExample" class="secondary">Load “Piano master”</button>
+    </section>
+
+    <footer>
+      <p>
+        Uses the official <a href="https://ultraabox.github.io" target="_blank" rel="noopener">UltraBox</a> synth
+        for accurate sound.
+      </p>
+      <p class="small">Synth © John Nesky &amp; contributors (MIT). Shortcuts: Space play · R restart · S stop · P roll · K piano</p>
+    </footer>
+  </div>
+
+  <script src="beepbox_synth.min.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>
