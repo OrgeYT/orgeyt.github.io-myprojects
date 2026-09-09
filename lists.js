@@ -24,6 +24,7 @@ const whatsNew = {
         "Added Welcome button in the sidebar",
         "Added Project of the Month",
         "Fixed Grok theme for readable buttons and contrast"
+        "At 10:00 PM: New Sonic game"
     ]
 };
 
@@ -1172,7 +1173,14 @@ const projects = [
         description: "Turn English into heavy, HEAVY slang. 😭",
         tags: ["Tools"],
         archive: false
-    } // ts so peak
+    }, // ts so peak
+    {
+        name: "Sonic Ring Collector",
+        path: "sonic ring collector/index.html",
+        description: "Fun sonic game where you collect rings to pass levels!",
+        tags: ["Simulation", "Games"],
+        archive: false
+    }, // Sonic has to collect rings to win each level. pretty normal, eh?
 ];
 
 
