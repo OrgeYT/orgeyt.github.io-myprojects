@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sonic: The Ring Collector</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui">
+      <div id="hud">
+        <div id="rings-display">Rings: <span id="ring-count">0</span></div>
+        <div id="level-display">Level: <span id="level-num">1</span></div>
+        <div id="goal-display">Collect <span id="goal-count">10</span> Rings!</div>
+        <div id="boost-timer" class="hidden">BOOST!</div>
+        <div id="pause-hint">ESC / P : Pause</div>
+      </div>
+      <div id="message" class="hidden"></div>
+      <div id="start-screen">
+        <h1>SONIC: THE RING COLLECTOR</h1>
+        <p>Collect the rings. Avoid the bombs. Reach the goal!</p>
+        <p class="controls">SPACE : Jump (double jump in air) &nbsp;|&nbsp; ESC / P : Pause</p>
+        <button id="start-btn">START GAME</button>
+      </div>
+      <div id="pause-screen" class="hidden">
+        <h2>PAUSED</h2>
+        <button id="resume-btn">RESUME</button>
+        <button id="restart-level-btn">RESTART LEVEL</button>
+        <button id="restart-game-btn" class="danger">RESTART GAME</button>
+        <div id="restart-warn" class="hidden">
+          <p id="warn-text">Are you sure? (1/2)</p>
+          <button id="confirm-restart-btn" class="danger">YES, RESTART</button>
+          <button id="cancel-restart-btn">CANCEL</button>
+        </div>
+      </div>
+      <div id="game-over" class="hidden">
+        <h2>LEVEL FAILED</h2>
+        <p id="fail-reason">You lost all your rings!</p>
+        <button id="retry-btn">TRY AGAIN</button>
+      </div>
+      <div id="level-complete" class="hidden">
+        <h2>LEVEL CLEAR!</h2>
+        <p>Great job!</p>
+        <button id="next-btn">NEXT LEVEL</button>
+      </div>
+    </div>
+  </div>
+  <script src="game.js"></script>
+</body>
+</html>
