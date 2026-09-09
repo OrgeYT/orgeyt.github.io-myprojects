@@ -23,7 +23,7 @@ const whatsNew = {
         "Welcome shows for new visitors; optional Don't show again",
         "Added Welcome button in the sidebar",
         "Added Project of the Month",
-        "Fixed Grok theme for readable buttons and contrast"
+        "Fixed Grok theme for readable buttons and contrast", // fixed that...
         "At 10:00 PM: New Sonic game"
     ]
 };
