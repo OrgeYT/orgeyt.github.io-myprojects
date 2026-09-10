@@ -19,7 +19,8 @@
 const whatsNew = {
     date: "Wednesday, September 9",
     items: [
-        "One new project ;["
+        "One new project ;[",
+        "And at 9:47 PM at night, another one"
     ]
 };
 
@@ -1181,6 +1182,13 @@ const projects = [
         path: "ultrabox-player/index.html",
         description: "Project that reads and plays ultrabox jsons, with 100% accuracy",
         tags: ["Tools"],
+        archive: false
+    },
+    {
+        name: "Chicken game",
+        path: "https://chicken-game--orgeyt.on.websim.com/",
+        description: "Ending game where you unlock endings!",
+        tags: ["Games"],
         archive: false
     }
 ];
