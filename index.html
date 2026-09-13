@@ -36,6 +36,8 @@
             <button id="tab-modifier-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏷️</span> Tab Settings</button>
             <button id="theme-settings-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎨</span> Theme</button>
             <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
+            <button id="recently-played-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🕒</span> Recently Played</button>
+            <button id="stats-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📊</span> Statistics</button>
             <button id="favorite-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⭐</span> Favorite</button>
             <button id="friends-website-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🤝</span> Friends</button>
             <button id="achievements-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏆</span> Achievements</button>
@@ -49,6 +51,7 @@
             <button id="lists-comments-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💬</span> lists.js Comments</button>
             <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Project of Time</button>
             <button id="data-backup-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💾</span> Data Backup</button>
+            <button id="changelog-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📜</span> Changelog</button>
             <input type="file" id="import-data-file" accept=".json,application/json" style="display:none;">
             <button id="clear-visited-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🗑️</span> Clear Visited</button>
             <button id="admin-btn" class="toggle-btn hidden" data-sound="true"><span class="btn-icon">🔐</span> ADMIN</button>
@@ -384,6 +387,63 @@
         </div>
     </div>
 
+    <!-- Recently Played Modal -->
+    <div id="recently-played-modal" class="modal hidden">
+        <div class="modal-content" style="width: 380px; max-height: 85vh; display: flex; flex-direction: column;">
+            <span id="close-recently-played-btn" class="close-btn">&times;</span>
+            <h3>Recently Played</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 10px;">Your last opened projects (most recent first). Separate from visit history.</p>
+            <div id="recently-played-list" class="recently-played-list"></div>
+            <button id="clear-recently-played-btn" class="modal-btn" style="width: 100%; margin-top: 12px; background-color: #8b0000;">Clear Recently Played</button>
+        </div>
+    </div>
+
+    <!-- Project Statistics Modal -->
+    <div id="stats-modal" class="modal hidden">
+        <div class="modal-content" style="width: 400px; max-height: 85vh; overflow-y: auto;">
+            <span id="close-stats-btn" class="close-btn">&times;</span>
+            <h3>Project Statistics</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 12px;">Live stats from your project list and saved data.</p>
+            <div id="stats-content" class="stats-content"></div>
+        </div>
+    </div>
+
+    <!-- Random Choice Modal -->
+    <div id="random-choice-modal" class="modal hidden">
+        <div class="modal-content" style="width: 320px;">
+            <span id="close-random-choice-btn" class="close-btn">&times;</span>
+            <h3>Random Project</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 12px;">Pick a random project from the current list, or filter by type.</p>
+            <div class="setting-group" style="display: flex; flex-direction: column; gap: 8px;">
+                <button id="random-choice-all" class="modal-btn" style="width: 100%; padding: 10px;">🎲 Random Project</button>
+                <button id="random-choice-games" class="modal-btn" style="width: 100%; padding: 10px;">🎮 Random Game</button>
+                <button id="random-choice-tools" class="modal-btn" style="width: 100%; padding: 10px;">🛠️ Random Tool</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Continue where you left off -->
+    <div id="resume-modal" class="modal hidden">
+        <div class="modal-content" style="width: 360px;">
+            <h3>Continue where you left off?</h3>
+            <p style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 8px;">Looks like you were in the middle of a project (maybe a crash or closed tab).</p>
+            <p id="resume-project-name" style="font-weight: bold; margin-bottom: 14px; text-align: center;"></p>
+            <div style="display: flex; gap: 8px;">
+                <button id="resume-yes-btn" class="modal-btn" style="flex: 1; padding: 10px; font-weight: bold;">Yes, continue</button>
+                <button id="resume-no-btn" class="modal-btn" style="flex: 1; padding: 10px;">No thanks</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div id="changelog-modal" class="modal hidden">
+        <div class="modal-content" style="width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
+            <span id="close-changelog-btn" class="close-btn">&times;</span>
+            <h3>Changelog</h3>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 10px;">Full update history from changelog.txt — newest first.</p>
+            <div id="changelog-body" class="changelog-body"></div>
+        </div>
+    </div>
 
     <!-- Welcome Modal -->
     <div id="welcome-modal" class="modal hidden">
@@ -468,6 +528,17 @@
         <div class="toast-content">
             <strong>Achievement Unlocked!</strong><br>
             <span id="toast-text">Name</span>
+        </div>
+    </div>
+
+    <!-- Website Updated notice (centered; below welcome modal) -->
+    <div id="website-update-popup" class="website-update-popup hidden" aria-live="polite">
+        <div class="website-update-card">
+            <div class="website-update-badge">✨ UPDATE</div>
+            <h3 class="website-update-title">Website updated!</h3>
+            <p class="website-update-date" id="website-update-date-label"></p>
+            <ul class="website-update-list" id="website-update-list"></ul>
+            <button type="button" id="website-update-dismiss" class="modal-btn website-update-dismiss" data-sound="true">Got it</button>
         </div>
     </div>
 

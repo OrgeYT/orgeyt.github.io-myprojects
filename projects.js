@@ -283,6 +283,13 @@ function loadProject(project) {
     isInitialLoad = false;
 
     recordProjectVisit(projectParam);
+    if (typeof recordRecentlyPlayed === 'function') {
+        recordRecentlyPlayed(projectParam);
+    }
+    // Keep last-project name fresh (resume uses this + resume-pending flag)
+    try {
+        localStorage.setItem('orgeyt-last-project', projectParam);
+    } catch (_) {}
 
     const clickedButton = fileList?.querySelector(
         `[data-project-name="${CSS.escape(projectParam.toLowerCase())}"]`
@@ -363,22 +370,66 @@ if (favoriteBtn) {
     });
 }
 
-// Random — open card for a random visible project (does not auto-launch)
-if (randomProjectBtn) {
-    randomProjectBtn.addEventListener('click', () => {
+// Random — open choice modal (Random Project / Game / Tool)
+// Random Project keeps the original behavior (random from currently visible list buttons)
+function pickRandomFromCandidates(candidates) {
+    if (!candidates || candidates.length === 0) return null;
+    return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function openRandomProjectCard(mode) {
+    // mode: 'all' | 'games' | 'tools'
+    let found = null;
+
+    if (mode === 'all') {
+        // Preserve original: random among currently visible file-list buttons
         const buttons = Array.from(fileList.querySelectorAll('.file-btn')).filter(btn => btn.style.display !== 'none');
         if (buttons.length > 0) {
             const randomBtn = buttons[Math.floor(Math.random() * buttons.length)];
-            // Find the project object and open its card
             const name = randomBtn.dataset.projectName;
-            const found = projects.find(p => getProjectName(p).toLowerCase() === name);
-            if (found) {
-                openProjectCard(found);
-                unlockAchievement('randomizer');
-            }
+            found = projects.find(p => getProjectName(p).toLowerCase() === name);
+        }
+    } else {
+        const tag = mode === 'games' ? 'Games' : 'Tools';
+        const candidates = (typeof projects !== 'undefined' ? projects : []).filter(p => {
+            if (isProjectArchived(p)) return false;
+            return projectHasTag(p, tag);
+        });
+        found = pickRandomFromCandidates(candidates);
+    }
+
+    if (found) {
+        openProjectCard(found);
+        unlockAchievement('randomizer');
+        document.getElementById('random-choice-modal')?.classList.add('hidden');
+    } else {
+        alert(mode === 'all'
+            ? 'No projects available to pick from.'
+            : `No ${mode === 'games' ? 'Games' : 'Tools'} projects found.`);
+    }
+}
+
+if (randomProjectBtn) {
+    randomProjectBtn.addEventListener('click', () => {
+        const modal = document.getElementById('random-choice-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        } else {
+            // Fallback if modal missing: original behavior
+            openRandomProjectCard('all');
         }
     });
 }
+
+document.getElementById('random-choice-all')?.addEventListener('click', () => openRandomProjectCard('all'));
+document.getElementById('random-choice-games')?.addEventListener('click', () => openRandomProjectCard('games'));
+document.getElementById('random-choice-tools')?.addEventListener('click', () => openRandomProjectCard('tools'));
+document.getElementById('close-random-choice-btn')?.addEventListener('click', () => {
+    document.getElementById('random-choice-modal')?.classList.add('hidden');
+});
+document.getElementById('random-choice-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'random-choice-modal') e.target.classList.add('hidden');
+});
 
 if (searchBar) {
     searchBar.addEventListener('input', applySearchFilter);
@@ -769,3 +820,178 @@ if (viewListsBtn) {
 if (closeViewListsBtn) {
     closeViewListsBtn.addEventListener('click', () => viewListsModal.classList.add('hidden'));
 }
+
+// ===========================================
+// --- Recently Played UI ---
+// ===========================================
+
+function renderRecentlyPlayedList() {
+    const list = document.getElementById('recently-played-list');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const names = typeof getRecentlyPlayed === 'function' ? getRecentlyPlayed() : [];
+    if (names.length === 0) {
+        list.innerHTML = '<div class="recently-played-empty">No projects played yet. Open a project to start tracking.</div>';
+        return;
+    }
+
+    names.forEach(name => {
+        const found = (typeof projects !== 'undefined' ? projects : []).find(
+            p => getProjectName(p).toLowerCase() === name.toLowerCase()
+        );
+        const displayName = found ? getProjectName(found) : name;
+        const emojis = found ? getTagEmojisFor(found) : '';
+        const desc = found ? getProjectDescription(found) : '';
+
+        const item = document.createElement('button');
+        item.className = 'file-btn recently-played-item';
+        item.dataset.sound = 'true';
+        item.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:flex-start;width:100%;">
+                <div>${emojis ? emojis + ' ' : ''}${displayName}</div>
+                ${desc && desc !== 'NEEDS DESCRIPTION' ? `<div style="font-size:0.75rem;color:var(--text-accent);margin-top:2px;">${desc}</div>` : ''}
+            </div>
+        `;
+        item.onclick = () => {
+            if (found) {
+                document.getElementById('recently-played-modal')?.classList.add('hidden');
+                openProjectCard(found);
+            } else {
+                // Try load by name if object missing
+                const fallback = { name: displayName };
+                document.getElementById('recently-played-modal')?.classList.add('hidden');
+                openProjectCard(fallback);
+            }
+        };
+        list.appendChild(item);
+    });
+
+    if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
+}
+
+document.getElementById('recently-played-btn')?.addEventListener('click', () => {
+    renderRecentlyPlayedList();
+    document.getElementById('recently-played-modal')?.classList.remove('hidden');
+});
+document.getElementById('close-recently-played-btn')?.addEventListener('click', () => {
+    document.getElementById('recently-played-modal')?.classList.add('hidden');
+});
+document.getElementById('recently-played-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'recently-played-modal') e.target.classList.add('hidden');
+});
+document.getElementById('clear-recently-played-btn')?.addEventListener('click', () => {
+    if (typeof clearRecentlyPlayed === 'function') clearRecentlyPlayed();
+});
+
+// ===========================================
+// --- Project Statistics ---
+// ===========================================
+
+function computeProjectStats() {
+    const all = typeof projects !== 'undefined' ? projects : [];
+    const active = all.filter(p => !isProjectArchived(p));
+    const archived = all.filter(p => isProjectArchived(p));
+
+    const tagCount = (tag) => active.filter(p => projectHasTag(p, tag)).length;
+
+    // Favorites count (from localStorage list)
+    const favs = typeof favorites !== 'undefined' ? favorites : (JSON.parse(localStorage.getItem('orgeyt-favorites') || '[]'));
+    const totalFavorites = Array.isArray(favs) ? favs.length : 0;
+
+    // Visited: unique projects with count > 0
+    let totalVisited = 0;
+    let mostVisitedName = '—';
+    let mostVisitedCount = 0;
+    if (typeof visitedProjects === 'object' && visitedProjects) {
+        const keys = Object.keys(visitedProjects);
+        totalVisited = keys.filter(k => (visitedProjects[k].count || 0) > 0).length;
+        keys.forEach(k => {
+            const c = visitedProjects[k].count || 0;
+            if (c > mostVisitedCount) {
+                mostVisitedCount = c;
+                // Try to recover original casing from projects list
+                const match = all.find(p => getProjectName(p).toLowerCase() === k);
+                mostVisitedName = match ? getProjectName(match) : k;
+            }
+        });
+    }
+
+    // Most recently added = last non-archived in list (list order is chronological-ish)
+    const newest = active.length > 0 ? getProjectName(active[active.length - 1]) : '—';
+
+    // Recently played count
+    const recentCount = typeof getRecentlyPlayed === 'function' ? getRecentlyPlayed().length : 0;
+
+    // Scratch / embed / etc rough counts from active
+    let scratchCount = 0, embedCount = 0, multiCount = 0, htmlCount = 0;
+    active.forEach(p => {
+        const path = getProjectPath(p);
+        if (path.startsWith('scratch-')) scratchCount++;
+        else if (path.startsWith('http') || path.startsWith('data:')) embedCount++;
+        else if (path.includes('/')) multiCount++;
+        else htmlCount++;
+    });
+
+    return {
+        totalActive: active.length,
+        totalArchived: archived.length,
+        totalAll: all.length,
+        games: tagCount('Games'),
+        tools: tagCount('Tools'),
+        math: tagCount('Math'),
+        music: tagCount('Music'),
+        simulation: tagCount('Simulation'),
+        totalFavorites,
+        totalVisited,
+        mostVisitedName,
+        mostVisitedCount,
+        newest,
+        recentCount,
+        scratchCount,
+        embedCount,
+        multiCount,
+        htmlCount
+    };
+}
+
+function renderStatsModal() {
+    const container = document.getElementById('stats-content');
+    if (!container) return;
+    const s = computeProjectStats();
+
+    container.innerHTML = `
+        <div class="stats-grid">
+            <div class="stats-item"><span class="stats-label">Active projects</span><span class="stats-value">${s.totalActive}</span></div>
+            <div class="stats-item"><span class="stats-label">Archived projects</span><span class="stats-value">${s.totalArchived}</span></div>
+            <div class="stats-item"><span class="stats-label">Total in list</span><span class="stats-value">${s.totalAll}</span></div>
+            <div class="stats-item"><span class="stats-label">🎮 Games</span><span class="stats-value">${s.games}</span></div>
+            <div class="stats-item"><span class="stats-label">🛠️ Tools</span><span class="stats-value">${s.tools}</span></div>
+            <div class="stats-item"><span class="stats-label">🧮 Math</span><span class="stats-value">${s.math}</span></div>
+            <div class="stats-item"><span class="stats-label">🎵 Music</span><span class="stats-value">${s.music}</span></div>
+            <div class="stats-item"><span class="stats-label">⚙️ Simulation</span><span class="stats-value">${s.simulation}</span></div>
+            <div class="stats-item"><span class="stats-label">Your favorites</span><span class="stats-value">${s.totalFavorites}</span></div>
+            <div class="stats-item"><span class="stats-label">Projects visited</span><span class="stats-value">${s.totalVisited}</span></div>
+            <div class="stats-item"><span class="stats-label">Recently played</span><span class="stats-value">${s.recentCount}</span></div>
+            <div class="stats-item"><span class="stats-label">Scratch embeds</span><span class="stats-value">${s.scratchCount}</span></div>
+            <div class="stats-item"><span class="stats-label">Website embeds</span><span class="stats-value">${s.embedCount}</span></div>
+            <div class="stats-item"><span class="stats-label">HTML-only</span><span class="stats-value">${s.htmlCount}</span></div>
+            <div class="stats-item"><span class="stats-label">Multi-file</span><span class="stats-value">${s.multiCount}</span></div>
+        </div>
+        <div class="stats-highlights">
+            <div class="stats-highlight"><strong>Most recently added</strong><br>${s.newest}</div>
+            <div class="stats-highlight"><strong>Most visited</strong><br>${s.mostVisitedName}${s.mostVisitedCount > 0 ? ` (${s.mostVisitedCount}×)` : ''}</div>
+        </div>
+    `;
+}
+
+document.getElementById('stats-btn')?.addEventListener('click', () => {
+    renderStatsModal();
+    document.getElementById('stats-modal')?.classList.remove('hidden');
+});
+document.getElementById('close-stats-btn')?.addEventListener('click', () => {
+    document.getElementById('stats-modal')?.classList.add('hidden');
+});
+document.getElementById('stats-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'stats-modal') e.target.classList.add('hidden');
+});

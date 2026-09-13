@@ -402,6 +402,22 @@ document.getElementById('rail-music-settings-btn')?.addEventListener('click', op
 // Sidebar open / close
 const pauseOverlay = document.getElementById('project-pause-overlay');
 
+// Resume-after-crash: only clear/set when the user opens/closes the menu (not during boot)
+let sidebarUserGesture = false;
+const RESUME_PENDING_KEY = 'orgeyt-resume-pending';
+const LAST_PROJECT_KEY = 'orgeyt-last-project';
+
+function markResumePending() {
+    const name = window.currentProjectParam || '';
+    if (!name) return;
+    localStorage.setItem(LAST_PROJECT_KEY, name);
+    localStorage.setItem(RESUME_PENDING_KEY, 'true');
+}
+
+function clearResumePending() {
+    localStorage.removeItem(RESUME_PENDING_KEY);
+}
+
 function openSidebar() {
     document.body.classList.remove('sidebar-closed');
     document.body.classList.add('sidebar-open');
@@ -415,6 +431,10 @@ function openSidebar() {
     } catch (_) {}
     // Resume / start menu theme song (continues from last position)
     playMenuMusic();
+    // Home menu: clear resume so a normal menu visit won't prompt after refresh
+    if (sidebarUserGesture) {
+        clearResumePending();
+    }
 }
 
 function closeSidebar() {
@@ -431,6 +451,8 @@ function closeSidebar() {
     if (!menuMusicPinned) {
         pauseMenuMusic();
     }
+    // Playing a project: remember it in case of crash / close tab
+    markResumePending();
 }
 
 document.getElementById('sidebar-open-btn')?.addEventListener('click', openSidebar);
@@ -932,9 +954,12 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-menu-song',
     'orgeyt-menu-volume',
     'orgeyt-menu-nonrepeat',
-    'orgeyt-whats-new-date',
     'orgeyt-whats-new-collapsed',
-    'orgeyt-welcome-dont-show'
+    'orgeyt-changelog-snapshot',
+    'orgeyt-welcome-dont-show',
+    'orgeyt-recently-played',
+    'orgeyt-last-project',
+    'orgeyt-resume-pending'
 ];
 
 function exportOrgeytData() {
@@ -1104,8 +1129,68 @@ document.getElementById('lists-comments-modal')?.addEventListener('click', (e) =
 // --- What's New (data from lists.js) ---
 // ===========================================
 
-const WHATS_NEW_DATE_KEY = 'orgeyt-whats-new-date';
 const WHATS_NEW_COLLAPSED_KEY = 'orgeyt-whats-new-collapsed';
+const CHANGELOG_SNAPSHOT_KEY = 'orgeyt-changelog-snapshot';
+
+/** Parse changelog.txt into [{ date, items: string[] }, ...] — newest section first in file order */
+function parseChangelogText(raw) {
+    const text = String(raw || '').replace(/^\uFEFF/, '').trim();
+    if (!text) return [];
+
+    const sections = [];
+    const lines = text.split(/\r?\n/);
+    let current = null;
+
+    for (const line of lines) {
+        const header = line.match(/^\s*\[([^\]]+)\]\s*$/);
+        if (header) {
+            if (current) sections.push(current);
+            current = { date: header[1].trim(), items: [] };
+            continue;
+        }
+        if (!current) continue;
+        const trimmed = line.trim();
+        if (trimmed) current.items.push(trimmed);
+    }
+    if (current) sections.push(current);
+    return sections;
+}
+
+function showWebsiteUpdatePopup(dateLabel, items) {
+    const popup = document.getElementById('website-update-popup');
+    if (!popup) return;
+
+    const dateEl = document.getElementById('website-update-date-label');
+    const listEl = document.getElementById('website-update-list');
+    if (dateEl) dateEl.textContent = dateLabel || '';
+    if (listEl) {
+        listEl.innerHTML = '';
+        (items || []).forEach(text => {
+            const li = document.createElement('li');
+            li.textContent = String(text);
+            listEl.appendChild(li);
+        });
+        if (!items || items.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = 'Open Changelog in the menu for full details.';
+            listEl.appendChild(li);
+        }
+    }
+
+    popup.classList.remove('hidden');
+    void popup.offsetWidth;
+}
+
+function hideWebsiteUpdatePopup() {
+    const popup = document.getElementById('website-update-popup');
+    if (!popup) return;
+    popup.classList.add('hidden');
+}
+
+document.getElementById('website-update-dismiss')?.addEventListener('click', hideWebsiteUpdatePopup);
+document.getElementById('website-update-popup')?.addEventListener('click', (e) => {
+    if (e.target.id === 'website-update-popup') hideWebsiteUpdatePopup();
+});
 
 function setWhatsNewCollapsed(collapsed) {
     const root = document.getElementById('whats-new');
@@ -1121,56 +1206,103 @@ function setWhatsNewCollapsed(collapsed) {
     localStorage.setItem(WHATS_NEW_COLLAPSED_KEY, collapsed ? 'true' : 'false');
 }
 
-function initWhatsNew() {
+function fillWhatsNewFromLatest(latest) {
     const root = document.getElementById('whats-new');
     const listEl = document.getElementById('whats-new-list');
     const dateLabel = document.getElementById('whats-new-date-label');
-    const toggle = document.getElementById('whats-new-toggle');
-    if (!root || !listEl || typeof whatsNew === 'undefined' || !whatsNew) {
-        if (root) root.classList.add('hidden');
+    if (!root || !listEl) return;
+
+    if (!latest) {
+        root.classList.add('hidden');
+        return;
+    }
+    root.classList.remove('hidden');
+    if (dateLabel) dateLabel.textContent = latest.date;
+    listEl.innerHTML = '';
+    latest.items.forEach(text => {
+        const li = document.createElement('li');
+        li.textContent = text;
+        listEl.appendChild(li);
+    });
+}
+
+function renderChangelogSections(container, sections) {
+    if (!container) return;
+    container.innerHTML = '';
+    if (!sections || sections.length === 0) {
+        container.innerHTML = '<p class="changelog-empty">No changelog entries yet.</p>';
         return;
     }
 
-    const currentDate = String(whatsNew.date || '').trim();
-    const items = Array.isArray(whatsNew.items) ? whatsNew.items : [];
-
-    if (dateLabel) dateLabel.textContent = currentDate;
-
-    listEl.innerHTML = '';
-    items.forEach(text => {
-        const li = document.createElement('li');
-        li.textContent = String(text);
-        listEl.appendChild(li);
+    // File order is chronological; reverse so newest is first in the viewer
+    const ordered = sections.slice().reverse();
+    ordered.forEach((sec, idx) => {
+        const block = document.createElement('section');
+        block.className = 'changelog-section' + (idx === 0 ? ' changelog-latest' : '');
+        const h = document.createElement('h4');
+        h.className = 'changelog-date';
+        h.textContent = sec.date + (idx === 0 ? ' · Latest' : '');
+        block.appendChild(h);
+        const ul = document.createElement('ul');
+        ul.className = 'changelog-items';
+        sec.items.forEach(item => {
+            const li = document.createElement('li');
+            li.textContent = item;
+            ul.appendChild(li);
+        });
+        block.appendChild(ul);
+        container.appendChild(block);
     });
+}
 
-    // Detect update: only the date is stored / compared
-    const storedDate = localStorage.getItem(WHATS_NEW_DATE_KEY);
-    const isNewUpdate = currentDate && storedDate !== currentDate;
+function initChangelogAndWhatsNew() {
+    const root = document.getElementById('whats-new');
+    const toggle = document.getElementById('whats-new-toggle');
 
-    if (isNewUpdate) {
-        // Force open on new update, then remember date
-        setWhatsNewCollapsed(false);
-        localStorage.setItem(WHATS_NEW_DATE_KEY, currentDate);
-        if (typeof showAchievementToast === 'function') {
-            showAchievementToast('Website updated!');
-        } else {
-            const toast = document.getElementById('achievement-toast');
-            if (toast) {
-                const textEl = document.getElementById('toast-text');
-                if (textEl) textEl.textContent = 'Website updated!';
-                toast.classList.remove('hidden');
-                setTimeout(() => toast.classList.add('show'), 10);
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => toast.classList.add('hidden'), 400);
-                }, 4000);
+    fetch('changelog.txt')
+        .then(r => {
+            if (!r.ok) throw new Error('Could not load changelog.txt');
+            return r.text();
+        })
+        .then(raw => {
+            const normalized = String(raw).replace(/\r\n/g, '\n').trim();
+            const sections = parseChangelogText(normalized);
+            // Most recent = last [DATE] block in the file
+            const latest = sections.length ? sections[sections.length - 1] : null;
+
+            fillWhatsNewFromLatest(latest);
+
+            const stored = localStorage.getItem(CHANGELOG_SNAPSHOT_KEY);
+            const isNewUpdate = normalized && stored !== normalized;
+
+            if (isNewUpdate) {
+                setWhatsNewCollapsed(false);
+                localStorage.setItem(CHANGELOG_SNAPSHOT_KEY, normalized);
+                if (latest) {
+                    showWebsiteUpdatePopup(latest.date, latest.items);
+                } else {
+                    showWebsiteUpdatePopup('Update', ['changelog.txt was updated.']);
+                }
+            } else {
+                const wasCollapsed = localStorage.getItem(WHATS_NEW_COLLAPSED_KEY) === 'true';
+                setWhatsNewCollapsed(wasCollapsed);
             }
-        }
-    } else {
-        // Restore remembered collapse state (default open if never set)
-        const wasCollapsed = localStorage.getItem(WHATS_NEW_COLLAPSED_KEY) === 'true';
-        setWhatsNewCollapsed(wasCollapsed);
-    }
+
+            // Cache parsed sections for the modal
+            window.__orgeytChangelogSections = sections;
+            window.__orgeytChangelogRaw = normalized;
+        })
+        .catch(err => {
+            console.warn('Changelog load failed:', err);
+            if (root) {
+                const listEl = document.getElementById('whats-new-list');
+                const dateLabel = document.getElementById('whats-new-date-label');
+                if (dateLabel) dateLabel.textContent = '';
+                if (listEl) {
+                    listEl.innerHTML = '<li style="color:var(--text-accent)">Could not load changelog.txt</li>';
+                }
+            }
+        });
 
     if (toggle) {
         toggle.addEventListener('click', () => {
@@ -1182,9 +1314,9 @@ function initWhatsNew() {
 
 // Run after DOM is ready
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initWhatsNew);
+    document.addEventListener('DOMContentLoaded', initChangelogAndWhatsNew);
 } else {
-    initWhatsNew();
+    initChangelogAndWhatsNew();
 }
 
 // ===========================================
@@ -1228,6 +1360,7 @@ document.getElementById('welcome-modal')?.addEventListener('click', (e) => {
 // Always open the menu on load; show welcome only for new visitors
 function initMenuAndWelcomeOnLoad() {
     // Instant open: body already has sidebar-open; still run openSidebar for pause overlay + music
+    // Boot open does NOT clear resume-pending (sidebarUserGesture is still false)
     if (typeof openSidebar === 'function') {
         openSidebar();
     } else {
@@ -1240,6 +1373,64 @@ function initMenuAndWelcomeOnLoad() {
     if (shouldShowWelcomeOnLoad()) {
         setTimeout(openWelcomeModal, 150);
     }
+
+    // After first paint / welcome delay, allow resume prompt and enable menu clear behavior
+    setTimeout(() => {
+        maybeOfferResume();
+        sidebarUserGesture = true;
+    }, shouldShowWelcomeOnLoad() ? 400 : 200);
+}
+
+function maybeOfferResume() {
+    const pending = localStorage.getItem(RESUME_PENDING_KEY) === 'true';
+    const lastName = localStorage.getItem(LAST_PROJECT_KEY);
+    if (!pending || !lastName) return;
+
+    // Don't interrupt if a shared ?project= link was used
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('project')) {
+            clearResumePending();
+            return;
+        }
+    } catch (_) {}
+
+    const found = (typeof projects !== 'undefined' ? projects : []).find(
+        p => (typeof getProjectName === 'function' ? getProjectName(p) : p.name).toLowerCase() === lastName.toLowerCase()
+    );
+    if (!found) {
+        clearResumePending();
+        return;
+    }
+
+    const modal = document.getElementById('resume-modal');
+    const nameEl = document.getElementById('resume-project-name');
+    if (nameEl) nameEl.textContent = typeof getProjectName === 'function' ? getProjectName(found) : lastName;
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const yesBtn = document.getElementById('resume-yes-btn');
+    const noBtn = document.getElementById('resume-no-btn');
+
+    const cleanup = () => {
+        modal.classList.add('hidden');
+        if (yesBtn) yesBtn.onclick = null;
+        if (noBtn) noBtn.onclick = null;
+    };
+
+    if (yesBtn) {
+        yesBtn.onclick = () => {
+            cleanup();
+            if (typeof loadProject === 'function') loadProject(found);
+            if (typeof closeSidebar === 'function') closeSidebar();
+        };
+    }
+    if (noBtn) {
+        noBtn.onclick = () => {
+            clearResumePending();
+            cleanup();
+        };
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -1247,3 +1438,47 @@ if (document.readyState === 'loading') {
 } else {
     initMenuAndWelcomeOnLoad();
 }
+
+// ===========================================
+// --- Changelog viewer ---
+// ===========================================
+
+function openChangelogModal() {
+    const modal = document.getElementById('changelog-modal');
+    const body = document.getElementById('changelog-body');
+    if (!modal || !body) return;
+    body.innerHTML = '<p class="changelog-empty">Loading changelog…</p>';
+    modal.classList.remove('hidden');
+
+    const apply = (sections) => {
+        renderChangelogSections(body, sections);
+    };
+
+    if (window.__orgeytChangelogSections) {
+        apply(window.__orgeytChangelogSections);
+        return;
+    }
+
+    fetch('changelog.txt')
+        .then(r => {
+            if (!r.ok) throw new Error('Could not load changelog.txt');
+            return r.text();
+        })
+        .then(text => {
+            const sections = parseChangelogText(text);
+            window.__orgeytChangelogSections = sections;
+            apply(sections);
+        })
+        .catch(err => {
+            body.innerHTML = '<p class="changelog-empty">Failed to load changelog: ' +
+                (err && err.message ? err.message : 'unknown error') + '</p>';
+        });
+}
+
+document.getElementById('changelog-btn')?.addEventListener('click', openChangelogModal);
+document.getElementById('close-changelog-btn')?.addEventListener('click', () => {
+    document.getElementById('changelog-modal')?.classList.add('hidden');
+});
+document.getElementById('changelog-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'changelog-modal') e.target.classList.add('hidden');
+});

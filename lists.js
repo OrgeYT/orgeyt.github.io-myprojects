@@ -10,19 +10,13 @@
 // Games: 🎮  Tools: 🛠️  Math: 🧮  Music: 🎵  Simulation: ⚙️.
 
 // ==========================================
-// --- What's New ---
-// Edit the date and items below when you publish an update.
-// Changing the date triggers the "Website updated!" notification.
-// Changing only the items (without changing the date) does NOT notify.
+// --- What's New / Changelog ---
+// Site updates live in changelog.txt (not here).
+// Edit changelog.txt to publish an update — the site
+// compares the file to a localStorage snapshot and
+// shows the update popup when it changes.
+// The sidebar "What's New" panel shows the latest [DATE] block.
 // ==========================================
-
-const whatsNew = {
-    date: "Wednesday, September 9",
-    items: [
-        "One new project ;[",
-        "And at 9:47 PM at night, another one"
-    ]
-};
 
 // ==========================================
 // --- Projects ---

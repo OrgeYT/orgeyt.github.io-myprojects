@@ -1830,3 +1830,239 @@ body.sidebar-closed #open-full-btn {
     height: 16px;
     cursor: pointer;
 }
+
+/* ==========================================
+   Recently Played
+   ========================================== */
+.recently-played-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 50vh;
+    flex: 1;
+    padding-right: 4px;
+}
+
+.recently-played-item {
+    width: 100%;
+    text-align: left;
+}
+
+.recently-played-empty {
+    font-size: 0.85rem;
+    color: var(--text-accent);
+    text-align: center;
+    padding: 20px 10px;
+    font-style: italic;
+}
+
+/* ==========================================
+   Project Statistics
+   ========================================== */
+.stats-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.stats-item {
+    background: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.stats-label {
+    font-size: 0.75rem;
+    color: var(--text-accent);
+}
+
+.stats-value {
+    font-size: 1.15rem;
+    font-weight: bold;
+    color: var(--text-main);
+}
+
+.stats-highlights {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stats-highlight {
+    background: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    color: var(--text-accent);
+    line-height: 1.4;
+}
+
+.stats-highlight strong {
+    color: var(--text-main);
+    font-size: 0.8rem;
+}
+
+@media (max-width: 400px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================
+   Website Updated popup (centered, below welcome)
+   ========================================== */
+.website-update-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 95; /* below .modal (100) so welcome sits on top */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    background: rgba(0, 0, 0, 0.55);
+    pointer-events: auto;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.website-update-popup:not(.hidden) {
+    opacity: 1;
+}
+
+.website-update-popup.hidden {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.website-update-card {
+    background: var(--bg-sidebar);
+    border: 2px solid var(--accent-solid);
+    border-radius: 12px;
+    padding: 22px 24px 18px;
+    width: min(400px, 94vw);
+    box-shadow: 0 0 0 1px var(--border-main), 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 24px var(--accent-transparent);
+    color: var(--text-main);
+    text-align: center;
+    animation: website-update-pop 0.35s ease;
+}
+
+@keyframes website-update-pop {
+    0% { transform: scale(0.88) translateY(12px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.website-update-badge {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #fff;
+    background: var(--accent-solid);
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+}
+
+.website-update-title {
+    margin: 0 0 6px;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-main);
+    border: none;
+    padding: 0;
+}
+
+.website-update-date {
+    font-size: 0.85rem;
+    color: var(--text-accent);
+    margin-bottom: 12px;
+}
+
+.website-update-list {
+    text-align: left;
+    margin: 0 0 16px;
+    padding-left: 1.2em;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+.website-update-list li {
+    margin-bottom: 6px;
+}
+
+.website-update-dismiss {
+    width: 100%;
+    padding: 10px 14px;
+    font-weight: bold;
+}
+
+/* ==========================================
+   Changelog viewer (formatted from changelog.txt)
+   ========================================== */
+.changelog-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 55vh;
+    padding-right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.changelog-section {
+    background: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 8px;
+    padding: 12px 14px;
+}
+
+.changelog-section.changelog-latest {
+    border-color: var(--accent-solid);
+    box-shadow: 0 0 0 1px var(--accent-transparent), 0 0 16px var(--accent-transparent);
+}
+
+.changelog-date {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+    color: var(--accent-solid);
+    border-bottom: 1px solid var(--border-main);
+    padding-bottom: 6px;
+}
+
+.changelog-latest .changelog-date {
+    font-weight: 800;
+}
+
+.changelog-items {
+    margin: 0;
+    padding-left: 1.15em;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    line-height: 1.45;
+}
+
+.changelog-items li {
+    margin-bottom: 4px;
+}
+
+.changelog-empty {
+    font-size: 0.85rem;
+    color: var(--text-accent);
+    text-align: center;
+    padding: 20px 10px;
+    font-style: italic;
+}

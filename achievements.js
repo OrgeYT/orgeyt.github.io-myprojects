@@ -108,6 +108,41 @@ function clearVisitedProjects() {
     }
 }
 
+// ==========================================
+// --- Recently Played System ---
+// ==========================================
+
+const RECENTLY_PLAYED_KEY = 'orgeyt-recently-played';
+const RECENTLY_PLAYED_LIMIT = 10;
+
+let recentlyPlayed = JSON.parse(localStorage.getItem(RECENTLY_PLAYED_KEY)) || [];
+
+function getRecentlyPlayed() {
+    return recentlyPlayed.slice();
+}
+
+function recordRecentlyPlayed(projectName) {
+    if (!projectName) return;
+    const key = String(projectName);
+    // Remove existing entry (case-insensitive)
+    recentlyPlayed = recentlyPlayed.filter(n => n.toLowerCase() !== key.toLowerCase());
+    // Add to front (most recent first)
+    recentlyPlayed.unshift(key);
+    // Cap length
+    if (recentlyPlayed.length > RECENTLY_PLAYED_LIMIT) {
+        recentlyPlayed = recentlyPlayed.slice(0, RECENTLY_PLAYED_LIMIT);
+    }
+    localStorage.setItem(RECENTLY_PLAYED_KEY, JSON.stringify(recentlyPlayed));
+}
+
+function clearRecentlyPlayed() {
+    if (confirm('Clear your Recently Played list? This cannot be undone.')) {
+        recentlyPlayed = [];
+        localStorage.removeItem(RECENTLY_PLAYED_KEY);
+        if (typeof renderRecentlyPlayedList === 'function') renderRecentlyPlayedList();
+    }
+}
+
 // Keep "Visited X minutes/hours ago" text updated live
 setInterval(() => {
     const list = document.getElementById('file-list');

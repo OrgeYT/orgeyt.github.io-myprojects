@@ -1,0 +1,24 @@
+[September 7]
+Added Newest Projects tab
+Added localStorage export/import
+Added What's New
+
+[Tuesday, September 8]
+Integrated Welcome menu into the site (no longer a project)
+Welcome shows for new visitors; optional Don't show again
+Added Welcome button in the sidebar
+Added Project of the Month
+Fixed Grok theme for readable buttons and contrast
+At 10:00 PM: New Sonic game
+
+[Wednesday, September 9]
+One new project ;[
+And at 9:47 PM at night, another one
+
+[Saturday, September 12]
+Recently Played — tracks your last 10 opened projects
+Project Statistics — live counts for tags, visits, favorites & more
+Random button expanded — pick Random Project, Game, or Tool
+Continue where you left off (resume after crash)
+Changelog driven by changelog.txt (update popup + sidebar What's New)
+Formatted changelog viewer (newest first, latest highlighted)
