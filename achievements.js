@@ -108,6 +108,17 @@ function clearVisitedProjects() {
     }
 }
 
+/** Remove one project's visit data so the site treats it as never visited. */
+function forgetProjectVisit(projectName) {
+    if (!projectName) return false;
+    const key = String(projectName).toLowerCase();
+    if (!visitedProjects[key]) return false;
+    delete visitedProjects[key];
+    localStorage.setItem('orgeyt-visited-projects', JSON.stringify(visitedProjects));
+    if (typeof renderProjectList === 'function') renderProjectList();
+    return true;
+}
+
 // ==========================================
 // --- Recently Played System ---
 // ==========================================

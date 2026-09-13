@@ -50,6 +50,36 @@ function getTagEmojisFor(p) {
     return tags.map(t => map[t] || '').filter(Boolean).join('');
 }
 
+/** 1-based index in the master projects array (stable across tabs/filters/search). */
+function getProjectListNumber(project) {
+    if (typeof projects === 'undefined' || !projects || !projects.length) return 0;
+    const name = getProjectName(project).toLowerCase();
+    const idx = projects.findIndex(p => getProjectName(p).toLowerCase() === name);
+    return idx >= 0 ? idx + 1 : 0;
+}
+
+/**
+ * Resolve the same runner URL/path loadProject would put in the iframe
+ * (e.g. projects/html_fnftools.html, external http(s), TurboWarp embed).
+ */
+function resolveProjectRunnerPath(project) {
+    let filePath = getProjectPath(project);
+
+    if (!filePath.startsWith('http') &&
+        !filePath.startsWith('data:') &&
+        !filePath.startsWith('scratch-') &&
+        !filePath.startsWith('projects/')) {
+        filePath = `projects/${filePath}`;
+    }
+
+    if (filePath.startsWith('scratch-')) {
+        const scratchId = filePath.replace('scratch-', '');
+        filePath = `https://turbowarp.org/${scratchId}/embed?interpolate&hqpen&settings-button&addons=pause%2Cmute-project%2Cclones%2Cgamepad%2Cremove-curved-stage-border%2Cdrag-drop`;
+    }
+
+    return filePath;
+}
+
 // Map tab data-tab values to the canonical tag names stored on projects
 const TAG_TAB_MAP = {
     games: 'Games',
@@ -198,13 +228,28 @@ function openProjectCard(project) {
     const desc = getProjectDescription(project);
     const tags = getProjectTags(project);
     const emojis = getTagEmojisFor(project);
+    const listNum = getProjectListNumber(project);
+    const visitCount = getProjectVisitCount(name);
 
     const titleEl = document.getElementById('project-card-title');
+    const numEl = document.getElementById('project-card-number');
     const descEl = document.getElementById('project-card-desc');
     const tagsEl = document.getElementById('project-card-tags');
     const launchBtn = document.getElementById('project-card-launch-btn');
+    const newTabBtn = document.getElementById('project-card-newtab-btn');
+    const forgetBtn = document.getElementById('project-card-forget-btn');
 
     if (titleEl) titleEl.textContent = (emojis ? emojis + ' ' : '') + name;
+    if (numEl) {
+        if (listNum > 0) {
+            numEl.textContent = '#' + listNum;
+            numEl.classList.remove('hidden');
+            numEl.setAttribute('title', 'Project #' + listNum + ' in the list');
+        } else {
+            numEl.textContent = '';
+            numEl.classList.add('hidden');
+        }
+    }
     if (descEl) descEl.textContent = desc;
 
     if (tagsEl) {
@@ -225,6 +270,38 @@ function openProjectCard(project) {
             loadProject(project);
             if (typeof closeSidebar === 'function') closeSidebar();
         };
+    }
+
+    if (newTabBtn) {
+        newTabBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const url = resolveProjectRunnerPath(project);
+            window.open(url, '_blank');
+        };
+    }
+
+    if (forgetBtn) {
+        if (visitCount > 0) {
+            forgetBtn.classList.remove('hidden');
+            forgetBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof forgetProjectVisit === 'function') {
+                    forgetProjectVisit(name);
+                }
+                forgetBtn.classList.add('hidden');
+                forgetBtn.onclick = null;
+                // Refresh stats modal content if it is open
+                const statsModal = document.getElementById('stats-modal');
+                if (statsModal && !statsModal.classList.contains('hidden') && typeof renderStatsModal === 'function') {
+                    renderStatsModal();
+                }
+            };
+        } else {
+            forgetBtn.classList.add('hidden');
+            forgetBtn.onclick = null;
+        }
     }
 
     modal.classList.remove('hidden');

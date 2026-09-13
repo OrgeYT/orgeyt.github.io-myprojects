@@ -514,13 +514,18 @@
     <div id="project-card-modal" class="modal hidden">
         <div class="modal-content project-card-content">
             <span id="close-project-card-btn" class="close-btn">&times;</span>
-            <h3 id="project-card-title">Project</h3>
+            <div class="project-card-title-row">
+                <h3 id="project-card-title">Project</h3>
+                <span id="project-card-number" class="project-card-number" title="Project number in list"></span>
+            </div>
             <div id="project-card-tags" class="project-card-tags"></div>
             <p id="project-card-desc" class="project-card-desc"></p>
             <div class="project-card-actions">
                 <button id="project-card-launch-btn" class="modal-btn" style="flex:1; font-weight:bold; padding:10px;">▶ Launch Project</button>
+                <button id="project-card-newtab-btn" class="modal-btn" style="flex:0 0 auto;" title="Open project in a new tab">↗ New Tab</button>
                 <button id="project-card-cancel-btn" class="modal-btn" style="flex:0 0 auto;">Cancel</button>
             </div>
+            <button id="project-card-forget-btn" class="modal-btn project-card-forget-btn hidden" type="button">Forget that I visited this</button>
         </div>
     </div>
 

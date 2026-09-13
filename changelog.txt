@@ -22,3 +22,8 @@ Random button expanded — pick Random Project, Game, or Tool
 Continue where you left off (resume after crash)
 Changelog driven by changelog.txt (update popup + sidebar What's New)
 Formatted changelog viewer (newest first, latest highlighted)
+
+[Sunday, September 13]
+Added project card numbers (stable list position)
+Added Open in New Tab to project cards
+Added "Forget that I visited this" to project cards
