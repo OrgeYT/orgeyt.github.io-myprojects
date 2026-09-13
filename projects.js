@@ -272,11 +272,14 @@ function loadProject(project) {
         };
     }
 
-    if (!isInitialLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
+    // Capture before flipping the flag — boot auto-load must not overwrite resume data
+    const wasBootLoad = isInitialLoad;
+
+    if (!wasBootLoad && currentProjectParam.toLowerCase() !== projectParam.toLowerCase()) {
         unlockAchievement('explorer');
     }
 
-    if (!isInitialLoad && searchBar && searchBar.value.trim() !== "") {
+    if (!wasBootLoad && searchBar && searchBar.value.trim() !== "") {
         unlockAchievement('searcher');
     }
 
@@ -286,10 +289,13 @@ function loadProject(project) {
     if (typeof recordRecentlyPlayed === 'function') {
         recordRecentlyPlayed(projectParam);
     }
-    // Keep last-project name fresh (resume uses this + resume-pending flag)
-    try {
-        localStorage.setItem('orgeyt-last-project', projectParam);
-    } catch (_) {}
+    // Only remember last project for resume when the user actually chose/opened one.
+    // The automatic first load (defaults to fnftools) must NOT overwrite a saved crash resume.
+    if (!wasBootLoad) {
+        try {
+            localStorage.setItem('orgeyt-last-project', projectParam);
+        } catch (_) {}
+    }
 
     const clickedButton = fileList?.querySelector(
         `[data-project-name="${CSS.escape(projectParam.toLowerCase())}"]`
