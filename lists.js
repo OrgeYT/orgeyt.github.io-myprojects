@@ -1184,6 +1184,12 @@ const projects = [
         description: "Ending game where you unlock endings!",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "textemojimaker",
+        description: "Make awesome text emojis! ᗣ⩊ᗣ",
+        tags: ["Tools"],
+        archive: false
     }
 ];
 
