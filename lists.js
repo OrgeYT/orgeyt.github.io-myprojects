@@ -1193,7 +1193,7 @@ const projects = [
     },
     {
         name: "scratch corruptor 2.0",
-        path: "scratch corruptor/index.html",
+        path: "sb3 corruptor/index.html",
         description: "Corrupt scratch projects, with more options! ´∀`",
         tags: ["Tools"],
         archive: false
