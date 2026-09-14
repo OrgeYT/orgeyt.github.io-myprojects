@@ -28,3 +28,6 @@ Added project card numbers (stable list position)
 Added Open in New Tab to project cards
 Added "Forget that I visited this" to project cards
 Added A new project
+
+[Monday, September 14]
+Added San Turbino theme (flag-inspired: deep teal menu backgrounds, terracotta buttons, gold accents, black text with white outline)
