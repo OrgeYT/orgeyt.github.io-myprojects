@@ -1190,7 +1190,14 @@ const projects = [
         description: "Make awesome text emojis! ᗣ⩊ᗣ",
         tags: ["Tools"],
         archive: false
-    }
+    },
+    {
+        name: "scratch corruptor 2.0",
+        path: "scratch-corruptor/index.html",
+        description: "Corrupt scratch projects, with more options! ´∀`",
+        tags: ["Tools"],
+        archive: false
+    } // HELP MY SCRATCH CAT EXPLODED AHYGY&%TDG&*YETFYIHDHY
 ];
 
 
