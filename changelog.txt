@@ -31,3 +31,6 @@ Added A new project
 
 [Monday, September 14]
 Added San Turbino theme (flag-inspired: deep teal menu backgrounds, terracotta buttons, gold accents, black text with white outline)
+
+[Wednesday, September 16]
+Added new Soundboard project.
