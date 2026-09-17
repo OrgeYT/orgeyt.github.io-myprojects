@@ -58,6 +58,26 @@ function getProjectListNumber(project) {
     return idx >= 0 ? idx + 1 : 0;
 }
 
+
+/** True if this project is in the featured list (by 1-based number in lists.js). */
+function isProjectFeatured(project) {
+    if (typeof featuredProjectNumbers === 'undefined' || !Array.isArray(featuredProjectNumbers)) return false;
+    const num = getProjectListNumber(project);
+    return num > 0 && featuredProjectNumbers.includes(num);
+}
+
+/** Featured projects in the order listed in featuredProjectNumbers. */
+function getFeaturedProjects() {
+    if (typeof featuredProjectNumbers === 'undefined' || !Array.isArray(featuredProjectNumbers)) return [];
+    if (typeof projects === 'undefined' || !projects) return [];
+    const out = [];
+    featuredProjectNumbers.forEach(n => {
+        const idx = Number(n) - 1;
+        if (idx >= 0 && idx < projects.length) out.push(projects[idx]);
+    });
+    return out;
+}
+
 /**
  * Resolve the same runner URL/path loadProject would put in the iframe
  * (e.g. projects/html_fnftools.html, external http(s), TurboWarp embed).
@@ -150,7 +170,10 @@ function renderProjectList() {
 
     let sortedProjects;
 
-    if (currentProjectTab === 'newest') {
+    if (currentProjectTab === 'featured') {
+        // Order follows featuredProjectNumbers in lists.js (skip archived)
+        sortedProjects = getFeaturedProjects().filter(p => !isProjectArchived(p));
+    } else if (currentProjectTab === 'newest') {
         // Last 5 non-archived projects in list order (most recently added at end of lists.js)
         sortedProjects = candidateProjects.slice(-5).reverse();
     } else if (currentProjectTab === 'visited') {
@@ -175,6 +198,7 @@ function renderProjectList() {
         if (currentProjectTab === 'unfavorited' && isFav && !isWelcome(project)) return;
         if (currentProjectTab === 'scratch' && !isScratch(project)) return;
         if (currentProjectTab === 'visited' && !isVisited(project)) return;
+        if (currentProjectTab === 'featured' && !isProjectFeatured(project)) return;
         if (TAG_TAB_MAP[currentProjectTab] && !projectHasTag(project, TAG_TAB_MAP[currentProjectTab])) return;
 
         const button = document.createElement('button');

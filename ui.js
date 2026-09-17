@@ -941,6 +941,79 @@ attachSidebarSounds();
 // Re-attach after short delay for any late buttons
 setTimeout(attachSidebarSounds, 500);
 
+
+// ===========================================
+// --- Sidebar controls groups (collapsible) ---
+// ===========================================
+
+const CONTROLS_COLLAPSED_KEY = 'orgeyt-controls-collapsed';
+
+function getControlsCollapsedState() {
+    try {
+        const raw = localStorage.getItem(CONTROLS_COLLAPSED_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return (parsed && typeof parsed === 'object') ? parsed : {};
+    } catch (_) {
+        return {};
+    }
+}
+
+function setControlsCollapsedState(state) {
+    try {
+        localStorage.setItem(CONTROLS_COLLAPSED_KEY, JSON.stringify(state || {}));
+    } catch (_) {}
+}
+
+function applyControlsGroupCollapsed(groupEl, collapsed) {
+    if (!groupEl) return;
+    const toggle = groupEl.querySelector('.controls-group-toggle');
+    if (collapsed) {
+        groupEl.classList.add('collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+    } else {
+        groupEl.classList.remove('collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    }
+}
+
+function initControlsGroups() {
+    const root = document.getElementById('sidebar-controls');
+    if (!root) return;
+
+    const state = getControlsCollapsedState();
+    const groups = root.querySelectorAll('.controls-group[data-controls-group]');
+
+    groups.forEach(groupEl => {
+        const id = groupEl.getAttribute('data-controls-group');
+        if (!id) return;
+        // Default: Discover open, others open too unless saved as collapsed
+        const collapsed = !!state[id];
+        applyControlsGroupCollapsed(groupEl, collapsed);
+
+        const toggle = groupEl.querySelector('.controls-group-toggle');
+        if (!toggle || toggle.dataset.bound === '1') return;
+        toggle.dataset.bound = '1';
+        toggle.addEventListener('click', () => {
+            const nowCollapsed = !groupEl.classList.contains('collapsed');
+            applyControlsGroupCollapsed(groupEl, nowCollapsed);
+            const next = getControlsCollapsedState();
+            if (nowCollapsed) next[id] = true;
+            else delete next[id];
+            setControlsCollapsedState(next);
+        });
+    });
+
+    if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initControlsGroups);
+} else {
+    initControlsGroups();
+}
+
+
 // ===========================================
 // --- localStorage Export / Import ---
 // ===========================================
@@ -959,7 +1032,8 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-welcome-dont-show',
     'orgeyt-recently-played',
     'orgeyt-last-project',
-    'orgeyt-resume-pending'
+    'orgeyt-resume-pending',
+    'orgeyt-controls-collapsed'
 ];
 
 function exportOrgeytData() {

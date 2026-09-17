@@ -676,26 +676,86 @@ body.sidebar-open .sidebar {
 /* Controls: multi-line wrap */
 .sidebar-controls {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
-    margin-bottom: 14px;
-    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.controls-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.controls-group-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-main);
+    color: var(--text-accent);
+    padding: 4px 2px 3px;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.controls-group-toggle:hover {
+    color: var(--text-main);
+    background-color: var(--accent-transparent);
+}
+
+.controls-group-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.95;
+}
+
+.controls-group-chevron {
+    font-size: 0.6rem;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.controls-group.collapsed .controls-group-chevron {
+    transform: rotate(-90deg);
+}
+
+.controls-group.collapsed .controls-group-btns {
+    display: none;
+}
+
+.controls-group-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: flex-start;
 }
 
 .toggle-btn {
     background-color: var(--btn-primary);
     color: var(--text-main);
     border: 1px solid var(--border-main);
-    padding: 8px 12px;
-    border-radius: 6px;
+    padding: 5px 9px;
+    border-radius: 5px;
     cursor: pointer;
     text-align: center;
     transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.3s, opacity 0.2s;
-    font-size: 0.82rem;
+    font-size: 0.75rem;
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    justify-content: center;
+    gap: 4px;
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .toggle-btn:hover:not(:disabled) {

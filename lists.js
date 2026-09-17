@@ -19,6 +19,20 @@
 // ==========================================
 
 // ==========================================
+// --- Featured Projects ---
+// 1-based project numbers from the projects array below.
+// Put a number here to feature that project on the Featured tab.
+// Example: [1, 143] features project //1 (fnftools) and //143 (CursorHub).
+// ==========================================
+const featuredProjectNumbers = [
+    163,
+    144,
+    162,
+    159,
+    105,
+];
+
+// ==========================================
 // --- Projects ---
 // the projects, down there, right?
 // ==========================================
