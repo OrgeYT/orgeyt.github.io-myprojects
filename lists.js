@@ -1197,7 +1197,14 @@ const projects = [
         description: "Corrupt scratch projects, with more options! ´∀`",
         tags: ["Tools"],
         archive: false
-    } // HELP MY SCRATCH CAT EXPLODED AHYGY&%TDG&*YETFYIHDHY
+    }, // HELP MY SCRATCH CAT EXPLODED AHYGY&%TDG&*YETFYIHDHY
+    {
+        name: "OrgeYT Sound board",
+        path: "soundboard/index.html",
+        description: "A list of random meme sounds",
+        tags: ["Tools"],
+        archive: false
+    } // FU*K FU*K HELP ME MY COMPUTER SCREAMED AT THE TEACHER AAAAH (joke)
 ];
 
 
