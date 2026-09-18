@@ -1218,7 +1218,14 @@ const projects = [
         description: "A list of random meme sounds",
         tags: ["Tools"],
         archive: false
-    } // FU*K FU*K HELP ME MY COMPUTER SCREAMED AT THE TEACHER AAAAH (joke)
+    }, // FU*K FU*K HELP ME MY COMPUTER SCREAMED AT THE TEACHER AAAAH (joke)
+    {
+        name: "Mean Bean web recreation",
+        path: "mean bean/index.html",
+        description: "Simply a recreation of Bean Mean- i meant Mean Bean ;-;",
+        tags: ["Tools"],
+        archive: false
+    } // AAAAHH I JUST HEARD THAT LOUD SOUND WHAT THE F*CK WHOO DID IT THO
 ];
 
 
