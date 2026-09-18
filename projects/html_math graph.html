@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Time Chart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --surface-0: #0b0b0b;
+            --surface-1: #1a1a19;
+            --surface-2: #2c2c2a;
+            --text-primary: #f0efec;
+            --text-secondary: #c3c2b7;
+            --text-muted: #898781;
+            --border: rgba(255, 255, 255, 0.1);
+            --border-strong: rgba(255, 255, 255, 0.2);
+            --fill-accent: #3987e5;
+            --on-accent: #ffffff;
+            --radius: 8px;
+        }
+        body {
+            background: var(--surface-0);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            overflow: hidden;
+        }
+        #app {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .header {
+            padding: 1rem;
+            border-bottom: 0.5px solid var(--border);
+            background: var(--surface-1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h1 {
+            font-size: 20px;
+            font-weight: 500;
+            flex: 1;
+            margin: 0;
+        }
+        button {
+            background: transparent;
+            border: 0.5px solid var(--border-strong);
+            color: var(--text-primary);
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        button:hover {
+            background: var(--surface-2);
+            border-color: var(--text-secondary);
+        }
+        #generateBtn {
+            width: 100%;
+            padding: 8px 12px;
+            background: var(--fill-accent);
+            color: var(--on-accent);
+            border: none;
+            border-radius: var(--radius);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        #generateBtn:hover {
+            background: #2975d4;
+        }
+        #generateBtn:active {
+            transform: scale(0.98);
+        }
+        .math-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .math-buttons button {
+            width: auto;
+            min-width: 36px;
+            height: 32px;
+            padding: 0 10px;
+            font-size: 15px;
+            font-weight: 500;
+            background: var(--surface-2);
+        }
+        .math-buttons button:hover {
+            background: var(--fill-accent);
+            border-color: var(--fill-accent);
+            color: var(--on-accent);
+        }
+        .math-buttons button:active {
+            transform: scale(0.95);
+        }
+        .input-section {
+            padding: 1rem;
+            border-bottom: 0.5px solid var(--border);
+            background: var(--surface-1);
+        }
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .input-grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+        input,
+        select {
+            padding: 8px 12px;
+            border: 0.5px solid var(--border-strong);
+            border-radius: var(--radius);
+            background: var(--surface-2);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--fill-accent);
+            box-shadow: 0 0 0 2px rgba(57, 135, 229, 0.1);
+        }
+        input::placeholder {
+            color: var(--text-muted);
+        }
+        .helper-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .virtual-scroller {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 2rem 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        .table-wrapper {
+            width: 100%;
+            max-width: 400px;
+        }
+        .virtual-list {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            position: relative;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-1);
+            flex-shrink: 0;
+            height: 50px;
+        }
+        .row.header {
+            background: var(--surface-2);
+            border: 2px solid var(--border-strong);
+            border-radius: var(--radius) var(--radius) 0 0;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            height: 50px;
+        }
+        .row.header .cell {
+            border-right: 2px solid var(--border-strong);
+        }
+        .row.header .cell:last-child {
+            border-right: none;
+        }
+        .row.data {
+            border-bottom: 1px solid var(--border);
+        }
+        .row.data:hover {
+            background: var(--surface-2);
+        }
+        .cell {
+            padding: 0 1rem;
+            text-align: center;
+            font-size: 16px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .cell:last-child {
+            border-right: none;
+        }
+        .no-data {
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+            grid-column: 1 / -1;
+            height: auto;
+            min-height: 50px;
+        }
+        .spacer {
+            flex-shrink: 0;
+            width: 100%;
+            pointer-events: none;
+        }
+        .hidden {
+            display: none;
+        }
+        .virtual-scroller::-webkit-scrollbar {
+            width: 8px;
+        }
+        .virtual-scroller::-webkit-scrollbar-track {
+            background: var(--surface-1);
+        }
+        .virtual-scroller::-webkit-scrollbar-thumb {
+            background: var(--surface-2);
+            border-radius: 4px;
+        }
+        .virtual-scroller::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="header">
+            <h1>Math Time Chart</h1>
+        </div>
+        <div class="input-section">
+            <div class="input-grid">
+                <div class="form-group">
+                    <label for="equation">Equation</label>
+                    <input type="text" id="equation" placeholder="e.g., N*2+5 or N^2" value="N*3" autocomplete="off" spellcheck="false">
+                    <div class="helper-text">N = value, X = extended variable, π = pi</div>
+                </div>
+                <div class="form-group">
+                    <label for="startN">Start value (N)</label>
+                    <input type="number" id="startN" value="1" step="any">
+                </div>
+            </div>
+            <div class="math-buttons" id="mathButtons">
+                <button type="button" data-insert="+">+</button>
+                <button type="button" data-insert="-">−</button>
+                <button type="button" data-insert="*">×</button>
+                <button type="button" data-insert="/">÷</button>
+                <button type="button" data-insert="^">^</button>
+                <button type="button" data-insert="N">N</button>
+                <button type="button" data-insert="X">X</button>
+                <button type="button" data-insert="i">i</button>
+                <button type="button" data-insert="π">π</button>
+            </div>
+            <div class="input-grid-3" style="margin-top: 12px;">
+                <div class="form-group">
+                    <label for="stepN">Step (ΔN)</label>
+                    <input type="number" id="stepN" value="1" step="any" placeholder="e.g. 0.1 or -1">
+                    <div class="helper-text">How much N changes each row</div>
+                </div>
+                <div class="form-group">
+                    <label for="xBehavior">X behavior</label>
+                    <select id="xBehavior">
+                        <option value="fixed">Fixed (0)</option>
+                        <option value="increment">Increment (+1)</option>
+                        <option value="increment2">Increment (+2)</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group hidden" id="customXDiv">
+                    <label for="customX">X equation</label>
+                    <input type="text" id="customX" placeholder="e.g., i*2 or i+3" autocomplete="off" spellcheck="false">
+                </div>
+            </div>
+            <div style="margin-top: 12px;">
+                <button id="generateBtn">Generate</button>
+            </div>
+        </div>
+        <div class="virtual-scroller" id="virtualScroller">
+            <div class="table-wrapper">
+                <div class="virtual-list" id="virtualList">
+                    <div class="row header">
+                        <div class="cell">Input</div>
+                        <div class="cell">Output</div>
+                    </div>
+                    <div class="row data">
+                        <div class="cell no-data">Enter an equation and click Generate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const app = {
+            data: new Map(),          // keyed by integer index (0, 1, 2, ...)
+            equation: 'N*3',
+            startN: 1,
+            stepN: 1,
+            xBehavior: 'fixed',
+            customX: '',
+            rowHeight: 50,
+            visibleCount: 20,
+            bufferCount: 10,
+            totalRows: 2000,          // starts small, grows automatically
+            batchSize: 2000,          // how many extra rows to add each time you near the end
+            lastStartIndex: null,
+            isInitialized: false,
+            scrollTimeout: null,
+            headerEl: null,
+
+            lastFocusedInput: null,
+
+            init() {
+                const generateBtn = document.getElementById('generateBtn');
+                const xBehaviorSelect = document.getElementById('xBehavior');
+                const virtualScroller = document.getElementById('virtualScroller');
+                const equationInput = document.getElementById('equation');
+                const customXInput = document.getElementById('customX');
+                const mathButtons = document.getElementById('mathButtons');
+
+                if (generateBtn) {
+                    generateBtn.addEventListener('click', () => this.generate());
+                }
+                if (xBehaviorSelect) {
+                    xBehaviorSelect.addEventListener('change', (e) => this.toggleCustomX(e.target.value));
+                }
+                if (virtualScroller) {
+                    virtualScroller.addEventListener('scroll', () => this.onScroll(), { passive: true });
+                }
+
+                // Track which math input was last focused
+                if (equationInput) {
+                    equationInput.addEventListener('focus', () => { this.lastFocusedInput = equationInput; });
+                    equationInput.addEventListener('input', (e) => this.normalizeCase(e.target));
+                    this.lastFocusedInput = equationInput; // default
+                }
+                if (customXInput) {
+                    customXInput.addEventListener('focus', () => { this.lastFocusedInput = customXInput; });
+                    customXInput.addEventListener('input', (e) => this.normalizeCase(e.target));
+                }
+
+                // Math quick-insert buttons
+                if (mathButtons) {
+                    mathButtons.addEventListener('click', (e) => {
+                        const btn = e.target.closest('button[data-insert]');
+                        if (btn) this.insertSymbol(btn.dataset.insert);
+                    });
+                }
+
+                // Keep a reference to the header so we never lose it
+                this.headerEl = document.querySelector('#virtualList .row.header');
+            },
+
+            // Force N/X uppercase and i lowercase as the user types
+            normalizeCase(input) {
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                const original = input.value;
+
+                // n/N → N,  x/X → X,  i/I → i
+                const normalized = original
+                    .replace(/[nN]/g, 'N')
+                    .replace(/[xX]/g, 'X')
+                    .replace(/[iI]/g, 'i');
+
+                if (normalized !== original) {
+                    input.value = normalized;
+                    // restore caret so typing feels natural
+                    input.setSelectionRange(start, end);
+                }
+            },
+
+            insertSymbol(symbol) {
+                const input = this.lastFocusedInput || document.getElementById('equation');
+                if (!input) return;
+
+                input.focus();
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                const value = input.value;
+
+                // Map display symbols to the actual characters used in equations
+                const insertMap = {
+                    '−': '-',
+                    '×': '*',
+                    '÷': '/'
+                };
+                const toInsert = insertMap[symbol] || symbol;
+
+                input.value = value.slice(0, start) + toInsert + value.slice(end);
+                const newPos = start + toInsert.length;
+                input.setSelectionRange(newPos, newPos);
+
+                // Re-run case normalization (in case they inserted N/X/i)
+                this.normalizeCase(input);
+            },
+
+            toggleCustomX(behavior) {
+                const customXDiv = document.getElementById('customXDiv');
+                if (customXDiv) {
+                    customXDiv.classList.toggle('hidden', behavior !== 'custom');
+                }
+            },
+
+            generate() {
+                this.equation = document.getElementById('equation').value.trim() || 'N';
+                this.startN = parseFloat(document.getElementById('startN').value);
+                if (isNaN(this.startN)) this.startN = 1;
+
+                this.stepN = parseFloat(document.getElementById('stepN').value);
+                if (isNaN(this.stepN) || this.stepN === 0) this.stepN = 1;
+
+                this.xBehavior = document.getElementById('xBehavior').value;
+                this.customX = document.getElementById('customX').value.trim() || '';
+
+                this.data.clear();
+                this.lastStartIndex = null;
+                this.isInitialized = true;
+                this.totalRows = this.batchSize;   // reset to first batch
+
+                // Pre-generate the first window so something appears immediately
+                for (let i = 0; i < this.visibleCount + this.bufferCount * 2; i++) {
+                    this.calculateRow(i);          // now keyed by index
+                }
+
+                const scroller = document.getElementById('virtualScroller');
+                scroller.scrollTop = 0;
+                this.updateView(true);
+            },
+
+            calculateRow(index) {
+                if (this.data.has(index)) return;
+
+                // N = start + index * step  (supports fractions & negatives)
+                const N = this.startN + index * this.stepN;
+                const X = this.calculateX(index);
+
+                try {
+                    let result = this.evaluateEquation(this.equation, N, X);
+
+                    // Sanitize IEEE-754 overflow / invalid results
+                    if (typeof result === 'number') {
+                        if (!Number.isFinite(result)) {
+                            if (Number.isNaN(result)) {
+                                result = 'NaN';
+                            } else {
+                                result = result > 0 ? 'Overflow' : '−Overflow';
+                            }
+                        }
+                    }
+
+                    this.data.set(index, { n: N, result });
+                } catch (e) {
+                    this.data.set(index, { n: N, result: 'Error' });
+                }
+            },
+
+            calculateX(index) {
+                switch (this.xBehavior) {
+                    case 'fixed':
+                        return 0;
+                    case 'increment':
+                        return index;
+                    case 'increment2':
+                        return index * 2;
+                    case 'custom':
+                        try {
+                            // custom equation can use i (or X)
+                            return this.evaluateEquation(this.customX || 'i', 0, index);
+                        } catch (e) {
+                            return index;
+                        }
+                    default:
+                        return 0;
+                }
+            },
+
+            evaluateEquation(eq, N, X) {
+                // Support N, X, i and π
+                const safe = eq
+                    .replace(/N/g, `(${N})`)
+                    .replace(/X/g, `(${X})`)
+                    .replace(/i/g, `(${X})`)
+                    .replace(/π/g, '(Math.PI)')
+                    .replace(/\^/g, '**');
+
+                try {
+                    return Function('"use strict"; return (' + safe + ')')();
+                } catch (e) {
+                    throw new Error('Invalid equation');
+                }
+            },
+
+            onScroll() {
+                if (this.scrollTimeout) {
+                    clearTimeout(this.scrollTimeout);
+                }
+                this.scrollTimeout = setTimeout(() => {
+                    this.updateView();
+                }, 12);
+            },
+
+            updateView(force = false) {
+                if (!this.isInitialized) return;
+
+                const scroller = document.getElementById('virtualScroller');
+                const scrollTop = scroller.scrollTop;
+
+                // Which logical row should be at the top of the viewport
+                const startIndex = Math.max(0, Math.floor(scrollTop / this.rowHeight));
+
+                // ---- auto-extend: if we're close to the current end, grow the list ----
+                const nearEndThreshold = this.visibleCount + this.bufferCount * 2;
+                if (startIndex + nearEndThreshold >= this.totalRows) {
+                    this.totalRows += this.batchSize;
+                    // force a full re-render so the bottom spacer grows
+                    force = true;
+                }
+
+                // Skip tiny movements unless forced (or we just extended)
+                if (!force && this.lastStartIndex !== null && Math.abs(startIndex - this.lastStartIndex) < 2) {
+                    return;
+                }
+                this.lastStartIndex = startIndex;
+
+                // Generate data for the visible window + buffers
+                const rangeStart = Math.max(0, startIndex - this.bufferCount);
+                const rangeEnd = Math.min(this.totalRows - 1, startIndex + this.visibleCount + this.bufferCount);
+
+                for (let i = rangeStart; i <= rangeEnd; i++) {
+                    this.calculateRow(i);   // index-based
+                }
+
+                this.render(startIndex);
+            },
+
+            render(startIndex) {
+                const list = document.getElementById('virtualList');
+                if (!list || !this.isInitialized) return;
+
+                // Clear everything except we will re-append the header
+                list.innerHTML = '';
+                list.appendChild(this.headerEl);
+
+                if (this.data.size === 0) {
+                    const row = document.createElement('div');
+                    row.className = 'row data';
+                    row.innerHTML = '<div class="cell no-data">Enter an equation and click Generate</div>';
+                    list.appendChild(row);
+                    return;
+                }
+
+                // ---- top spacer (represents rows that are scrolled out of view) ----
+                const topOffset = Math.max(0, startIndex - this.bufferCount);
+                const topSpacer = document.createElement('div');
+                topSpacer.className = 'spacer';
+                topSpacer.style.height = (topOffset * this.rowHeight) + 'px';
+                list.appendChild(topSpacer);
+
+                // ---- visible + buffer rows ----
+                const from = Math.max(0, startIndex - this.bufferCount);
+                const to = Math.min(this.totalRows - 1, startIndex + this.visibleCount + this.bufferCount);
+
+                for (let i = from; i <= to; i++) {
+                    const rowData = this.data.get(i);
+                    if (!rowData) continue;
+
+                    const row = document.createElement('div');
+                    row.className = 'row data';
+
+                    // Nice display for N (handles decimals cleanly)
+                    let displayN = rowData.n;
+                    if (typeof displayN === 'number') {
+                        // Avoid ugly floating-point artifacts (e.g. 0.30000000000000004)
+                        displayN = Math.round(displayN * 1e10) / 1e10;
+                        // Show up to 6 meaningful decimals, strip trailing zeros
+                        displayN = parseFloat(displayN.toFixed(6));
+                    }
+
+                    let result = rowData.result;
+                    if (typeof result === 'number') {
+                        if (!Number.isFinite(result)) {
+                            result = Number.isNaN(result) ? 'NaN' : (result > 0 ? 'Overflow' : '−Overflow');
+                        } else {
+                            result = Math.round(result * 100) / 100;
+                        }
+                    } else if (result === 'Infinity' || result === '+Infinity') {
+                        result = 'Overflow';
+                    } else if (result === '-Infinity') {
+                        result = '−Overflow';
+                    }
+
+                    row.innerHTML = `
+                        <div class="cell">${displayN}</div>
+                        <div class="cell">${result}</div>
+                    `;
+                    list.appendChild(row);
+                }
+
+                // ---- bottom spacer (keeps total scrollable height correct) ----
+                const bottomOffset = Math.max(0, this.totalRows - (to + 1));
+                const bottomSpacer = document.createElement('div');
+                bottomSpacer.className = 'spacer';
+                bottomSpacer.style.height = (bottomOffset * this.rowHeight) + 'px';
+                list.appendChild(bottomSpacer);
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => app.init());
+        } else {
+            app.init();
+        }
+    </script>
+</body>
+</html>
