@@ -32,8 +32,5 @@ Added A new project
 [Monday, September 14]
 Added San Turbino theme (flag-inspired: deep teal menu backgrounds, terracotta buttons, gold accents, black text with white outline)
 
-[Wednesday, September 16]
-Added new Soundboard project.
-Featured Projects — mark projects in lists.js by number; new ⭐ Featured tab
-Sidebar menu buttons grouped (Discover / Look & Feel / Extras / Data & Info) for easier finding without extra clutter
-Collapsible sidebar menu groups (open/closed saved in localStorage)
+[Thursday, September 17]
+Added New project(s)
