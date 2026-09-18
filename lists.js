@@ -1223,9 +1223,15 @@ const projects = [
         name: "Mean Bean web recreation",
         path: "mean bean/index.html",
         description: "Simply a recreation of Bean Mean- i meant Mean Bean ;-;",
+        tags: ["Games", "Simulation"],
+        archive: false
+    }, // AAAAHH I JUST HEARD THAT LOUD SOUND WHAT THE F*CK WHOO DID IT THO
+    {
+        name: "math graph",
+        description: "This might help you out with school work, who knows!",
         tags: ["Tools"],
         archive: false
-    } // AAAAHH I JUST HEARD THAT LOUD SOUND WHAT THE F*CK WHOO DID IT THO
+    } // Guys, guys calm down, its just a sound!
 ];
 
 
