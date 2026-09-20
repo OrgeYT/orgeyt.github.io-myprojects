@@ -14,6 +14,7 @@
   const searchInput = document.getElementById("search-input");
   const randomBtn = document.getElementById("random-btn");
   const stopBtn = document.getElementById("stop-btn");
+  const downloadAllBtn = document.getElementById("download-all-btn");
   const statusEl = document.getElementById("status-text");
   const countEl = document.getElementById("sound-count");
 
@@ -131,6 +132,20 @@
       warn.textContent = "No sound";
       warn.title = "Cannot find sound file";
       container.appendChild(warn);
+    } else {
+      const dl = document.createElement("button");
+      dl.type = "button";
+      dl.className = "dl-btn";
+      dl.title = `Download ${sound.name}`;
+      dl.setAttribute("aria-label", `Download ${sound.name}`);
+      dl.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+        " DL";
+      dl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        downloadOne(sound);
+      });
+      container.appendChild(dl);
     }
 
     const trigger = () => playSound(sound);
@@ -236,6 +251,104 @@
     playSound(playable[Math.floor(Math.random() * playable.length)]);
   }
 
+  // ── Downloads ──────────────────────────────────────────────────────────
+  function filenameFromUrl(url, fallback) {
+    try {
+      const base = url.split("/").pop().split("?")[0];
+      if (base) return base;
+    } catch (_) {}
+    return fallback || "sound.mp3";
+  }
+
+  function triggerBlobDownload(blob, filename) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  }
+
+  async function downloadOne(sound) {
+    if (!sound.audioUrl || sound.audioMissing) {
+      setStatus(`Cannot download: ${sound.name}`);
+      return;
+    }
+    try {
+      setStatus(`Downloading: ${sound.name}…`);
+      const res = await fetch(sound.audioUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const name = filenameFromUrl(sound.audioUrl, `${sound.audioBase || "sound"}.mp3`);
+      triggerBlobDownload(blob, name);
+      setStatus(`Downloaded: ${sound.name}`);
+    } catch (err) {
+      console.warn("Download failed:", err);
+      setStatus(`Download failed: ${sound.name}`);
+    }
+  }
+
+  async function downloadAll() {
+    const playable = resolvedSounds.filter((s) => !s.audioMissing && s.audioUrl);
+    if (playable.length === 0) {
+      setStatus("No sounds available to download");
+      return;
+    }
+    if (typeof JSZip === "undefined") {
+      setStatus("ZIP library failed to load — try refreshing");
+      return;
+    }
+
+    const btn = downloadAllBtn;
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Zipping…";
+    }
+    setStatus(`Zipping ${playable.length} sounds…`);
+
+    try {
+      const zip = new JSZip();
+      let done = 0;
+      const folder = zip.folder("sounds");
+
+      for (const sound of playable) {
+        try {
+          const res = await fetch(sound.audioUrl);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const name = filenameFromUrl(
+            sound.audioUrl,
+            `${sound.audioBase || "sound"}.mp3`
+          );
+          folder.file(name, blob);
+        } catch (err) {
+          console.warn(`Skipped ${sound.name}:`, err);
+        }
+        done++;
+        setStatus(`Zipping… ${done}/${playable.length}`);
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" }, (meta) => {
+        if (meta.percent) {
+          setStatus(`Building ZIP… ${Math.round(meta.percent)}%`);
+        }
+      });
+
+      triggerBlobDownload(zipBlob, "orgeyt-soundboard-sounds.zip");
+      setStatus(`Downloaded ZIP (${playable.length} sounds)`);
+    } catch (err) {
+      console.error(err);
+      setStatus("Failed to create ZIP");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download All';
+      }
+    }
+  }
+
   // ── Keyboard ───────────────────────────────────────────────────────────
   function handleGlobalKeys(e) {
     if (e.target === searchInput) return;
@@ -258,6 +371,7 @@
     searchInput.addEventListener("input", () => renderGrid(searchInput.value));
     randomBtn.addEventListener("click", playRandom);
     stopBtn.addEventListener("click", stopCurrent);
+    if (downloadAllBtn) downloadAllBtn.addEventListener("click", downloadAll);
     document.addEventListener("keydown", handleGlobalKeys);
     document.addEventListener("keydown", (e) => {
       if (e.key === "/" && e.target !== searchInput) {
