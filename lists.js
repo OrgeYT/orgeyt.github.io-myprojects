@@ -1231,7 +1231,14 @@ const projects = [
         description: "This might help you out with school work, who knows!",
         tags: ["Tools"],
         archive: false
-    } // Guys, guys calm down, its just a sound!
+    }, // Guys, guys calm down, its just a sound!
+    {
+        name: "OrgeYT Character Color Match",
+        path: "color match orgeyt/index.html",
+        description: "Guess what the character's color is!",
+        tags: ["Games"],
+        archive: false
+    } // STFU MATH GRAPH MY FACE IS COVERED IN PAINT HELPP
 ];
 
 
