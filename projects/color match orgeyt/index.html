@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OrgeYT World Color Guesser</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div id="app">
+    <section id="start-screen" class="screen active">
+      <div class="start-content">
+        <h1>OrgeYT World</h1>
+        <h2>Color Guesser</h2>
+        <p class="intro">Guess the original color of the highlighted sections on each character.</p>
+        <p class="hint">Pick a color — it applies instantly. Accept to see how accurate you were.</p>
+        <button id="start-btn" class="btn primary">Start Guessing</button>
+      </div>
+    </section>
+
+    <section id="game-screen" class="screen">
+      <header class="game-header">
+        <div class="progress">
+          <span id="char-counter">1 / 11</span>
+          <div class="progress-bar"><div id="progress-fill"></div></div>
+        </div>
+        <div class="nav-row">
+          <button id="prev-btn" class="btn secondary nav-btn" title="Previous">← Prev</button>
+          <h2 id="char-name">Character</h2>
+          <button id="next-nav-btn" class="btn secondary nav-btn" title="Next">Next →</button>
+        </div>
+        <select id="char-select" class="char-select" title="Jump to character"></select>
+      </header>
+
+      <div class="main-area">
+        <div class="svg-container" id="svg-display"></div>
+
+        <div class="controls">
+          <div class="color-picker-section">
+            <label>Your Color</label>
+            <div class="custom-picker">
+              <div class="big-swatch" id="big-swatch"></div>
+              <div class="picker-controls">
+                <input type="color" id="color-picker" value="#9a9a9a">
+                <input type="text" id="hex-input" value="#9A9A9A" maxlength="7" spellcheck="false">
+              </div>
+            </div>
+            <p class="instant-note">Applies instantly to the target shapes</p>
+          </div>
+
+          <div class="action-buttons">
+            <button id="accept-btn" class="btn primary">Accept Guess</button>
+          </div>
+
+          <div id="result-panel" class="result-panel hidden">
+            <div class="score-display">
+              <span class="score-label">Accuracy</span>
+              <span id="score-percent" class="score-value">0%</span>
+            </div>
+            <div class="comparison">
+              <div class="comp-item">
+                <span>Your color</span>
+                <div class="swatch" id="guess-swatch"></div>
+                <code id="guess-hex"></code>
+              </div>
+              <div class="comp-item">
+                <span>Original</span>
+                <div class="swatch" id="orig-swatch"></div>
+                <code id="orig-hex"></code>
+              </div>
+            </div>
+            <p id="feedback-msg" class="feedback"></p>
+            <div class="preview-toggle">
+              <button id="show-guess-btn" class="btn toggle active">Your Color</button>
+              <button id="show-orig-btn" class="btn toggle">Original</button>
+            </div>
+            <div class="result-actions">
+              <button id="next-btn" class="btn primary">Next Character →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="final-screen" class="screen">
+      <div class="final-content">
+        <h1>All Done!</h1>
+        <div class="final-score">
+          <span class="final-label">Your Average Accuracy</span>
+          <span id="final-percent" class="final-value">0%</span>
+        </div>
+        <p id="final-message" class="final-msg"></p>
+        <div class="score-breakdown" id="breakdown"></div>
+        <button id="restart-btn" class="btn primary">Play Again</button>
+      </div>
+    </section>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
