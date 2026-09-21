@@ -67,13 +67,57 @@ const menuSongs = [
 
 const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
 const MENU_VOL_LS_KEY = 'orgeyt-menu-volume';
+const MENU_WANT_PLAY_LS_KEY = 'orgeyt-menu-music-want-play';
+const MENU_KEEP_PROJECT_LS_KEY = 'orgeyt-menu-music-keep-project';
 
 let menuAudio = null;
 let currentMenuSongId = localStorage.getItem(MENU_SONG_LS_KEY) || 'lock-in'; // default to first song
 let menuMusicVolume = parseInt(localStorage.getItem(MENU_VOL_LS_KEY) || '40', 10) / 100;
-// When true, music keeps playing even if the sidebar is closed (user pressed play on the rail)
-let menuMusicPinned = false;
+// Keep theme song playing after closing the menu / opening a project (user option, default off)
+let menuKeepInProject = localStorage.getItem(MENU_KEEP_PROJECT_LS_KEY) === 'true';
+// Alias used by closeSidebar: only true when user opted to keep music in projects
+let menuMusicPinned = menuKeepInProject;
 let menuFadeTimer = null;
+let menuMusicUnlockBound = false;
+let menuMusicPendingUnlock = false;
+
+function setMenuWantPlay(want) {
+    // Remember that menu music should start when the menu is open / on refresh
+    const v = !!want && currentMenuSongId !== 'mute';
+    try {
+        if (v) localStorage.setItem(MENU_WANT_PLAY_LS_KEY, 'true');
+        else localStorage.removeItem(MENU_WANT_PLAY_LS_KEY);
+    } catch (_) {}
+}
+
+function setMenuKeepInProject(keep) {
+    menuKeepInProject = !!keep;
+    menuMusicPinned = menuKeepInProject;
+    try {
+        if (menuKeepInProject) localStorage.setItem(MENU_KEEP_PROJECT_LS_KEY, 'true');
+        else localStorage.removeItem(MENU_KEEP_PROJECT_LS_KEY);
+    } catch (_) {}
+}
+
+/** If autoplay was blocked, start music on the next user gesture. */
+function armMenuMusicUnlock() {
+    if (menuMusicUnlockBound || currentMenuSongId === 'mute') return;
+    menuMusicUnlockBound = true;
+    menuMusicPendingUnlock = true;
+    const unlock = () => {
+        if (!menuMusicPendingUnlock) return;
+        menuMusicPendingUnlock = false;
+        if (currentMenuSongId === 'mute') return;
+        // User had music on (or sidebar is open) — resume
+        if (localStorage.getItem(MENU_WANT_PLAY_LS_KEY) === 'true' ||
+            document.body.classList.contains('sidebar-open')) {
+            playMenuMusic();
+        }
+    };
+    // capture so it fires even if something stops propagation
+    document.addEventListener('pointerdown', unlock, { once: true, capture: true });
+    document.addEventListener('keydown', unlock, { once: true, capture: true });
+}
 
 // Non-repeating menu music (sessionStorage)
 const MENU_NONREPEAT_LS_KEY = 'orgeyt-menu-nonrepeat';
@@ -259,25 +303,36 @@ function playMenuMusic() {
     menuAudio.play().then(() => {
         fadeMenuVolume(0, menuMusicVolume);
         updateRailMusicToggleIcon();
+        // Successfully playing — remember across refresh
+        if (currentMenuSongId !== 'mute') {
+            try { localStorage.setItem(MENU_WANT_PLAY_LS_KEY, 'true'); } catch (_) {}
+            menuMusicPendingUnlock = false;
+        }
     }).catch(() => {
-        // Autoplay may be blocked until user interacts; ignore
+        // Autoplay blocked — start on first click/key
         updateRailMusicToggleIcon();
+        armMenuMusicUnlock();
     });
 }
 
 function toggleMenuMusic() {
     if (currentMenuSongId === 'mute') return;
     if (isMenuMusicPlaying()) {
-        menuMusicPinned = false;
+        setMenuWantPlay(false);
         pauseMenuMusic();
     } else {
-        menuMusicPinned = true;
+        setMenuWantPlay(true);
+        // If starting from rail while project is open, treat as temporary keep until menu closes next time
+        if (!document.body.classList.contains('sidebar-open')) {
+            menuMusicPinned = true;
+        }
         playMenuMusic();
     }
 }
 
 function setMenuSong(id) {
-    const wasPlaying = isMenuMusicPlaying() || document.body.classList.contains('sidebar-open') || menuMusicPinned;
+    const wasPlaying = isMenuMusicPlaying() || document.body.classList.contains('sidebar-open') || menuMusicPinned ||
+        localStorage.getItem(MENU_WANT_PLAY_LS_KEY) === 'true';
     currentMenuSongId = id;
     localStorage.setItem(MENU_SONG_LS_KEY, id);
 
@@ -286,12 +341,15 @@ function setMenuSong(id) {
     if (id !== 'mute') markSongPlayed(id);
 
     if (id === 'mute') {
-        menuMusicPinned = false;
+        setMenuWantPlay(false);
         stopMenuMusic();
-    } else if (wasPlaying) {
-        // Switch track: load new song from the start
-        stopMenuMusic();
-        playMenuMusic();
+    } else {
+        // Choosing a song means user wants music on
+        setMenuWantPlay(true);
+        if (wasPlaying || document.body.classList.contains('sidebar-open')) {
+            stopMenuMusic();
+            playMenuMusic();
+        }
     }
     updateMenuMusicButtons();
     updateRailMusicToggleIcon();
@@ -368,6 +426,19 @@ function initMenuMusicUI() {
         };
     }
 
+    // Keep playing in project toggle (default off)
+    const keepCb = document.getElementById('menu-music-keep-project');
+    if (keepCb) {
+        keepCb.checked = menuKeepInProject;
+        keepCb.onchange = (e) => {
+            setMenuKeepInProject(!!e.target.checked);
+            // If turning off while project is open (menu closed), stop music now
+            if (!menuKeepInProject && !document.body.classList.contains('sidebar-open')) {
+                pauseMenuMusic();
+            }
+        };
+    }
+
     // Volume slider
     const volSlider = document.getElementById('menu-music-volume');
     const volVal = document.getElementById('menu-music-vol-val');
@@ -429,7 +500,8 @@ function openSidebar() {
             frame.contentWindow.postMessage({ type: 'pause' }, '*');
         }
     } catch (_) {}
-    // Resume / start menu theme song (continues from last position)
+    // Menu is open: theme song belongs here. Respect keep-in-project preference for pin state.
+    menuMusicPinned = menuKeepInProject;
     playMenuMusic();
     // Home menu: clear resume so a normal menu visit won't prompt after refresh
     if (sidebarUserGesture) {
@@ -447,9 +519,13 @@ function closeSidebar() {
             frame.contentWindow.postMessage({ type: 'resume' }, '*');
         }
     } catch (_) {}
-    // Pause (don't reset) unless user pinned playback from the rail
-    if (!menuMusicPinned) {
+    // Pause when leaving the menu unless user chose "Keep playing while in a project"
+    // (or temporarily pinned via rail play while already in a project)
+    if (!menuKeepInProject && !menuMusicPinned) {
         pauseMenuMusic();
+    } else if (menuKeepInProject) {
+        // ensure pinned flag matches preference
+        menuMusicPinned = true;
     }
     // Playing a project: remember it in case of crash / close tab
     markResumePending();
@@ -946,71 +1022,121 @@ setTimeout(attachSidebarSounds, 500);
 // --- Sidebar controls groups (collapsible) ---
 // ===========================================
 
-const CONTROLS_COLLAPSED_KEY = 'orgeyt-controls-collapsed';
+const CONTROLS_GROUP_TITLES = {
+    discover: 'Discover',
+    settings: 'Settings',
+    extras: 'Extras',
+    data: 'Data & Info'
+};
 
-function getControlsCollapsedState() {
-    try {
-        const raw = localStorage.getItem(CONTROLS_COLLAPSED_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return (parsed && typeof parsed === 'object') ? parsed : {};
-    } catch (_) {
-        return {};
+function setControlsMenuView(view, groupId) {
+    const modal = document.getElementById('buttons-menu-modal');
+    const hub = document.getElementById('controls-menu-hub');
+    const backBtn = document.getElementById('controls-menu-back-btn');
+    const titleEl = document.getElementById('controls-menu-title');
+    if (!modal) return;
+
+    modal.querySelectorAll('.controls-group[data-controls-group]').forEach(el => {
+        el.classList.add('hidden');
+    });
+
+    if (view === 'closed') {
+        modal.classList.add('hidden');
+        if (hub) hub.classList.remove('hidden');
+        if (backBtn) backBtn.classList.add('hidden');
+        if (titleEl) titleEl.textContent = 'Buttons';
+        return;
     }
+
+    modal.classList.remove('hidden');
+
+    if (view === 'hub') {
+        if (hub) hub.classList.remove('hidden');
+        if (backBtn) backBtn.classList.add('hidden');
+        if (titleEl) titleEl.textContent = 'Buttons';
+        return;
+    }
+
+    // group
+    if (hub) hub.classList.add('hidden');
+    if (backBtn) backBtn.classList.remove('hidden');
+    if (titleEl) titleEl.textContent = CONTROLS_GROUP_TITLES[groupId] || 'Buttons';
+    const groupEl = modal.querySelector('.controls-group[data-controls-group="' + groupId + '"]');
+    if (groupEl) groupEl.classList.remove('hidden');
 }
 
-function setControlsCollapsedState(state) {
-    try {
-        localStorage.setItem(CONTROLS_COLLAPSED_KEY, JSON.stringify(state || {}));
-    } catch (_) {}
+function openControlsMenu() {
+    setControlsMenuView('hub');
 }
 
-function applyControlsGroupCollapsed(groupEl, collapsed) {
-    if (!groupEl) return;
-    const toggle = groupEl.querySelector('.controls-group-toggle');
-    if (collapsed) {
-        groupEl.classList.add('collapsed');
-        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+function closeControlsMenu() {
+    setControlsMenuView('closed');
+}
+
+function controlsMenuGoBack() {
+    const modal = document.getElementById('buttons-menu-modal');
+    if (!modal || modal.classList.contains('hidden')) {
+        setControlsMenuView('closed');
+        return;
+    }
+    const anyGroupOpen = modal.querySelector('.controls-group[data-controls-group]:not(.hidden)');
+    if (anyGroupOpen) {
+        setControlsMenuView('hub');
     } else {
-        groupEl.classList.remove('collapsed');
-        if (toggle) toggle.setAttribute('aria-expanded', 'true');
+        setControlsMenuView('closed');
     }
 }
 
-function initControlsGroups() {
-    const root = document.getElementById('sidebar-controls');
-    if (!root) return;
+function initControlsMenu() {
+    const openBtn = document.getElementById('controls-menu-open-btn');
+    const closeBtn = document.getElementById('controls-menu-close-btn');
+    const backBtn = document.getElementById('controls-menu-back-btn');
+    const modal = document.getElementById('buttons-menu-modal');
 
-    const state = getControlsCollapsedState();
-    const groups = root.querySelectorAll('.controls-group[data-controls-group]');
+    if (openBtn && openBtn.dataset.controlsBound !== '1') {
+        openBtn.dataset.controlsBound = '1';
+        openBtn.addEventListener('click', openControlsMenu);
+    }
+    if (closeBtn && closeBtn.dataset.controlsBound !== '1') {
+        closeBtn.dataset.controlsBound = '1';
+        closeBtn.addEventListener('click', closeControlsMenu);
+    }
+    if (backBtn && backBtn.dataset.controlsBound !== '1') {
+        backBtn.dataset.controlsBound = '1';
+        backBtn.addEventListener('click', controlsMenuGoBack);
+    }
+    if (modal && modal.dataset.controlsBound !== '1') {
+        modal.dataset.controlsBound = '1';
+        modal.addEventListener('click', (e) => {
+            if (e.target.id === 'buttons-menu-modal') {
+                closeControlsMenu();
+                return;
+            }
+            // Action button in a group → close so another modal can show cleanly
+            const actionBtn = e.target.closest('.controls-group .toggle-btn');
+            if (actionBtn && !actionBtn.classList.contains('hidden')) {
+                setTimeout(closeControlsMenu, 0);
+            }
+        });
+    }
 
-    groups.forEach(groupEl => {
-        const id = groupEl.getAttribute('data-controls-group');
-        if (!id) return;
-        // Default: Discover open, others open too unless saved as collapsed
-        const collapsed = !!state[id];
-        applyControlsGroupCollapsed(groupEl, collapsed);
-
-        const toggle = groupEl.querySelector('.controls-group-toggle');
-        if (!toggle || toggle.dataset.bound === '1') return;
-        toggle.dataset.bound = '1';
-        toggle.addEventListener('click', () => {
-            const nowCollapsed = !groupEl.classList.contains('collapsed');
-            applyControlsGroupCollapsed(groupEl, nowCollapsed);
-            const next = getControlsCollapsedState();
-            if (nowCollapsed) next[id] = true;
-            else delete next[id];
-            setControlsCollapsedState(next);
+    document.querySelectorAll('#buttons-menu-modal [data-open-group]').forEach(btn => {
+        if (btn.dataset.controlsBound === '1') return;
+        btn.dataset.controlsBound = '1';
+        btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-open-group');
+            if (id) setControlsMenuView('group', id);
         });
     });
 
+    setControlsMenuView('closed');
     if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
 }
 
 if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initControlsGroups);
+    document.addEventListener('DOMContentLoaded', initControlsMenu);
 } else {
-    initControlsGroups();
+    initControlsMenu();
 }
 
 
@@ -1033,7 +1159,10 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-recently-played',
     'orgeyt-last-project',
     'orgeyt-resume-pending',
-    'orgeyt-controls-collapsed'
+    'orgeyt-controls-collapsed',
+    'orgeyt-orgepet-interactions',
+    'orgeyt-orgepet-enabled',
+    'orgeyt-menu-music-want-play'
 ];
 
 function exportOrgeytData() {

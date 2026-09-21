@@ -32,64 +32,9 @@
         <div id="time-counter">Time: 0s</div>
 
         <div class="sidebar-controls" id="sidebar-controls">
-            <!-- Discover: everyday actions -->
-            <div class="controls-group" data-controls-group="discover">
-                <button type="button" class="controls-group-toggle" data-group="discover" data-sound="true" aria-expanded="true">
-                    <span class="controls-group-label">Discover</span>
-                    <span class="controls-group-chevron">▼</span>
-                </button>
-                <div class="controls-group-btns">
-                    <button id="welcome-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">👋</span> Welcome</button>
-                    <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
-                    <button id="recently-played-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🕒</span> Recent</button>
-                    <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Of Time</button>
-                    <button id="favorite-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⭐</span> Favorite</button>
-                    <button id="stats-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📊</span> Stats</button>
-                </div>
-            </div>
-            <!-- Look & feel -->
-            <div class="controls-group" data-controls-group="look">
-                <button type="button" class="controls-group-toggle" data-group="look" data-sound="true" aria-expanded="true">
-                    <span class="controls-group-label">Look &amp; Feel</span>
-                    <span class="controls-group-chevron">▼</span>
-                </button>
-                <div class="controls-group-btns">
-                    <button id="theme-settings-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎨</span> Theme</button>
-                    <button id="effects-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">✨</span> Effects</button>
-                    <button id="menu-music-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎵</span> Music</button>
-                    <button id="tab-modifier-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏷️</span> Tab</button>
-                </div>
-            </div>
-            <!-- Extras -->
-            <div class="controls-group" data-controls-group="extras">
-                <button type="button" class="controls-group-toggle" data-group="extras" data-sound="true" aria-expanded="true">
-                    <span class="controls-group-label">Extras</span>
-                    <span class="controls-group-chevron">▼</span>
-                </button>
-                <div class="controls-group-btns">
-                    <button id="achievements-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏆</span> Achievements</button>
-                    <button id="open-gallery-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🖼️</span> Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
-                    <button id="downloads-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⬇️</span> Downloads</button>
-                    <button id="friends-website-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🤝</span> Friends</button>
-                    <button id="view-repo-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📦</span> Repo</button>
-                    <button id="line-graph-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📈</span> Graph</button>
-                </div>
-            </div>
-            <!-- Data & info -->
-            <div class="controls-group" data-controls-group="data">
-                <button type="button" class="controls-group-toggle" data-group="data" data-sound="true" aria-expanded="true">
-                    <span class="controls-group-label">Data &amp; Info</span>
-                    <span class="controls-group-chevron">▼</span>
-                </button>
-                <div class="controls-group-btns">
-                    <button id="changelog-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📜</span> Changelog</button>
-                    <button id="data-backup-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💾</span> Backup</button>
-                    <button id="view-lists-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📄</span> lists.js</button>
-                    <button id="lists-comments-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💬</span> Comments</button>
-                    <button id="clear-visited-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🗑️</span> Clear Visited</button>
-                    <button id="admin-btn" class="toggle-btn hidden" data-sound="true"><span class="btn-icon">🔐</span> ADMIN</button>
-                </div>
-            </div>
+            <button type="button" id="controls-menu-open-btn" class="toggle-btn controls-menu-open-btn" data-sound="true">
+                <span class="btn-icon">📋</span> Buttons
+            </button>
             <input type="file" id="import-data-file" accept=".json,application/json" style="display:none;">
         </div>
 
@@ -209,6 +154,13 @@
                     <span>Non-repeating mode (auto next song)</span>
                 </label>
                 <p style="font-size: 0.75rem; color: var(--text-accent); margin: 4px 0 0 24px;">When on, plays a different song each time one ends. Uses session tracking.</p>
+            </div>
+            <div class="setting-group" style="margin-top: 12px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                    <input type="checkbox" id="menu-music-keep-project" style="width:16px; height:16px;">
+                    <span>Keep playing while in a project</span>
+                </label>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin: 4px 0 0 24px;">Off by default — music is for the menu. Turn on to continue the theme song after you open a project.</p>
             </div>
             <div class="setting-group" style="margin-top: 12px;">
                 <label for="menu-music-volume">Volume: <span id="menu-music-vol-val">40%</span></label>
@@ -483,6 +435,79 @@
         </div>
     </div>
 
+    <!-- Buttons Menu Modal (hub → groups, like Welcome) -->
+    <div id="buttons-menu-modal" class="modal hidden">
+        <div class="modal-content buttons-menu-modal-content">
+            <div class="buttons-menu-header">
+                <button type="button" id="controls-menu-back-btn" class="buttons-menu-back-btn hidden" data-sound="true" title="Back">← Back</button>
+                <h3 id="controls-menu-title" class="buttons-menu-title">Buttons</h3>
+                <button type="button" id="controls-menu-close-btn" class="close-btn" data-sound="true" title="Close">&times;</button>
+            </div>
+
+            <div id="controls-menu-hub" class="buttons-menu-hub">
+                <button type="button" class="welcome-link-btn buttons-hub-card" data-open-group="discover" data-sound="true">
+                    <span class="welcome-link-title">🧭 Discover</span>
+                    <span class="welcome-link-desc">Welcome, Random, Recent, Stats…</span>
+                </button>
+                <button type="button" class="welcome-link-btn buttons-hub-card" data-open-group="settings" data-sound="true">
+                    <span class="welcome-link-title">⚙️ Settings</span>
+                    <span class="welcome-link-desc">Theme, Music, Tab, Effects, Orge Pet…</span>
+                </button>
+                <button type="button" class="welcome-link-btn buttons-hub-card" data-open-group="extras" data-sound="true">
+                    <span class="welcome-link-title">✨ Extras</span>
+                    <span class="welcome-link-desc">Achievements, Gallery, Downloads…</span>
+                </button>
+                <button type="button" class="welcome-link-btn buttons-hub-card" data-open-group="data" data-sound="true">
+                    <span class="welcome-link-title">📁 Data &amp; Info</span>
+                    <span class="welcome-link-desc">Changelog, lists.js, Comments…</span>
+                </button>
+            </div>
+
+            <div class="controls-group hidden" data-controls-group="discover">
+                <div class="buttons-menu-grid">
+                    <button id="welcome-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">👋</span> Welcome</button>
+                    <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
+                    <button id="recently-played-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🕒</span> Recent</button>
+                    <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Of Time</button>
+                    <button id="favorite-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⭐</span> Favorite</button>
+                    <button id="stats-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📊</span> Stats</button>
+                </div>
+            </div>
+
+            <div class="controls-group hidden" data-controls-group="settings">
+                <div class="buttons-menu-grid">
+                    <button id="theme-settings-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎨</span> Theme</button>
+                    <button id="menu-music-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎵</span> Music</button>
+                    <button id="tab-modifier-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏷️</span> Tab</button>
+                    <button id="effects-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">✨</span> Effects</button>
+                    <button id="data-backup-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💾</span> Backup</button>
+                    <button id="clear-visited-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🗑️</span> Clear Visited</button>
+                    <button id="orge-pet-toggle-btn" class="toggle-btn" data-sound="true" title="Show or hide Orge the mascot"><span class="btn-icon">🟠</span> <span id="orge-pet-toggle-label">Orge Pet: On</span></button>
+                </div>
+            </div>
+
+            <div class="controls-group hidden" data-controls-group="extras">
+                <div class="buttons-menu-grid">
+                    <button id="achievements-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🏆</span> Achievements</button>
+                    <button id="open-gallery-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🖼️</span> Gallery <span id="gallery-notif" class="notif-badge hidden">0</span></button>
+                    <button id="downloads-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⬇️</span> Downloads</button>
+                    <button id="friends-website-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🤝</span> Friends</button>
+                    <button id="view-repo-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📦</span> Repo</button>
+                    <button id="line-graph-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📈</span> Graph</button>
+                </div>
+            </div>
+
+            <div class="controls-group hidden" data-controls-group="data">
+                <div class="buttons-menu-grid">
+                    <button id="changelog-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📜</span> Changelog</button>
+                    <button id="view-lists-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">📄</span> lists.js</button>
+                    <button id="lists-comments-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">💬</span> Comments</button>
+                    <button id="admin-btn" class="toggle-btn hidden" data-sound="true"><span class="btn-icon">🔐</span> ADMIN</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Welcome Modal -->
     <div id="welcome-modal" class="modal hidden">
         <div class="modal-content welcome-modal-content">
@@ -599,6 +624,7 @@
 
     <script src="lists.js"></script>
     <script src="achievements.js"></script>
+    <script src="orge-pet.js"></script>
     <script src="projects.js"></script>
     <script src="ui.js"></script>
 </body>

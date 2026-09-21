@@ -40,3 +40,8 @@ Added New project
 
 [Sunday, September 20]
 Updated Soundboard project (Just chilling with small updates! Cuz i have no ideas ;-;)
+
+[Monday, September 21]
+Added Orge Pet — an interactive Among Us mascot
+Added the new Buttons menu for home menu options and settings
+Improved menu music behavior and added a setting to keep music playing in projects

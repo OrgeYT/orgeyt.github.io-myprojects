@@ -444,6 +444,11 @@ function loadProject(project) {
     window.currentFilePath = currentFilePath;
     updateFavoriteButtonText();
 
+    // OrgePet: react to project selection
+    if (window.OrgePet && typeof window.OrgePet.onProjectSelected === 'function') {
+        try { window.OrgePet.onProjectSelected(projectParam); } catch (_) {}
+    }
+
     if (fileList) {
         fileList.querySelectorAll('.file-btn').forEach(btn => {
             const name = (btn.dataset.projectName || '').toLowerCase();

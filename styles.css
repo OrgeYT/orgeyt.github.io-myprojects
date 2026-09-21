@@ -2303,3 +2303,377 @@ body.sidebar-closed #open-full-btn {
     padding: 20px 10px;
     font-style: italic;
 }
+
+/* ==========================================
+   OrgePet mascot
+   ========================================== */
+.orge-pet-root {
+    position: fixed;
+    bottom: 16px;
+    left: 16px;
+    right: auto;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.orge-pet-root .orge-pet-img,
+.orge-pet-root .orge-pet-counter,
+.orge-pet-root .orge-pet-speech {
+    pointer-events: auto;
+}
+
+.orge-pet-img {
+    width: 72px;
+    height: auto;
+    max-width: 18vw;
+    cursor: pointer;
+    display: block;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    transition: transform 0.12s ease;
+    touch-action: none;
+}
+
+.orge-pet-img:hover {
+    transform: scale(1.06);
+}
+
+.orge-pet-squish-anim {
+    animation: orge-pet-squish 0.35s ease;
+}
+
+@keyframes orge-pet-squish {
+    0% { transform: scale(1, 1); }
+    40% { transform: scale(1.15, 0.72); }
+    70% { transform: scale(0.92, 1.08); }
+    100% { transform: scale(1, 1); }
+}
+
+.orge-pet-petting-anim {
+    animation: orge-pet-wiggle 0.45s ease-in-out infinite;
+}
+
+@keyframes orge-pet-wiggle {
+    0%, 100% { transform: rotate(-4deg) scale(1.02); }
+    50% { transform: rotate(4deg) scale(1.05); }
+}
+
+.orge-pet-talk-anim {
+    animation: orge-pet-bounce 0.5s ease;
+}
+
+@keyframes orge-pet-bounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-8px); }
+    70% { transform: translateY(-2px); }
+}
+
+.orge-pet-counter {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-main);
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-main);
+    border-radius: 999px;
+    padding: 2px 8px;
+    white-space: nowrap;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+}
+
+.orge-pet-speech {
+    max-width: min(200px, 70vw);
+    font-size: 0.78rem;
+    line-height: 1.3;
+    color: var(--text-main);
+    background: var(--bg-sidebar);
+    border: 1px solid var(--border-main);
+    border-radius: 10px;
+    padding: 6px 10px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    position: relative;
+    margin-bottom: 2px;
+}
+
+.orge-pet-speech.show {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.orge-pet-speech::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px 6px 0 6px;
+    border-style: solid;
+    border-color: var(--border-main) transparent transparent transparent;
+}
+
+@media (max-width: 480px) {
+    .orge-pet-root {
+        bottom: 10px;
+        left: 10px;
+        right: auto;
+    }
+    .orge-pet-img {
+        width: 56px;
+    }
+    .orge-pet-counter {
+        font-size: 0.65rem;
+        padding: 1px 6px;
+    }
+    .orge-pet-speech {
+        font-size: 0.72rem;
+        max-width: min(160px, 65vw);
+    }
+}
+
+/* Keep pet above main content but below modals (z-index 100+) and update popup */
+body.sidebar-open .orge-pet-root {
+    /* still visible; slightly dim when menu open optional — keep visible */
+}
+
+/* OrgePet enable/disable */
+.orge-pet-root.orge-pet-hidden {
+    display: none !important;
+}
+
+.orge-pet-root.orge-pet-fading-out {
+    animation: orge-pet-fade-out 2.3s ease forwards;
+    pointer-events: none;
+}
+
+@keyframes orge-pet-fade-out {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    40% { opacity: 1; transform: translateY(-6px) scale(1.05); }
+    100% { opacity: 0; transform: translateY(18px) scale(0.75); }
+}
+
+.orge-pet-disabled-pose {
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35)) grayscale(0.15);
+}
+
+.toggle-btn.orge-pet-toggle-off {
+    opacity: 0.75;
+}
+
+
+/* ==========================================
+   Nested Buttons menu (hub → group)
+   ========================================== */
+.controls-menu-open-btn {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.controls-menu-panel {
+    margin-top: 8px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-main);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.controls-menu-panel.hidden {
+    display: none;
+}
+
+.controls-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+}
+
+.controls-menu-title {
+    flex: 1;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-main);
+    text-align: center;
+}
+
+.controls-menu-nav-btn {
+    border: 1px solid var(--border-main);
+    background: var(--btn-secondary);
+    color: var(--text-main);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background-color 0.15s ease;
+}
+
+.controls-menu-nav-btn:hover {
+    background: var(--btn-secondary-hover);
+}
+
+.controls-menu-nav-btn.hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.controls-menu-hub {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.controls-hub-btn {
+    width: 100%;
+    justify-content: flex-start;
+}
+
+.sidebar-controls .controls-group {
+    margin: 0;
+    border: none;
+    padding: 0;
+    background: transparent;
+}
+
+.sidebar-controls .controls-group.hidden {
+    display: none;
+}
+
+.sidebar-controls .controls-group-btns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.sidebar-controls .controls-group-btns .toggle-btn {
+    width: 100%;
+}
+
+
+/* ==========================================
+   Buttons menu modal (Welcome-style)
+   ========================================== */
+.buttons-menu-modal-content {
+    width: 420px;
+    max-width: 94vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.buttons-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    position: relative;
+}
+
+.buttons-menu-title {
+    flex: 1;
+    margin: 0 !important;
+    text-align: center;
+    border: none !important;
+    padding: 0 !important;
+    font-size: 1.35rem;
+    color: var(--accent-solid);
+}
+
+.buttons-menu-back-btn {
+    border: 1px solid var(--border-main);
+    background: var(--btn-secondary);
+    color: var(--text-main);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+    flex-shrink: 0;
+}
+
+.buttons-menu-back-btn:hover {
+    background: var(--btn-secondary-hover);
+}
+
+.buttons-menu-back-btn.hidden {
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.buttons-menu-header .close-btn {
+    position: static;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.buttons-menu-hub {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.buttons-hub-card {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
+    background: var(--accent-transparent);
+    border: 1px solid var(--border-main);
+    color: var(--text-main);
+    box-shadow: none;
+}
+
+.buttons-hub-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent-solid);
+    box-shadow: 0 0 14px var(--accent-transparent);
+}
+
+.buttons-hub-card .welcome-link-title {
+    color: var(--text-main);
+}
+
+.buttons-hub-card .welcome-link-desc {
+    color: var(--text-accent);
+    opacity: 0.9;
+}
+
+.buttons-menu-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.buttons-menu-grid .toggle-btn {
+    width: 100%;
+}
+
+#buttons-menu-modal .controls-group {
+    margin: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+
+#buttons-menu-modal .controls-group.hidden {
+    display: none;
+}
+
+@media (max-width: 420px) {
+    .buttons-menu-hub,
+    .buttons-menu-grid {
+        grid-template-columns: 1fr;
+    }
+}
