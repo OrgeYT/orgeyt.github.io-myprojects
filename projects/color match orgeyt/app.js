@@ -10,6 +10,8 @@ const CHARACTERS = [
   { id: 'noob',              name: 'Noob',              file: 'svgs/noob.svg',              target: '#0072ff' },
   { id: 'scratch-cat',       name: 'Scratch Cat',       file: 'svgs/scratch-cat.svg',       target: '#ffab19' },
   { id: 'bradbot2020',       name: 'Bradbot2020',       file: 'svgs/bradbot2020.svg',       target: '#2b2b2b' },
+  { id: 'red-noob',          name: 'Red Noob',          file: 'svgs/red-noob.svg',          target: '#ff0000' },
+  { id: 'bnoob',             name: 'Bnoob',             file: 'svgs/bnoob.svg',             target: '#00ff00' },
 ];
 
 let currentIndex = 0;
@@ -102,7 +104,11 @@ function applyFillInstantly(hex) {
   const liveSvg = svgDisplay.querySelector('svg');
   if (!liveSvg) return;
   liveSvg.querySelectorAll('path[data-target="1"]').forEach(p => {
-    p.setAttribute('fill', hex);
+    if (p.getAttribute('data-target-mode') === 'stroke') {
+      p.setAttribute('stroke', hex);
+    } else {
+      p.setAttribute('fill', hex);
+    }
   });
   currentGuess = hex;
 }
@@ -137,15 +143,23 @@ async function loadCharacter(index) {
 
     // set target shapes to neutral gray so user must guess
     svg.querySelectorAll('path[data-target="1"]').forEach(p => {
-      p.setAttribute('fill', '#9a9a9a');
+      if (p.getAttribute('data-target-mode') === 'stroke') {
+        p.setAttribute('stroke', '#9a9a9a');
+      } else {
+        p.setAttribute('fill', '#9a9a9a');
+      }
     });
 
     svgDisplay.innerHTML = '';
     const imported = document.importNode(svg, true);
+    // Keep viewBox, set responsive sizing
     imported.removeAttribute('width');
     imported.removeAttribute('height');
-    imported.style.maxWidth = '100%';
-    imported.style.maxHeight = '400px';
+    imported.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    imported.style.width = '100%';
+    imported.style.height = 'auto';
+    imported.style.maxHeight = '420px';
+    imported.style.display = 'block';
     svgDisplay.appendChild(imported);
   } catch (e) {
     console.error(e);
@@ -279,7 +293,10 @@ showGuessBtn.addEventListener('click', () => {
   if (!hasAccepted || !currentGuess) return;
   const liveSvg = svgDisplay.querySelector('svg');
   if (liveSvg) {
-    liveSvg.querySelectorAll('path[data-target="1"]').forEach(p => p.setAttribute('fill', currentGuess));
+    liveSvg.querySelectorAll('path[data-target="1"]').forEach(p => {
+      if (p.getAttribute('data-target-mode') === 'stroke') p.setAttribute('stroke', currentGuess);
+      else p.setAttribute('fill', currentGuess);
+    });
   }
   showGuessBtn.classList.add('active');
   showOrigBtn.classList.remove('active');
@@ -290,7 +307,10 @@ showOrigBtn.addEventListener('click', () => {
   const char = CHARACTERS[currentIndex];
   const liveSvg = svgDisplay.querySelector('svg');
   if (liveSvg) {
-    liveSvg.querySelectorAll('path[data-target="1"]').forEach(p => p.setAttribute('fill', char.target));
+    liveSvg.querySelectorAll('path[data-target="1"]').forEach(p => {
+      if (p.getAttribute('data-target-mode') === 'stroke') p.setAttribute('stroke', char.target);
+      else p.setAttribute('fill', char.target);
+    });
   }
   showOrigBtn.classList.add('active');
   showGuessBtn.classList.remove('active');
