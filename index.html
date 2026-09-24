@@ -412,6 +412,25 @@
         </div>
     </div>
 
+    <!-- Site Randomizer confirmation -->
+    <div id="site-randomizer-modal" class="modal hidden">
+        <div class="modal-content" style="width: 380px;">
+            <span id="close-site-randomizer-btn" class="close-btn">&times;</span>
+            <h3>Site Randomizer</h3>
+            <p style="font-size: 0.9rem; color: var(--text-main); margin-bottom: 8px; font-weight: bold;">Are you sure?</p>
+            <p style="font-size: 0.8rem; color: var(--text-accent); margin-bottom: 14px; line-height: 1.45;">
+                Your current site state will be saved to a file before randomization. You can load that save later (via Buttons → Settings → Backup → Import) to restore everything.
+            </p>
+            <p id="site-randomizer-already-note" class="hidden" style="font-size: 0.75rem; color: var(--text-accent); margin-bottom: 12px; line-height: 1.4;">
+                You already have a restore save from an earlier randomization. Randomizing again will not download another file — restore with your original backup when you want your old settings back.
+            </p>
+            <div style="display: flex; gap: 8px;">
+                <button id="site-randomizer-cancel-btn" class="modal-btn" style="flex: 1; padding: 10px;">Cancel</button>
+                <button id="site-randomizer-confirm-btn" class="modal-btn" style="flex: 1; padding: 10px; font-weight: bold;">Randomize</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Continue where you left off -->
     <div id="resume-modal" class="modal hidden">
         <div class="modal-content" style="width: 360px;">
@@ -467,6 +486,7 @@
                 <div class="buttons-menu-grid">
                     <button id="welcome-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">👋</span> Welcome</button>
                     <button id="random-project-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Random</button>
+                    <button id="site-randomizer-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🎲</span> Site Randomizer</button>
                     <button id="recently-played-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">🕒</span> Recent</button>
                     <button id="project-of-time-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⏰</span> Of Time</button>
                     <button id="favorite-btn" class="toggle-btn" data-sound="true"><span class="btn-icon">⭐</span> Favorite</button>

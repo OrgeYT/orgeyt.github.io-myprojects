@@ -45,3 +45,6 @@ Updated Soundboard project (Just chilling with small updates! Cuz i have no idea
 Added Orge Pet — an interactive Among Us mascot
 Added the new Buttons menu for home menu options and settings
 Improved menu music behavior and added a setting to keep music playing in projects
+
+[Thursday, September 24]
+Added Site randomizer button in Buttons menu

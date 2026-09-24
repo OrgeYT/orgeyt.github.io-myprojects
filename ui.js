@@ -1165,7 +1165,16 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-menu-music-want-play'
 ];
 
-function exportOrgeytData() {
+/** Current favicon href (may be relative path, URL, or data:). */
+function getCurrentFaviconHref() {
+    const link = document.querySelector("link[rel='icon']") ||
+        document.querySelector("link[rel*='icon']");
+    return link ? (link.getAttribute('href') || link.href || 'favicon.ico') : 'favicon.ico';
+}
+
+/** Snapshot of localStorage + tab title + favicon (favicon/title are not in LS). */
+function buildOrgeytBackupData(options) {
+    const opts = options || {};
     const data = {
         _meta: {
             type: 'orgeyt-website-backup',
@@ -1173,21 +1182,36 @@ function exportOrgeytData() {
             exportedAt: new Date().toISOString()
         }
     };
+    if (opts.siteRandomizerRestore) {
+        data._meta.siteRandomizerRestore = true;
+    }
     ORGEYT_LS_KEYS.forEach(key => {
         const val = localStorage.getItem(key);
         if (val !== null) data[key] = val;
     });
+    // Favicon + tab title are not stored in localStorage by the site
+    data._siteRandomizerExtras = {
+        favicon: getCurrentFaviconHref(),
+        tabTitle: document.title || "OrgeYT's HTML Projects"
+    };
+    return data;
+}
 
+function downloadOrgeytBackupData(data, filenamePrefix) {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     const stamp = new Date().toISOString().slice(0, 10);
-    a.download = `orgeyt-backup-${stamp}.json`;
+    a.download = (filenamePrefix || 'orgeyt-backup') + '-' + stamp + '.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+}
+
+function exportOrgeytData() {
+    downloadOrgeytBackupData(buildOrgeytBackupData(), 'orgeyt-backup');
 }
 
 function importOrgeytData(file) {
@@ -1212,6 +1236,25 @@ function importOrgeytData(file) {
                 alert('No recognized website data found in this file.');
                 return;
             }
+
+            // Restore favicon + tab title if present (Site Randomizer / extended backups)
+            const extras = data._siteRandomizerExtras;
+            if (extras && typeof extras === 'object') {
+                try {
+                    if (typeof extras.tabTitle === 'string' && extras.tabTitle.trim()) {
+                        sessionStorage.setItem('orgeyt-restore-tab-title', extras.tabTitle.trim());
+                    }
+                    if (typeof extras.favicon === 'string' && extras.favicon) {
+                        sessionStorage.setItem('orgeyt-restore-favicon', extras.favicon);
+                    }
+                } catch (_) {}
+            }
+
+            // Importing a backup ends the randomized state (restore point used / settings replaced)
+            try {
+                localStorage.removeItem('orgeyt-site-randomizer-active');
+            } catch (_) {}
+
             alert(`Import successful! Restored ${imported} setting(s). The page will reload.`);
             location.reload();
         } catch (err) {
@@ -1223,6 +1266,35 @@ function importOrgeytData(file) {
     };
     reader.readAsText(file);
 }
+
+// After reload, apply favicon/title restored from import (sessionStorage survives same-tab reload)
+(function applyRestoredTabExtras() {
+    try {
+        const title = sessionStorage.getItem('orgeyt-restore-tab-title');
+        const fav = sessionStorage.getItem('orgeyt-restore-favicon');
+        if (title) {
+            document.title = title;
+            sessionStorage.removeItem('orgeyt-restore-tab-title');
+        }
+        if (fav) {
+            if (typeof changeFavicon === 'function') {
+                changeFavicon(fav);
+            } else {
+                // changeFavicon may not be defined yet; apply directly
+                let link = document.querySelector("link[rel='icon']") ||
+                    document.querySelector("link[rel*='icon']") ||
+                    document.createElement('link');
+                link.type = 'image/x-icon';
+                link.rel = 'icon';
+                link.href = fav;
+                if (!link.parentNode) {
+                    document.getElementsByTagName('head')[0].appendChild(link);
+                }
+            }
+            sessionStorage.removeItem('orgeyt-restore-favicon');
+        }
+    } catch (_) {}
+})();
 
 // Data Backup modal
 document.getElementById('data-backup-btn')?.addEventListener('click', () => {
@@ -1684,4 +1756,181 @@ document.getElementById('close-changelog-btn')?.addEventListener('click', () => 
 });
 document.getElementById('changelog-modal')?.addEventListener('click', (e) => {
     if (e.target.id === 'changelog-modal') e.target.classList.add('hidden');
+});
+
+// ===========================================
+// --- Site Randomizer ---
+// Randomizes existing site settings only.
+// First use downloads a full backup (incl. favicon + tab title);
+// further randomizes while "active" skip a new download.
+// Restore via Backup → Import (clears active flag).
+// ===========================================
+
+const SITE_RANDOMIZER_ACTIVE_KEY = 'orgeyt-site-randomizer-active';
+
+const SITE_RANDOMIZER_THEMES = [
+    'default', 'grass-dark', 'sky-dark', 'fire-dark', 'white', 'black',
+    'flower-dark', 'discord', 'ultrabox', 'rainbow-dark', 'retake', 'youtube',
+    'void', 'minisoon-light', 'bnoob', 'suns brightness', 'chatgpt', 'gemini',
+    'claude-dark', 'grok', 'deepseek', 'websim', 'san-turbino'
+];
+
+const SITE_RANDOMIZER_PRESET_FAVICONS = [
+    'favicon.ico',
+    'icons/mungus.ico',
+    'icons/googleclassroom.ico',
+    'icons/fcr.ico'
+];
+
+const SITE_RANDOMIZER_TAB_NAMES = [
+    "OrgeYT's Chaos Portal",
+    'Definitely Not Homework',
+    'Loading... forever',
+    'HTML Projects Deluxe',
+    'The Button Menu Strikes Back',
+    'Orge was here',
+    'Randomizer Mode Activated',
+    '404: Focus Not Found',
+    'Please Stop Clicking',
+    'Website.exe has stopped responding',
+    'Scratch but make it web',
+    'Ultimate Dodging of Productivity',
+    'Favicon Appreciation Society',
+    'Theme Roulette Winner',
+    "OrgeYT's HTML Projects (real)",
+    'You found the secret tab name',
+    'Beep boop project machine',
+    'Changelog? Never heard of her',
+    'Pet the Orge. Do it.',
+    'This tab name was randomized'
+];
+
+const SITE_RANDOMIZER_MENU_GROUPS = ['discover', 'settings', 'extras', 'data'];
+
+function isSiteRandomizerActive() {
+    return localStorage.getItem(SITE_RANDOMIZER_ACTIVE_KEY) === 'true';
+}
+
+function setSiteRandomizerActive(active) {
+    try {
+        if (active) localStorage.setItem(SITE_RANDOMIZER_ACTIVE_KEY, 'true');
+        else localStorage.removeItem(SITE_RANDOMIZER_ACTIVE_KEY);
+    } catch (_) {}
+}
+
+function pickRandom(arr) {
+    if (!arr || arr.length === 0) return null;
+    return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function isPresetFavicon(href) {
+    if (!href || typeof href !== 'string') return false;
+    const h = href.replace(/^\.\//, '').split('?')[0];
+    return SITE_RANDOMIZER_PRESET_FAVICONS.some(p =>
+        h === p || h.endsWith('/' + p) || h.endsWith(p)
+    );
+}
+
+function openSiteRandomizerModal() {
+    const modal = document.getElementById('site-randomizer-modal');
+    if (!modal) return;
+    const note = document.getElementById('site-randomizer-already-note');
+    if (note) {
+        if (isSiteRandomizerActive()) note.classList.remove('hidden');
+        else note.classList.add('hidden');
+    }
+    modal.classList.remove('hidden');
+}
+
+function closeSiteRandomizerModal() {
+    document.getElementById('site-randomizer-modal')?.classList.add('hidden');
+}
+
+function saveSiteRandomizerRestorePoint() {
+    // Uses existing backup format + favicon/title extras; marks as restore snapshot
+    const data = buildOrgeytBackupData({ siteRandomizerRestore: true });
+    downloadOrgeytBackupData(data, 'orgeyt-site-randomizer-restore');
+}
+
+function runSiteRandomization() {
+    // 1) Theme
+    const theme = pickRandom(SITE_RANDOMIZER_THEMES);
+    if (theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('orgeyt-theme', theme);
+        if (typeof hasChangedTheme !== 'undefined') hasChangedTheme = true;
+    }
+
+    // 2) OrgePet on/off
+    if (window.OrgePet && typeof window.OrgePet.setEnabled === 'function') {
+        window.OrgePet.setEnabled(Math.random() >= 0.5);
+    }
+
+    // 3) Buttons menu — open a random existing group
+    const group = pickRandom(SITE_RANDOMIZER_MENU_GROUPS);
+    if (group && typeof setControlsMenuView === 'function') {
+        setControlsMenuView('group', group);
+    }
+
+    // 4) Favicon — only presets; never invent a custom icon
+    const fav = pickRandom(SITE_RANDOMIZER_PRESET_FAVICONS);
+    if (fav && typeof changeFavicon === 'function') {
+        changeFavicon(fav);
+    }
+
+    // 5) Tab title
+    const tabName = pickRandom(SITE_RANDOMIZER_TAB_NAMES);
+    if (tabName) {
+        document.title = tabName;
+    }
+
+    // 6) Changelog / What's New collapsed
+    if (typeof setWhatsNewCollapsed === 'function') {
+        setWhatsNewCollapsed(Math.random() >= 0.5);
+    }
+
+    // 7) Welcome "Don't show again"
+    try {
+        if (Math.random() >= 0.5) {
+            localStorage.setItem(WELCOME_DONT_SHOW_KEY, 'true');
+        } else {
+            localStorage.removeItem(WELCOME_DONT_SHOW_KEY);
+        }
+    } catch (_) {}
+
+    // 8) Random project via existing random-project system
+    if (typeof openRandomProjectCard === 'function') {
+        // Defer slightly so UI updates (theme/menu) paint first
+        setTimeout(() => {
+            try {
+                openRandomProjectCard('all');
+            } catch (_) {}
+        }, 80);
+    }
+}
+
+function confirmSiteRandomize() {
+    const firstTime = !isSiteRandomizerActive();
+    if (firstTime) {
+        try {
+            saveSiteRandomizerRestorePoint();
+        } catch (err) {
+            console.warn('Site Randomizer save failed:', err);
+            alert('Could not download restore save. Randomization cancelled so your settings stay safe.');
+            return;
+        }
+        setSiteRandomizerActive(true);
+    }
+    closeSiteRandomizerModal();
+    runSiteRandomization();
+}
+
+document.getElementById('site-randomizer-btn')?.addEventListener('click', () => {
+    openSiteRandomizerModal();
+});
+document.getElementById('close-site-randomizer-btn')?.addEventListener('click', closeSiteRandomizerModal);
+document.getElementById('site-randomizer-cancel-btn')?.addEventListener('click', closeSiteRandomizerModal);
+document.getElementById('site-randomizer-confirm-btn')?.addEventListener('click', confirmSiteRandomize);
+document.getElementById('site-randomizer-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'site-randomizer-modal') closeSiteRandomizerModal();
 });
