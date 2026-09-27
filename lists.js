@@ -1248,7 +1248,7 @@ const projects = [
     }, // ORGEYT CHARACTER COLOR MATCH HELPPPP Zone act 1
     {
         name: "Good Taste",
-        path: "https://websim.com/@OrgeYT/good-taste",
+        path: "https://good-taste--orgeyt.on.websim.com/", // that was the wrong url, lol. fixed!
         description: "Ask AI to rate your food, or create food!",
         tags: ["Tools", "Simualtion"],
         archive: false
