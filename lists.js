@@ -1245,7 +1245,14 @@ const projects = [
         description: "Make custom Zones",
         tags: ["Tools"],
         archive: false
-    } // ORGEYT CHARACTER COLOR MATCH HELPPPP Zone act 1
+    }, // ORGEYT CHARACTER COLOR MATCH HELPPPP Zone act 1
+    {
+        name: "Good Taste",
+        path: "https://websim.com/@OrgeYT/good-taste",
+        description: "Ask AI to rate your food, or create food!",
+        tags: ["Tools", "Simualtion"],
+        archive: false
+    } // Lets just have some fresh pizza, alright? You all can calm down.
 ];
 
 
