@@ -1238,7 +1238,14 @@ const projects = [
         description: "Guess what the character's color is!",
         tags: ["Games"],
         archive: false
-    } // STFU MATH GRAPH MY FACE IS COVERED IN PAINT HELPP
+    }, // STFU MATH GRAPH MY FACE IS COVERED IN PAINT HELPP
+    {
+        name: "SEGA Title Card Editor",
+        path: "https://title-card--orgeyt.on.websim.com/",
+        description: "Make custom Zones",
+        tags: ["Tools"],
+        archive: false
+    } // ORGEYT CHARACTER COLOR MATCH HELPPPP Zone act 1
 ];
 
 
