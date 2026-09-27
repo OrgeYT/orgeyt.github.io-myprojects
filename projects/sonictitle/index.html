@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SonicTitle Font Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>SonicTitle Font Generator</h1>
+            <p>SEGA Font Creator</p>
+        </header>
+
+        <div class="section">
+            <label for="textInput">Your Text</label>
+            <textarea id="textInput" placeholder="Type your text here...">Sonic</textarea>
+
+            <div class="controls">
+                <div class="control-item">
+                    <label for="colorPicker">Color</label>
+                    <input type="color" id="colorPicker" value="#00ff00">
+                    <div class="color-info">
+                        <div class="color-sample" id="colorSample" style="background-color: #00ff00;"></div>
+                        <span class="color-text" id="colorText">#00ff00</span>
+                    </div>
+                </div>
+
+                <div class="control-item">
+                    <label for="fontSizeSlider">Size</label>
+                    <input type="range" id="fontSizeSlider" min="20" max="200" value="80">
+                    <div class="size-info">
+                        <span>Font Size:</span>
+                        <span id="fontSizeValue">80</span>px
+                    </div>
+                </div>
+            </div>
+
+            <label for="shadowToggle">
+                <input type="checkbox" id="shadowToggle" checked style="cursor: pointer; margin-right: 8px; width: auto;">
+                Glow Effect
+            </label>
+        </div>
+
+        <div class="section">
+            <div id="preview">Sonic</div>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-export" onclick="exportAsImage()">Export PNG</button>
+            <button class="btn-download" onclick="downloadFont()">Download Font</button>
+        </div>
+
+        <div class="buttons">
+            <button class="btn-extension" onclick="downloadExtension()">Download Extension</button>
+            <button class="btn-reset" onclick="resetGenerator()">Reset</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

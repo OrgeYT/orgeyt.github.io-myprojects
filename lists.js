@@ -30,6 +30,8 @@ const featuredProjectNumbers = [
     162,
     159,
     105,
+    169,
+    167,
 ];
 
 // ==========================================
@@ -1252,7 +1254,14 @@ const projects = [
         description: "Ask AI to rate your food, or create food!",
         tags: ["Tools", "Simualtion"],
         archive: false
-    } // Lets just have some fresh pizza, alright? You all can calm down.
+    }, // Lets just have some fresh pizza, alright? You all can calm down.
+    {
+        name: "SonicTitle Font Generator",
+        path: "sonictitle/index.html",
+        description: "Use a font that i made (with Grok) that looks like the sonic 1 title cards font! This font is free for use",
+        tags: ["Tools"],
+        archive: false
+    } // Yeah, lets just have some pizza... Also how can i eat this, im literally text!!!
 ];
 
 
