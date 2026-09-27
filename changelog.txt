@@ -48,3 +48,6 @@ Improved menu music behavior and added a setting to keep music playing in projec
 
 [Thursday, September 24]
 Added Site randomizer button in Buttons menu
+
+[Sunday, September 27]
+Added New project(s)
