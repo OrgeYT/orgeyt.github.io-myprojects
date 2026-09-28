@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Synth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script defer src="app-state.js"></script>
+    <script defer src="audio-engine.js"></script>
+    <script defer src="midi-player.js"></script>
+    <script defer src="app-controls.js"></script>
+    <script defer src="piano-view.js"></script>
+    <script defer src="wav-export.js"></script>
+    <script defer src="app.js"></script>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 lg:p-4">
+    <div class="crt-overlay"></div>
+
+    <div class="synth-body w-full max-w-[98vw] xl:max-w-7xl p-4 lg:p-8 rounded-xl flex flex-col gap-6 relative z-10">
+        <!-- Header & Main Synth Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-black/60 p-4 rounded-lg border-2 border-gray-800 shadow-inner items-center">
+            
+            <div class="col-span-1 md:col-span-2 flex flex-col justify-center border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0 md:pr-4">
+                <h1 class="text-2xl lg:text-3xl retro-text-glow mb-1 leading-tight">NEON<br><span class="retro-pink-glow">SYNTH</span></h1>
+                <p class="text-[8px] text-gray-400">MIDI-ENABLED WAVE GENERATOR</p>
+            </div>
+
+            <div class="col-span-1 flex flex-col justify-center gap-2 px-0 md:px-2 border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0">
+                <label class="text-[9px] text-pink-500 tracking-widest text-center">MODE</label>
+                <select id="mode-select" class="text-xs uppercase text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
+                    <option value="synth">Piano / Synth</option>
+                    <option value="drums">Drums</option>
+                </select>
+            </div>
+
+            <div class="col-span-1 flex flex-col justify-center gap-2 px-0 md:px-2 border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0">
+                <label id="instrument-label" class="text-[9px] text-pink-500 tracking-widest text-center">WAVEFORM</label>
+                <select id="instrument-select" class="text-xs uppercase text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
+                    <optgroup label="8-Bit Classics">
+                        <option value="square">Square</option>
+                        <option value="pulse14">1/4 Pulse (25%)</option>
+                        <option value="pulse18">1/8 Pulse (12.5%)</option>
+                        <option value="triangle">Triangle</option>
+                        <option value="nes_triangle">NES Triangle</option>
+                        <option value="sawtooth">Sawtooth</option>
+                        <option value="sine">Sine</option>
+                    </optgroup>
+                    <optgroup label="Music Lab">
+                        <option value="marimba">Marimba</option>
+                        <option value="synth_piano">Piano</option>
+                        <option value="strings">Strings</option>
+                        <option value="woodwind">Woodwind</option>
+                    </optgroup>
+                    <optgroup label="Synths">
+                        <option value="sqsaw">SqSaw (Mix)</option>
+                        <option value="fat_saw">Fat Saw</option>
+                    </optgroup>
+                </select>
+            </div>
+
+            <div class="col-span-1 flex flex-col justify-center gap-2 pl-0 md:pl-2">
+                <label class="text-[9px] text-pink-500 tracking-widest text-center">MASTER VOLUME</label>
+                <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="mt-1">
+            </div>
+        </div>
+
+        <!-- MIDI Player Controls -->
+        <div class="bg-black/60 p-4 rounded-lg border-2 border-gray-800 flex flex-col gap-4">
+            <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
+                <div class="flex items-center gap-2 w-full md:w-auto">
+                    <label class="text-[9px] text-cyan-400">LOAD MIDI:</label>
+                    <input type="file" id="midi-upload" accept=".mid,.midi" class="text-[9px] w-full md:w-auto">
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button id="btn-play" class="text-xs px-4 py-2 bg-gray-900">PLAY</button>
+                    <button id="btn-pause" class="text-xs px-4 py-2 bg-gray-900">PAUSE</button>
+                    <button id="btn-stop" class="text-xs px-4 py-2 bg-gray-900">STOP</button>
+                    <button id="btn-export-wav" class="text-xs px-4 py-2 bg-gray-900" disabled>EXPORT WAV</button>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4">
+                <span id="time-display" class="text-[9px] w-12 text-right">0:00</span>
+                <input type="range" id="seek-bar" min="0" max="100" value="0" step="0.1" class="flex-1">
+                <span id="duration-display" class="text-[9px] w-12">0:00</span>
+            </div>
+
+            <!-- Track List Panel -->
+            <div id="track-list" class="track-list flex flex-col gap-2 empty:hidden">
+                <!-- Tracks injected here -->
+            </div>
+            
+            <label class="text-[9px] text-pink-500 text-center mt-2">PIANO ROLL (SCROLLS WITH PLAYBACK)</label>
+            <canvas id="piano-roll"></canvas>
+            <canvas id="audio-wave" aria-label="Live audio waveform"></canvas>
+        </div>
+
+        <!-- Instructions -->
+        <div class="flex flex-col md:flex-row justify-between items-center text-[8px] text-gray-400 bg-black/40 p-2 rounded border border-gray-800 px-4 text-center md:text-left gap-2">
+            <span><strong>CLICK/TOUCH KEYS OR USE QWERTY FOR MIDDLE RANGE</strong></span>
+            <span>SCROLL HORIZONTALLY TO SEE ALL 88 KEYS</span>
+        </div>
+
+        <!-- Keyboard Container -->
+        <div class="keyboard-wrapper" id="keyboard-wrapper">
+            <div class="keyboard-container" id="keyboard">
+                <!-- Keys injected via JS -->
+            </div>
+        </div>
+    </div>
+</body>
+</html>
