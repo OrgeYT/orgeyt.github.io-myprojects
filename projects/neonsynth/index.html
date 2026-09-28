@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Neon Synth</title>
+    <title>Neon synth</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="styles.css">
     <script src="https://unpkg.com/@tonejs/midi"></script>
@@ -23,22 +23,22 @@
         <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-black/60 p-4 rounded-lg border-2 border-gray-800 shadow-inner items-center">
             
             <div class="col-span-1 md:col-span-2 flex flex-col justify-center border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0 md:pr-4">
-                <h1 class="text-2xl lg:text-3xl retro-text-glow mb-1 leading-tight">NEON<br><span class="retro-pink-glow">SYNTH</span></h1>
-                <p class="text-[8px] text-gray-400">MIDI-ENABLED WAVE GENERATOR</p>
+                <h1 class="text-2xl lg:text-3xl retro-text-glow mb-1 leading-tight">Neon<br><span class="retro-pink-glow">Synth</span></h1>
+                <p class="text-[8px] text-gray-400">Midi-enabled wave generator</p>
             </div>
 
             <div class="col-span-1 flex flex-col justify-center gap-2 px-0 md:px-2 border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0">
-                <label class="text-[9px] text-pink-500 tracking-widest text-center">MODE</label>
-                <select id="mode-select" class="text-xs uppercase text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
+                <label class="text-[9px] text-pink-500 tracking-widest text-center">Mode</label>
+                <select id="mode-select" class="text-xs text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
                     <option value="synth">Piano / Synth</option>
                     <option value="drums">Drums</option>
                 </select>
             </div>
 
             <div class="col-span-1 flex flex-col justify-center gap-2 px-0 md:px-2 border-b-2 md:border-b-0 md:border-r-2 border-gray-800 pb-4 md:pb-0">
-                <label id="instrument-label" class="text-[9px] text-pink-500 tracking-widest text-center">WAVEFORM</label>
-                <select id="instrument-select" class="text-xs uppercase text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
-                    <optgroup label="8-Bit Classics">
+                <label id="instrument-label" class="text-[9px] text-pink-500 tracking-widest text-center">Waveform</label>
+                <select id="instrument-select" class="text-xs text-center w-full py-2 bg-gray-900 focus:bg-gray-800 transition-colors rounded">
+                    <optgroup label="8-bit classics">
                         <option value="square">Square</option>
                         <option value="pulse14">1/4 Pulse (25%)</option>
                         <option value="pulse18">1/8 Pulse (12.5%)</option>
@@ -47,38 +47,79 @@
                         <option value="sawtooth">Sawtooth</option>
                         <option value="sine">Sine</option>
                     </optgroup>
-                    <optgroup label="Music Lab">
+                    <optgroup label="Music lab">
                         <option value="marimba">Marimba</option>
                         <option value="synth_piano">Piano</option>
+                        <option value="electric_piano">Electric piano</option>
+                        <option value="bell">Bell</option>
+                        <option value="pluck">Plucked synth</option>
                         <option value="strings">Strings</option>
                         <option value="woodwind">Woodwind</option>
+                        <option value="brass">Brass</option>
+                        <option value="choir">Choir</option>
                     </optgroup>
                     <optgroup label="Synths">
-                        <option value="sqsaw">SqSaw (Mix)</option>
-                        <option value="fat_saw">Fat Saw</option>
+                        <option value="sqsaw">Sqsaw (mix)</option>
+                        <option value="fat_saw">Fat saw</option>
+                        <option value="organ">Organ</option>
+                        <option value="bass">Synth bass</option>
                     </optgroup>
                 </select>
             </div>
 
             <div class="col-span-1 flex flex-col justify-center gap-2 pl-0 md:pl-2">
-                <label class="text-[9px] text-pink-500 tracking-widest text-center">MASTER VOLUME</label>
+                <label class="text-[9px] text-pink-500 tracking-widest text-center">Master volume</label>
                 <input type="range" id="volume-slider" min="0" max="1" step="0.05" value="0.5" class="mt-1">
             </div>
         </div>
+
+        <div class="flex flex-wrap items-center justify-center gap-2 rounded-lg border-2 border-gray-800 bg-black/60 px-4 py-3">
+            <span class="mr-2 text-[9px] tracking-widest text-pink-500">Effects</span>
+            <button type="button" class="effect-toggle text-[10px] px-3 py-2" data-effect="reverb" aria-pressed="false">Reverb</button>
+            <button type="button" class="effect-toggle text-[10px] px-3 py-2" data-effect="bitCrush" aria-pressed="false">Bit crush</button>
+            <button type="button" class="effect-toggle text-[10px] px-3 py-2" data-effect="layer" aria-pressed="false">Layer</button>
+            <label for="layer-key" class="ml-2 text-[9px] tracking-widest text-pink-500">Key</label>
+            <select id="layer-key" class="text-[10px] px-2 py-2">
+                <option value="0-major">C major</option>
+            </select>
+        </div>
+
+        <div class="envelope-controls flex flex-col md:flex-row items-stretch md:items-center gap-3 rounded-lg border-2 border-gray-800 bg-black/60 px-4 py-3">
+            <span class="mr-1 text-[9px] tracking-widest text-pink-500">Manual envelope</span>
+            <label class="envelope-slider" for="attack-slider">
+                <span>Attack</span>
+                <input type="range" id="attack-slider" min="0.005" max="1" step="0.005" value="0.015">
+                <output id="attack-value" for="attack-slider">15 ms</output>
+            </label>
+            <label class="envelope-slider" for="release-slider">
+                <span>Release</span>
+                <input type="range" id="release-slider" min="0.02" max="2" step="0.01" value="0.12">
+                <output id="release-value" for="release-slider">120 ms</output>
+            </label>
+        </div>
+
+        <details class="chord-panel rounded-lg border-2 border-gray-800 bg-black/60 px-4 py-3" open>
+            <summary class="text-[9px] tracking-widest text-pink-500">Chords</summary>
+            <div id="chord-buttons" class="chord-buttons mt-3"></div>
+        </details>
 
         <!-- MIDI Player Controls -->
         <div class="bg-black/60 p-4 rounded-lg border-2 border-gray-800 flex flex-col gap-4">
             <div class="flex flex-col md:flex-row justify-between gap-4 items-center">
                 <div class="flex items-center gap-2 w-full md:w-auto">
-                    <label class="text-[9px] text-cyan-400">LOAD MIDI:</label>
+                    <label class="text-[9px] text-cyan-400">Load midi:</label>
                     <input type="file" id="midi-upload" accept=".mid,.midi" class="text-[9px] w-full md:w-auto">
                 </div>
-                
+                <label class="auto-envelope-toggle text-[9px]">
+                    <input type="checkbox" id="auto-envelope-toggle" checked>
+                    <span>Allow auto to manage attack release</span>
+                </label>
                 <div class="flex items-center gap-2">
-                    <button id="btn-play" class="text-xs px-4 py-2 bg-gray-900">PLAY</button>
-                    <button id="btn-pause" class="text-xs px-4 py-2 bg-gray-900">PAUSE</button>
-                    <button id="btn-stop" class="text-xs px-4 py-2 bg-gray-900">STOP</button>
-                    <button id="btn-export-wav" class="text-xs px-4 py-2 bg-gray-900" disabled>EXPORT WAV</button>
+                    <button id="btn-play" class="text-xs px-4 py-2 bg-gray-900">Play</button>
+                    <button id="btn-pause" class="text-xs px-4 py-2 bg-gray-900">Pause</button>
+                    <button id="btn-stop" class="text-xs px-4 py-2 bg-gray-900">Stop</button>
+                    <button id="btn-export-wav" class="text-xs px-4 py-2 bg-gray-900" disabled>Export wav</button>
+                    <button id="btn-cancel-export" class="text-xs px-4 py-2 bg-gray-900" type="button" hidden>Cancel export</button>
                 </div>
             </div>
 
@@ -93,15 +134,22 @@
                 <!-- Tracks injected here -->
             </div>
             
-            <label class="text-[9px] text-pink-500 text-center mt-2">PIANO ROLL (SCROLLS WITH PLAYBACK)</label>
+            <label class="text-[9px] text-pink-500 text-center mt-2">Piano roll (scrolls with playback)</label>
             <canvas id="piano-roll"></canvas>
             <canvas id="audio-wave" aria-label="Live audio waveform"></canvas>
         </div>
 
         <!-- Instructions -->
-        <div class="flex flex-col md:flex-row justify-between items-center text-[8px] text-gray-400 bg-black/40 p-2 rounded border border-gray-800 px-4 text-center md:text-left gap-2">
-            <span><strong>CLICK/TOUCH KEYS OR USE QWERTY FOR MIDDLE RANGE</strong></span>
-            <span>SCROLL HORIZONTALLY TO SEE ALL 88 KEYS</span>
+        <div class="flex flex-col md:flex-row justify-between items-center text-[8px] text-gray-400 bg-black/40 p-3 rounded border border-gray-800 px-4 text-center md:text-left gap-3">
+            <span><strong>Click/touch keys or use qwerty</strong> · scroll to see all 88 keys</span>
+            <div class="keyboard-range-control">
+                <label for="keyboard-range-slider">Keyboard range <output id="keyboard-range-display" for="keyboard-range-slider">C3–E5</output></label>
+                <div class="keyboard-range-slider">
+                    <span>Low</span>
+                    <input type="range" id="keyboard-range-slider" min="21" max="80" step="1" value="48" aria-label="Keyboard note range" aria-valuetext="C3 to E5">
+                    <span>High</span>
+                </div>
+            </div>
         </div>
 
         <!-- Keyboard Container -->

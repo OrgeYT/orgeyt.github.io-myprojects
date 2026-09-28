@@ -1,3 +1,74 @@
+        function createBitCrushCurve() {
+            const curve = new Float32Array(4096);
+            const levels = Math.pow(2, 5 - 1);
+            for (let i = 0; i < curve.length; i++) {
+                const input = (i * 2) / (curve.length - 1) - 1;
+                curve[i] = Math.round(input * levels) / levels;
+            }
+            return curve;
+        }
+
+        function createReverbImpulse(context) {
+            const length = Math.floor(context.sampleRate * 1.8);
+            const impulse = context.createBuffer(2, length, context.sampleRate);
+            for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+                const samples = impulse.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    const fade = Math.pow(1 - i / length, 3.2);
+                    samples[i] = (Math.random() * 2 - 1) * fade;
+                }
+            }
+            return impulse;
+        }
+
+        function createEffectsGraph(context, input, destination, settings) {
+            const bitCrusherDry = context.createGain();
+            const bitCrusherWet = context.createGain();
+            const bitCrusher = context.createWaveShaper();
+            bitCrusher.curve = createBitCrushCurve();
+            bitCrusher.oversample = 'none';
+
+            const reverbInput = context.createGain();
+            const reverbDry = context.createGain();
+            const convolver = context.createConvolver();
+            const reverbWet = context.createGain();
+            convolver.buffer = createReverbImpulse(context);
+
+            input.connect(bitCrusherDry);
+            bitCrusherDry.connect(reverbInput);
+            input.connect(bitCrusher);
+            bitCrusher.connect(bitCrusherWet);
+            bitCrusherWet.connect(reverbInput);
+
+            reverbInput.connect(reverbDry);
+            reverbDry.connect(destination);
+            reverbInput.connect(convolver);
+            convolver.connect(reverbWet);
+            reverbWet.connect(destination);
+
+            const now = context.currentTime;
+            bitCrusherDry.gain.setValueAtTime(settings.bitCrush ? 0 : 1, now);
+            bitCrusherWet.gain.setValueAtTime(settings.bitCrush ? 1 : 0, now);
+            reverbDry.gain.setValueAtTime(settings.reverb ? 0.82 : 1, now);
+            reverbWet.gain.setValueAtTime(settings.reverb ? 0.32 : 0, now);
+
+            return { bitCrusherDry, bitCrusherWet, reverbDry, reverbWet };
+        }
+
+        function setAudioEffect(effect, enabled) {
+            synthState.effects[effect] = enabled;
+            if (!effectsGraph || !audioCtx) return;
+
+            const now = audioCtx.currentTime;
+            if (effect === 'bitCrush') {
+                effectsGraph.bitCrusherDry.gain.setTargetAtTime(enabled ? 0 : 1, now, 0.015);
+                effectsGraph.bitCrusherWet.gain.setTargetAtTime(enabled ? 1 : 0, now, 0.015);
+            } else if (effect === 'reverb') {
+                effectsGraph.reverbDry.gain.setTargetAtTime(enabled ? 0.82 : 1, now, 0.025);
+                effectsGraph.reverbWet.gain.setTargetAtTime(enabled ? 0.32 : 0, now, 0.025);
+            }
+        }
+
         function initAudio() {
             if (audioCtx) return;
             
@@ -30,7 +101,12 @@
 
             masterGain = audioCtx.createGain();
             masterGain.gain.value = synthState.volume;
-            masterGain.connect(compressor);
+            effectsGraph = createEffectsGraph(
+                audioCtx,
+                masterGain,
+                compressor,
+                synthState.effects
+            );
 
             const dutyCycle = 0.25;
             const terms = 64; 
@@ -79,6 +155,8 @@
             let osc2 = null;
             let osc2Mix = 0.4;
             let detune2 = 0;
+            let osc2Ratio = 1;
+            let filterSettings = null;
 
             switch(instrumentType) {
                 case 'pulse14': osc1.setPeriodicWave(wave14); break;
@@ -112,6 +190,65 @@
                     attack = 0.01; releaseTime = 0.3; decay = 0.6;
                     baseVol *= 0.7; sustainVol = baseVol * 0.2; osc2Mix = 0.25;
                     break;
+                case 'electric_piano':
+                    osc1.type = 'sine';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'triangle';
+                    osc2Ratio = 2;
+                    attack = 0.004; releaseTime = 0.35; decay = 0.22;
+                    baseVol *= 0.75; sustainVol = baseVol * 0.14; osc2Mix = 0.22;
+                    break;
+                case 'bell':
+                    osc1.type = 'sine';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'sine';
+                    osc2Ratio = 2.72;
+                    attack = 0.002; releaseTime = 0.65; decay = 0.32;
+                    baseVol *= 0.75; sustainVol = 0.0001; osc2Mix = 0.28;
+                    break;
+                case 'pluck':
+                    osc1.type = 'sawtooth';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'triangle';
+                    detune2 = 7;
+                    attack = 0.003; releaseTime = 0.22; decay = 0.12;
+                    baseVol *= 0.65; sustainVol = baseVol * 0.04; osc2Mix = 0.22;
+                    filterSettings = { type: 'lowpass', frequency: 2600, endFrequency: 500, decay: 0.16 };
+                    break;
+                case 'brass':
+                    osc1.type = 'sawtooth';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'square';
+                    detune2 = 8;
+                    attack = 0.07; releaseTime = 0.2;
+                    baseVol *= 0.52; sustainVol = baseVol; osc2Mix = 0.25;
+                    filterSettings = { type: 'lowpass', frequency: 1900 };
+                    break;
+                case 'choir':
+                    osc1.type = 'triangle';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'sine';
+                    detune2 = -9;
+                    attack = 0.16; releaseTime = 0.35;
+                    baseVol *= 0.6; sustainVol = baseVol; osc2Mix = 0.32;
+                    break;
+                case 'organ':
+                    osc1.type = 'sine';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'triangle';
+                    osc2Ratio = 2;
+                    attack = 0.012; releaseTime = 0.12;
+                    baseVol *= 0.68; sustainVol = baseVol; osc2Mix = 0.24;
+                    break;
+                case 'bass':
+                    osc1.type = 'square';
+                    osc2 = context.createOscillator();
+                    osc2.type = 'sawtooth';
+                    osc2Ratio = 0.5;
+                    attack = 0.008; releaseTime = 0.16;
+                    baseVol *= 0.58; sustainVol = baseVol; osc2Mix = 0.3;
+                    filterSettings = { type: 'lowpass', frequency: 900 };
+                    break;
                 case 'fat_saw':
                     osc1.type = 'sawtooth';
                     osc2 = context.createOscillator();
@@ -124,20 +261,39 @@
                 default: osc1.type = instrumentType || 'square';
             }
 
+            if (Number.isFinite(options.envelopeAttack)) attack = options.envelopeAttack;
+            if (Number.isFinite(options.envelopeRelease)) releaseTime = options.envelopeRelease;
+
             osc1.frequency.value = freq;
+            let voiceOutput = noteGain;
+            let voiceFilter = null;
+            if (filterSettings) {
+                voiceFilter = context.createBiquadFilter();
+                voiceFilter.type = filterSettings.type;
+                voiceFilter.frequency.setValueAtTime(filterSettings.frequency, startTime);
+                if (filterSettings.endFrequency) {
+                    voiceFilter.frequency.setTargetAtTime(
+                        filterSettings.endFrequency,
+                        startTime + attack,
+                        filterSettings.decay
+                    );
+                }
+                voiceFilter.connect(noteGain);
+                voiceOutput = voiceFilter;
+            }
             if (osc2) {
-                osc2.frequency.value = freq;
+                osc2.frequency.value = freq * osc2Ratio;
                 osc2.detune.value = detune2;
                 const mixGain1 = context.createGain();
                 mixGain1.gain.value = 1 - osc2Mix;
-                osc1.connect(mixGain1); mixGain1.connect(noteGain);
+                osc1.connect(mixGain1); mixGain1.connect(voiceOutput);
                 
                 const mixGain2 = context.createGain();
                 mixGain2.gain.value = osc2Mix;
-                osc2.connect(mixGain2); mixGain2.connect(noteGain);
+                osc2.connect(mixGain2); mixGain2.connect(voiceOutput);
                 osc2.start(startTime);
             } else {
-                osc1.connect(noteGain);
+                osc1.connect(voiceOutput);
             }
             
             osc1.start(startTime);
@@ -149,9 +305,23 @@
 
             const voice = {
                 osc1, osc2, noteGain, releaseTime, released: false,
+                layerVoices: [],
+                setPitchBend: function(semitones, time = context.currentTime) {
+                    const cents = semitones * 100;
+                    [this.osc1, this.osc2].filter(Boolean).forEach((osc, index) => {
+                        const param = osc.detune;
+                        const base = index === 1 ? detune2 : 0;
+                        try {
+                            param.cancelScheduledValues(time);
+                            param.setValueAtTime(base + cents, time);
+                        } catch (e) {}
+                    });
+                    this.layerVoices.forEach(layer => layer.setPitchBend(semitones, time));
+                },
                 stop: function() {
                     if (this.stopped) return;
                     this.stopped = true;
+                    this.layerVoices.forEach(layer => layer.stop());
                     const t = context.currentTime;
                     try {
                         this.noteGain.gain.cancelScheduledValues(t);
@@ -161,6 +331,19 @@
                     try { if (this.osc2) this.osc2.stop(); } catch(e){}
                 }
             };
+            if (synthState.effects.layer && !options.disableLayer) {
+                const baseMidi = Math.round(69 + 12 * Math.log2(freq / 440));
+                const intervals = options.layerIntervals || getLayerIntervalsForMidi(baseMidi);
+                intervals.forEach(interval => {
+                    const layerVoice = createVoice(
+                        freq * Math.pow(2, interval / 12),
+                        instrumentType,
+                        velocity * 0.34,
+                        { ...options, trackActive: false, disableLayer: true }
+                    );
+                    voice.layerVoices.push(layerVoice);
+                });
+            }
             if (trackActive) activeVoicesSet.add(voice);
             return voice;
         }
@@ -175,6 +358,7 @@
                 voice.noteGain.gain.cancelScheduledValues(stopTime);
                 voice.noteGain.gain.setTargetAtTime(0, stopTime, rel / 5);
             } catch(e){}
+            (voice.layerVoices || []).forEach(layer => releaseVoice(layer, delay));
 
             setTimeout(() => {
                 voice.stop();
@@ -333,7 +517,11 @@
             const note = notes.find(n => n.midi === midiNumber);
             if (!note) return;
 
-            const voice = createVoice(note.freq, synthState.instrument);
+            const voice = createVoice(note.freq, synthState.instrument, 1, {
+                layerIntervals: getLayerIntervalsForMidi(midiNumber),
+                envelopeAttack: synthState.attack,
+                envelopeRelease: synthState.release
+            });
             activeNotes[midiNumber] = voice;
             
             const keyEl = document.getElementById(`key-${midiNumber}`);

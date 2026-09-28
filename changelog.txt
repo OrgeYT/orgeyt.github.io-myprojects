@@ -51,3 +51,6 @@ Added Site randomizer button in Buttons menu
 
 [Sunday, September 27]
 Added New project(s)
+
+[Monday, September 28]
+Updated Neon Synth Project

@@ -23,12 +23,24 @@
                 voice.noteGain.gain.setTargetAtTime(0, releaseAt, releaseTime / 5);
                 voice.osc1.stop(releaseAt + releaseTime + 0.3);
                 if (voice.osc2) voice.osc2.stop(releaseAt + releaseTime + 0.3);
+                (voice.layerVoices || []).forEach(layer => {
+                    scheduleExportRelease(layer, context, releaseAt);
+                });
             } catch (error) {
                 console.warn('Could not schedule a MIDI note release.', error);
             }
         }
 
-        async function encodeWav(audioBuffer, onProgress) {
+        let exportInProgress = false;
+        let exportCancellationRequested = false;
+
+        function createExportCancelledError() {
+            const error = new Error('Export cancelled');
+            error.name = 'ExportCancelledError';
+            return error;
+        }
+
+        async function encodeWav(audioBuffer, onProgress, shouldCancel) {
             const channelCount = audioBuffer.numberOfChannels;
             const frameCount = audioBuffer.length;
             const bytesPerSample = 2;
@@ -62,6 +74,7 @@
             );
             const chunkSize = Math.max(1, Math.ceil(frameCount / 16));
             for (let chunkStart = 0; chunkStart < frameCount; chunkStart += chunkSize) {
+                if (shouldCancel()) throw createExportCancelledError();
                 const chunkEnd = Math.min(frameCount, chunkStart + chunkSize);
                 for (let frame = chunkStart; frame < chunkEnd; frame++) {
                     const outputIndex = frame * channelCount;
@@ -81,15 +94,20 @@
 
         function setExportProgress(percent) {
             const button = document.getElementById('btn-export-wav');
-            button.textContent = `RENDER ${percent}%`;
+            button.textContent = `Render ${percent}%`;
         }
 
         async function exportMidiWav() {
             if (!midiData) return;
+            if (!window.confirm('Are you sure you want to export this midi as a wav file?')) return;
 
             const button = document.getElementById('btn-export-wav');
+            const cancelButton = document.getElementById('btn-cancel-export');
             const originalLabel = button.textContent;
+            exportInProgress = true;
+            exportCancellationRequested = false;
             button.disabled = true;
+            cancelButton.hidden = false;
             setExportProgress(0);
 
             try {
@@ -98,7 +116,7 @@
                     (latest, event) => Math.max(latest, event.time + event.duration),
                     0
                 );
-                const renderDuration = Math.max(duration, lastEventEnd) + 1.25;
+                const renderDuration = Math.max(duration, lastEventEnd) + 2.5;
                 const OfflineContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
                 if (!OfflineContext) throw new Error('Offline audio rendering is not supported here.');
 
@@ -123,18 +141,42 @@
                 exportLimiter.ratio.setValueAtTime(20, 0);
                 exportLimiter.attack.setValueAtTime(0.0005, 0);
                 exportLimiter.release.setValueAtTime(0.05, 0);
-                master.connect(exportCompressor);
                 exportCompressor.connect(exportLimiter);
                 exportLimiter.connect(context.destination);
+                createEffectsGraph(context, master, exportCompressor, synthState.effects);
 
                 const pulse14 = createExportPeriodicWave(context, 0.25);
                 const pulse18 = createExportPeriodicWave(context, 0.125);
                 const exportNoise = createExportNoiseBuffer(context);
                 const drumKits = ['drums', 'normal', 'rock', 'vibe', '8bit', 'techno', 'synthwave'];
 
-                playbackEvents.forEach((event) => {
+                const exportEvents = [
+                    ...playbackEvents.map(event => ({ ...event, eventType: 'note' })),
+                    ...pitchBendEvents.map(event => ({ ...event, eventType: 'pitchBend' }))
+                ].sort((a, b) => a.time - b.time || (
+                    a.eventType === b.eventType ? 0 : a.eventType === 'pitchBend' ? -1 : 1
+                ));
+                const bendState = {};
+                const voicesByTrack = {};
+                Object.keys(tracksConfig).forEach(trackId => {
+                    bendState[trackId] = 0;
+                    voicesByTrack[trackId] = [];
+                });
+
+                exportEvents.forEach((event) => {
                     const config = tracksConfig[event.trackId];
                     if (!config || config.muted) return;
+
+                    if (event.eventType === 'pitchBend') {
+                        bendState[event.trackId] = event.value;
+                        const bendTime = event.time;
+                        voicesByTrack[event.trackId].forEach(({ voice, endTime }) => {
+                            if (bendTime < endTime && voice.setPitchBend) {
+                                voice.setPitchBend(event.value, bendTime);
+                            }
+                        });
+                        return;
+                    }
 
                     let instrument = config.instrument;
                     if (instrument === 'auto') instrument = config.autoInstrument;
@@ -157,16 +199,23 @@
                         startTime: event.time,
                         pulseWave14: pulse14,
                         pulseWave18: pulse18,
+                        layerIntervals: getLayerIntervalsForMidi(event.midi),
+                        ...getMidiEnvelopeOptions(config),
                         trackActive: false
                     });
+                    if (voice.setPitchBend) voice.setPitchBend(bendState[event.trackId], event.time);
                     scheduleExportRelease(
                         voice,
                         context,
                         event.time + Math.max(0, event.duration)
                     );
+                    voicesByTrack[event.trackId].push({
+                        voice,
+                        endTime: event.time + Math.max(0, event.duration)
+                    });
                 });
 
-                const checkpointCount = 20;
+                const checkpointCount = Math.min(120, Math.max(20, Math.ceil(renderDuration * 2)));
                 const checkpoints = Array.from({ length: checkpointCount }, (_, index) => {
                     const time = renderDuration * ((index + 1) / (checkpointCount + 1));
                     return context.suspend(time);
@@ -174,28 +223,53 @@
                 const rendering = context.startRendering();
                 for (let index = 0; index < checkpoints.length; index++) {
                     await checkpoints[index];
+                    if (exportCancellationRequested) {
+                        // OfflineAudioContext has no stop method. Resume it so
+                        // the pending render can settle, then discard its result.
+                        rendering.catch(() => {});
+                        context.resume().catch(() => {});
+                        throw createExportCancelledError();
+                    }
                     setExportProgress(Math.floor(((index + 1) / checkpointCount) * 85));
                     await context.resume();
                 }
                 const rendered = await rendering;
+                if (exportCancellationRequested) throw createExportCancelledError();
                 setExportProgress(90);
-                const wav = await encodeWav(rendered, setExportProgress);
+                const wav = await encodeWav(
+                    rendered,
+                    setExportProgress,
+                    () => exportCancellationRequested
+                );
+                if (exportCancellationRequested) throw createExportCancelledError();
                 const objectUrl = URL.createObjectURL(wav);
                 const link = document.createElement('a');
                 link.href = objectUrl;
-                link.download = `${midiFileName || 'MIDI'}-NeonSynth.wav`;
+                link.download = `${midiFileName || 'midi'}-neon-synth.wav`.toLowerCase();
                 document.body.appendChild(link);
                 setExportProgress(100);
                 link.click();
                 link.remove();
                 setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
             } catch (error) {
-                console.error('WAV export failed.', error);
-                alert(`Could not export WAV: ${error.message}`);
+                if (error.name !== 'ExportCancelledError') {
+                    console.error('Wav export failed.', error);
+                    alert(`Could not export wav: ${error.message}`);
+                }
             } finally {
+                exportInProgress = false;
+                exportCancellationRequested = false;
                 button.disabled = false;
                 button.textContent = originalLabel;
+                cancelButton.hidden = true;
+                cancelButton.textContent = 'Cancel export';
             }
         }
 
         document.getElementById('btn-export-wav').addEventListener('click', exportMidiWav);
+        document.getElementById('btn-cancel-export').addEventListener('click', () => {
+            if (!exportInProgress || exportCancellationRequested) return;
+            if (!window.confirm('Are you sure you want to cancel this export?')) return;
+            exportCancellationRequested = true;
+            document.getElementById('btn-cancel-export').textContent = 'Canceling…';
+        });

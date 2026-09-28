@@ -12,8 +12,8 @@ html {
 
 body {
             font-family: 'Sonic Title', monospace;
-            background-color: #050505;
-            color: #0ff;
+            background-color: #160709;
+            color: #f1b4b8;
             overflow-x: hidden;
         }
 
@@ -23,26 +23,26 @@ body {
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(120, 0, 12, 0.02), rgba(255, 40, 55, 0.04));
             background-size: 100% 4px, 6px 100%;
             pointer-events: none;
             z-index: 50;
         }
 
         .synth-body {
-            background: linear-gradient(135deg, #1e1e24 0%, #0d0d12 100%);
-            box-shadow: 0 0 20px #0ff3, inset 0 0 10px #000;
+            background: linear-gradient(135deg, #3b1117 0%, #17080a 100%);
+            box-shadow: 0 0 20px rgba(201, 46, 58, 0.2), inset 0 0 10px #000;
             border: 4px solid #333;
             border-bottom: 8px solid #111;
         }
 
         .retro-text-glow {
-            text-shadow: 0 0 5px #0ff, 0 0 10px #0ff;
+            text-shadow: 0 0 5px #c92e3a, 0 0 10px #c92e3a;
         }
         
         .retro-pink-glow {
-            text-shadow: 0 0 5px #f0f, 0 0 10px #f0f;
-            color: #f0f;
+            text-shadow: 0 0 5px #ff5360, 0 0 10px #ff5360;
+            color: #ff5360;
         }
 
         .keyboard-wrapper {
@@ -52,7 +52,7 @@ body {
             border: 4px solid #222;
             border-radius: 4px;
             scrollbar-width: thin;
-            scrollbar-color: #f0f #222;
+            scrollbar-color: #ff5360 #222;
         }
 
         .keyboard-wrapper::-webkit-scrollbar {
@@ -62,9 +62,41 @@ body {
             background: #222;
         }
         .keyboard-wrapper::-webkit-scrollbar-thumb {
-            background-color: #f0f;
+            background-color: #ff5360;
             border-radius: 6px;
             border: 2px solid #222;
+        }
+
+        .keyboard-range-control {
+            width: min(100%, 360px);
+            text-align: center;
+        }
+
+        .keyboard-range-control > label {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            color: #ff5360;
+            letter-spacing: 0.12em;
+        }
+
+        #keyboard-range-display {
+            color: #c92e3a;
+            letter-spacing: normal;
+        }
+
+        .keyboard-range-slider {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 0.45rem;
+            color: #c92e3a;
+            font-size: 0.65rem;
+        }
+
+        .keyboard-range-slider input {
+            flex: 1;
+            min-width: 0;
         }
 
         .keyboard-container {
@@ -99,16 +131,16 @@ body {
         }
 
         .key-white.active, .key-white.midi-active {
-            background: #0ff;
+            background: #c92e3a;
             color: #000;
             transform: translateY(2px);
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px #0ff;
-            border-color: #0ff;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px #c92e3a;
+            border-color: #c92e3a;
         }
         .key-white.midi-active {
-            background: #f0f; 
-            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px #f0f;
-            border-color: #f0f;
+            background: #ff5360; 
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 0 15px #ff5360;
+            border-color: #ff5360;
         }
 
         .key-black {
@@ -122,32 +154,32 @@ body {
         }
 
         .key-black.active, .key-black.midi-active {
-            background: #f0f;
+            background: #ff5360;
             color: #fff;
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 0 15px #f0f;
-            border-color: #f0f;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 0 15px #ff5360;
+            border-color: #ff5360;
         }
         .key-black.midi-active {
-            background: #0ff;
-            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 0 15px #0ff;
-            border-color: #0ff;
+            background: #c92e3a;
+            box-shadow: inset 0 0 10px rgba(255,255,255,0.4), 0 0 15px #c92e3a;
+            border-color: #c92e3a;
         }
         
         select, input[type=range], input[type=file], button {
             font-family: inherit;
             background: #000;
-            color: #0ff;
-            border: 2px solid #0ff;
+            color: #c92e3a;
+            border: 2px solid #c92e3a;
             padding: 8px;
             outline: none;
-            box-shadow: 0 0 5px #0ff;
+            box-shadow: 0 0 5px #c92e3a;
             cursor: pointer;
             transition: all 0.2s;
         }
         button:hover {
-            background: #0ff;
+            background: #c92e3a;
             color: #000;
-            box-shadow: 0 0 15px #0ff;
+            box-shadow: 0 0 15px #c92e3a;
         }
         button:active {
             transform: scale(0.95);
@@ -158,9 +190,16 @@ body {
             box-shadow: none;
         }
 
+        .effect-toggle[aria-pressed="true"] {
+            background: #ff5360;
+            color: #050505;
+            border-color: #ff5360;
+            box-shadow: 0 0 12px rgba(255, 83, 96, 0.6);
+        }
+
         input[type=file]::file-selector-button {
             font-family: inherit;
-            background: #f0f;
+            background: #ff5360;
             color: #000;
             border: none;
             padding: 4px 8px;
@@ -181,8 +220,8 @@ body {
             -webkit-appearance: none;
             width: 20px;
             height: 32px;
-            background: #f0f;
-            box-shadow: 0 0 8px #f0f;
+            background: #ff5360;
+            box-shadow: 0 0 8px #ff5360;
             cursor: pointer;
             border-radius: 4px;
         }
@@ -194,7 +233,7 @@ body {
             padding: 10px;
             background: rgba(0,0,0,0.5);
             scrollbar-width: thin;
-            scrollbar-color: #0ff #222;
+            scrollbar-color: #c92e3a #222;
         }
 
         .track-row {
@@ -212,7 +251,7 @@ body {
         #piano-roll {
             width: 100%;
             height: 150px;
-            background-color: #0a0a0a;
+            background-color: #160709;
             border: 2px solid #333;
             border-radius: 4px;
             display: block;
@@ -222,9 +261,86 @@ body {
         #audio-wave {
             width: 100%;
             height: 72px;
-            background-color: #080b0b;
-            border: 2px solid #263333;
+            background-color: #160709;
+            border: 2px solid #4a1a20;
             border-radius: 4px;
             display: block;
             margin-top: -10px;
         }
+
+/* Dark red console palette and compact performance controls. */
+.text-pink-500,
+.text-cyan-400 {
+    color: #ff747d !important;
+}
+
+.envelope-slider {
+    display: grid;
+    grid-template-columns: 4.25rem minmax(6rem, 1fr) 3.5rem;
+    align-items: center;
+    gap: 0.7rem;
+    color: #f1b4b8;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    flex: 1;
+}
+
+.envelope-slider output {
+    color: #ff747d;
+    text-align: right;
+    letter-spacing: normal;
+}
+
+.chord-panel summary {
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.chord-panel summary::-webkit-details-marker {
+    display: none;
+}
+
+.chord-panel summary::after {
+    content: ' +';
+    color: #d9a2a6;
+}
+
+.chord-panel[open] summary::after {
+    content: ' −';
+}
+
+.chord-buttons {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(4.2rem, 1fr));
+    gap: 0.55rem;
+}
+
+.chord-button {
+    min-width: 0;
+}
+
+.auto-envelope-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    color: #f1b4b8;
+    cursor: pointer;
+}
+
+.auto-envelope-toggle input {
+    accent-color: #ff5360;
+    width: 1rem;
+    height: 1rem;
+}
+
+@media (max-width: 640px) {
+    .envelope-slider {
+        grid-template-columns: 4rem minmax(5rem, 1fr) 3rem;
+    }
+
+    .auto-envelope-toggle {
+        text-align: center;
+    }
+}

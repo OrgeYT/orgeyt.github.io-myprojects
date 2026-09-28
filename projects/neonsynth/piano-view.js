@@ -20,11 +20,11 @@
             const width = audioWaveCanvas.clientWidth;
             const height = audioWaveCanvas.clientHeight;
             audioWaveCtx.clearRect(0, 0, width, height);
-            audioWaveCtx.fillStyle = '#080b0b';
+            audioWaveCtx.fillStyle = '#160709';
             audioWaveCtx.fillRect(0, 0, width, height);
 
             const centerY = height / 2;
-            audioWaveCtx.strokeStyle = '#183131';
+            audioWaveCtx.strokeStyle = '#4a1a20';
             audioWaveCtx.lineWidth = 1;
             audioWaveCtx.beginPath();
             audioWaveCtx.moveTo(0, centerY);
@@ -33,8 +33,8 @@
 
             if (waveformAnalyser) {
                 waveformAnalyser.getByteTimeDomainData(waveformSamples);
-                audioWaveCtx.strokeStyle = '#00ffff';
-                audioWaveCtx.shadowColor = '#00ffff';
+                audioWaveCtx.strokeStyle = '#ff5360';
+                audioWaveCtx.shadowColor = '#ff5360';
                 audioWaveCtx.shadowBlur = 7;
                 audioWaveCtx.lineWidth = 2;
                 audioWaveCtx.beginPath();
@@ -64,7 +64,7 @@
         });
 
         function drawPianoRollBackground() {
-            ctx.fillStyle = '#0a0a0a';
+            ctx.fillStyle = '#160709';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 1;
@@ -80,7 +80,7 @@
             resizeCanvas(); 
             if (!playbackEvents || playbackEvents.length === 0) return;
 
-            ctx.fillStyle = '#0a0a0a';
+            ctx.fillStyle = '#160709';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             ctx.strokeStyle = '#333';
@@ -97,7 +97,7 @@
             const pixelsPerKey = canvas.height / 88;
             const xOffset = 0.1 * canvas.width; 
 
-            ctx.strokeStyle = '#0ff';
+            ctx.strokeStyle = '#ff5360';
             ctx.lineWidth = 2;
             ctx.beginPath();
             ctx.moveTo(xOffset, 0); ctx.lineTo(xOffset, canvas.height);
@@ -136,11 +136,10 @@
                 if (trackConfig.isDrumTrack) {
                     ctx.fillStyle = '#ff3333';
                 } else {
-                    const hue = (ev.trackId * 40) % 360;
-                    ctx.fillStyle = `hsl(${hue}, 100%, 50%)`;
+                    const lightness = 38 + ((ev.trackId * 9) % 24);
+                    ctx.fillStyle = `hsl(355, 78%, ${lightness}%)`;
                 }
                 
                 ctx.fillRect(x, y, Math.max(width, 2), pixelsPerKey);
             }
         }
-
