@@ -1261,7 +1261,14 @@ const projects = [
         description: "Use a font that i made (with Grok) that looks like the sonic 1 title cards font! This font is free for use",
         tags: ["Tools"],
         archive: false
-    } // Yeah, lets just have some pizza... Also how can i eat this, im literally text!!!
+    }, // Yeah, lets just have some pizza... Also how can i eat this, im literally text!!!
+    {
+        name: "Neon Synth",
+        path: "neonsynth/index.html",
+        description: "Play midi files, export as WAV, play the piano/drums, and so much more! ´∀`",
+        tags: ["Music"],
+        archive: false
+    }, // THE FUCKING SPEAKERS ARE TOO LOUD-
 ];
 
 
