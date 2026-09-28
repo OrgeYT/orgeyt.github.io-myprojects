@@ -1270,6 +1270,13 @@ const projects = [
         tags: ["Music"],
         archive: false
     }, // THE FUCKING SPEAKERS ARE TOO LOUD-
+    {
+        name: "What project is this?",
+        path: "whatprojectisthis/index.html",
+        description: "Guess the project name! Try each project and type what you think it is called.",
+        tags: ["Games"],
+        archive: false
+    }, // can you guess which project is which???
 ];
 
 
@@ -1304,3 +1311,12 @@ function getTagEmojis(project) {
     };
     return project.tags.map(t => map[t] || '').filter(Boolean).join('');
 }
+
+// Expose on window so iframe projects (e.g. What project is this?) can read the list
+try {
+    window.projects = projects;
+    window.featuredProjectNumbers = featuredProjectNumbers;
+    window.galleryItems = galleryItems;
+    window.getTagEmojis = getTagEmojis;
+} catch (_) {}
+

@@ -18,6 +18,11 @@ let pendingCardProject = null; // project object waiting for launch from card
 
 document.getElementById('project-counter').textContent = `Total Projects: ${typeof projects !== 'undefined' ? projects.filter(p => !(p && p.archive)).length : 0}`;
 
+// Ensure list is on window for iframe games (const projects is not a window property by itself)
+try {
+    if (typeof projects !== 'undefined') window.projects = projects;
+} catch (_) {}
+
 // Helpers that work with the normalized object format
 function getProjectName(p) {
     return (typeof p === 'object' && p !== null) ? p.name : p;
@@ -547,14 +552,20 @@ if (searchBar) {
     searchBar.addEventListener('input', applySearchFilter);
 }
 
-// URL project load
+// URL project load — shared ?project= links ask for confirmation (see ui.js)
 const urlParams = new URLSearchParams(window.location.search);
 const projectToLoad = urlParams.get('project');
+window.__orgeytPendingSharedProject = null;
 
 if (projectToLoad && typeof projects !== 'undefined') {
     const foundProject = projects.find(p => getProjectName(p).toLowerCase() === projectToLoad.toLowerCase());
-    if (foundProject) loadProject(foundProject);
-    else loadProject(projects[0]);
+    if (foundProject) {
+        // Remember for the confirm popup; boot with default so menu stays usable
+        window.__orgeytPendingSharedProject = foundProject;
+        loadProject(projects[0]);
+    } else {
+        loadProject(projects[0]);
+    }
 } else {
     loadProject(projects[0]);
 }

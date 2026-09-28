@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What project is this?</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0a14;
+            color: #f5eef8;
+        }
+
+        #start-screen {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            background: radial-gradient(ellipse at center, #1a1028 0%, #0a0610 70%);
+            transition: transform 0.45s ease, opacity 0.45s ease;
+        }
+        #start-screen.playing {
+            inset: auto;
+            top: 12px;
+            left: 12px;
+            right: auto;
+            bottom: 12px;
+            width: min(280px, 34vw);
+            border-radius: 14px;
+            border: 1px solid #5b3a7a;
+            box-shadow: 0 8px 28px rgba(0,0,0,0.45);
+            background: rgba(22, 12, 32, 0.95);
+            opacity: 1;
+            transform: none;
+            align-items: stretch;
+            justify-content: flex-start;
+            padding: 14px;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+        }
+        #start-screen.hidden-gone {
+            display: none;
+        }
+
+        .start-card {
+            text-align: center;
+            padding: 28px 32px;
+            max-width: 420px;
+        }
+        #start-screen.playing .start-card {
+            padding: 0;
+            max-width: none;
+            text-align: left;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex: 1;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 8px;
+            color: #e9b3ff;
+            letter-spacing: 0.02em;
+        }
+        #start-screen.playing h1 {
+            font-size: 1.1rem;
+            margin-bottom: 0;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            color: #b9a0c9;
+            margin-bottom: 18px;
+            line-height: 1.4;
+        }
+        #start-screen.playing .subtitle {
+            display: none;
+        }
+
+        .btn {
+            border: 1px solid #7a4ea0;
+            background: linear-gradient(180deg, #6b3d96 0%, #4a2770 100%);
+            color: #fff;
+            font-weight: 700;
+            font-size: 1rem;
+            padding: 12px 22px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: filter 0.15s, transform 0.12s;
+        }
+        .btn:hover { filter: brightness(1.12); }
+        .btn:active { transform: scale(0.97); }
+        .btn.secondary {
+            background: linear-gradient(180deg, #3a2a4a 0%, #2a1c38 100%);
+            border-color: #5a4068;
+            font-weight: 600;
+        }
+        .btn.danger {
+            background: linear-gradient(180deg, #8b2a3a 0%, #5c1522 100%);
+            border-color: #a04455;
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: none;
+        }
+
+        #play-ui { display: none; flex-direction: column; gap: 10px; flex: 1; }
+        #start-screen.playing #play-ui { display: flex; }
+        #start-screen.playing #start-btn { display: none; }
+
+        .stat-row {
+            font-size: 0.8rem;
+            color: #c9b0d8;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .stat-row strong { color: #f0d6ff; }
+
+        label {
+            font-size: 0.78rem;
+            color: #b9a0c9;
+            display: block;
+            margin-bottom: 4px;
+        }
+        #guess-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #5b3a7a;
+            background: #140c1c;
+            color: #fff;
+            font-size: 0.95rem;
+            font-family: inherit;
+            outline: none;
+        }
+        #guess-input:focus {
+            border-color: #c084fc;
+            box-shadow: 0 0 0 2px rgba(192, 132, 252, 0.25);
+        }
+
+        .btn-row {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .btn-row .btn { width: 100%; }
+
+        #feedback {
+            min-height: 1.3em;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        #feedback.ok { color: #6ee7a8; }
+        #feedback.bad { color: #fca5a5; }
+        #feedback.hint { color: #fde68a; }
+
+        #done-screen {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            text-align: center;
+        }
+        #start-screen.playing.finished #play-ui { display: none; }
+        #start-screen.playing.finished #done-screen { display: flex; }
+
+        #runner-wrap {
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: #000;
+        }
+        #runner-wrap.blurred {
+            filter: blur(2px) brightness(0.55);
+            pointer-events: none;
+        }
+        #runner {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #111;
+        }
+
+        #hint-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.25s;
+        }
+        #hint-overlay.show { opacity: 1; }
+        #hint-overlay span {
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+        }
+
+        @media (max-width: 640px) {
+            #start-screen.playing {
+                width: min(100% - 16px, 100%);
+                max-height: 42vh;
+                bottom: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="runner-wrap" class="blurred">
+        <iframe id="runner" title="Mystery project" src="about:blank"></iframe>
+    </div>
+    <div id="hint-overlay"><span></span></div>
+
+    <div id="start-screen">
+        <div class="start-card">
+            <h1>What project is this?</h1>
+            <p class="subtitle">
+                A mystery project loads. Try it out, then guess its name.
+                Skip if you are stuck. Clear all of them to win!
+            </p>
+            <button type="button" class="btn" id="start-btn">Start</button>
+
+            <div id="play-ui">
+                <div class="stat-row">
+                    <span>Progress: <strong id="progress-label">0 / 0</strong></span>
+                    <span>Score: <strong id="score-label">0</strong></span>
+                </div>
+                <div>
+                    <label for="guess-input">Guess the project name</label>
+                    <input type="text" id="guess-input" placeholder="Type the name…" autocomplete="off" spellcheck="false">
+                </div>
+                <div id="feedback"></div>
+                <div class="btn-row">
+                    <button type="button" class="btn" id="submit-btn">Submit guess</button>
+                    <button type="button" class="btn secondary" id="skip-btn">Skip</button>
+                    <button type="button" class="btn danger" id="end-btn">End game</button>
+                </div>
+            </div>
+
+            <div id="done-screen">
+                <h1>Awesome!</h1>
+                <p class="subtitle" style="display:block; margin:0;">You finished every project in the pool.</p>
+                <p style="font-size:0.9rem; color:#c9b0d8;">Final score: <strong id="final-score">0</strong></p>
+                <button type="button" class="btn" id="play-again-btn">Play again</button>
+                <button type="button" class="btn secondary" id="done-end-btn">Back to menu</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+(function () {
+    const SELF_NAME = 'what project is this?';
+    const startScreen = document.getElementById('start-screen');
+    const startBtn = document.getElementById('start-btn');
+    const runner = document.getElementById('runner');
+    const runnerWrap = document.getElementById('runner-wrap');
+    const guessInput = document.getElementById('guess-input');
+    const submitBtn = document.getElementById('submit-btn');
+    const skipBtn = document.getElementById('skip-btn');
+    const endBtn = document.getElementById('end-btn');
+    const progressLabel = document.getElementById('progress-label');
+    const scoreLabel = document.getElementById('score-label');
+    const feedback = document.getElementById('feedback');
+    const finalScoreEl = document.getElementById('final-score');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const doneEndBtn = document.getElementById('done-end-btn');
+    const hintOverlay = document.getElementById('hint-overlay');
+
+    let pool = [];
+    let remaining = [];
+    let current = null;
+    let score = 0;
+    let answered = 0;
+    let playing = false;
+
+    function parentWin() {
+        try { return window.parent && window.parent !== window ? window.parent : null; }
+        catch (_) { return null; }
+    }
+
+    function getProjectList() {
+        const p = parentWin();
+        if (!p) return [];
+        try {
+            // lists.js exposes window.projects (const alone is not on window)
+            if (Array.isArray(p.projects) && p.projects.length) return p.projects;
+            if (Array.isArray(p.projects)) return p.projects;
+        } catch (_) {}
+        return [];
+    }
+
+    function getName(proj) {
+        const p = parentWin();
+        if (p && typeof p.getProjectName === 'function') return p.getProjectName(proj);
+        return (proj && proj.name) ? String(proj.name) : String(proj || '');
+    }
+
+    function isArchived(proj) {
+        const p = parentWin();
+        if (p && typeof p.isProjectArchived === 'function') return p.isProjectArchived(proj);
+        return !!(proj && proj.archive === true);
+    }
+
+    function resolvePath(proj) {
+        const p = parentWin();
+        if (p && typeof p.resolveProjectRunnerPath === 'function') {
+            return p.resolveProjectRunnerPath(proj);
+        }
+        if (proj && proj.path) return proj.path;
+        const name = getName(proj);
+        return 'projects/html_' + name + '.html';
+    }
+
+    function toLoadableUrl(path) {
+        if (!path) return 'about:blank';
+        if (/^https?:\/\//i.test(path) || path.startsWith('data:')) return path;
+        // Resolve against site root (parent page), not this nested folder
+        const p = parentWin();
+        try {
+            if (p && p.location) {
+                const base = String(p.location.href).split('?')[0].split('#')[0];
+                // strip trailing filename if any
+                const root = base.replace(/\/[^/]*$/, '/');
+                return new URL(path.replace(/^\//, ''), root).href;
+            }
+        } catch (_) {}
+        // Fallback: go up from projects/whatprojectisthis/
+        return '../' + path.replace(/^projects\//, '');
+    }
+
+    function buildPool() {
+        const list = getProjectList().filter(proj => {
+            if (isArchived(proj)) return false;
+            const n = getName(proj).toLowerCase();
+            if (n === SELF_NAME) return false;
+            return true;
+        });
+        // Shuffle
+        for (let i = list.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const t = list[i]; list[i] = list[j]; list[j] = t;
+        }
+        return list;
+    }
+
+    function setFeedback(text, kind) {
+        feedback.textContent = text || '';
+        feedback.className = kind || '';
+    }
+
+    function updateStats() {
+        const total = pool.length;
+        progressLabel.textContent = answered + ' / ' + total;
+        scoreLabel.textContent = String(score);
+    }
+
+    function loadCurrent() {
+        if (!current) {
+            runner.src = 'about:blank';
+            return;
+        }
+        const path = resolvePath(current);
+        const url = toLoadableUrl(path);
+        runner.src = url;
+        setFeedback('', '');
+        guessInput.value = '';
+        guessInput.focus();
+    }
+
+    function nextProject() {
+        if (remaining.length === 0) {
+            finishGame();
+            return;
+        }
+        current = remaining.shift();
+        loadCurrent();
+        updateStats();
+    }
+
+    /** Soft normalize: lowercase, collapse spaces */
+    function normalize(s) {
+        return String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    }
+
+    /** Hard normalize: only letters/numbers (so "OrgeYT & Brad Wordle" → "orgeytbradwordle") */
+    function normalizeKey(s) {
+        return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    }
+
+    /** Simple Levenshtein distance */
+    function editDistance(a, b) {
+        const m = a.length, n = b.length;
+        if (m === 0) return n;
+        if (n === 0) return m;
+        const row = new Array(n + 1);
+        for (let j = 0; j <= n; j++) row[j] = j;
+        for (let i = 1; i <= m; i++) {
+            let prev = row[0];
+            row[0] = i;
+            for (let j = 1; j <= n; j++) {
+                const tmp = row[j];
+                const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + cost);
+                prev = tmp;
+            }
+        }
+        return row[n];
+    }
+
+    /**
+     * Accept exact, punctuation-stripped, partial, and close-typo matches.
+     * Examples that should pass for list name "orgeytbradwordle":
+     *   "OrgeYT & Brad Wordle", "orgeyt brad wordle", "orgeytbradwordle"
+     */
+    function isCloseEnough(guessRaw, answerRaw) {
+        const g = normalize(guessRaw);
+        const a = normalize(answerRaw);
+        if (!g || !a) return false;
+        if (g === a) return true;
+
+        const gk = normalizeKey(guessRaw);
+        const ak = normalizeKey(answerRaw);
+        if (!gk || !ak) return false;
+        if (gk === ak) return true;
+
+        // One contains the other (min length so short junk doesn't match)
+        const minPartial = 6;
+        if (gk.length >= minPartial && ak.length >= minPartial) {
+            if (gk.includes(ak) || ak.includes(gk)) return true;
+        }
+
+        // Allow a few typos relative to length
+        const maxLen = Math.max(gk.length, ak.length);
+        if (maxLen >= 5) {
+            const dist = editDistance(gk, ak);
+            const allowed = maxLen <= 8 ? 1 : Math.max(1, Math.floor(maxLen * 0.2));
+            if (dist <= allowed) return true;
+        }
+
+        return false;
+    }
+
+    function checkGuess() {
+        if (!playing || !current) return;
+        const rawGuess = guessInput.value;
+        if (!normalize(rawGuess)) {
+            setFeedback('Type a name first.', 'hint');
+            return;
+        }
+        const answerName = getName(current);
+        if (isCloseEnough(rawGuess, answerName)) {
+            score++;
+            answered++;
+            setFeedback('Correct! → ' + answerName, 'ok');
+            updateStats();
+            setTimeout(() => nextProject(), 700);
+        } else {
+            setFeedback('Nope — try again or skip.', 'bad');
+        }
+    }
+
+    function skipCurrent() {
+        if (!playing || !current) return;
+        answered++;
+        setFeedback('Skipped. It was: ' + getName(current), 'hint');
+        updateStats();
+        setTimeout(() => nextProject(), 900);
+    }
+
+    function finishGame() {
+        playing = false;
+        current = null;
+        runner.src = 'about:blank';
+        runnerWrap.classList.add('blurred');
+        startScreen.classList.add('finished');
+        finalScoreEl.textContent = score + ' / ' + pool.length;
+        setFeedback('', '');
+    }
+
+    function endGameToMenu() {
+        playing = false;
+        current = null;
+        runner.src = 'about:blank';
+        const p = parentWin();
+        try {
+            if (p && typeof p.openSidebar === 'function') p.openSidebar();
+        } catch (_) {}
+        // Reset to start card so reopening the project is clean
+        startScreen.classList.remove('playing', 'finished');
+        runnerWrap.classList.add('blurred');
+        setFeedback('', '');
+        guessInput.value = '';
+    }
+
+    function startGame() {
+        pool = buildPool();
+        if (pool.length === 0) {
+            // Retry once in case parent list was not exposed yet
+            const p = parentWin();
+            try {
+                if (p && typeof p.projects === 'undefined' && typeof projects !== 'undefined') {
+                    // no-op: we are in iframe, local projects won't exist
+                }
+                if (p && !p.projects && p.document) {
+                    // Force parent to re-assign if lists.js already ran
+                    /* empty */
+                }
+            } catch (_) {}
+            pool = buildPool();
+        }
+        if (pool.length === 0) {
+            setFeedback('No projects available to guess.', 'bad');
+            const p = parentWin();
+            let detail = 'Could not load the project list.';
+            try {
+                if (!p) detail += ' (no parent window)';
+                else if (!p.projects) detail += ' Parent is missing window.projects — update lists.js / projects.js so the list is exposed.';
+                else if (Array.isArray(p.projects) && p.projects.length === 0) detail += ' Parent list is empty.';
+                else detail += ' Open this game from the site menu (not a new tab).';
+            } catch (e) {
+                detail += ' (cross-origin blocked)';
+            }
+            alert(detail);
+            return;
+        }
+        remaining = pool.slice();
+        score = 0;
+        answered = 0;
+        playing = true;
+        startScreen.classList.add('playing');
+        startScreen.classList.remove('finished');
+        runnerWrap.classList.remove('blurred');
+        updateStats();
+        nextProject();
+    }
+
+    startBtn.addEventListener('click', startGame);
+    submitBtn.addEventListener('click', checkGuess);
+    skipBtn.addEventListener('click', skipCurrent);
+    endBtn.addEventListener('click', endGameToMenu);
+    doneEndBtn.addEventListener('click', endGameToMenu);
+    playAgainBtn.addEventListener('click', () => {
+        startScreen.classList.remove('finished');
+        startGame();
+    });
+    guessInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            checkGuess();
+        }
+    });
+})();
+    </script>
+</body>
+</html>

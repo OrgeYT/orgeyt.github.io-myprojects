@@ -1649,11 +1649,56 @@ function initMenuAndWelcomeOnLoad() {
         setTimeout(openWelcomeModal, 150);
     }
 
-    // After first paint / welcome delay, allow resume prompt and enable menu clear behavior
+    // After first paint / welcome delay, allow shared-link + resume prompts
     setTimeout(() => {
-        maybeOfferResume();
+        // Shared ?project= links take priority over crash-resume
+        if (window.__orgeytPendingSharedProject) {
+            maybeOfferSharedProject();
+        } else {
+            maybeOfferResume();
+        }
         sidebarUserGesture = true;
     }, shouldShowWelcomeOnLoad() ? 400 : 200);
+}
+
+/** Confirm launching a project from a shared ?project= URL */
+function maybeOfferSharedProject() {
+    const found = window.__orgeytPendingSharedProject;
+    if (!found) return;
+
+    // Clear resume pending so it does not stack after this
+    try { clearResumePending(); } catch (_) {}
+
+    const modal = document.getElementById('shared-project-modal');
+    const nameEl = document.getElementById('shared-project-name');
+    const displayName = typeof getProjectName === 'function' ? getProjectName(found) : (found.name || 'Unknown');
+    if (nameEl) nameEl.textContent = displayName;
+    if (!modal) return;
+    modal.classList.remove('hidden');
+
+    const yesBtn = document.getElementById('shared-project-yes-btn');
+    const noBtn = document.getElementById('shared-project-no-btn');
+
+    const cleanup = () => {
+        modal.classList.add('hidden');
+        window.__orgeytPendingSharedProject = null;
+        if (yesBtn) yesBtn.onclick = null;
+        if (noBtn) noBtn.onclick = null;
+    };
+
+    if (yesBtn) {
+        yesBtn.onclick = () => {
+            cleanup();
+            if (typeof loadProject === 'function') loadProject(found);
+            if (typeof closeSidebar === 'function') closeSidebar();
+        };
+    }
+    if (noBtn) {
+        noBtn.onclick = () => {
+            // Keep home menu open; default project already loaded
+            cleanup();
+        };
+    }
 }
 
 function maybeOfferResume() {

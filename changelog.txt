@@ -54,3 +54,5 @@ Added New project(s)
 
 [Monday, September 28]
 Updated Neon Synth Project
+Shared project links (?project=) now ask before launching
+Added What project is this? — guess the project name game

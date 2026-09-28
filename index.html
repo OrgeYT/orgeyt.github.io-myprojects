@@ -444,6 +444,20 @@
         </div>
     </div>
 
+    <!-- Shared ?project= link confirmation -->
+    <div id="shared-project-modal" class="modal hidden">
+        <div class="modal-content" style="width: 380px;">
+            <h3>Shared project link</h3>
+            <p style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 8px;">You clicked a link leading to this project:</p>
+            <p id="shared-project-name" style="font-weight: bold; margin-bottom: 14px; text-align: center; font-size: 1.05rem;"></p>
+            <p style="font-size: 0.85rem; color: var(--text-accent); margin-bottom: 14px; text-align: center;">Would you like to launch this project?</p>
+            <div style="display: flex; gap: 8px;">
+                <button id="shared-project-yes-btn" class="modal-btn" style="flex: 1; padding: 10px; font-weight: bold;">Yes, launch</button>
+                <button id="shared-project-no-btn" class="modal-btn" style="flex: 1; padding: 10px;">No thanks</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Changelog Modal -->
     <div id="changelog-modal" class="modal hidden">
         <div class="modal-content" style="width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
