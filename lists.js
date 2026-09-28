@@ -25,14 +25,15 @@
 // Example: [1, 143] features project //1 (fnftools) and //143 (CursorHub).
 // ==========================================
 const featuredProjectNumbers = [
-    163,
-    144,
-    162,
-    159,
     105,
-    169,
+    144,
+    159,
+    162,
+    163,
     167,
-];
+    169,
+    170,
+]; // Sorted from least to greatest
 
 // ==========================================
 // --- Projects ---
