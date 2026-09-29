@@ -57,3 +57,6 @@ Updated Neon Synth Project
 Shared project links (?project=) now ask before launching
 Added What project is this? — guess the project name game
 Updated SonicTitle Font project with new symbols
+
+[Tuesday, September 29]
+Added New "AI Judge Game" Project.
