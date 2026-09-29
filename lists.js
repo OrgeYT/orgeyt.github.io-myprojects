@@ -33,6 +33,7 @@ const featuredProjectNumbers = [
     167,
     169,
     170,
+    172,
 ]; // Sorted from least to greatest
 
 // ==========================================
@@ -1276,7 +1277,14 @@ const projects = [
         description: "Guess the project name! Try each project and type what you think it is called.",
         tags: ["Games"],
         archive: false
-    }, // can you guess which project is which???
+    }, // can you guess which project is which??? Grok, no i cant dude, trust me i can't (i can). Btw little story ends here.
+    {
+        name: "AI Judge Game",
+        path: "https://ai-judge-game--orgeyt.on.websim.com/",
+        description: "Answer a question, your opponent does the same, and an AI judges you.",
+        tags: ["Games", "Simulations"],
+        archive: false
+    } // Bro, the judge just told me to fuck off, wtf is wrong with the AI?? (Joke)
 ];
 
 
