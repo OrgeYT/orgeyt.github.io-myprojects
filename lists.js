@@ -1280,7 +1280,7 @@ const projects = [
     }, // can you guess which project is which??? Grok, no i cant dude, trust me i can't (i can). Btw little story ends here.
     {
         name: "AI Judge Game",
-        path: "https://ai-judge-game--orgeyt.on.websim.com/",
+        path: "https://ai-judge-game-2--orgeyt.on.websim.com/", // Websim accidentally unlinked my account with my project, i fixed it
         description: "Answer a question, your opponent does the same, and an AI judges you.",
         tags: ["Games", "Simulations"],
         archive: false
