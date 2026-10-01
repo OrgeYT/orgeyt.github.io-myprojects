@@ -1284,7 +1284,13 @@ const projects = [
         description: "Answer a question, your opponent does the same, and an AI judges you.",
         tags: ["Games", "Simulations"],
         archive: false
-    } // Bro, the judge just told me to fuck off, wtf is wrong with the AI?? (Joke)
+    }, // Bro, the judge just told me to fuck off, wtf is wrong with the AI?? (Joke)
+    {
+        name: "Midi octave converter",
+        description: "Add octives to and bottom to a midi file.",
+        tags: ["Tools", "Music"],
+        archive: false
+    } // Awesome.
 ];
 
 
