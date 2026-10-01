@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIDI Octave Layer Converter</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a22;
+    --border: #2a2a35;
+    --text: #e8e8f0;
+    --muted: #8888a0;
+    --accent: #6c5ce7;
+    --accent-hover: #7d6ff0;
+    --success: #00b894;
+    --danger: #ff7675;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+  }
+  h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.02em;
+  }
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 520px;
+    margin-bottom: 1.25rem;
+  }
+  .card h2 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 2.2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.08);
+  }
+  .drop-zone.has-file {
+    border-color: var(--success);
+    border-style: solid;
+  }
+  .drop-zone p { color: var(--muted); font-size: 0.95rem; }
+  .drop-zone .filename {
+    color: var(--success);
+    font-weight: 600;
+    margin-top: 0.5rem;
+    word-break: break-all;
+  }
+  input[type="file"] { display: none; }
+  .levels {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .level-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .level-option:hover { border-color: var(--accent); }
+  .level-option.selected {
+    border-color: var(--accent);
+    background: rgba(108, 92, 231, 0.12);
+  }
+  .level-option input { accent-color: var(--accent); width: 18px; height: 18px; }
+  .level-option .label { font-weight: 500; }
+  .level-option .desc { font-size: 0.8rem; color: var(--muted); margin-top: 0.15rem; }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 0.9rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+  .btn-primary:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .status {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    text-align: center;
+    min-height: 1.4em;
+  }
+  .status.ok { color: var(--success); }
+  .status.err { color: var(--danger); }
+  .info {
+    font-size: 0.8rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .info code {
+    background: var(--bg);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.85em;
+  }
+</style>
+</head>
+<body>
+  <h1>MIDI Octave Layer Converter</h1>
+  <p class="subtitle">Add octave layers above &amp; below every note</p>
+
+  <div class="card">
+    <h2>1 · Load MIDI</h2>
+    <div class="drop-zone" id="dropZone">
+      <p>Drop a .mid / .midi file here<br>or click to browse</p>
+      <div class="filename" id="fileName"></div>
+    </div>
+    <input type="file" id="fileInput" accept=".mid,.midi,audio/midi,audio/x-midi">
+  </div>
+
+  <div class="card">
+    <h2>2 · Layer Level</h2>
+    <div class="levels">
+      <label class="level-option selected" data-level="0">
+        <input type="radio" name="level" value="0" checked>
+        <div>
+          <div class="label">Level 0 — Original</div>
+          <div class="desc">No extra layers (same as input)</div>
+        </div>
+      </label>
+      <label class="level-option" data-level="1">
+        <input type="radio" name="level" value="1">
+        <div>
+          <div class="label">Level 1 — ±1 Octave</div>
+          <div class="desc">Original + 1 octave up + 1 octave down (example output)</div>
+        </div>
+      </label>
+      <label class="level-option" data-level="2">
+        <input type="radio" name="level" value="2">
+        <div>
+          <div class="label">Level 2 — ±2 Octaves</div>
+          <div class="desc">Original + 2 octaves up + 2 octaves down (5 notes per input note)</div>
+        </div>
+      </label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>3 · Convert &amp; Download</h2>
+    <button class="btn btn-primary" id="convertBtn" disabled>Convert &amp; Download</button>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="card">
+    <p class="info">
+      How it works: every note event is duplicated at ±12 × level semitones.
+      Notes that would fall outside MIDI range (0–127) are skipped.
+      Tempo, time signature, track names and other meta events are preserved.
+    </p>
+  </div>
+
+<script>
+/* ─── Minimal MIDI parser / writer ─── */
+
+function parseMidi(buffer) {
+  const view = new DataView(buffer);
+  let pos = 0;
+
+  function readStr(n) {
+    let s = '';
+    for (let i = 0; i < n; i++) s += String.fromCharCode(view.getUint8(pos++));
+    return s;
+  }
+  function readU16() { const v = view.getUint16(pos); pos += 2; return v; }
+  function readU32() { const v = view.getUint32(pos); pos += 4; return v; }
+  function readVarLen() {
+    let v = 0;
+    while (true) {
+      const b = view.getUint8(pos++);
+      v = (v << 7) | (b & 0x7f);
+      if (!(b & 0x80)) break;
+    }
+    return v;
+  }
+
+  if (readStr(4) !== 'MThd') throw new Error('Not a MIDI file (missing MThd)');
+  const headerLen = readU32();
+  const format = readU16();
+  const numTracks = readU16();
+  const division = readU16();
+  // skip remaining header bytes if any
+  pos = 8 + headerLen;
+
+  const tracks = [];
+  for (let t = 0; t < numTracks; t++) {
+    if (readStr(4) !== 'MTrk') throw new Error('Missing MTrk');
+    const trackLen = readU32();
+    const trackEnd = pos + trackLen;
+    const events = [];
+    let runningStatus = 0;
+
+    while (pos < trackEnd) {
+      const delta = readVarLen();
+      let status = view.getUint8(pos);
+      if (status & 0x80) {
+        pos++;
+        runningStatus = status;
+      } else {
+        status = runningStatus;
+      }
+
+      const event = { delta, status, data: [] };
+
+      if (status === 0xff) { // meta
+        const type = view.getUint8(pos++);
+        const len = readVarLen();
+        const data = new Uint8Array(buffer, pos, len);
+        pos += len;
+        event.meta = true;
+        event.metaType = type;
+        event.data = data;
+      } else if (status === 0xf0 || status === 0xf7) { // sysex
+        const len = readVarLen();
+        const data = new Uint8Array(buffer, pos, len);
+        pos += len;
+        event.sysex = true;
+        event.data = data;
+      } else {
+        const cmd = status & 0xf0;
+        let dataLen = 2;
+        if (cmd === 0xc0 || cmd === 0xd0) dataLen = 1;
+        for (let i = 0; i < dataLen; i++) event.data.push(view.getUint8(pos++));
+      }
+      events.push(event);
+    }
+    tracks.push(events);
+  }
+  return { format, division, tracks };
+}
+
+function writeVarLen(value) {
+  const bytes = [];
+  bytes.push(value & 0x7f);
+  value >>= 7;
+  while (value > 0) {
+    bytes.push((value & 0x7f) | 0x80);
+    value >>= 7;
+  }
+  return bytes.reverse();
+}
+
+function writeMidi(midi) {
+  const parts = [];
+
+  // Header
+  const header = new Uint8Array(14);
+  const hv = new DataView(header.buffer);
+  header.set([0x4d, 0x54, 0x68, 0x64]); // MThd
+  hv.setUint32(4, 6);
+  hv.setUint16(8, midi.format);
+  hv.setUint16(10, midi.tracks.length);
+  hv.setUint16(12, midi.division);
+  parts.push(header);
+
+  for (const events of midi.tracks) {
+    const trackBytes = [];
+    let runningStatus = -1;
+
+    for (const ev of events) {
+      trackBytes.push(...writeVarLen(ev.delta));
+
+      if (ev.meta) {
+        trackBytes.push(0xff, ev.metaType);
+        trackBytes.push(...writeVarLen(ev.data.length));
+        trackBytes.push(...ev.data);
+        runningStatus = -1;
+      } else if (ev.sysex) {
+        trackBytes.push(ev.status);
+        trackBytes.push(...writeVarLen(ev.data.length));
+        trackBytes.push(...ev.data);
+        runningStatus = -1;
+      } else {
+        // Use running status when possible
+        if (ev.status !== runningStatus) {
+          trackBytes.push(ev.status);
+          runningStatus = ev.status;
+        }
+        trackBytes.push(...ev.data);
+      }
+    }
+
+    const trackHeader = new Uint8Array(8);
+    const tv = new DataView(trackHeader.buffer);
+    trackHeader.set([0x4d, 0x54, 0x72, 0x6b]); // MTrk
+    tv.setUint32(4, trackBytes.length);
+    parts.push(trackHeader);
+    parts.push(new Uint8Array(trackBytes));
+  }
+
+  // Concatenate
+  const total = parts.reduce((s, p) => s + p.length, 0);
+  const out = new Uint8Array(total);
+  let o = 0;
+  for (const p of parts) { out.set(p, o); o += p.length; }
+  return out;
+}
+
+/* ─── Conversion logic ─── */
+
+function convert(midi, level) {
+  // For each track, expand note_on / note_off events
+  const newTracks = midi.tracks.map(events => {
+    const result = [];
+    for (const ev of events) {
+      const cmd = ev.status & 0xf0;
+      // note on (0x90) or note off (0x80)
+      if (!ev.meta && !ev.sysex && (cmd === 0x90 || cmd === 0x80)) {
+        const note = ev.data[0];
+        const vel  = ev.data[1];
+        const channel = ev.status & 0x0f;
+
+        // Build list of notes: original ± k*12 for k = 0..level
+        const notesToAdd = [];
+        for (let k = -level; k <= level; k++) {
+          const n = note + k * 12;
+          if (n >= 0 && n <= 127) notesToAdd.push(n);
+        }
+
+        // First note keeps the original delta; subsequent notes get delta 0
+        let first = true;
+        for (const n of notesToAdd) {
+          result.push({
+            delta: first ? ev.delta : 0,
+            status: ev.status,
+            data: [n, vel]
+          });
+          first = false;
+        }
+      } else {
+        // Pass through everything else unchanged
+        result.push(ev);
+      }
+    }
+    return result;
+  });
+
+  return {
+    format: midi.format,
+    division: midi.division,
+    tracks: newTracks
+  };
+}
+
+/* ─── UI ─── */
+
+const dropZone   = document.getElementById('dropZone');
+const fileInput  = document.getElementById('fileInput');
+const fileNameEl = document.getElementById('fileName');
+const convertBtn = document.getElementById('convertBtn');
+const statusEl   = document.getElementById('status');
+
+let loadedBuffer = null;
+let loadedName   = '';
+
+function setFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    loadedBuffer = reader.result;
+    loadedName   = file.name;
+    fileNameEl.textContent = file.name;
+    dropZone.classList.add('has-file');
+    convertBtn.disabled = false;
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+  };
+  reader.onerror = () => {
+    statusEl.textContent = 'Failed to read file.';
+    statusEl.className = 'status err';
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => setFile(e.target.files[0]));
+
+dropZone.addEventListener('dragover', e => {
+  e.preventDefault();
+  dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file);
+});
+
+// Level selection
+document.querySelectorAll('.level-option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('.level-option').forEach(o => o.classList.remove('selected'));
+    opt.classList.add('selected');
+    opt.querySelector('input').checked = true;
+  });
+});
+
+convertBtn.addEventListener('click', () => {
+  if (!loadedBuffer) return;
+  try {
+    const level = parseInt(document.querySelector('input[name="level"]:checked').value, 10);
+    const midi  = parseMidi(loadedBuffer);
+    const out   = convert(midi, level);
+    const bytes = writeMidi(out);
+
+    const blob = new Blob([bytes], { type: 'audio/midi' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const base = loadedName.replace(/\.(mid|midi)$/i, '');
+    a.href     = url;
+    a.download = `${base}_level${level}.mid`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    statusEl.textContent = `Downloaded ${a.download}`;
+    statusEl.className = 'status ok';
+  } catch (err) {
+    statusEl.textContent = 'Error: ' + err.message;
+    statusEl.className = 'status err';
+    console.error(err);
+  }
+});
+</script>
+</body>
+</html>
