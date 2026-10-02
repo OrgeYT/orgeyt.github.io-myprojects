@@ -64,3 +64,6 @@ Added New "AI Judge Game" Project.
 [Wednesday, September 30]
 Added New home menu song. (Go check it out!)
 Added New project
+
+[Friday, October 2]
+Added New project

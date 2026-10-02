@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=0">
+<title>Heroic Ants — Patched</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: #0f0f0f; color: #e8e8e8;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center;
+  }
+  h1 { font-size: 1.15rem; margin: 6px 0 2px; text-align: center; flex-shrink: 0; }
+  .controls {
+    max-width: 960px; width: 96%;
+    padding: 8px 12px; background: #1a1a1a;
+    border-radius: 10px; margin: 4px 8px;
+    border: 1px solid #333; font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+  .row {
+    display: flex; align-items: center; gap: 10px; margin: 5px 0; flex-wrap: wrap;
+  }
+  .row label { min-width: 120px; }
+  input[type=checkbox] { width: 18px; height: 18px; accent-color: #4caf50; }
+  button.ui {
+    background: #1565c0; color: #fff; border: none;
+    padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+  }
+  button.ui:hover { background: #1976d2; }
+  #page-wrap {
+    width: 96%;
+    max-width: 1100px;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 4px auto 8px;
+  }
+  #holder {
+    /* Keep 3:2 aspect (game is 600x400) but large on screen */
+    width: min(100%, 1100px);
+    aspect-ratio: 3 / 2;
+    max-height: calc(100vh - 180px);
+    background: #000;
+    border: 2px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+  }
+  #holder > div,
+  #holder canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
+  }
+  .note {
+    font-size: 0.72rem; opacity: 0.65; text-align: center;
+    max-width: 800px; margin: 0 8px 8px; line-height: 1.3; flex-shrink: 0;
+  }
+  .status { color: #8bc34a; font-size: 0.8rem; }
+  #binInfo { font-size: 0.72rem; color: #ffb74d; }
+
+  body.fs-mode {
+    background: #000;
+    overflow: hidden;
+  }
+  body.fs-mode h1,
+  body.fs-mode .controls,
+  body.fs-mode .note {
+    display: none !important;
+  }
+  body.fs-mode #page-wrap {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+  }
+  body.fs-mode #holder {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    aspect-ratio: auto;
+    border: none;
+    border-radius: 0;
+  }
+  #fsFab {
+    position: fixed;
+    bottom: 14px;
+    right: 14px;
+    z-index: 10000;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(21,101,192,0.85);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  #fsFab:hover { background: #1976d2; }
+</style>
+</head>
+<body>
+<h1>Heroic Ants — Patched</h1>
+
+<div class="controls">
+  <div class="row">
+    <label>🍃 Allow Leaves</label>
+    <input type="checkbox" id="leaves">
+    <span class="status" id="leafStatus">…</span>
+    <span id="binInfo"></span>
+  </div>
+  <div class="row">
+    <button type="button" class="ui" id="fsToggle">⛶ Fullscreen</button>
+  </div>
+  <div style="margin-top:4px;font-size:0.78rem;opacity:0.8">
+    Infinite wings &amp; morning dew • only goodies • denser • large display • 999 throws
+  </div>
+</div>
+
+<div id="page-wrap">
+  <div id="holder"></div>
+</div>
+
+<button type="button" id="fsFab" title="Fullscreen">⛶</button>
+
+<p class="note">
+  Game view is centered and scaled to fill the large canvas.<br>
+  Wings / dew never run out. Esc exits fullscreen.
+</p>
+
+<script>
+const leavesEnabled = localStorage.getItem('ha_leaves') !== '0';
+const leavesCb = document.getElementById('leaves');
+const leafStatus = document.getElementById('leafStatus');
+const binInfo = document.getElementById('binInfo');
+leavesCb.checked = leavesEnabled;
+leafStatus.textContent = leavesEnabled ? 'ON' : 'OFF';
+
+const targetBin = leavesEnabled ? '__.bin' : '__noleaf.bin';
+binInfo.textContent = '(loading ' + targetBin + ')';
+
+leavesCb.addEventListener('change', function() {
+  localStorage.setItem('ha_leaves', this.checked ? '1' : '0');
+  leafStatus.textContent = 'Reloading…';
+  location.reload();
+});
+
+const origOpen = XMLHttpRequest.prototype.open;
+XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+  if (typeof url === 'string' && /__\.bin(\?|$)/.test(url) && url.indexOf('noleaf') === -1) {
+    url = url.replace('__.bin', targetBin);
+    binInfo.textContent = '(using ' + targetBin + ')';
+  }
+  return origOpen.call(this, method, url, ...rest);
+};
+if (window.fetch) {
+  const origFetch = window.fetch;
+  window.fetch = function(input, init) {
+    let url = typeof input === 'string' ? input : (input && input.url);
+    if (url && /__\.bin(\?|$)/.test(url) && url.indexOf('noleaf') === -1) {
+      url = url.replace('__.bin', targetBin);
+      if (typeof input === 'string') input = url;
+      else input = new Request(url, input);
+    }
+    return origFetch.call(this, input, init);
+  };
+}
+
+let fsOn = false;
+function setFs(on) {
+  fsOn = on;
+  document.body.classList.toggle('fs-mode', on);
+  document.getElementById('fsToggle').textContent = on ? '⛶ Exit Fullscreen' : '⛶ Fullscreen';
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      window.dispatchEvent(new Event('resize'));
+    });
+  });
+}
+function toggleFs() { setFs(!fsOn); }
+document.getElementById('fsToggle').onclick = toggleFs;
+document.getElementById('fsFab').onclick = toggleFs;
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && fsOn) setFs(false);
+});
+</script>
+<script src="heroicants5/js/heroicants.js"></script>
+<script>
+// Ensure holder has real pixel size before init so centering math is correct
+const holder = document.getElementById('holder');
+function sizeHolder() {
+  // force layout
+  void holder.offsetWidth;
+}
+sizeHolder();
+
+nogic.initialize(holder, {
+  test_id: 42879,
+  allowRunLocally: true
+});
+
+// After init, fire resize once so scale/center is applied to current box
+requestAnimationFrame(function() {
+  window.dispatchEvent(new Event('resize'));
+});
+</script>
+</body>
+</html>

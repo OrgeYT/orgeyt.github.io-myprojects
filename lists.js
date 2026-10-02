@@ -34,6 +34,7 @@ const featuredProjectNumbers = [
     169,
     170,
     172,
+    174,
 ]; // Sorted from least to greatest
 
 // ==========================================
@@ -1290,7 +1291,14 @@ const projects = [
         description: "Add octives to and bottom to a midi file.",
         tags: ["Tools", "Music"],
         archive: false
-    } // Awesome.
+    }, // Awesome.
+    {
+        name: "Heroic Ants - Cheats",
+        path: "heroic-ants/index.html",
+        description: "Heroic Ants, a game that i like at school, but me and Grok decided to hack it >:D",
+        tags: ["Games"],
+        archive: false
+    } // Ant became god, but how?
 ];
 
 
