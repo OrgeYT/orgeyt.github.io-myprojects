@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIDI Track → Text Exporter</title>
+<style>
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  min-height:100vh;
+  background:#111;
+  color:#eee;
+  font-family:Arial,sans-serif;
+  display:flex;
+  justify-content:center;
+  padding:30px 15px
+}
+
+.app{
+  width:min(900px,100%);
+  background:#1b1b1b;
+  border:1px solid #333;
+  border-radius:16px;
+  padding:25px;
+  box-shadow:0 15px 45px #0008
+}
+
+h1{
+  margin:0 0 8px
+}
+
+p{
+  color:#aaa
+}
+
+.drop{
+  border:2px dashed #555;
+  border-radius:12px;
+  padding:30px;
+  text-align:center;
+  margin:20px 0
+}
+
+.drop.drag{
+  background:#222;
+  border-color:#aaa
+}
+
+input[type=file]{
+  display:none
+}
+
+label,button,select{
+  background:#292929;
+  color:#eee;
+  border:1px solid #444;
+  border-radius:8px;
+  padding:11px 14px;
+  font-size:15px
+}
+
+label,button{
+  cursor:pointer
+}
+
+button:hover,label:hover{
+  background:#333
+}
+
+button:disabled,select:disabled{
+  opacity:.45;
+  cursor:not-allowed
+}
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:12px;
+  align-items:end
+}
+
+label[for=track]{
+  display:block;
+  background:none;
+  border:0;
+  padding:0;
+  margin-bottom:7px;
+  color:#bbb;
+  font-size:13px
+}
+
+select{
+  width:100%
+}
+
+.status{
+  padding:12px;
+  background:#151515;
+  border:1px solid #303030;
+  border-radius:9px;
+  margin-bottom:15px;
+  color:#aaa
+}
+
+.error{
+  color:#ff8888
+}
+
+.success{
+  color:#9be7a4
+}
+
+textarea{
+  width:100%;
+  min-height:400px;
+  margin-top:20px;
+  resize:vertical;
+  background:#0d0d0d;
+  color:#ddd;
+  border:1px solid #333;
+  border-radius:10px;
+  padding:14px;
+  font:13px/1.5 Consolas,monospace
+}
+
+@media(max-width:650px){
+  .controls{
+    grid-template-columns:1fr
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h1>MIDI Track → Text</h1>
+
+<p>
+Upload a MIDI file, choose a track, and export a cleaned-up
+text representation containing notes, pauses, double notes,
+slides, and BPM.
+</p>
+
+<div class="drop" id="drop">
+
+<label for="file">Choose MIDI File</label>
+
+<input
+  id="file"
+  type="file"
+  accept=".mid,.midi"
+>
+
+<div style="margin-top:10px;color:#888">
+or drag & drop a MIDI file here
+</div>
+
+</div>
+
+<div class="status" id="status">
+No MIDI loaded.
+</div>
+
+<div class="controls">
+
+<div>
+
+<label for="track">
+Track
+</label>
+
+<select id="track" disabled></select>
+
+</div>
+
+<button id="export" disabled>
+Export TXT
+</button>
+
+</div>
+
+<textarea
+  id="preview"
+  readonly
+  placeholder="Export preview will appear here..."
+></textarea>
+
+</div>
+
+<script>
+
+"use strict";
+
+const fileInput =
+  document.getElementById("file");
+
+const drop =
+  document.getElementById("drop");
+
+const statusBox =
+  document.getElementById("status");
+
+const trackSelect =
+  document.getElementById("track");
+
+const exportBtn =
+  document.getElementById("export");
+
+const preview =
+  document.getElementById("preview");
+
+let midi = null;
+let currentTrack = null;
+
+
+/* =========================
+   FILE HANDLING
+========================= */
+
+fileInput.addEventListener("change", e => {
+
+  if(e.target.files[0]){
+    loadMIDI(e.target.files[0]);
+  }
+
+});
+
+
+drop.addEventListener("dragover", e => {
+
+  e.preventDefault();
+
+  drop.classList.add("drag");
+
+});
+
+
+drop.addEventListener("dragleave", () => {
+
+  drop.classList.remove("drag");
+
+});
+
+
+drop.addEventListener("drop", e => {
+
+  e.preventDefault();
+
+  drop.classList.remove("drag");
+
+  const file =
+    [...e.dataTransfer.files]
+      .find(f => /\.(mid|midi)$/i.test(f.name));
+
+  if(file){
+    loadMIDI(file);
+  }
+
+});
+
+
+trackSelect.addEventListener("change", () => {
+
+  if(!midi) return;
+
+  currentTrack =
+    midi.tracks[
+      Number(trackSelect.value)
+    ];
+
+  preview.value =
+    createText(currentTrack,midi);
+
+});
+
+
+exportBtn.addEventListener("click", () => {
+
+  if(!midi || !currentTrack) return;
+
+  const text =
+    createText(currentTrack,midi);
+
+  let filename =
+    currentTrack.name || "track";
+
+  filename =
+    filename.replace(
+      /[<>:"/\\|?*]/g,
+      "_"
+    );
+
+  const blob =
+    new Blob(
+      [text],
+      {
+        type:"text/plain;charset=utf-8"
+      }
+    );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
+  a.href = url;
+  a.download = filename + ".txt";
+
+  document.body.appendChild(a);
+
+  a.click();
+
+  a.remove();
+
+  setTimeout(
+    () => URL.revokeObjectURL(url),
+    1000
+  );
+
+});
+
+
+async function loadMIDI(file){
+
+  try{
+
+    statusBox.className =
+      "status";
+
+    statusBox.textContent =
+      "Loading " + file.name + "...";
+
+    const buffer =
+      await file.arrayBuffer();
+
+    midi =
+      parseMIDI(
+        new Uint8Array(buffer)
+      );
+
+    trackSelect.innerHTML = "";
+
+    midi.tracks.forEach(
+      (track,index) => {
+
+        const option =
+          document.createElement("option");
+
+        option.value = index;
+
+        option.textContent =
+          `${index + 1}. ${
+            track.name ||
+            "Track " + (index + 1)
+          } (${track.notes.length} notes)`;
+
+        trackSelect.appendChild(option);
+
+      }
+    );
+
+    trackSelect.disabled =
+      midi.tracks.length === 0;
+
+    exportBtn.disabled =
+      midi.tracks.length === 0;
+
+    if(midi.tracks.length){
+
+      currentTrack =
+        midi.tracks[0];
+
+      preview.value =
+        createText(
+          currentTrack,
+          midi
+        );
+
+      const bpm =
+        midi.tempoEvents.length
+          ? midi.tempoEvents[0].bpm
+          : 120;
+
+      statusBox.className =
+        "status success";
+
+      statusBox.textContent =
+        `${file.name} loaded — ` +
+        `${midi.tracks.length} track(s) — ` +
+        `BPM: ${formatBPM(bpm)}`;
+
+    }
+
+  }catch(error){
+
+    statusBox.className =
+      "status error";
+
+    statusBox.textContent =
+      "Could not read MIDI: " +
+      error.message;
+
+    trackSelect.disabled = true;
+    exportBtn.disabled = true;
+
+    preview.value = "";
+
+  }
+
+}
+
+
+/* =========================
+   MIDI PARSER
+========================= */
+
+function parseMIDI(data){
+
+  let pos = 0;
+
+  function u8(){
+    return data[pos++];
+  }
+
+  function u16(){
+    return (u8()<<8)|u8();
+  }
+
+  function u32(){
+
+    return (
+      (u8()<<24) |
+      (u8()<<16) |
+      (u8()<<8) |
+      u8()
+    ) >>> 0;
+
+  }
+
+  function str(length){
+
+    let result = "";
+
+    for(let i=0;i<length;i++){
+      result +=
+        String.fromCharCode(u8());
+    }
+
+    return result;
+
+  }
+
+  function vlq(){
+
+    let value = 0;
+    let byte;
+
+    do{
+
+      byte = u8();
+
+      value =
+        (value<<7) |
+        (byte & 127);
+
+    }while(byte & 128);
+
+    return value;
+
+  }
+
+
+  if(str(4)!=="MThd"){
+    throw new Error(
+      "Invalid MIDI header."
+    );
+  }
+
+
+  const headerLength = u32();
+
+  const format = u16();
+
+  const trackCount = u16();
+
+  const division = u16();
+
+
+  if(headerLength>6){
+    pos += headerLength-6;
+  }
+
+
+  const ppqn =
+    division & 0x8000
+      ? 480
+      : division;
+
+
+  const tracks = [];
+
+  const allTempoEvents = [];
+
+
+  for(
+    let trackIndex=0;
+    trackIndex<trackCount;
+    trackIndex++
+  ){
+
+    if(str(4)!=="MTrk"){
+      throw new Error(
+        "Invalid MIDI track."
+      );
+    }
+
+
+    const length = u32();
+
+    const end =
+      pos + length;
+
+
+    let tick = 0;
+
+    let runningStatus = null;
+
+    let name = "";
+
+
+    const events = [];
+
+    const tempoEvents = [];
+
+
+    while(pos<end){
+
+      tick += vlq();
+
+
+      let status = u8();
+
+
+      /*
+       * Running status
+       */
+
+      if(status<0x80){
+
+        pos--;
+
+        status =
+          runningStatus;
+
+      }else if(status<0xF0){
+
+        runningStatus =
+          status;
+
+      }
+
+
+      /*
+       * META EVENTS
+       */
+
+      if(status===0xFF){
+
+        const type = u8();
+
+        const length = vlq();
+
+
+        if(type===0x03){
+
+          name =
+            new TextDecoder().decode(
+              data.slice(
+                pos,
+                pos+length
+              )
+            );
+
+        }
+
+
+        if(type===0x51 && length===3){
+
+          const micros =
+            (data[pos]<<16) |
+            (data[pos+1]<<8) |
+            data[pos+2];
+
+
+          const bpm =
+            60000000/micros;
+
+
+          const tempo = {
+            tick,
+            micros,
+            bpm
+          };
+
+
+          tempoEvents.push(
+            tempo
+          );
+
+          allTempoEvents.push(
+            tempo
+          );
+
+        }
+
+
+        pos += length;
+
+
+      }else if(
+        status===0xF0 ||
+        status===0xF7
+      ){
+
+        /*
+         * SysEx
+         */
+
+        pos += vlq();
+
+
+      }else{
+
+        const type =
+          status & 0xF0;
+
+        const channel =
+          status & 15;
+
+
+        /*
+         * NOTE ON / OFF
+         */
+
+        if(
+          type===0x80 ||
+          type===0x90
+        ){
+
+          const note = u8();
+
+          const velocity = u8();
+
+
+          if(
+            type===0x90 &&
+            velocity>0
+          ){
+
+            events.push({
+
+              type:"on",
+
+              tick,
+
+              note,
+
+              velocity,
+
+              channel
+
+            });
+
+          }else{
+
+            events.push({
+
+              type:"off",
+
+              tick,
+
+              note,
+
+              velocity,
+
+              channel
+
+            });
+
+          }
+
+
+        /*
+         * PITCH BEND
+         */
+
+        }else if(type===0xE0){
+
+          const low = u8();
+
+          const high = u8();
+
+
+          const bend =
+            ((high<<7)|low)-8192;
+
+
+          events.push({
+
+            type:"bend",
+
+            tick,
+
+            bend,
+
+            channel
+
+          });
+
+
+        }else if(
+          type===0xB0 ||
+          type===0xA0
+        ){
+
+          u8();
+          u8();
+
+
+        }else if(
+          type===0xC0 ||
+          type===0xD0
+        ){
+
+          u8();
+
+        }
+
+      }
+
+    }
+
+
+    pos = end;
+
+
+    tracks.push({
+
+      name,
+
+      events,
+
+      tempoEvents,
+
+      notes:[]
+
+    });
+
+  }
+
+
+  allTempoEvents.sort(
+    (a,b)=>a.tick-b.tick
+  );
+
+
+  if(!allTempoEvents.length){
+
+    allTempoEvents.push({
+
+      tick:0,
+
+      micros:500000,
+
+      bpm:120
+
+    });
+
+  }
+
+
+  makeNotes(tracks);
+
+
+  return {
+
+    format,
+
+    ppqn,
+
+    tracks,
+
+    tempoEvents:
+      allTempoEvents
+
+  };
+
+}
+
+
+/* =========================
+   NOTE CONSTRUCTION
+========================= */
+
+function makeNotes(tracks){
+
+  for(const track of tracks){
+
+    const active = new Map();
+
+    const notes = [];
+
+
+    for(const event of track.events){
+
+      /*
+       * NOTE ON
+       */
+
+      if(event.type==="on"){
+
+        const key =
+          event.channel +
+          ":" +
+          event.note;
+
+
+        if(!active.has(key)){
+          active.set(key,[]);
+        }
+
+
+        active
+          .get(key)
+          .push(event);
+
+
+      /*
+       * NOTE OFF
+       */
+
+      }else if(event.type==="off"){
+
+        const key =
+          event.channel +
+          ":" +
+          event.note;
+
+
+        const list =
+          active.get(key);
+
+
+        if(list && list.length){
+
+          const start =
+            list.shift();
+
+
+          notes.push({
+
+            start:start.tick,
+
+            end:event.tick,
+
+            note:start.note,
+
+            channel:start.channel,
+
+            bends:[]
+
+          });
+
+        }
+
+      }
+
+    }
+
+
+    /*
+     * Find the final tick.
+     */
+
+    let lastTick = 0;
+
+    for(const event of track.events){
+
+      lastTick =
+        Math.max(
+          lastTick,
+          event.tick
+        );
+
+    }
+
+
+    /*
+     * Handle notes without
+     * a note-off.
+     */
+
+    for(
+      const list of active.values()
+    ){
+
+      for(const start of list){
+
+        notes.push({
+
+          start:start.tick,
+
+          end:lastTick,
+
+          note:start.note,
+
+          channel:start.channel,
+
+          bends:[]
+
+        });
+
+      }
+
+    }
+
+
+    /*
+     * IMPORTANT:
+     *
+     * ANY pitch bend during a note
+     * counts as a slide.
+     *
+     * There is intentionally NO
+     * threshold here.
+     */
+
+    for(const event of track.events){
+
+      if(event.type!=="bend"){
+        continue;
+      }
+
+
+      for(const note of notes){
+
+        if(
+          note.channel === event.channel &&
+          event.tick >= note.start &&
+          event.tick <= note.end
+        ){
+
+          note.bends.push(event);
+
+        }
+
+      }
+
+    }
+
+
+    notes.sort(
+      (a,b)=>
+        a.start-b.start ||
+        a.note-b.note
+    );
+
+
+    track.notes = notes;
+
+  }
+
+}
+
+
+/* =========================
+   TEXT EXPORT
+========================= */
+
+function createText(track,midi){
+
+  const notes =
+    track.notes;
+
+
+  if(!notes.length){
+
+    return (
+      "No notes found in this track."
+    );
+
+  }
+
+
+  const lines = [];
+
+
+  const bpm =
+    midi.tempoEvents.length
+      ? midi.tempoEvents[0].bpm
+      : 120;
+
+
+  lines.push(
+    "MIDI TRACK EXPORT"
+  );
+
+  lines.push(
+    "================="
+  );
+
+  lines.push(
+    "Track: " +
+    (track.name || "Unnamed Track")
+  );
+
+  lines.push(
+    "Notes: " +
+    notes.length
+  );
+
+  lines.push(
+    "PPQN: " +
+    midi.ppqn
+  );
+
+  lines.push(
+    "BPM: " +
+    formatBPM(bpm)
+  );
+
+  lines.push("");
+
+
+  /*
+   * Group simultaneous notes.
+   */
+
+  const groups = [];
+
+
+  for(const note of notes){
+
+    let group =
+      groups.find(
+        g => g.tick === note.start
+      );
+
+
+    if(!group){
+
+      group = {
+
+        tick:note.start,
+
+        notes:[]
+
+      };
+
+      groups.push(group);
+
+    }
+
+
+    group.notes.push(note);
+
+  }
+
+
+  groups.sort(
+    (a,b)=>
+      a.tick-b.tick
+  );
+
+
+  let previousEnd = 0;
+
+
+  for(const group of groups){
+
+    /*
+     * PAUSE
+     */
+
+    if(group.tick>previousEnd){
+
+      const pause =
+        tickDurationToSeconds(
+          previousEnd,
+          group.tick,
+          midi
+        );
+
+
+      if(pause>=0.03){
+
+        lines.push(
+
+          `[${formatTime(
+            tickToSeconds(
+              group.tick,
+              midi
+            )
+          )}] PAUSE ` +
+          `${formatDuration(pause)}`
+
+        );
+
+      }
+
+    }
+
+
+    const time =
+      tickToSeconds(
+        group.tick,
+        midi
+      );
+
+
+    const prefix =
+      `[${formatTime(time)}]`;
+
+
+    const groupNotes =
+      group.notes.sort(
+        (a,b)=>
+          a.note-b.note
+      );
+
+
+    /*
+     * DOUBLE / MULTIPLE NOTE
+     */
+
+    if(groupNotes.length>=2){
+
+      const names =
+        groupNotes
+          .map(
+            n=>noteName(n.note)
+          )
+          .join(" + ");
+
+
+      lines.push(
+        `${prefix} DOUBLE NOTE: ${names}`
+      );
+
+
+      /*
+       * Show slides belonging
+       * to simultaneous notes.
+       */
+
+      for(
+        const note of groupNotes
+      ){
+
+        if(note.bends.length){
+
+          lines.push(
+
+            `${prefix}   SLIDE: ` +
+            `${noteName(note.note)} → ` +
+            `${slideTarget(note)}`
+
+          );
+
+        }
+
+      }
+
+
+    /*
+     * SINGLE NOTE
+     */
+
+    }else{
+
+      const note =
+        groupNotes[0];
+
+
+      let line =
+        `${prefix} NOTE ` +
+        `${noteName(note.note)}`;
+
+
+      /*
+       * ANY bend = slide.
+       */
+
+      if(note.bends.length){
+
+        line +=
+          ` — SLIDE → ` +
+          `${slideTarget(note)}`;
+
+      }
+
+
+      lines.push(line);
+
+    }
+
+
+    for(
+      const note of groupNotes
+    ){
+
+      previousEnd =
+        Math.max(
+          previousEnd,
+          note.end
+        );
+
+    }
+
+  }
+
+
+  lines.push("");
+
+  lines.push(
+    "END OF TRACK"
+  );
+
+
+  return lines.join("\n");
+
+}
+
+
+/* =========================
+   SLIDE CALCULATION
+========================= */
+
+function slideTarget(note){
+
+  /*
+   * Use the final pitch bend
+   * encountered during the note.
+   *
+   * Standard MIDI pitch bend
+   * range is assumed to be ±2
+   * semitones.
+   */
+
+  const bend =
+    note.bends[
+      note.bends.length-1
+    ].bend;
+
+
+  const semitones =
+    bend / 8192 * 2;
+
+
+  const target =
+    note.note + semitones;
+
+
+  return midiFloatName(target);
+
+}
+
+
+function midiFloatName(number){
+
+  const rounded =
+    Math.round(
+      number*100
+    )/100;
+
+
+  const base =
+    Math.floor(rounded);
+
+
+  const cents =
+    Math.round(
+      (rounded-base)*100
+    );
+
+
+  let result =
+    noteName(base);
+
+
+  if(cents>0){
+
+    result +=
+      ` (+${cents} cents)`;
+
+  }else if(cents<0){
+
+    result +=
+      ` (${cents} cents)`;
+
+  }
+
+
+  return result;
+
+}
+
+
+/* =========================
+   TIMING
+========================= */
+
+function tickToSeconds(
+  tick,
+  midi
+){
+
+  const tempos =
+    midi.tempoEvents.length
+      ? midi.tempoEvents
+      : [{
+          tick:0,
+          micros:500000,
+          bpm:120
+        }];
+
+
+  let seconds = 0;
+
+  let previousTick = 0;
+
+  let micros = 500000;
+
+
+  for(const tempo of tempos){
+
+    if(tempo.tick>tick){
+      break;
+    }
+
+
+    if(
+      tempo.tick >
+      previousTick
+    ){
+
+      seconds +=
+
+        (
+          (tempo.tick -
+          previousTick) /
+          midi.ppqn
+        ) *
+
+        (
+          micros /
+          1000000
+        );
+
+
+      previousTick =
+        tempo.tick;
+
+    }
+
+
+    micros =
+      tempo.micros;
+
+  }
+
+
+  if(tick>previousTick){
+
+    seconds +=
+
+      (
+        (tick -
+        previousTick) /
+        midi.ppqn
+      ) *
+
+      (
+        micros /
+        1000000
+      );
+
+  }
+
+
+  return seconds;
+
+}
+
+
+function tickDurationToSeconds(
+  startTick,
+  endTick,
+  midi
+){
+
+  if(endTick<=startTick){
+    return 0;
+  }
+
+
+  return (
+
+    tickToSeconds(
+      endTick,
+      midi
+    ) -
+
+    tickToSeconds(
+      startTick,
+      midi
+    )
+
+  );
+
+}
+
+
+/* =========================
+   FORMATTING
+========================= */
+
+function noteName(number){
+
+  const names = [
+
+    "C","C#","D","D#",
+    "E","F","F#","G",
+    "G#","A","A#","B"
+
+  ];
+
+
+  const octave =
+    Math.floor(number/12)-1;
+
+
+  return (
+
+    names[
+      ((number%12)+12)%12
+    ] +
+
+    octave
+
+  );
+
+}
+
+
+function formatBPM(bpm){
+
+  if(!Number.isFinite(bpm)){
+    return "120";
+  }
+
+
+  if(
+    Math.abs(
+      bpm-Math.round(bpm)
+    )<0.001
+  ){
+
+    return String(
+      Math.round(bpm)
+    );
+
+  }
+
+
+  return bpm.toFixed(2);
+
+}
+
+
+function formatTime(seconds){
+
+  return (
+    seconds.toFixed(3) +
+    "s"
+  );
+
+}
+
+
+function formatDuration(seconds){
+
+  if(seconds<0.001){
+    return "0s";
+  }
+
+
+  return (
+    seconds.toFixed(3) +
+    "s"
+  );
+
+}
+
+</script>
+
+</body>
+</html>
