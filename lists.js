@@ -1294,11 +1294,17 @@ const projects = [
     }, // Awesome.
     {
         name: "Heroic Ants - Cheats",
-        path: "heroic-ants/index.html",
-        description: "Heroic Ants, a game that i like at school, but me and Grok decided to hack it >:D (Note: recommended that you download the project and run it with localhost, it crashes instantly if you try to run it here.)",
+        path: "heroic-ants",
+        description: "Heroic Ants, a game that i like at school, but me and Grok decided to hack it >:D",
         tags: ["Games"],
         archive: false
-    } // Ant became god, but how?
+    }, // Ant became god, but how?
+    {
+        name: "midi to text",
+        description: "Convert midi files to text format (So AIs can see your melodies.)",
+        tags: ["Tools"],
+        archive: false
+    } // peak
 ];
 
 
