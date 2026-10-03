@@ -1295,7 +1295,7 @@ const projects = [
     {
         name: "Heroic Ants - Cheats",
         path: "heroic-ants",
-        description: "Heroic Ants, a game that i like at school, but me and Grok decided to hack it >:D",
+        description: "Heroic Ants, a game that i like at school, but me and Grok decided to hack it >:D (Running this alone through localhost is recommended, the game instantly crashes (and crashes OrgeYT's HTML Projects) if ran without localhost)",
         tags: ["Games"],
         archive: false
     }, // Ant became god, but how?
