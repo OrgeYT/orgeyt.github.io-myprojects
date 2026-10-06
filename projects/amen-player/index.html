@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Amen Break MIDI Player</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>Amen Break MIDI Player</h1>
+      <p class="subtitle">21-slice amen · note wrap · one-shot · spam-proof</p>
+    </header>
+
+    <section class="controls">
+      <div class="control-group">
+        <label class="file-btn">
+          Load MIDI
+          <input type="file" id="midiInput" accept=".mid,.midi" />
+        </label>
+        <button id="loadDeathByAmenBtn" type="button">Death by Amen</button>
+        <button id="loadAmenDeathBtn" type="button">Amen Death</button>
+        <button id="playBtn" disabled>Play</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <span id="status">Loading samples…</span>
+      </div>
+      <div class="control-group">
+        <label>Volume <input type="range" id="volSlider" min="0" max="1" step="0.01" value="0.7" /></label>
+        <label class="check"><input type="checkbox" id="keyboardToggle" /> Keyboard play</label>
+        <label class="check"><input type="checkbox" id="interruptToggle" /> Interrupt mode</label>
+        <label class="check"><input type="checkbox" id="endOnNoteOff" checked /> End when note ends</label>
+        <span id="timeDisplay">0:00 / 0:00</span>
+      </div>
+      <div class="control-group">
+        <button type="button" id="exportWavBtn" class="small-btn" disabled>Export WAV</button>
+        <button type="button" id="exportWebmBtn" class="small-btn" disabled>Export WebM</button>
+        <span id="exportStatus" class="conv-status"></span>
+      </div>
+    </section>
+
+    <section class="preview">
+      <div class="preview-header">
+        <h2>Markers <span class="hint">(orange = active)</span></h2>
+        <div class="nps-readout">
+          <span id="totalNps" class="total-nps">0 NPS</span>
+          <span id="maxNps" class="max-nps">MAX 0</span>
+          <button type="button" id="resetMaxNps" class="small-btn" title="Reset max NPS">Reset max</button>
+        </div>
+      </div>
+      <div id="markerList" class="marker-strip"></div>
+      <p id="keyboardLegend" class="kb-legend hidden">Keys: <code>A S D F G H J K L ; '</code> then <code>Z X C V B N M , . /</code> → slices 1–21</p>
+    </section>
+
+    <section class="pianoroll-section">
+      <div class="preview-header">
+        <h2>Piano roll</h2>
+        <span id="seekTimeLabel" class="seek-time">0:00</span>
+      </div>
+      <div class="seek-row">
+        <input type="range" id="seekBar" min="0" max="1000" value="0" step="1" />
+      </div>
+      <div class="pianoroll-wrap">
+        <canvas id="pianoRoll" width="900" height="220"></canvas>
+      </div>
+    </section>
+
+    <section class="converter">
+      <h2>Spam Converter</h2>
+      <p class="conv-desc">
+        Write a melody, or upload a MIDI. Notes are spammed at a rate based on frequency.
+        Enable pitch-mapped mode to place each note on the correct amen slice by pitch.
+        Double-note and slide use consecutive notes from the melody / uploaded MIDI.
+      </p>
+
+      <div class="conv-row">
+        <label>BPM <input type="number" id="convBpm" value="120" min="1" max="999" step="1" /></label>
+        <label class="check"><input type="checkbox" id="convPitchMap" checked /> Pitch-mapped spam</label>
+        <label id="fixedSliceLabel">Fixed slice
+          <input type="number" id="convFixedSlice" value="1" min="1" max="21" step="1" />
+        </label>
+        <label class="check"><input type="checkbox" id="convDouble" /> Double note</label>
+        <label class="check"><input type="checkbox" id="convSlide" /> Slide</label>
+        <label class="check"><input type="checkbox" id="convLegacyRate" /> Legacy half-rate</label>
+      </div>
+
+      <div class="conv-row">
+        <label class="file-btn file-btn-sm">
+          Upload MIDI to convert
+          <input type="file" id="convMidiInput" accept=".mid,.midi" />
+        </label>
+        <span id="convMidiName" class="conv-status"></span>
+      </div>
+
+      <div class="conv-examples">
+        <button type="button" id="exScale" class="small-btn">Scale</button>
+        <button type="button" id="exArp" class="small-btn">Arpeggio</button>
+        <button type="button" id="exMario" class="small-btn">Mario</button>
+      </div>
+
+      <textarea id="melodyInput" rows="8" placeholder="C4 0.5&#10;D4 0.5&#10;E4 0.5&#10;…"></textarea>
+
+      <div class="conv-actions">
+        <button type="button" id="convertBtn">Convert</button>
+        <button type="button" id="downloadConvBtn" disabled>Download MIDI</button>
+        <button type="button" id="loadConvBtn" disabled>Load into amen player</button>
+        <span id="convStatus" class="conv-status"></span>
+      </div>
+    </section>
+
+    <footer>
+      <p>Notes wrap around the 21 slices (high ↔ low). Held notes play one-shot (no loop). Drop any MIDI to play.</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

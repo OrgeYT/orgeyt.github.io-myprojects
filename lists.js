@@ -1304,7 +1304,13 @@ const projects = [
         description: "Convert midi files to text format (So AIs can see your melodies.)",
         tags: ["Tools"],
         archive: false
-    } // peak
+    }, // peak
+    {
+        name: "Amen Break midi player",
+        description: "Play midis but with amen break",
+        tags: ["Music"],
+        archive: false
+    } // bom bom ka kitk a kit ka kit bom boma k esije uhfeshg ve ohr shjuriusgujviujgujiggoujvouijguijd
 ];
 
 
