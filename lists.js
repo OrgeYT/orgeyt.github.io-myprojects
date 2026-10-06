@@ -1311,7 +1311,14 @@ const projects = [
         description: "Play midis but with amen break",
         tags: ["Music"],
         archive: false
-    } // bom bom ka kitk a kit ka kit bom boma k esije uhfeshg ve ohr shjuriusgujviujgujiggoujvouijguijd
+    }, // bom bom ka kitk a kit ka kit bom boma k esije uhfeshg ve ohr shjuriusgujviujgujiggoujvouijguijd
+    {
+        name: "Prism AI",
+        path: "https://prism--orgeyt.on.websim.com/",
+        description: "Pretty cool AI",
+        tags: ["Simulation", "Tools"],
+        archive: false
+    } // Can make full midi files btw (WHAT)
 ];
 
 
