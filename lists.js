@@ -1307,6 +1307,7 @@ const projects = [
     }, // peak
     {
         name: "Amen Break midi player",
+        path: "amen-player",
         description: "Play midis but with amen break",
         tags: ["Music"],
         archive: false
