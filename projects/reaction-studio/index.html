@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reaction Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <span class="logo">Reaction Studio</span>
+      <span id="save-indicator" class="save-indicator"></span>
+      <div class="topbar-right">
+        <button id="btn-save" class="btn btn-ghost">Save</button>
+        <button id="btn-export" class="btn btn-primary" disabled>Export WebM</button>
+        <span id="export-status" class="export-status"></span>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <!-- Simple side tools -->
+      <aside class="sidebar">
+        <section class="side-section">
+          <h2>1. Video</h2>
+          <input type="file" id="video-input" accept="video/*" multiple hidden />
+          <button class="btn btn-block" id="btn-upload-video">Upload video(s)</button>
+          <div id="video-list" class="list"></div>
+        </section>
+
+        <section class="side-section">
+          <h2>2. Character</h2>
+          <label class="field">Expression (default)
+            <select id="char-expression">
+              <option value="Normal">Normal</option>
+              <option value="Happy">Happy</option>
+              <option value="Sad">Sad</option>
+              <option value="Mad">Mad</option>
+              <option value="Ew">Ew</option>
+              <option value="Oh...">Oh...</option>
+              <option value="Confused">Confused</option>
+              <option value="Scared">Scared</option>
+              <option value="Nervous">Nervous</option>
+              <option value="Realization">Realization</option>
+              <option value="Thinking">Thinking</option>
+              <option value="Shy">Shy</option>
+              <option value="Yeah!!">Yeah!!</option>
+              <option value="Faceless">Faceless</option>
+            </select>
+          </label>
+          <p class="hint">Drag the character on the video to move it</p>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="btn-char-keyframe">Save position</button>
+            <button class="btn btn-sm" id="btn-char-visible">Show / hide</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-sm" id="btn-char-slide-in">Slide in</button>
+            <button class="btn btn-sm" id="btn-char-slide-out">Slide out</button>
+          </div>
+          <label class="field">Scale
+            <input type="range" id="char-scale" min="0.3" max="2.5" step="0.05" value="1" />
+          </label>
+
+          <div class="appearance-block">
+            <h3 class="sub-heading">Appearance</h3>
+            <p class="hint">Upload your own images to change how the character looks. Click a face to replace that expression, or set one image for all.</p>
+            <div class="btn-row">
+              <button class="btn btn-sm" id="btn-char-upload-one" title="Use one image for every expression">Upload 1 image (all)</button>
+              <button class="btn btn-sm" id="btn-char-reset-appear" title="Restore default character">Reset default</button>
+            </div>
+            <input type="file" id="char-upload-one" accept="image/*" hidden />
+            <input type="file" id="char-upload-expr" accept="image/*" hidden />
+            <div id="expr-grid" class="expr-grid"></div>
+          </div>
+        </section>
+
+        <section class="side-section">
+          <h2>3. Speech (follows character)</h2>
+          <p class="hint">Bubbles stay above the character. Pick an expression for each line.</p>
+          <label class="field">What they say
+            <input type="text" id="speech-input" placeholder="Type a reaction…" />
+          </label>
+          <label class="field">Expression while saying this
+            <select id="speech-expression">
+              <option value="Happy">Happy</option>
+              <option value="Normal">Normal</option>
+              <option value="Sad">Sad</option>
+              <option value="Mad">Mad</option>
+              <option value="Ew">Ew</option>
+              <option value="Oh...">Oh...</option>
+              <option value="Confused">Confused</option>
+              <option value="Scared">Scared</option>
+              <option value="Nervous">Nervous</option>
+              <option value="Realization">Realization</option>
+              <option value="Thinking">Thinking</option>
+              <option value="Shy">Shy</option>
+              <option value="Yeah!!">Yeah!!</option>
+              <option value="Faceless">Faceless</option>
+            </select>
+          </label>
+          <button class="btn btn-block btn-accent" id="btn-add-speech">+ Add speech at playhead</button>
+          <div id="speech-list" class="list"></div>
+        </section>
+
+        <section class="side-section">
+          <h2>4. Text bar</h2>
+          <button class="btn btn-block" id="btn-add-text">+ Add text bar</button>
+          <div id="text-list" class="list"></div>
+        </section>
+
+        <section class="side-section">
+          <h2>5. Sounds</h2>
+          <input type="text" id="sound-search" class="search" placeholder="Search sounds…" />
+          <div id="soundboard" class="soundboard"></div>
+          <input type="file" id="sound-upload" accept="audio/*" multiple hidden />
+          <button class="btn btn-sm btn-block" id="btn-upload-sound">Upload your own</button>
+          <div id="sound-list" class="list"></div>
+        </section>
+      </aside>
+
+      <!-- Preview -->
+      <main class="main">
+        <div class="canvas-wrap" id="canvas-wrap">
+          <canvas id="preview-canvas" width="960" height="540"></canvas>
+          <div id="upload-overlay" class="upload-overlay">
+            <div class="upload-card">
+              <p class="big">Drop a video here</p>
+              <p class="hint">or click Upload on the left</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button id="btn-play" class="btn" disabled>▶ Play</button>
+          <button id="btn-pause" class="btn" disabled>Pause</button>
+          <button id="btn-stop" class="btn" disabled>Stop</button>
+          <input type="range" id="seek-bar" min="0" max="1000" value="0" disabled />
+          <span id="time-display">0:00.0 / 0:00.0</span>
+          <label class="vol">🔊 <input type="range" id="master-vol" min="0" max="1" step="0.05" value="1" /></label>
+        </div>
+
+        <div class="timeline-wrap">
+          <div class="timeline-tools">
+            <span class="muted">Timeline — click to jump · drag clips to move</span>
+            <input type="range" id="timeline-zoom" min="1" max="20" value="5" title="Zoom" />
+          </div>
+          <div id="timeline" class="timeline">
+            <div id="timeline-ruler" class="timeline-ruler"></div>
+            <div id="timeline-tracks" class="timeline-tracks"></div>
+            <div id="playhead" class="playhead"></div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <div id="recovery-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Backup found</h2>
+      <p>Load your last auto-saved project?</p>
+      <p class="muted" id="recovery-info"></p>
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="btn-load-backup">Load</button>
+        <button class="btn btn-ghost" id="btn-discard-backup">Start fresh</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
