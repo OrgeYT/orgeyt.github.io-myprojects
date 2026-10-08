@@ -182,6 +182,83 @@ body {
   letter-spacing: 0.02em;
 }
 
+.chk, .chk-row label.chk {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.chk-row {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0;
+  flex-wrap: wrap;
+}
+
+.tts-defaults {
+  margin: 8px 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tts-pre-settings {
+  margin-top: 6px;
+  padding: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.tts-pre-settings .field {
+  margin-bottom: 8px;
+}
+
+.tts-pre-settings .val {
+  float: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.tts-duck-row {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tts-duck-vol-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.speech-item .meta input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  margin-top: 2px;
+}
+
+.speech-item .meta select {
+  width: 100%;
+  margin-top: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
 .appearance-block {
   margin-top: 4px;
 }

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reaction Studio</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="lib/speakGenerator.js"></script>
 </head>
 <body>
   <div id="app">
@@ -12,7 +13,10 @@
       <span class="logo">Reaction Studio</span>
       <span id="save-indicator" class="save-indicator"></span>
       <div class="topbar-right">
-        <button id="btn-save" class="btn btn-ghost">Save</button>
+        <button id="btn-save" class="btn btn-ghost" title="Save to browser">Save</button>
+        <button id="btn-save-json" class="btn btn-ghost" title="Download project as JSON file">Save JSON</button>
+        <button id="btn-load-json" class="btn btn-ghost" title="Load a reaction JSON file">Load JSON</button>
+        <input type="file" id="project-json-input" accept=".json,application/json" hidden />
         <button id="btn-export" class="btn btn-primary" disabled>Export WebM</button>
         <span id="export-status" class="export-status"></span>
       </div>
@@ -76,7 +80,7 @@
 
         <section class="side-section">
           <h2>3. Speech (follows character)</h2>
-          <p class="hint">Bubbles stay above the character. Pick an expression for each line.</p>
+          <p class="hint">Bubbles stay above the character. Toggle bubble + TTS per line. TTS length sets duration.</p>
           <label class="field">What they say
             <input type="text" id="speech-input" placeholder="Type a reaction…" />
           </label>
@@ -98,6 +102,79 @@
               <option value="Faceless">Faceless</option>
             </select>
           </label>
+          <div class="tts-defaults">
+            <div class="chk-row">
+              <label class="chk"><input type="checkbox" id="speech-show-bubble" checked /> Show bubble</label>
+              <label class="chk"><input type="checkbox" id="speech-tts-on" /> TTS voice</label>
+            </div>
+            <div id="tts-pre-settings" class="tts-pre-settings hidden">
+              <label class="field">Preset
+                <select id="speech-tts-preset">
+                  <option value="custom">Custom</option>
+                  <option value="orgeyt">OrgeYT's voice</option>
+                  <option value="neural">Neural default (Kokoro)</option>
+                  <option value="robot">Robot default</option>
+                  <option value="natural">Google TTS default</option>
+                </select>
+              </label>
+              <label class="field">TTS engine
+                <select id="speech-tts-engine">
+                  <option value="neural">Neural (Kokoro — male/female)</option>
+                  <option value="robot">Robot (LingoJam / eSpeak)</option>
+                  <option value="natural">Google TTS</option>
+                </select>
+              </label>
+              <div id="tts-pre-robot" class="hidden">
+                <label class="field">Pitch <span id="pre-pitch-val" class="val">50</span>
+                  <input type="range" id="speech-tts-pitch" min="0" max="100" value="50" />
+                </label>
+                <label class="field">Speed (wpm) <span id="pre-speed-val" class="val">175</span>
+                  <input type="range" id="speech-tts-speed-robot" min="80" max="300" value="175" />
+                </label>
+                <label class="field">Volume <span id="pre-amp-val" class="val">100</span>
+                  <input type="range" id="speech-tts-amp" min="0" max="200" value="100" />
+                </label>
+              </div>
+              <div id="tts-pre-neural">
+                <label class="field">Language
+                  <select id="speech-tts-lang-neural"></select>
+                </label>
+                <label class="field">Gender
+                  <select id="speech-tts-gender">
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                  </select>
+                </label>
+                <label class="field">Voice
+                  <select id="speech-tts-voice"></select>
+                </label>
+                <label class="field">Pitch <span id="pre-neupitch-val" class="val">1.0</span>
+                  <input type="range" id="speech-tts-pitch-neural" min="0.5" max="1.5" step="0.05" value="1" />
+                </label>
+                <label class="field">Speed <span id="pre-neuspeed-val" class="val">1.0</span>
+                  <input type="range" id="speech-tts-speed-neural" min="0.5" max="1.5" step="0.05" value="1" />
+                </label>
+              </div>
+              <div id="tts-pre-natural" class="hidden">
+                <label class="field">Language
+                  <select id="speech-tts-lang"></select>
+                </label>
+                <label class="field">Pitch <span id="pre-npitch-val" class="val">1.0</span>
+                  <input type="range" id="speech-tts-pitch-nat" min="0.5" max="1.5" step="0.05" value="1" />
+                </label>
+                <label class="field">Speed <span id="pre-nspeed-val" class="val">1.0</span>
+                  <input type="range" id="speech-tts-speed-nat" min="0.5" max="1.5" step="0.05" value="1" />
+                </label>
+              </div>
+              <button type="button" class="btn btn-sm btn-block" id="btn-tts-preview">▶ Preview TTS</button>
+            </div>
+            <div class="tts-duck-row">
+              <label class="chk"><input type="checkbox" id="tts-duck-on" /> Lower video volume while TTS plays</label>
+              <label class="field tts-duck-vol-field hidden" id="tts-duck-vol-wrap">Video vol during TTS <span id="tts-duck-vol-val" class="val">25%</span>
+                <input type="range" id="tts-duck-vol" min="0" max="100" value="25" />
+              </label>
+            </div>
+          </div>
           <button class="btn btn-block btn-accent" id="btn-add-speech">+ Add speech at playhead</button>
           <div id="speech-list" class="list"></div>
         </section>

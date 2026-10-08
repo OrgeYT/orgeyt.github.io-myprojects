@@ -6,6 +6,133 @@ const EXPRESSIONS = [
   "Normal","Happy","Sad","Mad","Ew","Oh...","Confused",
   "Scared","Nervous","Realization","Thinking","Shy","Yeah!!","Faceless"
 ];
+const TTS_LANGS = [
+  { id: "en", label: "English (US)" },
+  { id: "en-gb", label: "English (UK)" },
+  { id: "en-au", label: "English (AU)" },
+  { id: "es", label: "Spanish" },
+  { id: "fr", label: "French" },
+  { id: "de", label: "German" },
+  { id: "it", label: "Italian" },
+  { id: "pt", label: "Portuguese" },
+  { id: "pt-br", label: "Portuguese (BR)" },
+  { id: "ja", label: "Japanese" },
+  { id: "ko", label: "Korean" },
+  { id: "zh-CN", label: "Chinese" },
+  { id: "ru", label: "Russian" },
+  { id: "nl", label: "Dutch" },
+  { id: "pl", label: "Polish" },
+  { id: "tr", label: "Turkish" },
+  { id: "hi", label: "Hindi" },
+  { id: "ar", label: "Arabic" }
+];
+/* Kokoro (tts.ai) — free CORS neural TTS: language, male/female, speed; pitch via detune */
+const KOKORO_VOICES = [
+  { id: "af_bella", name: "Bella", lang: "en", gender: "female", region: "US" },
+  { id: "af_nicole", name: "Nicole", lang: "en", gender: "female", region: "US" },
+  { id: "af_sarah", name: "Sarah", lang: "en", gender: "female", region: "US" },
+  { id: "af_sky", name: "Sky", lang: "en", gender: "female", region: "US" },
+  { id: "af_heart", name: "Heart", lang: "en", gender: "female", region: "US" },
+  { id: "am_adam", name: "Adam", lang: "en", gender: "male", region: "US" },
+  { id: "am_michael", name: "Michael", lang: "en", gender: "male", region: "US" },
+  { id: "bf_emma", name: "Emma", lang: "en", gender: "female", region: "UK" },
+  { id: "bf_isabella", name: "Isabella", lang: "en", gender: "female", region: "UK" },
+  { id: "bm_george", name: "George", lang: "en", gender: "male", region: "UK" },
+  { id: "bm_lewis", name: "Lewis", lang: "en", gender: "male", region: "UK" },
+  { id: "jf_alpha", name: "Alpha", lang: "ja", gender: "female", region: "" },
+  { id: "jf_gongitsune", name: "Gongitsune", lang: "ja", gender: "female", region: "" },
+  { id: "zf_xiaobei", name: "Xiaobei", lang: "zh", gender: "female", region: "" },
+  { id: "zf_xiaoni", name: "Xiaoni", lang: "zh", gender: "female", region: "" },
+  { id: "zf_xiaoxiao", name: "Xiaoxiao", lang: "zh", gender: "female", region: "" },
+  { id: "zm_yunjian", name: "Yunjian", lang: "zh", gender: "male", region: "" },
+  { id: "ef_dora", name: "Dora", lang: "es", gender: "female", region: "" },
+  { id: "em_alex", name: "Alex", lang: "es", gender: "male", region: "" },
+  { id: "ff_siwis", name: "Siwis", lang: "fr", gender: "female", region: "" },
+  { id: "hf_alpha", name: "Alpha", lang: "hi", gender: "female", region: "" },
+  { id: "hm_omega", name: "Omega", lang: "hi", gender: "male", region: "" },
+  { id: "if_sara", name: "Sara", lang: "it", gender: "female", region: "" },
+  { id: "im_nicola", name: "Nicola", lang: "it", gender: "male", region: "" },
+  { id: "pf_dora", name: "Dora", lang: "pt", gender: "female", region: "" },
+  { id: "pm_alex", name: "Alex", lang: "pt", gender: "male", region: "" }
+];
+const KOKORO_LANGS = [
+  { id: "en", label: "English" }, { id: "ja", label: "Japanese" },
+  { id: "zh", label: "Chinese" }, { id: "es", label: "Spanish" },
+  { id: "fr", label: "French" }, { id: "hi", label: "Hindi" },
+  { id: "it", label: "Italian" }, { id: "pt", label: "Portuguese" }
+];
+function pickKokoroVoice(lang, gender, preferredId) {
+  if (preferredId && KOKORO_VOICES.some(v => v.id === preferredId)) return preferredId;
+  const g = (gender || "female").toLowerCase();
+  const l = lang || "en";
+  const m = KOKORO_VOICES.find(v => v.lang === l && v.gender === g);
+  if (m) return m.id;
+  const any = KOKORO_VOICES.find(v => v.gender === g) || KOKORO_VOICES[0];
+  return any.id;
+}
+
+/* Natural pitch/speed step = 0.05 → 2 ticks = 0.10 */
+const TTS_PRESETS = {
+  orgeyt: {
+    label: "OrgeYT's voice",
+    ttsEngine: "neural",
+    ttsLang: "en",
+    ttsGender: "male",
+    ttsVoice: "am_adam", // Adam (US male) — preferred
+    ttsPitch: 0.9,
+    ttsSpeed: 1.1,
+    ttsAmplitude: 100
+  },
+  robot: {
+    label: "Robot default",
+    ttsEngine: "robot",
+    ttsLang: "en",
+    ttsGender: "default",
+    ttsPitch: 50,
+    ttsSpeed: 175,
+    ttsAmplitude: 100
+  },
+  neural: {
+    label: "Neural default (Kokoro)",
+    ttsEngine: "neural",
+    ttsLang: "en",
+    ttsGender: "female",
+    ttsVoice: "af_bella",
+    ttsPitch: 1,
+    ttsSpeed: 1,
+    ttsAmplitude: 100
+  },
+  natural: {
+    label: "Google TTS default",
+    ttsEngine: "natural",
+    ttsLang: "en",
+    ttsGender: "default",
+    ttsPitch: 1,
+    ttsSpeed: 1,
+    ttsAmplitude: 100
+  }
+};
+
+function ttsSettingsKey(sp) {
+  return [
+    sp.ttsEngine || "robot",
+    sp.text || "",
+    sp.ttsLang || "en",
+    sp.ttsGender || "default",
+    sp.ttsVoice || "",
+    sp.ttsPitch != null ? sp.ttsPitch : "",
+    sp.ttsSpeed != null ? sp.ttsSpeed : "",
+    sp.ttsAmplitude != null ? sp.ttsAmplitude : ""
+  ].join("|");
+}
+
+/** Free Google TTS has no real gender API — approximate male/female with pitch. */
+function applyGenderToPitch(pitch, gender) {
+  const p = +pitch || 1;
+  if (gender === "male") return clamp(p * 0.72, 0.25, 2);
+  if (gender === "female") return clamp(p * 1.18, 0.25, 2);
+  return clamp(p, 0.25, 2);
+}
 const SOUNDBOARD = [
   "a-few-moments-later","air-horn","among-us-kill","among-us-role-reveal","anderdingus",
   "anime-wow","apple-pay","asdasd","autotune-laugh","back-up","bad-to-the-bone",
@@ -49,6 +176,9 @@ const state = {
   recording: false,
   exportAbort: false,
   masterVol: 1,
+  /** When on, lower video volume while any TTS speech is active */
+  ttsDuckOn: false,
+  ttsDuckVol: 0.25, // video volume (0–1) during TTS
   dirty: false
 };
 
@@ -89,6 +219,375 @@ function fmtTime(s) {
 }
 function escapeHtml(str) {
   return String(str ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+/* ---- TTS (Robot = eSpeak/speak.js, Natural = Google TTS) ---- */
+function wavToDataUrl(wav) {
+  // wav: Uint8Array or ArrayBuffer from generateSpeech
+  const u8 = wav instanceof Uint8Array ? wav : new Uint8Array(wav);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < u8.length; i += chunk) {
+    binary += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+  }
+  return "data:audio/wav;base64," + btoa(binary);
+}
+
+function generateRobotTTS(text, opts = {}) {
+  if (typeof generateSpeech !== "function") {
+    throw new Error("Robot TTS engine not loaded (speakGenerator.js)");
+  }
+  const pitch = opts.pitch != null ? +opts.pitch : 50;
+  const speed = opts.speed != null ? +opts.speed : 175;
+  const amplitude = opts.amplitude != null ? +opts.amplitude : 100;
+  const wav = generateSpeech(String(text || " "), {
+    pitch, speed, amplitude, wordgap: opts.wordgap != null ? +opts.wordgap : 0
+  });
+  const dataUrl = wavToDataUrl(wav);
+  return dataUrl;
+}
+
+/* Map UI language ids → tts-api.netlify.app codes (many Google codes 500 there) */
+const PROXY_LANG_MAP = {
+  "en": "en", "en-gb": "uk", "en-GB": "uk", "en-au": "en", "en-us": "en",
+  "es": "es", "fr": "fr", "de": "de", "it": "it", "pt": "pt", "pt-br": "pt",
+  "ja": "ja", "ko": "ko", "zh-CN": "zh", "zh": "zh", "ru": "ru",
+  "nl": "nl", "pl": "pl", "tr": "tr", "hi": "hi", "ar": "ar"
+};
+function proxyLang(lang) {
+  if (!lang) return "en";
+  if (PROXY_LANG_MAP[lang]) return PROXY_LANG_MAP[lang];
+  const base = String(lang).split(/[-_]/)[0].toLowerCase();
+  return PROXY_LANG_MAP[base] || base || "en";
+}
+
+function chromiumGoogleTtsUrl(text, lang, speed, pitch) {
+  // Same endpoint voicegenerator.io uses for "Download Google TTS Audio"
+  const q = encodeURIComponent(String(text || " ").slice(0, 200));
+  // Chromium API prefers BCP-47 like en-GB
+  let tl = lang || "en";
+  if (tl === "en-gb") tl = "en-GB";
+  if (tl === "zh-CN") tl = "zh-CN";
+  const sp = clamp(+speed || 1, 0.1, 1.0);
+  const pi = clamp(+pitch || 0.5, 0, 1);
+  return `https://www.google.com/speech-api/v2/synthesize?enc=mpeg&client=chromium&key=AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw&text=${q}&lang=${encodeURIComponent(tl)}&speed=${sp}&pitch=${pi}`;
+}
+
+function corsGoogleTtsUrl(text, lang, speed, pitch) {
+  // CORS-friendly Google TTS proxy → MP3 blob usable in browser + export
+  const q = encodeURIComponent(String(text || " ").slice(0, 200));
+  const tl = encodeURIComponent(proxyLang(lang));
+  const sp = clamp(+speed || 1, 0.25, 2);
+  const pi = clamp(+pitch || 1, 0.25, 2);
+  return `https://tts-api.netlify.app/?text=${q}&lang=${tl}&speed=${sp}&pitch=${pi}`;
+}
+
+function translateTtsUrl(text, lang) {
+  let tl = lang || "en";
+  if (tl === "en-gb") tl = "en-GB";
+  const q = encodeURIComponent(String(text || " ").slice(0, 200));
+  return `https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&q=${q}&tl=${encodeURIComponent(tl)}`;
+}
+
+async function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result);
+    r.onerror = reject;
+    r.readAsDataURL(blob);
+  });
+}
+
+async function fetchAudioDataUrl(url, attempts = 2) {
+  let lastErr = null;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, { mode: "cors", credentials: "omit", cache: "no-store" });
+      if (!res.ok) {
+        lastErr = new Error("HTTP " + res.status);
+        await new Promise(r => setTimeout(r, 200 * (i + 1)));
+        continue;
+      }
+      const blob = await res.blob();
+      if (blob.size < 200) {
+        lastErr = new Error("tiny blob " + blob.size);
+        continue;
+      }
+      // Reject HTML error pages mistaken as audio
+      const type = (blob.type || "").toLowerCase();
+      if (type.includes("text") || type.includes("json") || type.includes("html")) {
+        lastErr = new Error("not audio: " + type);
+        continue;
+      }
+      return await blobToDataUrl(blob);
+    } catch (e) {
+      lastErr = e;
+      await new Promise(r => setTimeout(r, 250 * (i + 1)));
+    }
+  }
+  if (lastErr) console.warn("fetchAudioDataUrl failed", url, lastErr);
+  return null;
+}
+
+async function generateNaturalTTS(text, opts = {}) {
+  const lang = opts.lang || "en";
+  const uiSpeed = opts.speed != null ? +opts.speed : 1;   // 0.5–1.5
+  const uiPitch = opts.pitch != null ? +opts.pitch : 1;   // 0.5–1.5
+  const gender = opts.gender || "default";
+  // Male/female approximated via pitch (Google free TTS has no gender param)
+  const effectivePitch = applyGenderToPitch(uiPitch, gender);
+
+  // 1) CORS proxy (tts-api) — preferred, supports pitch/speed
+  const proxyUrl = corsGoogleTtsUrl(text, lang, uiSpeed, effectivePitch);
+  let dataUrl = await fetchAudioDataUrl(proxyUrl, 3);
+  if (dataUrl) return { dataUrl, url: proxyUrl };
+
+  // 2) Same proxy with gender pitch only (speed=1) if full params failed
+  const simpleProxy = corsGoogleTtsUrl(text, lang, 1, effectivePitch);
+  if (simpleProxy !== proxyUrl) {
+    dataUrl = await fetchAudioDataUrl(simpleProxy, 2);
+    if (dataUrl) return { dataUrl, url: simpleProxy };
+  }
+
+  // 3) Chromium Google speech-api (may CORS-fail in browser)
+  const gSpeed = clamp(uiSpeed * 0.5, 0.1, 1);
+  const gPitch = clamp(effectivePitch * 0.5, 0, 1);
+  const chromeUrl = chromiumGoogleTtsUrl(text, lang, gSpeed, gPitch);
+  dataUrl = await fetchAudioDataUrl(chromeUrl, 1);
+  if (dataUrl) return { dataUrl, url: chromeUrl };
+
+  // 4) translate.googleapis.com (may CORS-fail)
+  const trUrl = translateTtsUrl(text, lang);
+  dataUrl = await fetchAudioDataUrl(trUrl, 1);
+  if (dataUrl) return { dataUrl, url: trUrl };
+
+  // 5) Stream URL only — HTML Audio can still play; export needs dataUrl
+  console.warn("Natural TTS: no blob; playback-only URL", chromeUrl);
+  return { dataUrl: null, url: chromeUrl || trUrl || proxyUrl };
+}
+
+/** Kokoro neural TTS via tts.ai (free, CORS, gender + language + speed) */
+async function generateNeuralTTS(text, opts = {}) {
+  const lang = opts.lang || "en";
+  const gender = opts.gender || "female";
+  const voice = pickKokoroVoice(lang, gender, opts.voice);
+  const speed = clamp(+opts.speed || 1, 0.5, 2);
+  const body = {
+    text: String(text || " ").slice(0, 500),
+    voice,
+    model: "kokoro",
+    speed,
+    format: "mp3"
+  };
+  let data = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch("https://api.tts.ai/v1/tts/", {
+        method: "POST",
+        mode: "cors",
+        credentials: "omit",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+        continue;
+      }
+      data = await res.json();
+      break;
+    } catch (e) {
+      console.warn("Kokoro TTS request failed", e);
+      await new Promise(r => setTimeout(r, 300 * (attempt + 1)));
+    }
+  }
+  if (!data) return { dataUrl: null, url: null, voice };
+
+  let audioUrl = data.result_url || null;
+  if (!audioUrl && data.uuid) {
+    audioUrl = `https://cdn.tts.ai/${data.uuid}/tts_output.mp3`;
+  }
+  if (!audioUrl) return { dataUrl: null, url: null, voice };
+
+  // Poll CDN until audio is ready (queued jobs)
+  for (let i = 0; i < 12; i++) {
+    const dataUrl = await fetchAudioDataUrl(audioUrl, 1);
+    if (dataUrl) return { dataUrl, url: audioUrl, voice };
+    await new Promise(r => setTimeout(r, 400));
+  }
+  return { dataUrl: null, url: audioUrl, voice };
+}
+
+/** Pitch multiplier → AudioBufferSourceNode.detune (cents). 1.0 = 0 cents */
+function pitchToDetune(pitch) {
+  const p = +pitch;
+  if (!isFinite(p) || p <= 0) return 0;
+  // map 0.5..1.5 → roughly -1200..+700 cents
+  return Math.round(1200 * Math.log2(p));
+}
+
+function loadAudioDuration(src) {
+  return new Promise((resolve) => {
+    const a = new Audio();
+    a.preload = "metadata";
+    const done = (d) => { resolve(isFinite(d) && d > 0 ? d : 1.5); };
+    a.onloadedmetadata = () => done(a.duration);
+    a.onerror = () => done(1.5);
+    a.src = src;
+  });
+}
+
+async function generateSpeechTTS(sp, opts = {}) {
+  if (!sp || !sp.ttsOn) return false;
+  const text = sp.text || "…";
+  const engine = sp.ttsEngine || "robot";
+  const silent = !!opts.silent;
+  // Keep previous audio until new generation succeeds (so export never goes silent on a failed regen)
+  const prevData = sp.ttsDataUrl;
+  const prevStream = sp.ttsStreamUrl;
+  const prevKey = sp._ttsKey;
+  try {
+    if (engine === "robot") {
+      const dataUrl = generateRobotTTS(text, {
+        pitch: sp.ttsPitch != null ? sp.ttsPitch : 50,
+        speed: sp.ttsSpeed != null ? sp.ttsSpeed : 175,
+        amplitude: sp.ttsAmplitude != null ? sp.ttsAmplitude : 100
+      });
+      sp.ttsDataUrl = dataUrl;
+      sp.ttsStreamUrl = null;
+      sp._ttsBuffer = null;
+      const dur = await loadAudioDuration(dataUrl);
+      sp.ttsDuration = dur;
+      sp.end = sp.start + dur;
+      if (sp._ttsAudio) { try { sp._ttsAudio.pause(); } catch (_) {} }
+      sp._ttsAudio = new Audio(dataUrl);
+      sp._ttsAudio.preload = "auto";
+      sp._ttsAudio.volume = state.masterVol;
+    } else if (engine === "neural") {
+      const voiceId = pickKokoroVoice(sp.ttsLang || "en", sp.ttsGender || "female", sp.ttsVoice);
+      sp.ttsVoice = voiceId;
+      const { dataUrl, url, voice } = await generateNeuralTTS(text, {
+        lang: sp.ttsLang || "en",
+        gender: sp.ttsGender || "female",
+        voice: voiceId,
+        speed: sp.ttsSpeed != null ? sp.ttsSpeed : 1
+      });
+      if (voice) sp.ttsVoice = voice;
+      if (!dataUrl) {
+        if (prevData) {
+          console.warn("Neural TTS failed; keeping previous audio");
+          sp.ttsDataUrl = prevData;
+          sp.ttsStreamUrl = prevStream;
+          sp._ttsKey = prevKey;
+          return !!prevData;
+        }
+        throw new Error("Neural (Kokoro) TTS returned no audio — check network");
+      }
+      sp.ttsDataUrl = dataUrl;
+      sp.ttsStreamUrl = url;
+      sp._ttsBuffer = null;
+      const dur = await loadAudioDuration(dataUrl);
+      sp.ttsDuration = dur;
+      sp.end = sp.start + dur;
+      if (sp._ttsAudio) { try { sp._ttsAudio.pause(); } catch (_) {} }
+      sp._ttsAudio = new Audio(dataUrl);
+      sp._ttsAudio.preload = "auto";
+      sp._ttsAudio.volume = state.masterVol;
+      // Store detune for export pitch (Kokoro API has no pitch param)
+      sp._ttsDetune = pitchToDetune(sp.ttsPitch != null ? sp.ttsPitch : 1);
+    } else {
+      // Google TTS (natural)
+      const { dataUrl, url } = await generateNaturalTTS(text, {
+        lang: sp.ttsLang || "en",
+        speed: sp.ttsSpeed != null ? sp.ttsSpeed : 1,
+        pitch: sp.ttsPitch != null ? sp.ttsPitch : 1,
+        gender: sp.ttsGender || "default"
+      });
+      if (!dataUrl) {
+        if (prevData) {
+          console.warn("Google TTS regen failed; keeping previous audio");
+          sp.ttsDataUrl = prevData;
+          sp.ttsStreamUrl = prevStream;
+          sp._ttsKey = prevKey;
+          return !!prevData;
+        }
+        if (url) {
+          sp.ttsStreamUrl = url;
+          sp.ttsDataUrl = null;
+          const dur = await loadAudioDuration(url);
+          sp.ttsDuration = dur;
+          sp.end = sp.start + dur;
+          if (sp._ttsAudio) { try { sp._ttsAudio.pause(); } catch (_) {} }
+          sp._ttsAudio = new Audio(url);
+          sp._ttsAudio.preload = "auto";
+          sp._ttsAudio.volume = state.masterVol;
+          sp._ttsKey = ttsSettingsKey(sp);
+          if (!silent) alert("Google TTS loaded for preview only. Prefer Neural (Kokoro) for reliable export.");
+          return false;
+        }
+        throw new Error("Google TTS returned no audio (network or language)");
+      }
+      sp.ttsDataUrl = dataUrl;
+      sp.ttsStreamUrl = url;
+      sp._ttsBuffer = null;
+      sp._ttsDetune = 0;
+      const dur = await loadAudioDuration(dataUrl);
+      sp.ttsDuration = dur;
+      sp.end = sp.start + dur;
+      if (sp._ttsAudio) { try { sp._ttsAudio.pause(); } catch (_) {} }
+      sp._ttsAudio = new Audio(dataUrl);
+      sp._ttsAudio.preload = "auto";
+      sp._ttsAudio.volume = state.masterVol;
+    }
+    sp._ttsKey = ttsSettingsKey(sp);
+    return true;
+  } catch (err) {
+    console.warn("TTS generate failed", err);
+    // Restore previous on hard failure
+    if (prevData) {
+      sp.ttsDataUrl = prevData;
+      sp.ttsStreamUrl = prevStream;
+      sp._ttsKey = prevKey;
+    }
+    if (!silent) alert("TTS failed: " + (err.message || err));
+    return false;
+  }
+}
+
+function playSpeechTTS(sp) {
+  if (!sp || !sp.ttsOn) return;
+  if (!sp._ttsAudio && (sp.ttsDataUrl || sp.ttsStreamUrl)) {
+    sp._ttsAudio = new Audio(sp.ttsDataUrl || sp.ttsStreamUrl);
+    sp._ttsAudio.volume = state.masterVol;
+  }
+  if (sp._ttsAudio) {
+    try {
+      sp._ttsAudio.currentTime = 0;
+      sp._ttsAudio.volume = state.masterVol;
+      sp._ttsAudio.play().catch(() => {});
+    } catch (_) {}
+  }
+}
+
+/** True if any TTS-enabled speech is active at timeline time t */
+function isTtsActiveAt(t) {
+  return state.speeches.some(sp =>
+    sp.ttsOn && t >= sp.start && t < (sp.end != null ? sp.end : sp.start + (sp.ttsDuration || 2))
+  );
+}
+
+/** Set all video element volumes (preview) based on duck settings */
+function applyVideoVolumeForTime(t, opts = {}) {
+  const ducking = state.ttsDuckOn && isTtsActiveAt(t);
+  const vol = ducking
+    ? state.masterVol * clamp(state.ttsDuckVol, 0, 1)
+    : state.masterVol;
+  state.videos.forEach(v => {
+    if (v.videoEl) v.videoEl.volume = vol;
+    if (opts.useWaGain && v._waGain) {
+      try { v._waGain.gain.value = ducking ? clamp(state.ttsDuckVol, 0, 1) : 1; } catch (_) {}
+    }
+  });
+  return ducking;
 }
 
 function getCharImage(expr) {
@@ -212,10 +711,35 @@ function bindEvents() {
   seekBar.addEventListener("input", () => seek((+seekBar.value / 1000) * state.totalDuration));
   document.getElementById("master-vol").addEventListener("input", e => {
     state.masterVol = +e.target.value;
-    state.videos.forEach(v => v.videoEl.volume = state.masterVol);
+    applyVideoVolumeForTime(state.currentTime);
     state.sounds.forEach(s => { if (s.audio) s.audio.volume = state.masterVol; });
     if (sharedMasterGain) sharedMasterGain.gain.value = state.masterVol;
   });
+  // TTS video duck controls (global — applies to all TTS speech events)
+  const duckOn = document.getElementById("tts-duck-on");
+  const duckWrap = document.getElementById("tts-duck-vol-wrap");
+  const duckVol = document.getElementById("tts-duck-vol");
+  const duckVal = document.getElementById("tts-duck-vol-val");
+  if (duckOn) {
+    duckOn.checked = !!state.ttsDuckOn;
+    duckOn.addEventListener("change", () => {
+      state.ttsDuckOn = duckOn.checked;
+      if (duckWrap) duckWrap.classList.toggle("hidden", !state.ttsDuckOn);
+      applyVideoVolumeForTime(state.currentTime);
+      markDirty();
+    });
+  }
+  if (duckVol) {
+    duckVol.value = Math.round(state.ttsDuckVol * 100);
+    if (duckVal) duckVal.textContent = Math.round(state.ttsDuckVol * 100) + "%";
+    if (duckWrap) duckWrap.classList.toggle("hidden", !state.ttsDuckOn);
+    duckVol.addEventListener("input", () => {
+      state.ttsDuckVol = (+duckVol.value) / 100;
+      if (duckVal) duckVal.textContent = Math.round(state.ttsDuckVol * 100) + "%";
+      applyVideoVolumeForTime(state.currentTime);
+      markDirty();
+    });
+  }
   document.getElementById("timeline-zoom").addEventListener("input", e => {
     state.pixelsPerSecond = +e.target.value * 8;
     renderTimeline();
@@ -267,10 +791,155 @@ function bindEvents() {
     e.target.value = "";
   });
   document.getElementById("btn-char-reset-appear").addEventListener("click", resetAppearance);
+
+  // Pre-add TTS settings panel
+  const langSel = document.getElementById("speech-tts-lang");
+  if (langSel && !langSel.options.length) {
+    TTS_LANGS.forEach(l => {
+      const o = document.createElement("option");
+      o.value = l.id; o.textContent = l.label;
+      langSel.appendChild(o);
+    });
+  }
+  const langNeu = document.getElementById("speech-tts-lang-neural");
+  if (langNeu && !langNeu.options.length) {
+    KOKORO_LANGS.forEach(l => {
+      const o = document.createElement("option");
+      o.value = l.id; o.textContent = l.label;
+      langNeu.appendChild(o);
+    });
+  }
+  function refreshKokoroVoiceSelect() {
+    const sel = document.getElementById("speech-tts-voice");
+    if (!sel) return;
+    const lang = document.getElementById("speech-tts-lang-neural").value || "en";
+    const gender = document.getElementById("speech-tts-gender").value || "female";
+    const prev = sel.value;
+    const list = KOKORO_VOICES.filter(v => v.lang === lang && v.gender === gender);
+    const fallback = KOKORO_VOICES.filter(v => v.lang === lang);
+    const voices = list.length ? list : (fallback.length ? fallback : KOKORO_VOICES);
+    sel.innerHTML = voices.map(v =>
+      `<option value="${v.id}">${v.name}${v.region ? " (" + v.region + ")" : ""}</option>`
+    ).join("");
+    if (voices.some(v => v.id === prev)) sel.value = prev;
+  }
+  function syncPreTtsPanel() {
+    const on = document.getElementById("speech-tts-on").checked;
+    const panel = document.getElementById("tts-pre-settings");
+    panel.classList.toggle("hidden", !on);
+    const eng = document.getElementById("speech-tts-engine").value;
+    document.getElementById("tts-pre-robot").classList.toggle("hidden", eng !== "robot");
+    document.getElementById("tts-pre-natural").classList.toggle("hidden", eng !== "natural");
+    document.getElementById("tts-pre-neural").classList.toggle("hidden", eng !== "neural");
+    if (eng === "neural") refreshKokoroVoiceSelect();
+  }
+  document.getElementById("speech-tts-on").addEventListener("change", syncPreTtsPanel);
+  document.getElementById("speech-tts-engine").addEventListener("change", () => {
+    document.getElementById("speech-tts-preset").value = "custom";
+    syncPreTtsPanel();
+  });
+  document.getElementById("speech-tts-lang-neural").addEventListener("change", () => {
+    document.getElementById("speech-tts-preset").value = "custom";
+    refreshKokoroVoiceSelect();
+  });
+  document.getElementById("speech-tts-gender").addEventListener("change", () => {
+    document.getElementById("speech-tts-preset").value = "custom";
+    refreshKokoroVoiceSelect();
+  });
+  function applyTtsPreset(id) {
+    const p = TTS_PRESETS[id];
+    if (!p) return;
+    document.getElementById("speech-tts-engine").value = p.ttsEngine;
+    if (p.ttsEngine === "robot") {
+      document.getElementById("speech-tts-pitch").value = p.ttsPitch;
+      document.getElementById("speech-tts-speed-robot").value = p.ttsSpeed;
+      document.getElementById("speech-tts-amp").value = p.ttsAmplitude;
+      document.getElementById("pre-pitch-val").textContent = String(p.ttsPitch);
+      document.getElementById("pre-speed-val").textContent = String(p.ttsSpeed);
+      document.getElementById("pre-amp-val").textContent = String(p.ttsAmplitude);
+    } else if (p.ttsEngine === "neural") {
+      document.getElementById("speech-tts-lang-neural").value = p.ttsLang || "en";
+      document.getElementById("speech-tts-gender").value = p.ttsGender || "female";
+      refreshKokoroVoiceSelect();
+      if (p.ttsVoice) document.getElementById("speech-tts-voice").value = p.ttsVoice;
+      document.getElementById("speech-tts-pitch-neural").value = p.ttsPitch;
+      document.getElementById("speech-tts-speed-neural").value = p.ttsSpeed;
+      document.getElementById("pre-neupitch-val").textContent = (+p.ttsPitch).toFixed(2);
+      document.getElementById("pre-neuspeed-val").textContent = (+p.ttsSpeed).toFixed(2);
+    } else {
+      document.getElementById("speech-tts-lang").value = p.ttsLang;
+      document.getElementById("speech-tts-pitch-nat").value = p.ttsPitch;
+      document.getElementById("speech-tts-speed-nat").value = p.ttsSpeed;
+      document.getElementById("pre-npitch-val").textContent = (+p.ttsPitch).toFixed(2);
+      document.getElementById("pre-nspeed-val").textContent = (+p.ttsSpeed).toFixed(2);
+    }
+    syncPreTtsPanel();
+  }
+  document.getElementById("speech-tts-preset").addEventListener("change", e => {
+    const id = e.target.value;
+    if (id !== "custom") applyTtsPreset(id);
+  });
+  // Mark preset custom when user tweaks sliders
+  ["speech-tts-pitch", "speech-tts-speed-robot", "speech-tts-amp",
+   "speech-tts-pitch-nat", "speech-tts-speed-nat", "speech-tts-lang",
+   "speech-tts-pitch-neural", "speech-tts-speed-neural", "speech-tts-voice",
+   "speech-tts-gender", "speech-tts-lang-neural"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", () => {
+      document.getElementById("speech-tts-preset").value = "custom";
+    });
+    if (el) el.addEventListener("change", () => {
+      document.getElementById("speech-tts-preset").value = "custom";
+    });
+  });
+  const bindVal = (id, labelId) => {
+    const el = document.getElementById(id);
+    const lab = document.getElementById(labelId);
+    if (!el || !lab) return;
+    el.addEventListener("input", () => { lab.textContent = (+el.value).toFixed(el.step && +el.step < 1 ? 2 : 0); });
+  };
+  bindVal("speech-tts-pitch", "pre-pitch-val");
+  bindVal("speech-tts-speed-robot", "pre-speed-val");
+  bindVal("speech-tts-amp", "pre-amp-val");
+  bindVal("speech-tts-pitch-nat", "pre-npitch-val");
+  bindVal("speech-tts-speed-nat", "pre-nspeed-val");
+  bindVal("speech-tts-pitch-neural", "pre-neupitch-val");
+  bindVal("speech-tts-speed-neural", "pre-neuspeed-val");
+  refreshKokoroVoiceSelect();
+  document.getElementById("btn-tts-preview").addEventListener("click", async () => {
+    const text = (document.getElementById("speech-input").value || "").trim() || "Hello";
+    const tts = readPreTtsSettings();
+    const tmp = {
+      text, ttsOn: true, ttsEngine: tts.ttsEngine,
+      ttsPitch: tts.ttsPitch, ttsSpeed: tts.ttsSpeed,
+      ttsAmplitude: tts.ttsAmplitude, ttsLang: tts.ttsLang,
+      ttsGender: tts.ttsGender, ttsVoice: tts.ttsVoice,
+      start: 0, end: 2
+    };
+    const btn = document.getElementById("btn-tts-preview");
+    btn.disabled = true; btn.textContent = "Generating…";
+    try {
+      await generateSpeechTTS(tmp);
+      playSpeechTTS(tmp);
+    } catch (e) {
+      alert("TTS preview failed: " + (e.message || e));
+    }
+    btn.disabled = false; btn.textContent = "▶ Preview TTS";
+  });
+  syncPreTtsPanel();
   document.getElementById("btn-upload-sound").addEventListener("click", () => document.getElementById("sound-upload").click());
   document.getElementById("sound-upload").addEventListener("change", onSoundUpload);
   document.getElementById("sound-search").addEventListener("input", e => filterSoundboard(e.target.value));
   document.getElementById("btn-save").addEventListener("click", () => saveProject(true));
+  document.getElementById("btn-save-json").addEventListener("click", saveProjectJson);
+  document.getElementById("btn-load-json").addEventListener("click", () => {
+    document.getElementById("project-json-input").click();
+  });
+  document.getElementById("project-json-input").addEventListener("change", e => {
+    const f = e.target.files && e.target.files[0];
+    if (f) loadProjectFromFile(f);
+    e.target.value = "";
+  });
   btnExport.addEventListener("click", () => {
     if (state.recording) {
       // Stop early and keep what was recorded
@@ -438,6 +1107,7 @@ function pause() {
   if (animFrameId) cancelAnimationFrame(animFrameId);
   state.videos.forEach(v => { if (!v.videoEl.paused) v.videoEl.pause(); });
   state.sounds.forEach(s => { if (s.audio && !s.audio.paused) s.audio.pause(); });
+  state.speeches.forEach(sp => { if (sp._ttsAudio && !sp._ttsAudio.paused) try { sp._ttsAudio.pause(); } catch (_) {} });
 }
 function stop() { pause(); seek(0); }
 
@@ -446,6 +1116,7 @@ function seek(t) {
   if (was) pause();
   state.currentTime = clamp(t, 0, state.totalDuration || 0);
   state.sounds.forEach(s => { s.played = state.currentTime > s.start + 0.05; });
+  state.speeches.forEach(sp => { sp.ttsPlayed = state.currentTime > sp.start + 0.05; });
   syncVideo(false); updateUI(); drawFrame();
   if (was) play();
 }
@@ -574,8 +1245,10 @@ function drawFrame() {
       ctx.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
       ctx.restore();
 
-      // Active speech bubbles stacked above character head
-      const active = state.speeches.filter(sp => state.currentTime >= sp.start && state.currentTime <= sp.end);
+      // Active speech bubbles stacked above character head (optional per-event)
+      const active = state.speeches.filter(sp =>
+        state.currentTime >= sp.start && state.currentTime <= sp.end && sp.showBubble !== false
+      );
       active.forEach((sp, i) => {
         const stack = active.length - 1 - i;
         const bx = cx;
@@ -584,6 +1257,8 @@ function drawFrame() {
       });
     }
   }
+  // Duck video volume while any TTS speech is active
+  applyVideoVolumeForTime(state.currentTime);
 }
 
 function drawBubble(x, y, text) {
@@ -625,48 +1300,214 @@ function addCharKeyframe() {
 }
 
 /* ---- Speech ---- */
-function addSpeech() {
+function readPreTtsSettings() {
+  const ttsOn = document.getElementById("speech-tts-on").checked;
+  const ttsEngine = document.getElementById("speech-tts-engine").value || "neural";
+  if (ttsEngine === "robot") {
+    return {
+      ttsOn, ttsEngine,
+      ttsPitch: +document.getElementById("speech-tts-pitch").value || 50,
+      ttsSpeed: +document.getElementById("speech-tts-speed-robot").value || 175,
+      ttsAmplitude: +document.getElementById("speech-tts-amp").value || 100,
+      ttsLang: "en", ttsGender: "default", ttsVoice: null
+    };
+  }
+  if (ttsEngine === "neural") {
+    const lang = document.getElementById("speech-tts-lang-neural").value || "en";
+    const gender = document.getElementById("speech-tts-gender").value || "female";
+    const voice = document.getElementById("speech-tts-voice").value || pickKokoroVoice(lang, gender);
+    return {
+      ttsOn, ttsEngine,
+      ttsPitch: +document.getElementById("speech-tts-pitch-neural").value || 1,
+      ttsSpeed: +document.getElementById("speech-tts-speed-neural").value || 1,
+      ttsAmplitude: 100,
+      ttsLang: lang, ttsGender: gender, ttsVoice: voice
+    };
+  }
+  return {
+    ttsOn, ttsEngine,
+    ttsPitch: +document.getElementById("speech-tts-pitch-nat").value || 1,
+    ttsSpeed: +document.getElementById("speech-tts-speed-nat").value || 1,
+    ttsAmplitude: 100,
+    ttsLang: document.getElementById("speech-tts-lang").value || "en",
+    ttsGender: "default", ttsVoice: null
+  };
+}
+
+async function addSpeech() {
   const text = (document.getElementById("speech-input").value || "").trim() || "…";
   const expression = document.getElementById("speech-expression").value || "Happy";
-  state.speeches.push({
+  const showBubble = document.getElementById("speech-show-bubble").checked;
+  const tts = readPreTtsSettings();
+  const sp = {
     id: "sp" + Date.now(),
     text,
     expression,
     start: state.currentTime,
-    end: state.currentTime + 2.5
-  });
+    end: state.currentTime + 2.5,
+    showBubble: showBubble !== false,
+    ttsOn: !!tts.ttsOn,
+    ttsEngine: tts.ttsEngine,
+    ttsPitch: tts.ttsPitch,
+    ttsSpeed: tts.ttsSpeed,
+    ttsAmplitude: tts.ttsAmplitude,
+    ttsLang: tts.ttsLang,
+    ttsGender: tts.ttsGender || "default",
+    ttsVoice: tts.ttsVoice || null,
+    ttsDataUrl: null,
+    ttsStreamUrl: null,
+    ttsDuration: null,
+    ttsPlayed: false
+  };
+  state.speeches.push(sp);
   document.getElementById("speech-input").value = "";
+  if (sp.ttsOn) {
+    await generateSpeechTTS(sp);
+  }
   renderSpeechList(); renderTimeline(); markDirty(); drawFrame();
 }
 
 function renderSpeechList() {
-  document.getElementById("speech-list").innerHTML = state.speeches.map((s, i) => `
-    <div class="item">
+  document.getElementById("speech-list").innerHTML = state.speeches.map((s, i) => {
+    const eng = s.ttsEngine || "neural";
+    const isRobot = eng === "robot";
+    const isNeural = eng === "neural";
+    const hasTts = !!(s.ttsDataUrl || s.ttsStreamUrl);
+    const gender = s.ttsGender || "female";
+    const lang = s.ttsLang || "en";
+    const voiceOpts = KOKORO_VOICES.filter(v => v.lang === (isNeural ? lang : "en") && v.gender === gender);
+    const voiceList = voiceOpts.length ? voiceOpts : KOKORO_VOICES.filter(v => v.lang === "en");
+    return `
+    <div class="item speech-item">
       <div class="row">
         <strong>${escapeHtml(s.text)}</strong>
         <button class="btn-x" onclick="removeSpeech(${i})">✕</button>
       </div>
-      <div class="meta">${s.start.toFixed(1)}s – ${s.end.toFixed(1)}s</div>
+      <div class="meta">${s.start.toFixed(1)}s – ${s.end.toFixed(1)}s${s.ttsDuration ? ` · TTS ${s.ttsDuration.toFixed(2)}s` : ""}</div>
       <label class="meta">Expression
         <select onchange="updateSpeech(${i},'expression',this.value)">
           ${EXPRESSIONS.map(e => `<option value="${e}" ${s.expression === e ? "selected" : ""}>${e}</option>`).join("")}
         </select>
       </label>
+      <div class="chk-row">
+        <label class="chk"><input type="checkbox" ${s.showBubble !== false ? "checked" : ""} onchange="updateSpeech(${i},'showBubble',this.checked)" /> Bubble</label>
+        <label class="chk"><input type="checkbox" ${s.ttsOn ? "checked" : ""} onchange="updateSpeech(${i},'ttsOn',this.checked)" /> TTS</label>
+      </div>
+      ${s.ttsOn ? `
+      <label class="meta">Engine
+        <select onchange="updateSpeech(${i},'ttsEngine',this.value)">
+          <option value="neural" ${isNeural ? "selected" : ""}>Neural (Kokoro)</option>
+          <option value="robot" ${isRobot ? "selected" : ""}>Robot (eSpeak)</option>
+          <option value="natural" ${eng === "natural" ? "selected" : ""}>Google TTS</option>
+        </select>
+      </label>
+      ${isRobot ? `
+      <label class="meta">Pitch <input type="range" min="0" max="100" value="${s.ttsPitch != null ? s.ttsPitch : 50}"
+        onchange="updateSpeech(${i},'ttsPitch',+this.value)" /></label>
+      <label class="meta">Speed (wpm) <input type="range" min="80" max="300" value="${s.ttsSpeed != null ? s.ttsSpeed : 175}"
+        onchange="updateSpeech(${i},'ttsSpeed',+this.value)" /></label>
+      <label class="meta">Volume <input type="range" min="0" max="200" value="${s.ttsAmplitude != null ? s.ttsAmplitude : 100}"
+        onchange="updateSpeech(${i},'ttsAmplitude',+this.value)" /></label>
+      ` : isNeural ? `
+      <label class="meta">Language
+        <select onchange="updateSpeech(${i},'ttsLang',this.value)">
+          ${KOKORO_LANGS.map(l => `<option value="${l.id}" ${lang === l.id ? "selected" : ""}>${l.label}</option>`).join("")}
+        </select>
+      </label>
+      <label class="meta">Gender
+        <select onchange="updateSpeech(${i},'ttsGender',this.value)">
+          <option value="female" ${gender === "female" ? "selected" : ""}>Female</option>
+          <option value="male" ${gender === "male" ? "selected" : ""}>Male</option>
+        </select>
+      </label>
+      <label class="meta">Voice
+        <select onchange="updateSpeech(${i},'ttsVoice',this.value)">
+          ${voiceList.map(v => `<option value="${v.id}" ${(s.ttsVoice || "") === v.id ? "selected" : ""}>${v.name}${v.region ? " (" + v.region + ")" : ""}</option>`).join("")}
+        </select>
+      </label>
+      <label class="meta">Pitch <input type="range" min="0.5" max="1.5" step="0.05" value="${s.ttsPitch != null ? s.ttsPitch : 1}"
+        onchange="updateSpeech(${i},'ttsPitch',+this.value)" /></label>
+      <label class="meta">Speed <input type="range" min="0.5" max="1.5" step="0.05" value="${s.ttsSpeed != null ? s.ttsSpeed : 1}"
+        onchange="updateSpeech(${i},'ttsSpeed',+this.value)" /></label>
+      ` : `
+      <label class="meta">Language
+        <select onchange="updateSpeech(${i},'ttsLang',this.value)">
+          ${TTS_LANGS.map(l => `<option value="${l.id}" ${lang === l.id ? "selected" : ""}>${l.label}</option>`).join("")}
+        </select>
+      </label>
+      <label class="meta">Pitch <input type="range" min="0.5" max="1.5" step="0.05" value="${s.ttsPitch != null ? s.ttsPitch : 1}"
+        onchange="updateSpeech(${i},'ttsPitch',+this.value)" /></label>
+      <label class="meta">Speed <input type="range" min="0.5" max="1.5" step="0.05" value="${s.ttsSpeed != null ? s.ttsSpeed : 1}"
+        onchange="updateSpeech(${i},'ttsSpeed',+this.value)" /></label>
+      `}
+      <div class="btn-row" style="margin-top:4px">
+        <button class="btn btn-sm" onclick="regenSpeechTTS(${i})">${hasTts ? "Regen TTS" : "Generate TTS"}</button>
+        <button class="btn btn-sm" onclick="previewSpeechTTS(${i})" ${hasTts ? "" : "disabled"}>▶ Play</button>
+      </div>
+      ` : ""}
       <div class="row" style="gap:4px;margin-top:3px">
         <input type="number" step="0.1" value="${s.start.toFixed(1)}" title="Start"
           onchange="updateSpeech(${i},'start',+this.value)" style="width:48%" />
         <input type="number" step="0.1" value="${s.end.toFixed(1)}" title="End"
-          onchange="updateSpeech(${i},'end',+this.value)" style="width:48%" />
+          onchange="updateSpeech(${i},'end',+this.value)" style="width:48%" ${s.ttsOn && hasTts ? "disabled title=\"Locked to TTS length\"" : ""} />
       </div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
 }
 window.updateSpeech = function(i, key, val) {
-  state.speeches[i][key] = val;
+  const s = state.speeches[i];
+  if (!s) return;
+  s[key] = val;
+  const ttsKeys = ["ttsEngine", "ttsPitch", "ttsSpeed", "ttsAmplitude", "ttsLang", "ttsGender", "ttsVoice", "text", "ttsOn"];
+  if (key === "ttsEngine") {
+    s.ttsSpeed = val === "robot" ? 175 : 1;
+    s.ttsPitch = val === "robot" ? 50 : 1;
+    if (val === "neural") {
+      s.ttsGender = s.ttsGender === "male" ? "male" : "female";
+      s.ttsVoice = pickKokoroVoice(s.ttsLang || "en", s.ttsGender, s.ttsVoice);
+    }
+    s.ttsDataUrl = null; s.ttsStreamUrl = null; s.ttsDuration = null;
+    s._ttsBuffer = null; s._ttsKey = null;
+    renderSpeechList();
+  }
+  if (key === "ttsLang" || key === "ttsGender") {
+    if ((s.ttsEngine || "") === "neural") {
+      s.ttsVoice = pickKokoroVoice(s.ttsLang || "en", s.ttsGender || "female", null);
+    }
+  }
+  if (ttsKeys.includes(key)) {
+    s._ttsBuffer = null;
+    s._ttsKey = null;
+    if (s.ttsOn && key !== "ttsOn") {
+      // Settings changed while TTS is on — regenerate so export matches UI
+      generateSpeechTTS(s).then(() => { renderSpeechList(); renderTimeline(); markDirty(); drawFrame(); });
+      return;
+    }
+    if (key === "ttsOn" && val) {
+      generateSpeechTTS(s).then(() => { renderSpeechList(); renderTimeline(); markDirty(); drawFrame(); });
+      return;
+    }
+  }
+  if (key === "start" && s.ttsOn && s.ttsDuration) {
+    s.end = s.start + s.ttsDuration;
+  }
   renderTimeline(); markDirty(); drawFrame();
 };
 window.removeSpeech = function(i) {
+  const s = state.speeches[i];
+  if (s && s._ttsAudio) try { s._ttsAudio.pause(); } catch (_) {}
   state.speeches.splice(i, 1);
   renderSpeechList(); renderTimeline(); markDirty(); drawFrame();
+};
+window.regenSpeechTTS = async function(i) {
+  const s = state.speeches[i];
+  if (!s) return;
+  s.ttsOn = true;
+  await generateSpeechTTS(s);
+  renderSpeechList(); renderTimeline(); markDirty(); drawFrame();
+};
+window.previewSpeechTTS = function(i) {
+  playSpeechTTS(state.speeches[i]);
 };
 
 /* ---- Text ---- */
@@ -766,6 +1607,15 @@ function playSoundsAt(t) {
     }
     if (t < s.start) s.played = false;
   }
+  // Speech TTS
+  for (const sp of state.speeches) {
+    if (!sp.ttsOn) continue;
+    if (!sp.ttsPlayed && t >= sp.start && t < sp.start + 0.15) {
+      sp.ttsPlayed = true;
+      playSpeechTTS(sp);
+    }
+    if (t < sp.start) sp.ttsPlayed = false;
+  }
 }
 
 /* ---- Timeline ---- */
@@ -835,29 +1685,108 @@ function markDirty() {
   saveIndicator.textContent = "Unsaved";
   saveIndicator.className = "save-indicator";
 }
+function buildProjectData() {
+  return {
+    version: 6,
+    type: "reaction-studio-project",
+    savedAt: Date.now(),
+    totalDuration: state.totalDuration,
+    ttsDuckOn: !!state.ttsDuckOn,
+    ttsDuckVol: state.ttsDuckVol != null ? state.ttsDuckVol : 0.25,
+    texts: state.texts,
+    speeches: state.speeches.map(s => ({
+      id: s.id, text: s.text, expression: s.expression,
+      start: s.start, end: s.end,
+      showBubble: s.showBubble !== false,
+      ttsOn: !!s.ttsOn,
+      ttsEngine: s.ttsEngine || "robot",
+      ttsPitch: s.ttsPitch, ttsSpeed: s.ttsSpeed, ttsAmplitude: s.ttsAmplitude,
+      ttsLang: s.ttsLang || "en",
+      ttsGender: s.ttsGender || "default",
+      ttsVoice: s.ttsVoice || null,
+      ttsDuration: s.ttsDuration,
+      ttsDataUrl: s.ttsDataUrl || null,
+      ttsStreamUrl: s.ttsStreamUrl || null
+    })),
+    sounds: state.sounds.map(s => ({
+      id: s.id, name: s.name, board: !!s.board, url: s.board ? s.url : null,
+      dataUrl: s.dataUrl || null, start: s.start, duration: s.duration
+    })),
+    character: {
+      visible: state.character.visible, expression: state.character.expression,
+      x: state.character.x, y: state.character.y, scale: state.character.scale,
+      keyframes: state.character.keyframes,
+      customImages: state.character.customImages || {}
+    },
+    videosMeta: state.videos.map(v => ({ name: v.name, duration: v.duration }))
+  };
+}
+
 function saveProject(manual) {
   try {
-    const data = {
-      version: 4, savedAt: Date.now(), totalDuration: state.totalDuration,
-      texts: state.texts, speeches: state.speeches,
-      sounds: state.sounds.map(s => ({
-        id: s.id, name: s.name, board: !!s.board, url: s.board ? s.url : null,
-        dataUrl: s.dataUrl || null, start: s.start, duration: s.duration
-      })),
-      character: {
-        visible: state.character.visible, expression: state.character.expression,
-        x: state.character.x, y: state.character.y, scale: state.character.scale,
-        keyframes: state.character.keyframes,
-        customImages: state.character.customImages || {}
-      },
-      videosMeta: state.videos.map(v => ({ name: v.name, duration: v.duration }))
-    };
+    const data = buildProjectData();
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     state.dirty = false;
     saveIndicator.textContent = manual ? "Saved ✓" : "Auto-saved";
     saveIndicator.className = "save-indicator saved";
     setTimeout(() => { if (!state.dirty) { saveIndicator.textContent = ""; } }, 2000);
   } catch (e) { saveIndicator.textContent = "Save failed"; }
+}
+
+/** Download current reaction as a .json file */
+function saveProjectJson() {
+  try {
+    const data = buildProjectData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    a.href = url;
+    a.download = `reaction-${stamp}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    // Also mirror to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    state.dirty = false;
+    saveIndicator.textContent = "JSON saved ✓";
+    saveIndicator.className = "save-indicator saved";
+    setTimeout(() => { if (!state.dirty) saveIndicator.textContent = ""; }, 2500);
+  } catch (e) {
+    alert("Failed to save JSON: " + (e.message || e));
+  }
+}
+
+/** Load a reaction from a user-picked .json file */
+function loadProjectFromFile(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || typeof data !== "object") throw new Error("Invalid JSON");
+      if (data.type && data.type !== "reaction-studio-project" && !data.version) {
+        throw new Error("Not a Reaction Studio project file");
+      }
+      if (!data.version && !data.speeches && !data.texts && !data.character) {
+        throw new Error("Unrecognized project format");
+      }
+      loadProject(data);
+      // Remember in localStorage too
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(buildProjectData())); } catch (_) {}
+      saveIndicator.textContent = "Loaded JSON ✓";
+      saveIndicator.className = "save-indicator saved";
+      setTimeout(() => { if (!state.dirty) saveIndicator.textContent = ""; }, 2500);
+      if (data.videosMeta?.length && !state.videos.length) {
+        alert("Project loaded. Re-upload the video(s):\n" + data.videosMeta.map(v => "• " + v.name).join("\n"));
+      }
+    } catch (e) {
+      alert("Could not load JSON: " + (e.message || e));
+    }
+  };
+  reader.onerror = () => alert("Failed to read file");
+  reader.readAsText(file);
 }
 
 function checkBackup() {
@@ -881,18 +1810,55 @@ function checkBackup() {
 }
 
 function loadProject(data) {
+  state.ttsDuckOn = !!data.ttsDuckOn;
+  state.ttsDuckVol = data.ttsDuckVol != null ? +data.ttsDuckVol : 0.25;
+  const duckOnEl = document.getElementById("tts-duck-on");
+  const duckVolEl = document.getElementById("tts-duck-vol");
+  const duckValEl = document.getElementById("tts-duck-vol-val");
+  const duckWrap = document.getElementById("tts-duck-vol-wrap");
+  if (duckOnEl) duckOnEl.checked = state.ttsDuckOn;
+  if (duckVolEl) duckVolEl.value = Math.round(state.ttsDuckVol * 100);
+  if (duckValEl) duckValEl.textContent = Math.round(state.ttsDuckVol * 100) + "%";
+  if (duckWrap) duckWrap.classList.toggle("hidden", !state.ttsDuckOn);
+
   state.texts = data.texts || [];
   state.speeches = (data.speeches || []).map(s => ({
-    ...s, expression: s.expression || "Happy"
+    id: s.id, text: s.text, expression: s.expression || "Happy",
+    start: s.start, end: s.end,
+    showBubble: s.showBubble !== false,
+    ttsOn: !!s.ttsOn,
+    ttsEngine: s.ttsEngine || "robot",
+    ttsPitch: s.ttsPitch != null ? s.ttsPitch : (s.ttsEngine === "robot" ? 50 : 1),
+    ttsSpeed: s.ttsSpeed != null ? s.ttsSpeed : (s.ttsEngine === "robot" ? 175 : 1),
+    ttsAmplitude: s.ttsAmplitude != null ? s.ttsAmplitude : 100,
+    ttsLang: s.ttsLang || "en",
+    ttsGender: s.ttsGender || "default",
+    ttsVoice: s.ttsVoice || null,
+    ttsDuration: s.ttsDuration || null,
+    ttsDataUrl: s.ttsDataUrl || null,
+    ttsStreamUrl: s.ttsStreamUrl || null,
+    ttsPlayed: false, _ttsAudio: null, _ttsBuffer: null, _ttsKey: null,
+    _ttsDetune: s.ttsEngine === "neural" ? pitchToDetune(s.ttsPitch != null ? s.ttsPitch : 1) : 0
   }));
   // migrate old single speech
   if (data.character?.speech && !state.speeches.length) {
     state.speeches.push({
       id: "m", text: data.character.speech.text,
       expression: "Happy",
-      start: data.character.speech.start, end: data.character.speech.end
+      start: data.character.speech.start, end: data.character.speech.end,
+      showBubble: true, ttsOn: false, ttsEngine: "robot",
+      ttsPitch: 50, ttsSpeed: 175, ttsAmplitude: 100, ttsLang: "en",
+      ttsPlayed: false
     });
   }
+  // restore TTS audio elements
+  state.speeches.forEach(sp => {
+    if (sp.ttsOn && (sp.ttsDataUrl || sp.ttsStreamUrl)) {
+      sp._ttsAudio = new Audio(sp.ttsDataUrl || sp.ttsStreamUrl);
+      sp._ttsAudio.preload = "auto";
+      sp._ttsAudio.volume = state.masterVol;
+    }
+  });
   state.character.visible = data.character?.visible !== false;
   state.character.expression = data.character?.expression || "Normal";
   state.character.x = data.character?.x ?? 82;
@@ -998,7 +1964,72 @@ async function exportWebM() {
       return null;
     }
   }
+  async function decodeDataUrl(dataUrl) {
+    const res = await fetch(dataUrl);
+    const arr = await res.arrayBuffer();
+    return await audioCtx.decodeAudioData(arr.slice(0));
+  }
+
+  async function getTtsBuffer(sp) {
+    if (!sp.ttsOn) return null;
+    try {
+      const key = ttsSettingsKey(sp);
+      // Prefer existing good dataUrl matching settings
+      if (sp.ttsDataUrl && sp._ttsKey === key && sp._ttsBuffer) {
+        return sp._ttsBuffer;
+      }
+      // Settings match but buffer missing → just decode
+      if (sp.ttsDataUrl && sp._ttsKey === key) {
+        sp._ttsBuffer = await decodeDataUrl(sp.ttsDataUrl);
+        return sp._ttsBuffer;
+      }
+      // Stale or missing → regenerate (keep old on failure)
+      exportStatus.textContent = `TTS: “${(sp.text || "").slice(0, 24)}…”`;
+      const ok = await generateSpeechTTS(sp, { silent: true });
+      if (!sp.ttsDataUrl) {
+        // Last try: force natural fetch again
+        if ((sp.ttsEngine || "robot") === "natural") {
+          const { dataUrl } = await generateNaturalTTS(sp.text || " ", {
+            lang: sp.ttsLang || "en",
+            speed: sp.ttsSpeed != null ? sp.ttsSpeed : 1,
+            pitch: sp.ttsPitch != null ? sp.ttsPitch : 1
+          });
+          if (dataUrl) {
+            sp.ttsDataUrl = dataUrl;
+            sp._ttsKey = key;
+          }
+        } else if (!ok) {
+          await generateSpeechTTS(sp, { silent: true });
+        }
+      }
+      if (!sp.ttsDataUrl) {
+        console.warn("TTS export: no audio for", sp.text);
+        return null;
+      }
+      sp._ttsBuffer = await decodeDataUrl(sp.ttsDataUrl);
+      return sp._ttsBuffer;
+    } catch (err) {
+      console.warn("tts decode", err);
+      return null;
+    }
+  }
+
+  exportStatus.textContent = "Loading sounds…";
   await Promise.all(state.sounds.map(s => getSoundBuffer(s)));
+  // Generate/decode TTS sequentially (proxy rate limits)
+  const ttsList = state.speeches.filter(sp => sp.ttsOn);
+  for (let i = 0; i < ttsList.length; i++) {
+    exportStatus.textContent = `Preparing TTS ${i + 1}/${ttsList.length}…`;
+    await getTtsBuffer(ttsList[i]);
+    // small gap between Google requests
+    if (i < ttsList.length - 1) await new Promise(r => setTimeout(r, 120));
+  }
+  const missing = ttsList.filter(sp => !sp._ttsBuffer);
+  if (missing.length) {
+    console.warn("TTS missing on export:", missing.map(s => s.text));
+    exportStatus.textContent = `Warning: ${missing.length} TTS clip(s) missing audio`;
+    await new Promise(r => setTimeout(r, 600));
+  }
 
   const combined = new MediaStream();
   canvasStream.getVideoTracks().forEach(t => combined.addTrack(t));
@@ -1068,6 +2099,7 @@ async function exportWebM() {
   // Reset playback to start — continuous play (no per-frame seeking)
   pause();
   state.sounds.forEach(s => { s.played = false; });
+  state.speeches.forEach(sp => { sp.ttsPlayed = false; });
   state.currentTime = 0;
 
   // Seek all videos to 0 once
@@ -1186,6 +2218,36 @@ async function exportWebM() {
         }
       }
     }
+    // Speech TTS in export — fire once when playhead reaches start (no tight window; frames can skip)
+    for (const sp of state.speeches) {
+      if (!sp.ttsOn || sp.ttsPlayed) continue;
+      if (state.currentTime >= sp.start) {
+        sp.ttsPlayed = true;
+        if (sp._ttsBuffer) {
+          try {
+            const src = audioCtx.createBufferSource();
+            src.buffer = sp._ttsBuffer;
+            // Neural pitch via detune (Kokoro has no server pitch)
+            if (sp.ttsEngine === "neural") {
+              src.detune.value = sp._ttsDetune != null
+                ? sp._ttsDetune
+                : pitchToDetune(sp.ttsPitch != null ? sp.ttsPitch : 1);
+            }
+            const g = audioCtx.createGain();
+            g.gain.value = state.masterVol;
+            src.connect(g);
+            g.connect(sharedMasterGain);
+            src.start(0);
+          } catch (err) {
+            console.warn("TTS export play failed", err);
+          }
+        } else {
+          console.warn("TTS export: buffer missing at play time", sp.text);
+        }
+      }
+    }
+    // Duck source video volume while TTS is active (export audio graph)
+    applyVideoVolumeForTime(state.currentTime, { useWaGain: true });
 
     // Throttle UI updates (preview + status) to ~4/sec to avoid lag
     const now = performance.now();
@@ -1242,7 +2304,9 @@ function drawOverlays(c, w, h, time) {
       c.save(); c.translate(cx, cy);
       c.drawImage(img, -baseW / 2, -baseH / 2, baseW, baseH);
       c.restore();
-      const active = state.speeches.filter(sp => time >= sp.start && time <= sp.end);
+      const active = state.speeches.filter(sp =>
+        time >= sp.start && time <= sp.end && sp.showBubble !== false
+      );
       active.forEach((sp, i) => {
         const stack = active.length - 1 - i;
         const bx = cx, by = cy - baseH / 2 - 18 - stack * Math.round(h * 0.055);
