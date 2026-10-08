@@ -77,3 +77,6 @@ New Prism AI Project, a pretty cool AI ngl :D
 
 [Wednesday, October 7]
 New Reaction Studio project, a cool video editor!
+
+[Thursday, October 8]
+Updated Reaction Studio Project!
