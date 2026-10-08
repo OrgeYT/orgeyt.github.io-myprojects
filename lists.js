@@ -35,6 +35,7 @@ const featuredProjectNumbers = [
     170,
     172,
     174,
+    178,
 ]; // Sorted from least to greatest
 
 // ==========================================
@@ -1318,7 +1319,14 @@ const projects = [
         description: "Pretty cool AI",
         tags: ["Simulation", "Tools"],
         archive: false
-    } // Can make full midi files btw (WHAT)
+    }, // Can make full midi files btw (WHAT)
+    {
+        name: "Reaction Studio",
+        path: "reaction-studio",
+        description: "Useful video editor to react to videos!",
+        tags: ["Tools"],
+        archive: false
+    } // im gonna be using this fr
 ];
 
 
