@@ -131,7 +131,7 @@
 
     /* Side corruptor panel */
     .corruptor-panel {
-      width: 220px;
+      width: 240px;
       flex-shrink: 0;
       background: #12121f;
       border-left: 2px solid #ff6b8a;
@@ -165,6 +165,37 @@
       width: 100%;
       margin: 0.3rem 0;
       accent-color: #ff6b8a;
+    }
+
+    .corruptor-panel input[type="number"] {
+      width: 100%;
+      background: #0a0a12;
+      border: 1px solid #2a2a40;
+      color: #e8e8f0;
+      font-family: 'VT323', monospace;
+      font-size: 1.1rem;
+      padding: 0.25rem 0.4rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .corruptor-panel input[type="number"]:focus {
+      outline: none;
+      border-color: #ff6b8a;
+    }
+
+    .range-row {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .range-row > div {
+      flex: 1;
+    }
+
+    .range-row label {
+      font-size: 0.9rem;
+      margin-bottom: 0.15rem;
     }
 
     .corruptor-panel .level-display {
@@ -264,6 +295,24 @@
       margin: 1rem 0;
     }
 
+    .modal .dont-show-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.8rem 0 0.2rem;
+      font-size: 1.1rem;
+      color: #aaa;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .modal .dont-show-row input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: #ff6b8a;
+      cursor: pointer;
+    }
+
     .modal-actions {
       display: flex;
       gap: 0.6rem;
@@ -329,7 +378,7 @@
         right: 0;
         top: 52px;
         bottom: 0;
-        width: 200px;
+        width: 220px;
         z-index: 200;
       }
     }
@@ -357,16 +406,28 @@
     <!-- Persistent side panel (shown after first warning accept) -->
     <aside id="corruptor-panel" class="corruptor-panel">
       <h3>CORRUPTOR</h3>
+
+      <div class="range-row">
+        <div>
+          <label for="panel-min">Min %</label>
+          <input type="number" id="panel-min" min="0.01" max="200" step="0.01" value="0.01">
+        </div>
+        <div>
+          <label for="panel-max">Max %</label>
+          <input type="number" id="panel-max" min="0.01" max="200" step="0.01" value="100">
+        </div>
+      </div>
+
       <label for="panel-level">Level</label>
-      <input type="range" id="panel-level" min="0.5" max="1.5" step="0.05" value="1">
-      <div class="level-display"><span id="panel-level-value">50</span>%</div>
-      <p class="hint">0.5→1% · 1→50% · 1.5→100%</p>
+      <input type="range" id="panel-level" min="0.01" max="100" step="0.01" value="1">
+      <div class="level-display"><span id="panel-level-value">1.00</span>%</div>
+      <p class="hint">Set min/max (0.01–200), then drag the slider. Supports decimals.</p>
       <button id="panel-corrupt">Corrupt Now</button>
       <button id="panel-restart" class="panel-restart">True Restart</button>
     </aside>
   </div>
 
-  <!-- Warning modal (first open only) -->
+  <!-- Warning modal (first open only, unless "don't show again") -->
   <div id="warning-modal" class="modal-overlay">
     <div class="modal">
       <h2>⚠ CORRUPT MODE</h2>
@@ -379,6 +440,10 @@
         (start and end headers are left alone) so the state is more likely to still load.
       </p>
       <p>After this, a side panel will stay open so you can corrupt without popups.</p>
+      <label class="dont-show-row">
+        <input type="checkbox" id="warn-dont-show">
+        Don't show this warning again
+      </label>
       <div class="modal-actions">
         <button id="warn-cancel">Cancel</button>
         <button id="warn-accept" class="primary">I Understand — Continue</button>
@@ -395,6 +460,13 @@
     let emulatorReady = false;
     let warningAccepted = false;
     let currentGame = null;
+
+    // Persist "don't show again"
+    try {
+      if (localStorage.getItem("cg_corrupt_skip_warning") === "1") {
+        warningAccepted = true;
+      }
+    } catch (e) { /* ignore */ }
 
     function resolveGame(raw, systems) {
       const sys = (systems && systems[raw.system]) || {};
@@ -422,9 +494,71 @@
       }, 2800);
     }
 
-    function sliderToPercent(v) {
-      // 0.5 → 1%, 1.0 → 50%, 1.5 → 100%
-      return Math.round(1 + (parseFloat(v) - 0.5) * 99);
+    function formatPercent(v) {
+      const n = parseFloat(v);
+      if (isNaN(n)) return "0.00";
+      return n.toFixed(2);
+    }
+
+    function teardownEmulator() {
+      emulatorReady = false;
+
+      // Try to stop EmulatorJS cleanly
+      try {
+        if (window.EJS_emulator) {
+          try {
+            if (typeof window.EJS_emulator.pause === "function") {
+              window.EJS_emulator.pause();
+            }
+          } catch (e) {}
+          try {
+            if (window.EJS_emulator.gameManager && typeof window.EJS_emulator.gameManager.exit === "function") {
+              window.EJS_emulator.gameManager.exit();
+            }
+          } catch (e) {}
+          try {
+            if (typeof window.EJS_emulator.exit === "function") {
+              window.EJS_emulator.exit();
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+
+      // Stop any audio contexts that may be left behind
+      try {
+        if (window.EJS_emulator && window.EJS_emulator.Module && window.EJS_emulator.Module.AL) {
+          const contexts = window.EJS_emulator.Module.AL.contexts || [];
+          contexts.forEach(function (ctx) {
+            try {
+              if (ctx && ctx.audioCtx && typeof ctx.audioCtx.close === "function") {
+                ctx.audioCtx.close();
+              }
+            } catch (e) {}
+          });
+        }
+      } catch (e) {}
+
+      // Clear the game container
+      const gameEl = document.getElementById("game");
+      if (gameEl) {
+        gameEl.innerHTML = "";
+      }
+
+      // Remove loader script
+      const old = document.querySelector('script[src*="loader.js"]');
+      if (old) old.remove();
+
+      // Clear global EJS state
+      try {
+        delete window.EJS_emulator;
+        delete window.EJS_player;
+        delete window.EJS_core;
+        delete window.EJS_gameUrl;
+        delete window.EJS_gameName;
+        delete window.EJS_ready;
+        delete window.EJS_onGameStart;
+        delete window.EJS_lightgun;
+      } catch (e) {}
     }
 
     function startGame(game) {
@@ -470,13 +604,16 @@
     }
 
     function trueRestart() {
-      // Full page reload is the only reliable way to kill EmulatorJS
-      // (WASM + AudioContext) after a crash. Partial teardown leaves
-      // ghost instances that keep playing audio underneath the new one.
-      showToast("Restarting…");
+      if (!currentGame) {
+        showToast("No game loaded", true);
+        return;
+      }
+      showToast("Restarting emulator…");
+      teardownEmulator();
+      // Small delay so teardown settles before re-init
       setTimeout(function () {
-        location.reload();
-      }, 80);
+        startGame(currentGame);
+      }, 120);
     }
 
     function fail(msg) {
@@ -513,7 +650,7 @@
       else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
     });
 
-    // Topbar Restart = true restart
+    // Topbar Restart = true restart (emulator only, not full page)
     document.getElementById("restart-btn").addEventListener("click", function () {
       trueRestart();
     });
@@ -523,10 +660,44 @@
     const panel = document.getElementById("corruptor-panel");
     const panelLevel = document.getElementById("panel-level");
     const panelLevelValue = document.getElementById("panel-level-value");
+    const panelMin = document.getElementById("panel-min");
+    const panelMax = document.getElementById("panel-max");
+    const warnDontShow = document.getElementById("warn-dont-show");
+
+    function clampRange() {
+      let minV = parseFloat(panelMin.value);
+      let maxV = parseFloat(panelMax.value);
+      if (isNaN(minV)) minV = 0.01;
+      if (isNaN(maxV)) maxV = 100;
+      minV = Math.max(0.01, Math.min(200, minV));
+      maxV = Math.max(0.01, Math.min(200, maxV));
+      if (minV > maxV) {
+        const t = minV;
+        minV = maxV;
+        maxV = t;
+      }
+      panelMin.value = minV;
+      panelMax.value = maxV;
+      panelLevel.min = minV;
+      panelLevel.max = maxV;
+      let cur = parseFloat(panelLevel.value);
+      if (isNaN(cur) || cur < minV) cur = minV;
+      if (cur > maxV) cur = maxV;
+      panelLevel.value = cur;
+      panelLevelValue.textContent = formatPercent(cur);
+    }
+
+    panelMin.addEventListener("change", clampRange);
+    panelMin.addEventListener("input", clampRange);
+    panelMax.addEventListener("change", clampRange);
+    panelMax.addEventListener("input", clampRange);
 
     panelLevel.addEventListener("input", function () {
-      panelLevelValue.textContent = sliderToPercent(panelLevel.value);
+      panelLevelValue.textContent = formatPercent(panelLevel.value);
     });
+
+    // Init slider display
+    clampRange();
 
     function openCorruptUI() {
       if (!emulatorReady || !window.EJS_emulator || !window.EJS_emulator.gameManager) {
@@ -548,6 +719,11 @@
 
     document.getElementById("warn-accept").addEventListener("click", function () {
       warningAccepted = true;
+      if (warnDontShow.checked) {
+        try {
+          localStorage.setItem("cg_corrupt_skip_warning", "1");
+        } catch (e) { /* ignore */ }
+      }
       warningModal.classList.remove("show");
       panel.classList.add("show");
     });
@@ -594,7 +770,11 @@
             return;
           }
 
-          const percent = sliderToPercent(panelLevel.value);
+          // Direct percent from slider (supports decimals)
+          let percent = parseFloat(panelLevel.value);
+          if (isNaN(percent) || percent < 0) percent = 0;
+          if (percent > 200) percent = 200;
+
           let numBytes = Math.max(1, Math.floor(regionSize * (percent / 100)));
           numBytes = Math.min(numBytes, regionSize);
 
@@ -604,7 +784,7 @@
           }
 
           gm.loadState(data);
-          showToast("Corrupted " + numBytes + " bytes (" + percent + "%)");
+          showToast("Corrupted " + numBytes + " bytes (" + formatPercent(percent) + "%)");
         }).catch(function (err) {
           console.error(err);
           showToast("Corrupt failed — see console", true);

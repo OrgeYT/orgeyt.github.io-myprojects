@@ -52,7 +52,7 @@
       "thumb": "smb3.jpg",
       "year": 1988,
       "hack": false,
-      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser’s army.",
+      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser\u2019s army.",
       "homebrew": false
     },
     {
@@ -184,7 +184,7 @@
       "thumb": "smw.png",
       "year": 1990,
       "hack": false,
-      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario’s legendary SNES debut.",
+      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario\u2019s legendary SNES debut.",
       "homebrew": false
     },
     {
@@ -294,7 +294,7 @@
       "thumb": "sonic-ms.png",
       "year": 1991,
       "hack": false,
-      "description": "Experience Sonic’s high-speed platforming on the Sega Master System.",
+      "description": "Experience Sonic\u2019s high-speed platforming on the Sega Master System.",
       "homebrew": false
     },
     {
@@ -327,7 +327,7 @@
       "thumb": "Sonic1_Blastless.png",
       "year": 2021,
       "hack": true,
-      "description": "A unique Sonic 1 hack that strips away most of the graphics—restore them as you play!",
+      "description": "A unique Sonic 1 hack that strips away most of the graphics\u2014restore them as you play!",
       "homebrew": false
     },
     {
@@ -428,6 +428,28 @@
       "hack": true,
       "description": "A fan-made Sonic 1 hack that mixes elements from Sonic Mania and the 8-bit and 16-bit Sonic games, with remastered palettes, new abilities, and playable characters including Tails and Knuckles.",
       "homebrew": false
+    },
+    {
+      "id": "sonic2-tohaka21",
+      "title": "Sonic 2: Tohaka",
+      "system": "genesis",
+      "file": "sonic-the-hedgehog-2-tohaka21.bin",
+      "thumb": "sonic-the-hedgehog-2-tohaka21.jpg",
+      "year": 2004,
+      "hack": true,
+      "homebrew": false,
+      "description": "Ultima's classic Sonic 2 hack featuring new graphics, redesigned level layouts, and Chaos Emeralds hidden in every act instead of special stages."
+    },
+    {
+      "id": "sonic-boom",
+      "title": "Sonic Boom",
+      "system": "genesis",
+      "file": "sonic-boom.bin",
+      "thumb": "sonic-boom.jpg",
+      "year": 2009,
+      "hack": true,
+      "homebrew": false,
+      "description": "A Sonic 2 hack by S\u00c6GA with a huge set of new moves (some cost rings), greater speed, and completely different level challenges. Unrelated to the Sonic Boom TV series."
     }
   ]
 }
