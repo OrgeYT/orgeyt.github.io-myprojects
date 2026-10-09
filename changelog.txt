@@ -80,3 +80,6 @@ New Reaction Studio project, a cool video editor!
 
 [Thursday, October 8]
 Updated Reaction Studio Project!
+
+[Friday, October 9]
+Updated Classic games project with better corruptor, and 2 new games!
