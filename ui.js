@@ -63,7 +63,8 @@ const menuSongs = [
     { id: 'settle-peace',   name: 'Settle Peace',    src: 'music/Settle peace.mp3' },
     { id: 'yowie-master',   name: 'Yowie Master PIANO Remix', src: 'music/Yowie Master PIANO Remix (1).mp3' },
     { id: 'slide-master',   name: 'Slide Master', src: 'music/Slide master.mp3' },
-    { id: 'chords-master',   name: 'Chords Master', src: 'music/Chords Master.mp3' }, // New!
+    { id: 'chords-master',   name: 'Chords Master', src: 'music/Chords Master.mp3' },
+    { id: 'test-anxiety',   name: 'Test Anxiety', src: 'music/Test Anxiety.mp3' },
 ];
 
 const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
