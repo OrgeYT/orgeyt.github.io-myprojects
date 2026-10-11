@@ -87,3 +87,6 @@ Updated Classic games project with better corruptor, and 2 new games!
 [Saturday, October 10]
 Updated Soundboard project with new sounds!
 Added New home menu song!
+
+[Sunday, October 11]
+Updated Classic games project with new games, and new features in play scene.

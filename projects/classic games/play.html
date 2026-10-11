@@ -94,6 +94,8 @@
       display: flex;
       flex-direction: column;
       background: #000;
+      justify-content: center;
+      align-items: center;
       min-height: 0;
       min-width: 0;
       padding: 0;
@@ -101,14 +103,15 @@
     }
 
     .emulator-box {
-      width: 100%;
-      height: 100%;
+      width: calc(var(--emu-scale, 100) * 1%);
+      height: calc(var(--emu-scale, 100) * 1%);
       max-width: 100%;
       max-height: 100%;
+      margin: auto;
       position: relative;
       border: none;
       background: #000;
-      flex: 1;
+      flex: none;
       min-height: 0;
       display: flex;
       flex-direction: column;
@@ -120,6 +123,28 @@
       flex: 1;
       min-height: 0;
       position: relative;
+    }
+
+    .size-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-right: 0.4rem;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 0.55rem;
+      color: #e8e8f0;
+    }
+
+    .size-control input[type=range] {
+      width: 110px;
+      accent-color: #00f5d4;
+      cursor: pointer;
+    }
+
+    .size-control #size-value {
+      min-width: 3.2em;
+      text-align: right;
+      color: #00f5d4;
     }
 
     .error-msg {
@@ -245,6 +270,52 @@
       border-color: #ffc857;
       color: #ffc857;
       background: rgba(245, 166, 35, 0.12);
+    }
+
+    .corruptor-panel .safe-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin: 0.6rem 0 0.4rem;
+      font-size: 1rem;
+      color: #aaa;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .corruptor-panel .safe-row input[type="checkbox"] {
+      width: 1.1rem;
+      height: 1.1rem;
+      accent-color: #00f5d4;
+      cursor: pointer;
+    }
+
+    .corruptor-panel .safe-row span {
+      color: #00f5d4;
+    }
+
+    .corruptor-panel .fade-speed-row {
+      margin-bottom: 0.6rem;
+      display: none;
+    }
+
+    .corruptor-panel .fade-speed-row.show {
+      display: block;
+    }
+
+    /* Blackout overlay for safe mode */
+    #safe-blackout {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: none;
+    }
+
+    #safe-blackout.active {
+      pointer-events: auto;
     }
 
     /* Warning modal only */
@@ -389,6 +460,11 @@
   <div class="topbar">
     <h1 id="title">Loading…</h1>
     <div>
+      <span class="size-control" title="Emulator window size">
+        <label for="size-slider">Size</label>
+        <input type="range" id="size-slider" min="5" max="100" step="1" value="100">
+        <span id="size-value">100%</span>
+      </span>
       <button id="corrupt-btn" class="corrupt-btn" title="Open corrupt mode">Corrupt</button>
       <button id="restart-btn" class="restart-btn" title="Hard restart emulator">Restart</button>
       <button id="fs-btn">Fullscreen</button>
@@ -422,10 +498,24 @@
       <input type="range" id="panel-level" min="0.01" max="100" step="0.01" value="1">
       <div class="level-display"><span id="panel-level-value">1.00</span>%</div>
       <p class="hint">Set min/max (0.01–200), then drag the slider. Supports decimals.</p>
+
+      <label class="safe-row" title="When on: black screen + mute during corrupt, then fade back">
+        <input type="checkbox" id="panel-safe-mode">
+        <span>Safe Mode (no jumpscares)</span>
+      </label>
+      <div class="fade-speed-row" id="fade-speed-row">
+        <label for="panel-fade-speed">Fade-back speed (sec)</label>
+        <input type="number" id="panel-fade-speed" min="0.5" max="30" step="0.5" value="3">
+        <p class="hint" style="margin-top:0.2rem;margin-bottom:0;">How long the blackout + mute lasts before fading back.</p>
+      </div>
+
       <button id="panel-corrupt">Corrupt Now</button>
       <button id="panel-restart" class="panel-restart">True Restart</button>
     </aside>
   </div>
+
+  <!-- Safe-mode blackout overlay -->
+  <div id="safe-blackout"></div>
 
   <!-- Warning modal (first open only, unless "don't show again") -->
   <div id="warning-modal" class="modal-overlay">
@@ -663,6 +753,38 @@
     const panelMin = document.getElementById("panel-min");
     const panelMax = document.getElementById("panel-max");
     const warnDontShow = document.getElementById("warn-dont-show");
+    const panelSafeMode = document.getElementById("panel-safe-mode");
+    const fadeSpeedRow = document.getElementById("fade-speed-row");
+    const panelFadeSpeed = document.getElementById("panel-fade-speed");
+    const safeBlackout = document.getElementById("safe-blackout");
+
+    const SETTINGS_KEY = "cg_corrupt_settings";
+
+    function loadSettings() {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY);
+        if (!raw) return;
+        const s = JSON.parse(raw);
+        if (s.min != null) panelMin.value = s.min;
+        if (s.max != null) panelMax.value = s.max;
+        if (s.level != null) panelLevel.value = s.level;
+        if (s.safeMode != null) panelSafeMode.checked = !!s.safeMode;
+        if (s.fadeSpeed != null) panelFadeSpeed.value = s.fadeSpeed;
+      } catch (e) { /* ignore */ }
+    }
+
+    function saveSettings() {
+      try {
+        const s = {
+          min: parseFloat(panelMin.value) || 0.01,
+          max: parseFloat(panelMax.value) || 100,
+          level: parseFloat(panelLevel.value) || 1,
+          safeMode: panelSafeMode.checked,
+          fadeSpeed: parseFloat(panelFadeSpeed.value) || 3
+        };
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+      } catch (e) { /* ignore */ }
+    }
 
     function clampRange() {
       let minV = parseFloat(panelMin.value);
@@ -685,6 +807,16 @@
       if (cur > maxV) cur = maxV;
       panelLevel.value = cur;
       panelLevelValue.textContent = formatPercent(cur);
+      saveSettings();
+    }
+
+    function updateSafeUI() {
+      if (panelSafeMode.checked) {
+        fadeSpeedRow.classList.add("show");
+      } else {
+        fadeSpeedRow.classList.remove("show");
+      }
+      saveSettings();
     }
 
     panelMin.addEventListener("change", clampRange);
@@ -694,10 +826,17 @@
 
     panelLevel.addEventListener("input", function () {
       panelLevelValue.textContent = formatPercent(panelLevel.value);
+      saveSettings();
     });
 
-    // Init slider display
+    panelSafeMode.addEventListener("change", updateSafeUI);
+    panelFadeSpeed.addEventListener("change", saveSettings);
+    panelFadeSpeed.addEventListener("input", saveSettings);
+
+    // Load saved settings then init slider display
+    loadSettings();
     clampRange();
+    updateSafeUI();
 
     function openCorruptUI() {
       if (!emulatorReady || !window.EJS_emulator || !window.EJS_emulator.gameManager) {
@@ -728,9 +867,140 @@
       panel.classList.add("show");
     });
 
+    function setEmulatorMuted(muted) {
+      try {
+        // Mute all audio elements inside the game container
+        const gameEl = document.getElementById("game");
+        if (gameEl) {
+          gameEl.querySelectorAll("audio, video").forEach(function (el) {
+            el.muted = muted;
+            if (muted) {
+              el.dataset._wasPlaying = el.paused ? "0" : "1";
+            }
+          });
+        }
+        // Also try EmulatorJS volume API if available
+        if (window.EJS_emulator) {
+          if (typeof window.EJS_emulator.setVolume === "function") {
+            if (muted) {
+              window._cgPrevVolume = window.EJS_emulator.volume;
+              window.EJS_emulator.setVolume(0);
+            } else if (window._cgPrevVolume != null) {
+              window.EJS_emulator.setVolume(window._cgPrevVolume);
+            }
+          }
+        }
+        // Fallback: mute via Web Audio / any global AudioContext gain if present
+        if (muted) {
+          document.querySelectorAll("audio, video").forEach(function (el) {
+            el.muted = true;
+          });
+        } else {
+          document.querySelectorAll("audio, video").forEach(function (el) {
+            el.muted = false;
+          });
+        }
+      } catch (e) {
+        console.warn("Mute helper failed", e);
+      }
+    }
+
+    function runSafeBlackout(durationSec, onMidpoint) {
+      return new Promise(function (resolve) {
+        const dur = Math.max(0.5, Math.min(30, durationSec || 3)) * 1000;
+        const half = dur / 2;
+
+        // Instant black + mute
+        safeBlackout.style.transition = "none";
+        safeBlackout.style.opacity = "1";
+        safeBlackout.classList.add("active");
+        setEmulatorMuted(true);
+
+        // After a short beat, apply the corruption while blacked out
+        setTimeout(function () {
+          if (typeof onMidpoint === "function") {
+            try { onMidpoint(); } catch (e) { console.error(e); }
+          }
+        }, Math.min(150, half / 4));
+
+        // Hold black, then fade back
+        setTimeout(function () {
+          safeBlackout.style.transition = "opacity " + (half / 1000) + "s ease-in-out";
+          safeBlackout.style.opacity = "0";
+          // Unmute as we start fading
+          setEmulatorMuted(false);
+
+          setTimeout(function () {
+            safeBlackout.classList.remove("active");
+            safeBlackout.style.transition = "none";
+            resolve();
+          }, half + 50);
+        }, half);
+      });
+    }
+
+    function applyCorruption() {
+      if (!window.EJS_emulator || !window.EJS_emulator.gameManager) {
+        showToast("Emulator not ready", true);
+        return Promise.reject(new Error("not ready"));
+      }
+
+      const gm = window.EJS_emulator.gameManager;
+      let state = gm.getState();
+
+      return Promise.resolve(state).then(function (rawState) {
+        if (!rawState || (!(rawState instanceof Uint8Array) && !rawState.buffer)) {
+          showToast("Could not read save state", true);
+          throw new Error("no state");
+        }
+
+        const data = rawState instanceof Uint8Array ? new Uint8Array(rawState) : new Uint8Array(rawState);
+        const len = data.length;
+
+        if (len < 64) {
+          showToast("Save state too small to safely corrupt", true);
+          throw new Error("too small");
+        }
+
+        // Protect header and footer: skip first ~8% and last ~8%
+        const protect = Math.max(16, Math.floor(len * 0.08));
+        const start = protect;
+        const end = len - protect;
+        const regionSize = end - start;
+
+        if (regionSize < 8) {
+          showToast("Save state too small to safely corrupt", true);
+          throw new Error("region too small");
+        }
+
+        // Direct percent from slider (supports decimals)
+        let percent = parseFloat(panelLevel.value);
+        if (isNaN(percent) || percent < 0) percent = 0;
+        if (percent > 200) percent = 200;
+
+        let numBytes = Math.max(1, Math.floor(regionSize * (percent / 100)));
+        numBytes = Math.min(numBytes, regionSize);
+
+        for (let i = 0; i < numBytes; i++) {
+          const pos = start + Math.floor(Math.random() * regionSize);
+          data[pos] = Math.floor(Math.random() * 256);
+        }
+
+        gm.loadState(data);
+        showToast("Corrupted " + numBytes + " bytes (" + formatPercent(percent) + "%)");
+        return { numBytes: numBytes, percent: percent };
+      });
+    }
+
     function doCorrupt() {
       const btn = document.getElementById("panel-corrupt");
       btn.disabled = true;
+      saveSettings();
+
+      const useSafe = panelSafeMode.checked;
+      let fadeSec = parseFloat(panelFadeSpeed.value);
+      if (isNaN(fadeSec) || fadeSec < 0.5) fadeSec = 3;
+      if (fadeSec > 30) fadeSec = 30;
 
       try {
         if (!window.EJS_emulator || !window.EJS_emulator.gameManager) {
@@ -739,58 +1009,24 @@
           return;
         }
 
-        const gm = window.EJS_emulator.gameManager;
-        let state = gm.getState();
-
-        Promise.resolve(state).then(function (rawState) {
-          if (!rawState || (!(rawState instanceof Uint8Array) && !rawState.buffer)) {
-            showToast("Could not read save state", true);
+        if (useSafe) {
+          runSafeBlackout(fadeSec, function () {
+            applyCorruption().catch(function (err) {
+              console.error(err);
+            });
+          }).finally(function () {
             btn.disabled = false;
-            return;
-          }
-
-          const data = rawState instanceof Uint8Array ? new Uint8Array(rawState) : new Uint8Array(rawState);
-          const len = data.length;
-
-          if (len < 64) {
-            showToast("Save state too small to safely corrupt", true);
-            btn.disabled = false;
-            return;
-          }
-
-          // Protect header and footer: skip first ~8% and last ~8%
-          const protect = Math.max(16, Math.floor(len * 0.08));
-          const start = protect;
-          const end = len - protect;
-          const regionSize = end - start;
-
-          if (regionSize < 8) {
-            showToast("Save state too small to safely corrupt", true);
-            btn.disabled = false;
-            return;
-          }
-
-          // Direct percent from slider (supports decimals)
-          let percent = parseFloat(panelLevel.value);
-          if (isNaN(percent) || percent < 0) percent = 0;
-          if (percent > 200) percent = 200;
-
-          let numBytes = Math.max(1, Math.floor(regionSize * (percent / 100)));
-          numBytes = Math.min(numBytes, regionSize);
-
-          for (let i = 0; i < numBytes; i++) {
-            const pos = start + Math.floor(Math.random() * regionSize);
-            data[pos] = Math.floor(Math.random() * 256);
-          }
-
-          gm.loadState(data);
-          showToast("Corrupted " + numBytes + " bytes (" + formatPercent(percent) + "%)");
-        }).catch(function (err) {
-          console.error(err);
-          showToast("Corrupt failed — see console", true);
-        }).finally(function () {
-          btn.disabled = false;
-        });
+          });
+        } else {
+          applyCorruption()
+            .catch(function (err) {
+              console.error(err);
+              showToast("Corrupt failed — see console", true);
+            })
+            .finally(function () {
+              btn.disabled = false;
+            });
+        }
       } catch (err) {
         console.error(err);
         showToast("Corrupt failed — see console", true);
@@ -800,6 +1036,25 @@
 
     document.getElementById("panel-corrupt").addEventListener("click", doCorrupt);
     document.getElementById("panel-restart").addEventListener("click", trueRestart);
+    // Emulator window size slider
+    (function () {
+      const slider = document.getElementById("size-slider");
+      const label = document.getElementById("size-value");
+      function applySize(v) {
+        document.documentElement.style.setProperty("--emu-scale", v);
+        label.textContent = v + "%";
+        // Let EmulatorJS re-fit its canvas to the new container size
+        window.dispatchEvent(new Event("resize"));
+      }
+      let saved = null;
+      try { saved = localStorage.getItem("cg-emu-size"); } catch (e) {}
+      if (saved && +saved >= 5 && +saved <= 100) slider.value = saved;
+      applySize(slider.value);
+      slider.addEventListener("input", function () {
+        applySize(slider.value);
+        try { localStorage.setItem("cg-emu-size", slider.value); } catch (e) {}
+      });
+    })();
   </script>
 </body>
 </html>

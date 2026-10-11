@@ -52,7 +52,7 @@
       "thumb": "smb3.jpg",
       "year": 1988,
       "hack": false,
-      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser\u2019s army.",
+      "description": "Master power-ups like the Tanooki Suit, soar across world maps, and take on Bowser’s army.",
       "homebrew": false
     },
     {
@@ -184,7 +184,7 @@
       "thumb": "smw.png",
       "year": 1990,
       "hack": false,
-      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario\u2019s legendary SNES debut.",
+      "description": "Ride Yoshi, explore Dinosaur Land, and uncover secrets in Mario’s legendary SNES debut.",
       "homebrew": false
     },
     {
@@ -294,7 +294,7 @@
       "thumb": "sonic-ms.png",
       "year": 1991,
       "hack": false,
-      "description": "Experience Sonic\u2019s high-speed platforming on the Sega Master System.",
+      "description": "Experience Sonic’s high-speed platforming on the Sega Master System.",
       "homebrew": false
     },
     {
@@ -327,7 +327,7 @@
       "thumb": "Sonic1_Blastless.png",
       "year": 2021,
       "hack": true,
-      "description": "A unique Sonic 1 hack that strips away most of the graphics\u2014restore them as you play!",
+      "description": "A unique Sonic 1 hack that strips away most of the graphics—restore them as you play!",
       "homebrew": false
     },
     {
@@ -449,7 +449,62 @@
       "year": 2009,
       "hack": true,
       "homebrew": false,
-      "description": "A Sonic 2 hack by S\u00c6GA with a huge set of new moves (some cost rings), greater speed, and completely different level challenges. Unrelated to the Sonic Boom TV series."
+      "description": "A Sonic 2 hack by SÆGA with a huge set of new moves (some cost rings), greater speed, and completely different level challenges. Unrelated to the Sonic Boom TV series."
+    },
+    {
+      "id": "mean-bean",
+      "title": "Dr. Robotnik's Mean Bean Machine",
+      "system": "genesis",
+      "file": "dr-robotniks-mean-bean-machine.md",
+      "thumb": "dr-robotniks-mean-bean-machine.jpg",
+      "year": 1993,
+      "hack": false,
+      "description": "Puyo Puyo-style puzzle action starring Dr. Robotnik. Match beans, chain combos, and defeat rival opponents.",
+      "homebrew": false
+    },
+    {
+      "id": "sonic-winter",
+      "title": "Sonic Winter Adventures",
+      "system": "genesis",
+      "file": "sonic-winter-adventures.gen",
+      "thumb": "sonic-winter-adventures.jpg",
+      "year": 2018,
+      "hack": true,
+      "description": "A winter-themed Sonic ROM hack with snowy stages and festive atmosphere.",
+      "homebrew": false
+    },
+    {
+      "id": "sonic-2-haz",
+      "title": "Sonic 2 HAZ",
+      "system": "genesis",
+      "file": "sonic-2-haz.bin",
+      "thumb": "sonic-2-haz.jpg",
+      "year": 2015,
+      "hack": true,
+      "description": "A Sonic 2 ROM hack with redesigned levels and new challenges.",
+      "homebrew": false
+    },
+    {
+      "id": "sonic-1-character-pak",
+      "title": "Sonic 1 Character Pak",
+      "system": "genesis",
+      "file": "sonic-1-character-pak.md",
+      "thumb": "sonic-1-character-pak.jpg",
+      "year": 2020,
+      "hack": true,
+      "description": "Play as multiple characters in Sonic 1 with this character pack hack.",
+      "homebrew": false
+    },
+    {
+      "id": "sonic-improvement",
+      "title": "Sonic the Hedgehog Improvement",
+      "system": "nes",
+      "file": "sonic-the-hedgehog-improvement.nes",
+      "thumb": "sonic-the-hedgehog-improvement.jpg",
+      "year": 2018,
+      "hack": true,
+      "description": "An improved NES port of Sonic the Hedgehog with better graphics, physics, and gameplay refinements.",
+      "homebrew": false
     }
   ]
 }
