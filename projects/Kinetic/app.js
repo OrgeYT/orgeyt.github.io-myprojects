@@ -780,9 +780,11 @@ function createMonster() {
   const core = new THREE.PointLight(0xff1028, 22, 13, 2);
   core.position.set(0, 0.4, -1.35);
   root.add(core);
-  root.position.set(state.pos.x, state.pos.y + 1.7, state.pos.z + 32);
+  // Spawn a bit farther back and scale speed more gently on high stages
+  root.position.set(state.pos.x, state.pos.y + 1.7, state.pos.z + 40);
   levelRoot.add(root);
-  monster = { root, speed: 20 + Math.min(stageNumber * 0.6, 8.5) };
+  // Was ~26.6 at stage 11; now ~19.5 — still pressure, much fairer
+  monster = { root, speed: 15.5 + Math.min(stageNumber * 0.36, 5.5) };
 }
 
 function updateLevelHud() {
@@ -815,7 +817,7 @@ function respawn() {
   state.deform = -0.22; state.deformVelocity = 0; state.windClock = 0; state.lastSpeed = 0;
   player.position.copy(state.pos);
   flipRoot.rotation.set(0, 0, 0);
-  if (monster) monster.root.position.set(state.pos.x, state.pos.y + 1.7, state.pos.z + 32);
+  if (monster) monster.root.position.set(state.pos.x, state.pos.y + 1.7, state.pos.z + 40);
   combo = 1; comboTimer = 0; flowActive = false;
   document.querySelector('#combo').textContent = 'x1';
   showToast('BACK TO CHECKPOINT');
@@ -1412,9 +1414,9 @@ function tick(dt) {
     if (distance > 0.01) monster.root.position.addScaledVector(toPlayer, Math.min(1, monster.speed * dt / distance));
     monster.root.position.y = THREE.MathUtils.damp(monster.root.position.y, state.pos.y + 1.55 + Math.sin(levelElapsed * 6.5) * 0.25, 7.5, dt);
     monster.root.rotation.y = Math.atan2(-(state.pos.x - monster.root.position.x), -(state.pos.z - monster.root.position.z));
-    if (Math.abs(monster.root.position.x - state.pos.x) < 2.4 &&
-        Math.abs(monster.root.position.z - state.pos.z) < 2.8 &&
-        Math.abs(monster.root.position.y - (state.pos.y + 1)) < 2.3) {
+    if (Math.abs(monster.root.position.x - state.pos.x) < 2.0 &&
+        Math.abs(monster.root.position.z - state.pos.z) < 2.3 &&
+        Math.abs(monster.root.position.y - (state.pos.y + 1)) < 2.0) {
       respawn();
     }
   }
