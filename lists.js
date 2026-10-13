@@ -1333,7 +1333,14 @@ const projects = [
         description: "Fun 3D parkour game",
         tags: ["Simulations", "Games"],
         archive: false
-    } // I'm a cat and i jump on platforms
+    }, // I'm a cat and i jump on platforms
+    {
+        name: "Door Guard",
+        path: "door guard/index.html",
+        description: "Game where you have to solve minigames for power, and stop a monster from killing you.",
+        tags: ["Games"],
+        archive: false
+    },
 ];
 
 
