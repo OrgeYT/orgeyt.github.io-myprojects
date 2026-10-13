@@ -1326,7 +1326,14 @@ const projects = [
         description: "Useful video editor to react to videos!",
         tags: ["Tools"],
         archive: false
-    } // im gonna be using this fr
+    }, // im gonna be using this fr
+    {
+        name: "Kinetic",
+        path: "Kinetic/index.html",
+        description: "Fun 3D parkour game",
+        tags: ["Simulations", "Games"],
+        archive: false
+    } // I'm a cat and i jump on platforms
 ];
 
 
