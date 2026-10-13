@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#090d16">
+  <title>Kinetic — Movement Lab</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <main id="game" aria-label="Kinetic third-person platformer">
+    <div id="stage"></div>
+    <div class="vignette"></div>
+    <div class="scanlines"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">K</span>
+        <span>KINETIC<span class="brand-sub">MOVEMENT LAB</span></span>
+      </div>
+      <div class="map-tag">
+        <i></i> STAGE <span id="stage-number">01</span>
+        <b>·</b> LEVEL <span id="level">1/4</span>
+      </div>
+    </header>
+
+    <section class="readout" aria-label="Movement status">
+      <div class="speed">
+        <span class="micro-label">VELOCITY</span>
+        <div><strong id="speed">00</strong><span class="unit">KM/H</span></div>
+        <div class="speed-track"><i id="speed-fill"></i></div>
+      </div>
+      <div class="ability">
+        <span class="micro-label">AIR JUMPS</span>
+        <div id="jumps" class="pips"><i></i><i></i></div>
+      </div>
+      <div class="ability">
+        <span class="micro-label">DASH</span>
+        <div class="dash-row"><span id="dash-dot"></span><span id="dash-label">READY</span><kbd>E</kbd></div>
+      </div>
+      <div class="ability score-block">
+        <span class="micro-label">SCORE</span>
+        <div class="score-value"><strong id="score">0</strong></div>
+        <div class="combo-row"><span id="combo">x1</span> <span class="combo-label">FLOW</span></div>
+      </div>
+    </section>
+
+    <div class="timer-panel">
+      <span class="micro-label">TIME</span>
+      <strong id="timer">0:00.0</strong>
+    </div>
+
+    <div class="reticle"><i></i><i></i><i></i><i></i><b></b></div>
+
+    <div class="bottom-left">
+      <span class="live-dot"></span>
+      <span id="motion-state">GROUNDED</span>
+      <span class="divider">/</span>
+      <span id="surface">CP 0/2</span>
+      <span class="divider">/</span>
+      <span id="orbs-collected">0 ORBS</span>
+    </div>
+
+    <div class="bottom-right">
+      <div class="controls">
+        <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><small>MOVE</small></span>
+        <span><kbd>SPACE</kbd><small>JUMP / WALL</small></span>
+        <span><kbd>SHIFT</kbd><small>SPRINT</small></span>
+        <span><kbd>E</kbd><small>DASH</small></span>
+        <span><kbd>MOUSE / WHEEL</kbd><small>LOOK / ZOOM</small></span>
+      </div>
+    </div>
+
+    <button id="start" class="start-card" type="button">
+      <span class="start-icon">↗</span>
+      <span>
+        <strong>ENTER LEVEL</strong>
+        <small>Click to lock cursor and begin</small>
+      </span>
+      <span class="start-arrow">↵</span>
+    </button>
+
+    <section id="pause-screen" class="pause-screen hidden" aria-label="Pause menu">
+      <div class="pause-panel">
+        <span class="pause-kicker">KINETIC / PAUSED</span>
+        <div class="pause-stats">
+          <div><span>Stage</span><strong id="pause-stage">1</strong></div>
+          <div><span>Score</span><strong id="pause-score">0</strong></div>
+          <div><span>Best</span><strong id="pause-best">0</strong></div>
+        </div>
+
+        <label class="skin-label">SKIN</label>
+        <div class="skin-row" id="skin-row">
+          <!-- filled by JS -->
+        </div>
+
+        <label for="stage-input">GO TO STAGE</label>
+        <div class="stage-jump">
+          <input id="stage-input" type="number" min="1" step="1" inputmode="numeric" value="1">
+          <button id="stage-go" type="button">GO</button>
+        </div>
+        <button id="resume-game" class="resume-button" type="button">RESUME <span>↵</span></button>
+      </div>
+    </section>
+
+    <section id="level-complete" class="level-complete hidden">
+      <div class="complete-panel">
+        <span class="complete-kicker">LEVEL CLEAR</span>
+        <h2 id="complete-title">LEVEL 1</h2>
+        <div class="complete-stats">
+          <div><span>Time</span><strong id="complete-time">0:00</strong></div>
+          <div><span>Score</span><strong id="complete-score">0</strong></div>
+          <div><span>Orbs</span><strong id="complete-orbs">0</strong></div>
+          <div><span>Max Flow</span><strong id="complete-combo">x1</strong></div>
+        </div>
+        <button id="next-level" class="resume-button" type="button">CONTINUE <span>↵</span></button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <div id="combo-toast" class="combo-toast"></div>
+  </main>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
