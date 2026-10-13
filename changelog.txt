@@ -90,3 +90,6 @@ Added New home menu song!
 
 [Sunday, October 11]
 Updated Classic games project with new games, and new features in play scene.
+
+[Monday, October 12]
+Added New project "Kinetic", a fun parkour game!
