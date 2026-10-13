@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Door Guard - Survive the Night</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+  <div id="app">
+    <div id="status-bar">
+      <div id="power-display">
+        <span>POWER</span>
+        <div id="power-bars"></div>
+        <span id="power-count">4/10</span>
+      </div>
+      <div id="phase-display">PHASES <span id="phase-count">0</span></div>
+      <div id="monster-status">STATUS: IDLE</div>
+      <div id="door-status">DOOR: OPEN</div>
+      <div id="camera-status">VIEW: HALLWAY</div>
+      <button id="pause-btn" title="Pause (Esc)">❚❚ PAUSE</button>
+    </div>
+
+    <div id="viewport-container">
+      <canvas id="three-canvas"></canvas>
+      <div id="viewport-overlay">
+        <div id="view-controls">
+          <button id="view-hallway" class="view-btn active">DOOR / HALLWAY</button>
+          <button id="view-office" class="view-btn">MINIGAMES</button>
+        </div>
+        <div id="door-controls">
+          <button id="close-door-btn" disabled>CLOSE DOOR (1 POWER)</button>
+          <p id="door-timer"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Centered mini-game modal (replaces side panel) -->
+    <div id="minigame-modal" class="hidden">
+      <div id="minigame-modal-content">
+        <div class="modal-header">
+          <h2 id="modal-title">MINI-GAME</h2>
+          <button id="modal-close-btn">✕</button>
+        </div>
+        <div id="minigame-area">
+          <p class="placeholder">Loading...</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause-overlay" class="hidden">
+      <div class="pause-box">
+        <h1>PAUSED</h1>
+        <p>Press ESC or click Resume to continue</p>
+        <button id="resume-btn">RESUME</button>
+      </div>
+    </div>
+
+    <div id="jumpscare-flash" class="hidden"></div>
+
+    <div id="game-over" class="hidden">
+      <div class="game-over-content">
+        <h1>YOU DIED</h1>
+        <p>The monster got you...</p>
+        <p>Phases blocked: <span id="final-phases">0</span></p>
+        <button id="restart-btn">TRY AGAIN</button>
+      </div>
+    </div>
+
+    <div id="start-screen">
+      <div class="start-content">
+        <h1>DOOR GUARD</h1>
+        <p class="subtitle">Survive the night. Block the monster. Recharge power.</p>
+        <ul>
+          <li>Switch to MINIGAMES view and click options on the 3D screen</li>
+          <li>Theme plays with no visual monster — get ready</li>
+          <li>When it runs you can see it coming if looking at the door</li>
+          <li>Close the door in time (1 power, holds 5s)</li>
+          <li>After 5 blocks: theme 2× · After 10: no theme + faster monster</li>
+        </ul>
+        <button id="start-btn">START NIGHT</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="minigames.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
