@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Arrownese Translator and Answer Key</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1d2129;--muted:#5b6370;--line:#dde1e7;--accent:#3d6fd6;--warn:#b25b00;--zebra:#f2f4f7;--mono:ui-monospace,Menlo,Consolas,monospace;--sym:"Segoe UI Symbol","Noto Sans Symbols 2","Apple Symbols","DejaVu Sans",system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#15171c;--card:#1e2128;--ink:#e7eaf0;--muted:#9aa3b2;--line:#2f3540;--accent:#7ea6ff;--warn:#f0a050;--zebra:#232730}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 18px}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+nav button{font:inherit;padding:8px 14px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;cursor:pointer}
+nav button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+section.panel{display:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+section.panel.on{display:block}
+label{display:block;font-weight:600;margin:12px 0 6px}
+textarea{width:100%;min-height:110px;font:16px/1.5 system-ui,sans-serif;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);resize:vertical}
+.out{font-family:var(--sym);font-size:1.4rem;line-height:1.8;word-break:break-word;white-space:pre-wrap;min-height:2.5em}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{font:inherit;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.notes{color:var(--warn);font-size:.92rem;margin:10px 0 0;padding-left:18px}
+.box{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px 16px;margin:12px 0}
+.box h2,h2{font-size:1.1rem;margin:18px 0 8px}
+ol.rules li,ul.rules li{margin:4px 0}
+table{width:100%;border-collapse:collapse;margin-top:8px}
+th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left}
+th{font-size:.85rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+tr:nth-child(even) td{background:var(--zebra)}
+td.sym{font-family:var(--sym);font-size:1.3rem}
+td.mono,.mono{font-family:var(--mono);font-size:.9rem}
+tr.special td{font-style:italic}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:14px;overflow:auto;font:14px/1.5 var(--mono);white-space:pre}
+pre.sym{font-family:var(--sym)}
+.example{font-family:var(--sym);font-size:1.2rem}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<main>
+<h1>Arrownese Translator</h1>
+<p class="sub">Translate between plain text and Arrownese arrows. Line breaks are supported in both directions.</p>
+
+<nav>
+  <button class="tab on" data-tab="enc">Text → Arrownese</button>
+  <button class="tab" data-tab="dec">Arrownese → Text</button>
+  <button class="tab" data-tab="key">Answer Key</button>
+</nav>
+
+<section id="enc" class="panel on">
+  <label for="encIn">Type your text</label>
+  <textarea id="encIn" placeholder="Type here… e.g. hi there"></textarea>
+  <div class="row"><button class="btn" id="encGo">Translate</button><button class="btn ghost" id="encClear">Clear</button></div>
+  <label>Arrownese result</label>
+  <div id="encOut" class="out box"></div>
+  <div class="row"><button class="btn ghost copy" data-target="encOut">Copy arrows</button></div>
+  <ul id="encNotes" class="notes"></ul>
+</section>
+
+<section id="dec" class="panel">
+  <label for="decIn">Paste Arrownese arrows</label>
+  <textarea id="decIn" placeholder="Paste arrows here… e.g. ⇙↙"></textarea>
+  <div class="row"><button class="btn" id="decGo">Translate</button><button class="btn ghost" id="decClear">Clear</button></div>
+  <label>Plain text result</label>
+  <div id="decOut" class="out box"></div>
+  <div class="row"><button class="btn ghost copy" data-target="decOut">Copy text</button></div>
+  <ul id="decNotes" class="notes"></ul>
+</section>
+
+<section id="key" class="panel">
+  <h2 style="margin-top:0">How to use this key</h2>
+  <ol class="rules">
+    <li>Every character has a <b>position number</b> from 1 to 83. Find the position in the table.</li>
+    <li><b>To encode</b> (text → arrows): find the character’s position and use the arrow at that same position.</li>
+    <li><b>To decode</b> (arrows → text): find the arrow’s position and use the character at that same position.</li>
+    <li>Capital letters have their own arrows (positions 58 to 83), so <span class="mono">A</span> and <span class="mono">a</span> are different symbols.</li>
+    <li>The <b>space</b> is <span class="sym">↺</span> (position 31). <b>Position 30</b> is <span class="sym">⤳</span>, which means “blank or unknown”. It is not a real letter.</li>
+    <li>Encoding a character that is not in the key gives <span class="sym">⤳</span>. Decoding <span class="sym">⤳</span> or an arrow that is not in the key gives <span class="sym">□</span>.</li>
+    <li>Line breaks are kept as they are in both directions. In Arrownese → Text, normal spaces are kept too.</li>
+  </ol>
+  <div class="box">
+    <b>Example:</b> <span class="example" id="exampleLine"></span>
+    <div class="mono" id="exampleExplain" style="margin-top:6px;color:var(--muted)"></div>
+  </div>
+
+  <h2>Key table</h2>
+  <table>
+    <thead><tr><th>Position</th><th>Character</th><th>Arrownese</th><th>Unicode</th></tr></thead>
+    <tbody id="keyBody"></tbody>
+  </table>
+
+  <h2>Plain-text key (copy this for an AI or a document)</h2>
+  <div class="row"><button class="btn ghost copy" data-target="keyText">Copy plain-text key</button></div>
+  <pre id="keyText"></pre>
+</section>
+</main>
+
+<script>
+const DEF = ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "a", "s", "d", "f", "g", "h", "j", "k", "l", "z", "x", "c", "v", "b", "n", "m", "!", "?", ".", "", " ", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "#", "@", "+", "=", "(", ")", ":", ";", ",", "<", ">", "/", "\\", "'", "\"", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+const ARR = ["→", "←", "↑", "↓", "↗", "↖", "↘", "↙", "⇒", "⇐", "⇑", "⇓", "⇗", "⇖", "⇘", "⇙", "↔", "↕", "⇔", "⇕", "➔", "➜", "➝", "➞", "➟", "➠", "➡", "⟶", "⟹", "⤳", "↺", "➊", "➋", "➌", "➍", "➎", "➏", "➐", "➑", "➒", "➓", "^", "⇎", "⤾", "✛", "⇄", "⇇", "⇉", "⇚", "⇛", "⤴", "↝", "↜", "➫", "➬", "⇠", "⇢", "↚", "↛", "↞", "↟", "↠", "↡", "↢", "↣", "↤", "↥", "↦", "↧", "↨", "↩", "↪", "↫", "↬", "↭", "↮", "↯", "↰", "↱", "↲", "↳", "↴", "↵"];
+const BLANK_ARROW = ARR[DEF.indexOf('')];   // position 30, ⤳
+const SPACE_ARROW = ARR[DEF.indexOf(' ')];  // position 31, ↺
+const UNKNOWN_CHAR = '□';
+
+function encode(text){
+  const out = [], notes = [];
+  for (const ch of text){
+    if (ch === '\n' || ch === '\r'){ out.push(ch); continue; }
+    const idx = DEF.indexOf(ch);
+    if (idx < 0 || DEF[idx] === ''){
+      out.push(BLANK_ARROW);
+      notes.push(`“${ch}” is not in the key, so it was written as ${BLANK_ARROW}.`);
+    } else {
+      out.push(ARR[idx]);
+    }
+  }
+  return {text: out.join(''), notes};
+}
+
+function decode(text){
+  const out = [], notes = [];
+  for (const ch of text){
+    if (ch === '\n' || ch === '\r' || ch === ' ' || ch === '\t'){ out.push(ch); continue; }
+    if (ch === BLANK_ARROW){
+      out.push(UNKNOWN_CHAR);
+      notes.push(`${BLANK_ARROW} is the blank or unknown marker, so it became ${UNKNOWN_CHAR}.`);
+      continue;
+    }
+    const idx = ARR.indexOf(ch);
+    if (idx < 0){
+      out.push(UNKNOWN_CHAR);
+      notes.push(`“${ch}” is not in the key, so it became ${UNKNOWN_CHAR}.`);
+    } else {
+      out.push(DEF[idx]);
+    }
+  }
+  return {text: out.join(''), notes};
+}
+/*UI*/
+const displayName = c => c === '' ? '(blank)' : c === ' ' ? '(space)' : c;
+const codePoints = s => [...s].map(c => 'U+' + c.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')).join(' ');
+
+function keyPlainText(){
+  const lines = [
+    'ARROWNESE ANSWER KEY',
+    DEF.length + ' symbols. Each character has one arrow at the same position number.',
+    '',
+    'ENCODE (text to arrows): find the character position, then use the arrow at that position.',
+    'DECODE (arrows to text): find the arrow position, then use the character at that position.',
+    'Space = ' + SPACE_ARROW + ' (position 31).',
+    'Blank/unknown = ' + BLANK_ARROW + ' (position 30). Not a real letter.',
+    'Unknown character when encoding -> ' + BLANK_ARROW + '. Unknown arrow or ' + BLANK_ARROW + ' when decoding -> ' + UNKNOWN_CHAR + '.',
+    'Example: "Hi" = h (position 16) ' + ARR[15] + ' + i (position 8) ' + ARR[7] + ' = ' + ARR[15] + ARR[7],
+    '',
+    'Position | Character | Arrownese',
+  ];
+  DEF.forEach((c, i) => lines.push(`${i+1} | ${displayName(c)} | ${ARR[i]}`));
+  return lines.join('\n');
+}
+
+function buildKey(){
+  const body = document.getElementById('keyBody');
+  DEF.forEach((c, i) => {
+    const tr = document.createElement('tr');
+    if (c === '' || c === ' ') tr.className = 'special';
+    tr.innerHTML = `<td class="mono">${i+1}</td><td class="mono">${displayName(c)}</td><td class="sym">${ARR[i]}</td><td class="mono">${codePoints(ARR[i])}</td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('keyText').textContent = keyPlainText();
+  const h = ARR[DEF.indexOf('h')], i = ARR[DEF.indexOf('i')];
+  document.getElementById('exampleLine').textContent = '“Hi” = ' + h + i;
+  document.getElementById('exampleExplain').textContent = 'h is position 16 → ' + h + ' ; i is position 8 → ' + i;
+}
+
+function showNotes(id, notes){
+  const ul = document.getElementById(id);
+  ul.innerHTML = '';
+  [...new Set(notes)].forEach(n => { const li = document.createElement('li'); li.textContent = n; ul.appendChild(li); });
+}
+
+document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b === btn));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('on', p.id === btn.dataset.tab));
+}));
+document.getElementById('encGo').onclick = () => {
+  const r = encode(document.getElementById('encIn').value);
+  document.getElementById('encOut').textContent = r.text;
+  showNotes('encNotes', r.notes);
+};
+document.getElementById('decGo').onclick = () => {
+  const r = decode(document.getElementById('decIn').value);
+  document.getElementById('decOut').textContent = r.text;
+  showNotes('decNotes', r.notes);
+};
+document.getElementById('encClear').onclick = () => { document.getElementById('encIn').value=''; document.getElementById('encOut').textContent=''; showNotes('encNotes', []); };
+document.getElementById('decClear').onclick = () => { document.getElementById('decIn').value=''; document.getElementById('decOut').textContent=''; showNotes('decNotes', []); };
+document.querySelectorAll('.copy').forEach(btn => {
+  const label = btn.textContent;
+  btn.onclick = async () => {
+    const txt = document.getElementById(btn.dataset.target).textContent;
+    try { await navigator.clipboard.writeText(txt); btn.textContent = 'Copied!'; }
+    catch(e){ btn.textContent = 'Copy failed, select text manually'; }
+    setTimeout(() => btn.textContent = label, 1500);
+  };
+});
+buildKey();
+</script>
+</body>
+</html>
