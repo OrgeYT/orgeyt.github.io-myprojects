@@ -1341,6 +1341,12 @@ const projects = [
         tags: ["Games"],
         archive: false
     },
+    {
+        name: "Arrownese 2.0",
+        description: "Arrownese language but extended!",
+        tags: ["Tools"],
+        archive: false
+    }, // ↴⇒↘↺←↙⇔⇔↺➟↑➝↑↓↺↕➟⇒←↺←⇙⇑↗↺↗⇙↙⇓↺⇓⇑↖⇓⟹
 ];
 
 
