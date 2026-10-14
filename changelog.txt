@@ -97,3 +97,4 @@ Added New project "Kinetic", a fun parkour game!
 [Tuesday, October 13]
 Made the monster in Kinetic a little easier
 Added New project(s)
+Added Arrownese 2.0 project, Arrownese Extended!
