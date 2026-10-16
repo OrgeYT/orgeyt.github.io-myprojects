@@ -1353,7 +1353,7 @@ const projects = [
         description: "The classic gimkit game Don't look down, but in 3D, and with online multiplayer!",
         tags: ["Games"],
         archive: false
-    },
+    }
 ];
 
 
