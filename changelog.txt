@@ -98,3 +98,6 @@ Added New project "Kinetic", a fun parkour game!
 Made the monster in Kinetic a little easier
 Added New project(s)
 Added Arrownese 2.0 project, Arrownese Extended!
+
+[Thursday, October 15]
+Added a new fun project! Gimkit - Don't look down 3D!
