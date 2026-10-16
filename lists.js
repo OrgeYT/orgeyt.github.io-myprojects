@@ -1347,6 +1347,13 @@ const projects = [
         tags: ["Tools"],
         archive: false
     }, // ↴⇒↘↺←↙⇔⇔↺➟↑➝↑↓↺↕➟⇒←↺←⇙⇑↗↺↗⇙↙⇓↺⇓⇑↖⇓⟹
+    {
+        name: "Gimkit - Don't look down 3D",
+        path: "https://don-t-look-down-3d--orgeyt.on.websim.com/",
+        description: "The classic gimkit game Don't look down, but in 3D, and with online multiplayer!",
+        tags: ["Games"],
+        archive: false
+    },
 ];
 
 
