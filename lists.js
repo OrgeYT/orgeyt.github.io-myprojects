@@ -1353,6 +1353,13 @@ const projects = [
         description: "The classic gimkit game Don't look down, but in 3D, and with online multiplayer!",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "GD Dash Wave Bot",
+        path: "gd-wave",
+        description: "Fun GD wave playground.",
+        tags: ["Games", "Simulation"],
+        archive: false
     }
 ];
 
