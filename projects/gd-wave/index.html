@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Geometry Dash Wave Bot</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="error-toast">Error: Failed to load file</div>
+  <div id="rewind-flash"></div>
+  <div id="bot-status">Bot Status: Thinking...</div>
+  <div id="tas-frame-counter">Frame: 0</div>
+  <div id="click-counter">Clicks: 0</div>
+  <div id="cps-counter">CPS: 0.00</div>
+  <div id="max-cps-counter">Max CPS: 0.00</div>
+
+  <div id="ui-container">
+    <button id="toggle-ui" aria-label="Toggle controls">CONTROLS <span>TAB</span></button>
+    <div id="ui">
+      <header id="panel-header">
+        <div class="brand-mark">W</div>
+        <div class="brand-copy"><strong>WAVE LAB</strong><span>LEVEL CONTROL</span></div>
+        <span class="live-dot" aria-hidden="true"></span>
+      </header>
+
+      <section class="control-section" aria-labelledby="mode-heading">
+        <h2 id="mode-heading">PLAY MODE</h2>
+        <div class="mode-grid">
+          <button id="btn-edit" class="mode-btn active-mode">Editor</button>
+          <button id="btn-play" class="mode-btn" style="--mode-color:#66b2ff">Play</button>
+          <button id="btn-camera" class="mode-btn mode-wide" style="--mode-color:#b9a2ff" aria-pressed="false">Focus Camera</button>
+        </div>
+        <div class="bot-controls">
+          <label class="label-text" for="bot-select">BOT TYPE</label>
+          <select id="bot-select">
+            <option value="bot">Bot Solver</option>
+            <option value="dodge-bot">Dodge Bot</option>
+            <option value="click-bot">Click-Max Bot</option>
+            <option value="least-click-bot">Least-Click Bot</option>
+          </select>
+          <button id="btn-play-bot" class="play-bot-button">Play Bot</button>
+        </div>
+      </section>
+
+      <section id="editor-tools" class="control-section">
+        <h2>LEVEL EDITOR</h2>
+        <label class="label-text" for="tool-select">Place object</label>
+        <select id="tool-select">
+          <option value="block">Solid block</option>
+          <option value="more-slightly-shorter-block">More slightly shorter block (37 px)</option>
+          <option value="slightly-shorter-block">Slightly shorter block</option>
+          <option value="short-block">Short block</option>
+          <option value="spike-up">Spike (up)</option>
+          <option value="spike-down">Spike (down)</option>
+          <option value="small-spike-up">Small spike (up)</option>
+          <option value="small-spike-down">Small spike (down)</option>
+          <option value="slightly-small-spike-up">Slightly small spike (up)</option>
+          <option value="slightly-small-spike-down">Slightly small spike (down)</option>
+          <option value="little-spike-up">Little spike (up)</option>
+          <option value="little-spike-down">Little spike (down)</option>
+          <option value="wedge">Wedge (slope)</option>
+          <option value="slightly-shorter-wedge">Slightly shorter wedge</option>
+          <option value="short-wedge">Short wedge</option>
+          <option value="erase">Eraser</option>
+        </select>
+        <div class="editor-actions">
+          <button id="btn-save">Save level</button>
+          <button id="btn-load">Load level</button>
+          <button id="btn-load-wave">Premade level</button>
+        </div>
+        <div class="tool-card">
+          <label class="label-text" for="wave-size">Wave size <span><span id="wave-size-value">12</span> px</span></label>
+          <input id="wave-size" type="range" min="0.5" max="32" step="0.5" value="12" />
+        </div>
+        <div class="tool-card">
+          <label class="label-text" for="sound-select">Click sound</label>
+          <select id="sound-select">
+            <option value="keyboard">Keyboard</option>
+            <option value="classic-mouse" selected>Classic mouse</option>
+            <option value="soft-mouse">Soft mouse</option>
+            <option value="pop">Pop</option>
+            <option value="loud-hit">Loud hit</option>
+            <option value="clap">Clap</option>
+            <option value="tap">Tap</option>
+            <option value="hold-let-go">Hold / Let go</option>
+          </select>
+        </div>
+        <div class="editor-options">
+          <label class="editor-option"><input id="show-wave-hitbox" type="checkbox" /> Show wave hitbox</label>
+          <label class="editor-option"><input id="transparent-wave" type="checkbox" /> Slightly transparent wave</label>
+        </div>
+        <p id="instructions"><span>CLICK</span> place / erase <i></i> <span>SCROLL</span> pan <i></i> <span>TAB</span> hide</p>
+      </section>
+      <details id="tas-tools" class="control-section">
+        <summary>TAS TOOLS</summary>
+        <button id="btn-tas-record" class="mode-btn" style="--mode-color:#ffcc66">TAS Record</button>
+        <div class="tool-card">
+          <label class="label-text" for="tas-speed">Record speed</label>
+          <select id="tas-speed">
+            <option value="0">Step mode (paused)</option>
+            <option value="0.1">0.1x speed</option>
+            <option value="0.25">0.25x speed</option>
+            <option value="0.5">0.5x speed</option>
+            <option value="1.0" selected>1.0x speed</option>
+          </select>
+          <button id="btn-tas-step" class="subtle-button">Next frame <kbd>SPACE</kbd></button>
+          <button id="btn-tas-play" class="subtle-button">Download &amp; play TAS</button>
+          <button id="btn-tas-load" class="subtle-button">Load TAS file</button>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <canvas id="gameCanvas"></canvas>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
