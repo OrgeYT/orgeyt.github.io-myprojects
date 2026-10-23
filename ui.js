@@ -65,6 +65,7 @@ const menuSongs = [
     { id: 'slide-master',   name: 'Slide Master', src: 'music/Slide master.mp3' },
     { id: 'chords-master',   name: 'Chords Master', src: 'music/Chords Master.mp3' },
     { id: 'test-anxiety',   name: 'Test Anxiety', src: 'music/Test Anxiety.mp3' },
+    { id: 'piano-master-two',   name: 'Piano Master TWO', src: 'music/Piano Master TWO.mp3' },
 ];
 
 const MENU_SONG_LS_KEY = 'orgeyt-menu-song';
