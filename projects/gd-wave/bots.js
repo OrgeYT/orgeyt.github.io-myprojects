@@ -2,12 +2,20 @@
 
 import {
   TILE_SIZE, GAME_HEIGHT, SPEED, PHYSICS_HZ, LEGACY_PHYSICS_HZ,
+  STEEP_SIZE_MULT, STEEP_VY_FACTOR,
 } from './config.js';
 import { S, els } from './state.js';
 import { checkCollisions } from './collisions.js';
 
 function withinVerticalBounds(y, size) {
   return y > 0 && y + size < GAME_HEIGHT;
+}
+
+function botSpeedX() { return SPEED; }
+function botSpeedY() { return S.steepMode ? SPEED * STEEP_VY_FACTOR : SPEED; }
+function botSize(base) {
+  const b = base ?? S.player.size;
+  return S.steepMode ? b * STEEP_SIZE_MULT : b;
 }
 
 // Provided by main.js after init — avoids circular import
@@ -19,6 +27,10 @@ export function setUpdateFrameCounter(fn) {
 function runBotSolver() {
     // Deterministic BFS solver using current UI S.player size with adaptive vertical exploration.
     S.playbackActions = [];
+    if (S.spawnY != null && Number.isFinite(S.spawnY)) {
+        const sz = parseFloat(els.waveSizeInput ? els.waveSizeInput.value : S.player.size) || S.player.size;
+        S.player.y = Math.max(2, Math.min(GAME_HEIGHT - sz - 2, S.spawnY));
+    }
     if (S.level.length === 0) {
         els.botStatus.style.display = 'block';
         els.botStatus.textContent = 'Bot: Empty level';
@@ -36,8 +48,11 @@ function runBotSolver() {
     const targetX = (maxBlockX + 2) * TILE_SIZE;
 
     // Use UI wave size for simulation and make S.player match for visuals
-    const simPlayerSize = parseFloat(els.waveSizeInput ? els.waveSizeInput.value : S.player.size) || S.player.size;
+    const baseSize = parseFloat(els.waveSizeInput ? els.waveSizeInput.value : S.player.size) || S.player.size;
+    const simPlayerSize = botSize(baseSize);
     S.player.size = simPlayerSize;
+    const sx = botSpeedX();
+    const sy = botSpeedY();
 
     // Heuristic scan: find vertical corridors that are least obstructed between start and target
     // We'll sample candidate center Ys and score how often a S.player placed at that Y would collide
@@ -55,15 +70,15 @@ function runBotSolver() {
     for (let cy of candidateCenters) {
         let score = 0;
         // sample across x positions, for each sample compute if a small vertical sweep around cy is clear
-        for (let sx of sampleXs) {
+        for (let sampleX of sampleXs) {
             // simulate a small vertical neighborhood to prefer wider corridors
             let colBlocked = 0;
             const checkY = Math.round(cy);
             if (!withinVerticalBounds(checkY, simPlayerSize)) { colBlocked += 3; }
-            else if (checkCollisions(sx, checkY, simPlayerSize, 0)) colBlocked += 1;
+            else if (checkCollisions(sampleX, checkY, simPlayerSize, 0)) colBlocked += 1;
             // also check a few nearby offsets to favor roomy spaces
-            if (!withinVerticalBounds(checkY - 12, simPlayerSize) || checkCollisions(sx, checkY - 12, simPlayerSize, 0)) colBlocked += 1;
-            if (!withinVerticalBounds(checkY + 12, simPlayerSize) || checkCollisions(sx, checkY + 12, simPlayerSize, 0)) colBlocked += 1;
+            if (!withinVerticalBounds(checkY - 12, simPlayerSize) || checkCollisions(sampleX, checkY - 12, simPlayerSize, 0)) colBlocked += 1;
+            if (!withinVerticalBounds(checkY + 12, simPlayerSize) || checkCollisions(sampleX, checkY + 12, simPlayerSize, 0)) colBlocked += 1;
             score += colBlocked;
         }
         // normalize by number of samples
@@ -84,8 +99,10 @@ function runBotSolver() {
 
     // BFS state: {x, y, hold, actions}
     const startX = 100;
-    const startY = Math.floor(GAME_HEIGHT / 2);
-    const maxSteps = Math.ceil((targetX - startX) / SPEED) + Math.ceil(300 * PHYSICS_HZ / LEGACY_PHYSICS_HZ); // safety margin
+    const startY = (S.spawnY != null && Number.isFinite(S.spawnY))
+      ? Math.max(2, Math.min(GAME_HEIGHT - simPlayerSize - 2, S.spawnY))
+      : Math.floor(GAME_HEIGHT / 2);
+    const maxSteps = Math.ceil((targetX - startX) / sx) + Math.ceil(300 * PHYSICS_HZ / LEGACY_PHYSICS_HZ); // safety margin
 
     // visited set to avoid re-exploring similar states: key = xIdx|y|hold (coarse)
     const visited = new Set();
@@ -103,8 +120,8 @@ function runBotSolver() {
 
     // simulate one frame move given state and nextHold boolean
     const simulateStep = (x, y, nextHold) => {
-        const nx = x + SPEED;
-        const ny = y + (nextHold ? -SPEED : SPEED);
+        const nx = x + sx;
+        const ny = y + (nextHold ? -sy : sy);
         return { nx, ny };
     };
 
@@ -185,9 +202,11 @@ function triggerRewind() {
     setTimeout(() => els.rewindFlash.style.display = 'none', 100);
     S.frameCount -= actualRewind;
     S.recordedActions.splice(S.frameCount);
-    S.player.x = 100 + (S.frameCount * SPEED);
-    let tempY = GAME_HEIGHT / 2;
-    for (let i = 0; i < S.frameCount; i++) tempY += S.recordedActions[i] ? -SPEED : SPEED;
+    const rsx = botSpeedX();
+    const rsy = botSpeedY();
+    S.player.x = 100 + (S.frameCount * rsx);
+    let tempY = (S.spawnY != null && Number.isFinite(S.spawnY)) ? S.spawnY : GAME_HEIGHT / 2;
+    for (let i = 0; i < S.frameCount; i++) tempY += S.recordedActions[i] ? -rsy : rsy;
     S.player.y = tempY;
     S.cameraX = S.player.x - 100;
     S.trail = S.trail.slice(0, Math.max(0, S.trail.length - actualRewind));
@@ -203,109 +222,248 @@ async function runLeastClicksSolver() {
     const searchId = ++S.leastClickSearchId;
     S.player.active = false;
     S.playbackActions = [];
+
     if (S.level.length === 0) {
+        els.botStatus.style.display = 'block';
         els.botStatus.textContent = 'Least-click Bot: Empty level';
         els.botStatus.style.borderLeftColor = '#ff4d4d';
         return;
     }
 
-    const simPlayerSize = parseFloat(els.waveSizeInput ? els.waveSizeInput.value : S.player.size) || S.player.size;
+    const baseSize = parseFloat(els.waveSizeInput ? els.waveSizeInput.value : S.player.size) || S.player.size;
+    const simPlayerSize = botSize(baseSize);
     S.player.size = simPlayerSize;
+
+    const sx = botSpeedX();
+    const sy = botSpeedY();
+
+    // Always use the real spawn X — do not skip the entrance
+    const startX = 100;
+
     let maxBlockX = 0;
-    for (const block of S.level) maxBlockX = Math.max(maxBlockX, block.x);
-    const targetX = Math.max((maxBlockX + 2) * TILE_SIZE, S.player.x + SPEED);
-    const maxFrames = Math.ceil((targetX - S.player.x) / SPEED);
+    let minTileY = Infinity;
+    let maxTileY = -Infinity;
+    for (const block of S.level) {
+        maxBlockX = Math.max(maxBlockX, block.x);
+        minTileY = Math.min(minTileY, block.y);
+        maxTileY = Math.max(maxTileY, block.y);
+    }
+    // Keep the wave inside the level's vertical band so it can't skip the
+    // entrance by flying over / under the entire structure in open air.
+    const marginTiles = 2;
+    const minY = Math.max(2, (minTileY - marginTiles) * TILE_SIZE);
+    const maxY = Math.min(GAME_HEIGHT - simPlayerSize - 2, (maxTileY + 1 + marginTiles) * TILE_SIZE);
+
+    const targetX = Math.max((maxBlockX + 2) * TILE_SIZE, startX + sx * 20);
+    const maxFrames = Math.ceil((targetX - startX) / sx) + 4;
+
+    // Exact discrete steps matching physics
     const yScale = 1000;
-    const yStep = Math.round(SPEED * yScale);
-    let x = S.player.x;
-    let layer = {
-        yUnits: new Int32Array([Math.round(S.player.y * yScale)]),
-        holds: new Uint8Array([Number(S.player.isHolding)]),
-        clicks: new Uint32Array([0]),
-        parents: new Uint16Array([0])
-    };
-    const layers = [layer];
+    const yStep = Math.round(sy * yScale);
+
+    function collides(x, y) {
+        if (y <= 0 || y + simPlayerSize >= GAME_HEIGHT) return true;
+        // Soft band: allow a little slack but prevent full open-air skips
+        if (y < minY || y + simPlayerSize > maxY) return true;
+        return checkCollisions(x, y, simPlayerSize, 0);
+    }
+
+    // Seed only Y positions that are free at the real spawn
+    const seedYs = [];
+    if (S.spawnY != null && Number.isFinite(S.spawnY)) {
+        // Level-defined spawn: bots must start exactly here (with tiny float-safe clamp)
+        const y = Math.max(2, Math.min(GAME_HEIGHT - simPlayerSize - 2, S.spawnY));
+        if (!collides(startX, y)) {
+            seedYs.push(y);
+        } else {
+            // If exact spawn overlaps a block, still force it — human would start there too
+            seedYs.push(y);
+        }
+    } else {
+        const mid = Math.max(minY, Math.min(maxY - simPlayerSize, (minY + maxY - simPlayerSize) / 2));
+        for (let dy = 0; dy <= 240; dy += 6) {
+            for (const sign of (dy === 0 ? [0] : [-1, 1])) {
+                const y = mid + sign * dy;
+                if (y < minY || y + simPlayerSize > maxY) continue;
+                if (!collides(startX, y)) seedYs.push(y);
+            }
+        }
+    }
+    if (seedYs.length === 0) {
+        els.botStatus.style.display = 'block';
+        els.botStatus.textContent = 'Least-click Bot: No safe starting position';
+        els.botStatus.style.borderLeftColor = '#ff4d4d';
+        return;
+    }
+
+    // Layer storage: each node = { yUnits, hold, clicks, parentIdx }
+    // We keep parallel typed arrays per layer for speed.
+    let yUnitsArr = [];
+    let holdsArr = [];
+    let clicksArr = [];
+    let parentsArr = [];
+    const seen0 = new Map();
+    for (const y of seedYs) {
+        for (const hold of [0, 1]) {
+            const yu = Math.round(y * yScale);
+            const key = yu * 2 + hold;
+            if (seen0.has(key)) continue;
+            seen0.set(key, yUnitsArr.length);
+            yUnitsArr.push(yu);
+            holdsArr.push(hold);
+            clicksArr.push(0);
+            parentsArr.push(-1);
+        }
+    }
+
+    const layers = [{
+        yUnits: new Int32Array(yUnitsArr),
+        holds: new Uint8Array(holdsArr),
+        clicks: new Uint32Array(clicksArr),
+        parents: new Int32Array(parentsArr),
+    }];
+
+    let goalLayer = -1;
     let goalIndex = -1;
+    let x = startX;
+    const MAX_STATES = 14000;
 
     for (let frame = 1; frame <= maxFrames; frame++) {
-        x += SPEED;
-        const yUnitValues = [];
-        const holdValues = [];
-        const clickValues = [];
-        const parentValues = [];
-        const stateIndices = new Map();
+        x += sx;
+        yUnitsArr = [];
+        holdsArr = [];
+        clicksArr = [];
+        parentsArr = [];
+        const seen = new Map();
+        const prev = layers[frame - 1];
 
-        for (let i = 0; i < layer.yUnits.length; i++) {
-            const previousHold = layer.holds[i];
+        for (let i = 0; i < prev.yUnits.length; i++) {
+            const prevHold = prev.holds[i];
             for (let choice = 0; choice < 2; choice++) {
-                const hold = choice === 0 ? previousHold : 1 - previousHold;
-                const yUnits = layer.yUnits[i] + (hold ? -yStep : yStep);
-                if (checkCollisions(x, yUnits / yScale, simPlayerSize, 0)) continue;
+                const hold = choice === 0 ? prevHold : (1 - prevHold);
+                const yu = prev.yUnits[i] + (hold ? -yStep : yStep);
+                const y = yu / yScale;
+                if (collides(x, y)) continue;
 
-                const key = yUnits * 2 + hold;
-                const clicks = layer.clicks[i] + (!previousHold && hold ? 1 : 0);
-                const existing = stateIndices.get(key);
+                const key = yu * 2 + hold;
+                const clicks = prev.clicks[i] + (!prevHold && hold ? 1 : 0);
+                const existing = seen.get(key);
                 if (existing === undefined) {
-                    stateIndices.set(key, yUnitValues.length);
-                    yUnitValues.push(yUnits);
-                    holdValues.push(hold);
-                    clickValues.push(clicks);
-                    parentValues.push(i);
-                } else if (clicks < clickValues[existing]) {
-                    clickValues[existing] = clicks;
-                    parentValues[existing] = i;
+                    seen.set(key, yUnitsArr.length);
+                    yUnitsArr.push(yu);
+                    holdsArr.push(hold);
+                    clicksArr.push(clicks);
+                    parentsArr.push(i);
+                } else if (clicks < clicksArr[existing]) {
+                    clicksArr[existing] = clicks;
+                    parentsArr[existing] = i;
                 }
             }
         }
 
-        if (yUnitValues.length === 0) break;
-        layer = {
-            yUnits: new Int32Array(yUnitValues),
-            holds: new Uint8Array(holdValues),
-            clicks: new Uint32Array(clickValues),
-            parents: new Uint16Array(parentValues)
-        };
-        layers.push(layer);
+        if (yUnitsArr.length === 0) break;
+
+        if (yUnitsArr.length > MAX_STATES) {
+            const order = Array.from({ length: yUnitsArr.length }, (_, i) => i);
+            order.sort((a, b) => clicksArr[a] - clicksArr[b] || yUnitsArr[a] - yUnitsArr[b]);
+            const keep = order.slice(0, MAX_STATES);
+            yUnitsArr = keep.map((i) => yUnitsArr[i]);
+            holdsArr = keep.map((i) => holdsArr[i]);
+            clicksArr = keep.map((i) => clicksArr[i]);
+            parentsArr = keep.map((i) => parentsArr[i]);
+        }
+
+        layers.push({
+            yUnits: new Int32Array(yUnitsArr),
+            holds: new Uint8Array(holdsArr),
+            clicks: new Uint32Array(clicksArr),
+            parents: new Int32Array(parentsArr),
+        });
 
         if (x >= targetX) {
+            const layer = layers[layers.length - 1];
             for (let i = 0; i < layer.clicks.length; i++) {
-                if (goalIndex < 0 || layer.clicks[i] < layer.clicks[goalIndex]) goalIndex = i;
+                if (goalIndex < 0 || layer.clicks[i] < layer.clicks[goalIndex]) {
+                    goalIndex = i;
+                    goalLayer = layers.length - 1;
+                }
             }
             break;
         }
 
-        if (frame % 16 === 0) {
+        if (frame % 10 === 0) {
             if (S.mode !== planningMode || searchId !== S.leastClickSearchId) return;
-            els.botStatus.textContent = `Least-click Bot: Searching ${Math.floor(frame / maxFrames * 100)}%`;
-            await new Promise(resolve => requestAnimationFrame(resolve));
+            const pct = Math.min(99, Math.floor((frame / maxFrames) * 100));
+            els.botStatus.style.display = 'block';
+            els.botStatus.textContent = `Least-click Bot: Searching ${pct}%`;
+            await new Promise((r) => requestAnimationFrame(r));
         }
     }
 
     if (S.mode !== planningMode || searchId !== S.leastClickSearchId) return;
-    if (goalIndex < 0) {
-        S.player.active = false;
+
+    if (goalIndex < 0 || goalLayer < 1) {
+        els.botStatus.style.display = 'block';
         els.botStatus.textContent = 'Least-click Bot: No safe route found';
         els.botStatus.style.borderLeftColor = '#ff4d4d';
         return;
     }
 
-    const actions = new Array(layers.length - 1);
-    let stateIndex = goalIndex;
-    for (let depth = layers.length - 1; depth > 0; depth--) {
-        const current = layers[depth];
-        actions[depth - 1] = Boolean(current.holds[stateIndex]);
-        stateIndex = current.parents[stateIndex];
+    // Reconstruct hold sequence (actions[f] = hold used while moving on frame f+1)
+    const actions = new Array(goalLayer);
+    let idx = goalIndex;
+    for (let depth = goalLayer; depth > 0; depth--) {
+        actions[depth - 1] = Boolean(layers[depth].holds[idx]);
+        idx = layers[depth].parents[idx];
+    }
+    // idx is now the seed index in layer 0
+    const seedY = layers[0].yUnits[idx] / yScale;
+    const seedHold = Boolean(layers[0].holds[idx]);
+
+    // --- Verify the path with the exact same integration as tick() ---
+    let vx = startX;
+    let vy = seedY;
+    let vHold = seedHold;
+    let dead = false;
+    for (let f = 0; f < actions.length; f++) {
+        vHold = actions[f];
+        vx += sx;
+        vy += vHold ? -sy : sy;
+        if (collides(vx, vy)) {
+            dead = true;
+            break;
+        }
     }
 
+    if (dead || vx < targetX - sx * 2) {
+        els.botStatus.style.display = 'block';
+        els.botStatus.textContent = 'Least-click Bot: No safe route found';
+        els.botStatus.style.borderLeftColor = '#ff4d4d';
+        return;
+    }
+
+    // Apply verified path
+    S.player.x = startX;
+    S.player.y = seedY;
+    S.player.isHolding = seedHold;
+    S.player.size = simPlayerSize;
+    S.player.dead = false;
+    S.cameraX = Math.max(0, startX - 100);
+    S.trail = [{ x: startX, y: seedY }];
+    S.frameCount = 0;
     S.playbackActions = actions;
     S.player.active = true;
-    els.botStatus.textContent = `Least-click Bot: ${layer.clicks[goalIndex]} clicks to finish`;
+
+    els.botStatus.style.display = 'block';
+    els.botStatus.textContent = `Least-click Bot: ${layers[goalLayer].clicks[goalIndex]} clicks to finish`;
     els.botStatus.style.borderLeftColor = '#76e4ee';
 }
 
 function planClickMaxActions() {
-    const horizon = Math.ceil(TILE_SIZE * 2 / SPEED);
-    const commitFrames = Math.ceil(20 / SPEED);
+    const sx = botSpeedX();
+    const sy = botSpeedY();
+    const horizon = Math.ceil(TILE_SIZE * 2 / sx);
+    const commitFrames = Math.ceil(20 / sx);
     const beamLimit = 360;
     const score = (state) => {
         const margin = Math.min(state.y, GAME_HEIGHT - S.player.size - state.y);
@@ -322,8 +480,8 @@ function planClickMaxActions() {
         const nextStates = new Map();
         for (const state of beam) {
             for (const hold of [!state.hold, state.hold]) {
-                const x = state.x + SPEED;
-                const y = state.y + (hold ? -SPEED : SPEED);
+                const x = state.x + sx;
+                const y = state.y + (hold ? -sy : sy);
                 if (checkCollisions(x, y, S.player.size, 0)) continue;
 
                 const clicked = !state.hold && hold;
@@ -358,8 +516,8 @@ function planClickMaxActions() {
 
     if (!actions.length) {
         const reverse = !S.player.isHolding;
-        const nextY = S.player.y + (reverse ? -SPEED : SPEED);
-        actions.push(checkCollisions(S.player.x + SPEED, nextY, S.player.size, 0) ? S.player.isHolding : reverse);
+        const nextY = S.player.y + (reverse ? -sy : sy);
+        actions.push(checkCollisions(S.player.x + sx, nextY, S.player.size, 0) ? S.player.isHolding : reverse);
     }
     return actions.slice(0, commitFrames);
 }

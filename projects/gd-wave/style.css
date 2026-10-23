@@ -204,3 +204,98 @@ select option { background: #101a2a; }
   #tas-frame-counter { top: 10px; left: auto; right: 10px; transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
+/* ---------- GD-flavoured polish ---------- */
+:root {
+  --gd-green: #69edb3;
+  --gd-cyan: #57e7f5;
+  --gd-yellow: #ffd66e;
+  --gd-panel: rgba(12, 20, 36, 0.94);
+}
+
+#ui {
+  background: linear-gradient(160deg, rgba(18, 28, 48, 0.97), var(--gd-panel) 70%);
+  border: 1px solid rgba(105, 237, 179, 0.18);
+  box-shadow:
+    0 22px 70px rgba(0, 0, 0, 0.5),
+    inset 0 1px rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.3);
+}
+
+.brand-mark {
+  border-color: rgba(105, 237, 179, 0.6);
+  color: var(--gd-green);
+  background: linear-gradient(140deg, rgba(105, 237, 179, 0.22), rgba(87, 231, 245, 0.06));
+  animation: brand-pulse 2.8s ease-in-out infinite;
+}
+
+@keyframes brand-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(105, 237, 179, 0.25); }
+  50% { box-shadow: 0 0 14px 2px rgba(105, 237, 179, 0.35); }
+}
+
+.live-dot {
+  background: var(--gd-green);
+  box-shadow: 0 0 12px var(--gd-green);
+  animation: live-blink 1.6s ease-in-out infinite;
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.mode-btn.active-mode,
+.play-bot-button.active-mode {
+  border-color: rgba(105, 237, 179, 0.55) !important;
+  box-shadow: 0 0 18px rgba(105, 237, 179, 0.18);
+}
+
+/* Zoom controls */
+.zoom-card {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.zoom-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.zoom-row .subtle-button {
+  flex: 1;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 6px 0;
+  transition: transform 0.12s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.zoom-row .subtle-button:hover {
+  border-color: rgba(105, 237, 179, 0.5);
+  background: rgba(105, 237, 179, 0.1);
+}
+.zoom-row .subtle-button:active {
+  transform: scale(0.94);
+}
+.hint {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font: 9px 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}
+
+/* Soft press animation on all main buttons */
+button.mode-btn,
+.play-bot-button,
+.subtle-button {
+  transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+button.mode-btn:active,
+.play-bot-button:active,
+.subtle-button:active {
+  transform: scale(0.96);
+}
+
+/* Status pills */
+#bot-status, #tas-frame-counter, #click-counter, #cps-counter, #max-cps-counter {
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 0.04em;
+}

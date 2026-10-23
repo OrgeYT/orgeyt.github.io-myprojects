@@ -25,6 +25,7 @@ export function checkCollisions(px, py, size, buffer = 0) {
   const startY = Math.floor((py - buffer) / TILE_SIZE);
   const endY = Math.floor((py + size + buffer) / TILE_SIZE);
 
+  // Original triangle hitbox (legacy wave bot physics)
   const pVertices = [
     { x: px + size + buffer, y: py + size / 2 },
     { x: px - buffer, y: py - buffer },
@@ -124,6 +125,22 @@ export function checkCollisions(px, py, size, buffer = 0) {
           { x: bx + TILE_SIZE, y: by + TILE_SIZE - rise },
           { x: bx + TILE_SIZE, y: by + TILE_SIZE },
         ];
+      }
+
+      // Apply object rotation (0/90/180/270) around the tile centre
+      if (block.rot && poly.length) {
+        const rot = block.rot % 4;
+        if (rot) {
+          const cx = bx + TILE_SIZE / 2;
+          const cy = by + TILE_SIZE / 2;
+          const cos = [1, 0, -1, 0][rot];
+          const sin = [0, 1, 0, -1][rot];
+          poly = poly.map((pt) => {
+            const dx = pt.x - cx;
+            const dy = pt.y - cy;
+            return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+          });
+        }
       }
 
       for (const p of pVertices) if (isPointInPoly(p.x, p.y, poly)) return true;

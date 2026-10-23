@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Geometry Dash Wave Bot</title>
+  <title>Geometry Dash Wave Bot (GD Assets + Accurate Physics)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -20,7 +20,7 @@
     <div id="ui">
       <header id="panel-header">
         <div class="brand-mark">W</div>
-        <div class="brand-copy"><strong>WAVE LAB</strong><span>LEVEL CONTROL</span></div>
+        <div class="brand-copy"><strong>WAVE BOT</strong><span>GEOMETRY DASH STYLE</span></div>
         <span class="live-dot" aria-hidden="true"></span>
       </header>
 
@@ -40,6 +40,14 @@
             <option value="least-click-bot">Least-Click Bot</option>
           </select>
           <button id="btn-play-bot" class="play-bot-button">Play Bot</button>
+        </div>
+        <div class="tool-card zoom-card">
+          <label class="label-text">CAMERA ZOOM <span id="zoom-value">1.00x</span></label>
+          <div class="zoom-row">
+            <button id="btn-zoom-out" class="subtle-button" title="Zoom out (−)">−</button>
+            <button id="btn-zoom-in" class="subtle-button" title="Zoom in (+)">+</button>
+          </div>
+          <p class="hint">Ctrl+Wheel · + / − · Ctrl+0 reset</p>
         </div>
       </section>
 
@@ -67,7 +75,11 @@
         <div class="editor-actions">
           <button id="btn-save">Save level</button>
           <button id="btn-load">Load level</button>
-          <button id="btn-load-wave">Premade level</button>
+          <button id="btn-load-wave">Load premade</button>
+          <select id="premade-select" style="margin-top:6px">
+            <option value="premade.json">Classic premade</option>
+            <option value="premade_normal_wave.json">Normal wave level</option>
+          </select>
         </div>
         <div class="tool-card">
           <label class="label-text" for="wave-size">Wave size <span><span id="wave-size-value">12</span> px</span></label>
@@ -86,9 +98,25 @@
             <option value="hold-let-go">Hold / Let go</option>
           </select>
         </div>
+        <div class="tool-card">
+          <label class="label-text">Object rotation <span id="rot-indicator">0°</span></label>
+          <p class="hint"><kbd>R</kbd> rotate · <kbd>Q</kbd>/<kbd>E</kbd> cycle tools</p>
+          <p class="hint">Hold <kbd>RMB</kbd> to erase</p>
+        </div>
+        <div class="tool-card">
+          <label class="label-text">Spawn Y <span id="spawn-y-value">default</span></label>
+          <input id="spawn-y" type="range" min="0" max="588" step="1" value="300" />
+          <div class="zoom-row" style="margin-top:6px">
+            <button id="btn-set-spawn-y" class="subtle-button" type="button">Use slider</button>
+            <button id="btn-clear-spawn-y" class="subtle-button" type="button">Default</button>
+          </div>
+          <p class="hint">Bots, TAS &amp; play all use this spawn</p>
+        </div>
         <div class="editor-options">
           <label class="editor-option"><input id="show-wave-hitbox" type="checkbox" /> Show wave hitbox</label>
           <label class="editor-option"><input id="transparent-wave" type="checkbox" /> Slightly transparent wave</label>
+          <label class="editor-option"><input id="steep-mode" type="checkbox" /> Steep mode (45% smaller, 75°)</label>
+          <label class="editor-option"><input id="carve-path" type="checkbox" /> Carve hollow path after play</label>
         </div>
         <p id="instructions"><span>CLICK</span> place / erase <i></i> <span>SCROLL</span> pan <i></i> <span>TAB</span> hide</p>
       </section>

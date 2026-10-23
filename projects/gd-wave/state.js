@@ -30,7 +30,17 @@ export const els = {
   waveSizeValue: document.getElementById('wave-size-value'),
   showWaveHitboxInput: document.getElementById('show-wave-hitbox'),
   transparentWaveInput: document.getElementById('transparent-wave'),
+  steepModeInput: document.getElementById('steep-mode'),
   soundSelect: document.getElementById('sound-select'),
+  zoomInBtn: document.getElementById('btn-zoom-in'),
+  zoomOutBtn: document.getElementById('btn-zoom-out'),
+  zoomValue: document.getElementById('zoom-value'),
+  carvePathInput: document.getElementById('carve-path'),
+  rotIndicator: document.getElementById('rot-indicator'),
+  spawnYInput: document.getElementById('spawn-y'),
+  spawnYValue: document.getElementById('spawn-y-value'),
+  btnSetSpawnY: document.getElementById('btn-set-spawn-y'),
+  btnClearSpawnY: document.getElementById('btn-clear-spawn-y'),
 };
 
 export const S = {
@@ -39,12 +49,25 @@ export const S = {
   cameraFocus: false,
   showWaveHitbox: false,
   transparentWave: false,
+  steepMode: false,
   cameraFocusX: 100,
   cameraFocusY: GAME_HEIGHT / 2,
+
+  // Camera zoom (1 = default). Works in both edit and play.
+  zoom: 1.0,
+  minZoom: 0.4,
+  maxZoom: 3.0,
+
+  // Visual-only tilt angle for smooth wave rotation animation (radians)
+  // Gameplay still uses the binary isHolding state.
+  visualTilt: Math.PI / 4, // start pointing down
 
   mode: 'edit',
   level: [],
   levelGrid: new Map(),
+
+  // Optional per-level spawn Y (world pixels). null = default center.
+  spawnY: null,
 
   player: {
     x: 100,
@@ -68,6 +91,22 @@ export const S = {
 
   dragPlacing: false,
   lastPlacedKey: null,
+
+  // Current placement rotation (0=0°, 1=90°, 2=180°, 3=270°)
+  placeRotation: 0,
+
+  // Last play path (kept when returning to editor)
+  lastPlayTrail: [],
+
+  // After-play carve mode: generate hollow tunnel from path
+  carvePathMode: false,
+
+  // Editor: right-click temporary eraser
+  rightClickErasing: false,
+  toolBeforeErase: null,
+
+  // Editor ghost preview (world-space tile under cursor)
+  previewTile: null, // { x, y } grid coords or null
 
   clicksCount: 0,
   clickTimestamps: [],
