@@ -104,3 +104,6 @@ Added a new fun project! Gimkit - Don't look down 3D!
 
 [Wednesday, October 21]
 Added New GD Wave project
+
+[Friday, October 23]
+Added New project(s)
