@@ -559,7 +559,7 @@ function loadAllAudio() {
   // Boyfriend samples (per key, mostly .ogg)
   const boyfriendPromises = baseKeys.map(key => {
     const note = (key.note === '31') ? '30' : key.note;
-    const path = `/markers/boyfriend/marker ${note} boyfriend.ogg`;
+    const path = `/markers/boyfriend/marker_${note}_boyfriend.ogg`;
     return loadAudioBuffer(path).then(decodedBuffer => {
       boyfriendBuffers[key.note] = decodedBuffer;
     });
@@ -567,10 +567,10 @@ function loadAllAudio() {
 
   // Orge voice samples (keys k to x => notes 18–21)
   const orgeFiles = [
-    { id: 'ee',  path: '/markers/orge/marker ee orge.mp3'  },
-    { id: 'aah', path: '/markers/orge/marker aah orge.mp3' },
-    { id: 'uu',  path: '/markers/orge/marker uu orge.mp3'  },
-    { id: 'ooh', path: '/markers/orge/marker ooh orge.mp3' }
+    { id: 'ee',  path: '/markers/orge/marker_ee_orge.mp3'  },
+    { id: 'aah', path: '/markers/orge/marker_aah_orge.mp3' },
+    { id: 'uu',  path: '/markers/orge/marker_uu_orge.mp3'  },
+    { id: 'ooh', path: '/markers/orge/marker_ooh_orge.mp3' }
   ];
 
   const orgePromises = orgeFiles.map(f =>
@@ -582,7 +582,7 @@ function loadAllAudio() {
   // Bambi markers 1–80 (all .wav)
   const bambiPromises = [];
   for (let i = 1; i <= 80; i++) {
-    const path = `/markers/bambi/marker ${i} bambi.wav`;
+    const path = `/markers/bambi/marker_${i}_bambi.wav`;
     bambiPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         bambiBuffers[String(i)] = decodedBuffer;
@@ -593,7 +593,7 @@ function loadAllAudio() {
   // Bandu markers 1–61 (all .wav)
   const banduPromises = [];
   for (let i = 1; i <= 61; i++) {
-    const path = `/markers/bandu/marker ${i} bandu.wav`;
+    const path = `/markers/bandu/marker_${i}_bandu.wav`;
     banduPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         banduBuffers[String(i)] = decodedBuffer;
@@ -604,7 +604,7 @@ function loadAllAudio() {
   // BF2 markers 1–11 (all .wav)
   const bf2Promises = [];
   for (let i = 1; i <= 11; i++) {
-    const path = `/markers/bf2/marker ${i} bf2.wav`;
+    const path = `/markers/bf2/marker_${i}_bf2.wav`;
     bf2Promises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         bf2Buffers[String(i)] = decodedBuffer;
@@ -615,7 +615,7 @@ function loadAllAudio() {
   // Cedric markers 1–48 (all .wav)
   const cedricPromises = [];
   for (let i = 1; i <= 48; i++) {
-    const path = `/markers/cedric/marker ${i} cedric.wav`;
+    const path = `/markers/cedric/marker_${i}_cedric.wav`;
     cedricPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         cedricBuffers[String(i)] = decodedBuffer;
@@ -627,7 +627,7 @@ function loadAllAudio() {
   // Hello Penguin samples
   const helloPromises = [];
   for (let i = 1; i <= 48; i++) {
-    const path = `/markers/hello/marker ${i} hello.wav`;
+    const path = `/markers/hello/marker_${i}_hello.wav`;
     helloPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         if (decodedBuffer) helloBuffers[String(i)] = decodedBuffer;
@@ -638,7 +638,7 @@ function loadAllAudio() {
   // Fresh BF markers 1–39
   const freshPromises = [];
   for (let i = 1; i <= 39; i++) {
-    const path = `/markers/fresh/marker ${i} fresh.wav`;
+    const path = `/markers/fresh/marker_${i}_fresh.wav`;
     freshPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         freshBuffers[String(i)] = decodedBuffer;
@@ -649,7 +649,7 @@ function loadAllAudio() {
   // Burger markers
   const burgerPromises = [];
   for (let i = 1; i <= 48; i++) {
-    const path = `/markers/burger/marker ${i} burger.wav`;
+    const path = `/markers/burger/marker_${i}_burger.wav`;
     burgerPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         burgerBuffers[String(i)] = decodedBuffer;
@@ -661,7 +661,7 @@ function loadAllAudio() {
   const redmungusPromises = [];
   const redCount = 60;
   for (let i = 1; i <= redCount; i++) {
-    const path = `/markers/redmungus/marker ${i} redmungus.wav`;
+    const path = `/markers/redmungus/marker_${i}_redmungus.wav`;
     redmungusPromises.push(
       loadAudioBuffer(path).then(decodedBuffer => {
         redmungusBuffers[String(i)] = decodedBuffer || null;
