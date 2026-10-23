@@ -1371,7 +1371,7 @@ const projects = [
     {
         name: "FNF Boyfriend Piano",
         path: "fnf_project",
-        description: "Turn midis into bf vocals, and other vocals! (is currently broken, will be fixed soon...)",
+        description: "Turn midis into bf vocals, and other vocals!",
         tags: ["Tools"],
         archive: false
     } // ITS FINALLY MOVED AWAY FROM WEBSIM YEAHHHHHHHH!!
