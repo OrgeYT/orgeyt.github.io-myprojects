@@ -107,3 +107,4 @@ Added New GD Wave project
 
 [Friday, October 23]
 Added New project(s)
+Updated GD Wave bot project
