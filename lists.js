@@ -1367,7 +1367,14 @@ const projects = [
         description: "Watch balls fight each other.",
         tags: ["Simulation"],
         archive: false
-    }
+    },
+    {
+        name: "FNF Boyfriend Piano",
+        path: "fnf_project",
+        description: "Turn midis into bf vocals, and other vocals!",
+        tags: ["Tools"],
+        archive: false
+    } // ITS FINALLY MOVED AWAY FROM WEBSIM YEAHHHHHHHH!!
 ];
 
 

@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>FNF Boyfriend Piano</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "midi-parser-js": "https://cdn.jsdelivr.net/npm/midi-parser-js@4.0.4/src/midi-parser.js",
+        "marked": "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js",
+        "dompurify": "https://cdn.jsdelivr.net/npm/dompurify/dist/purify.es.min.js"
+      }
+    }
+  </script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f13 0%, #1a1a24 100%);
+      font-family: 'Montserrat', sans-serif;
+      overflow-x: auto;
+      color: #e6e6e6;
+    }
+
+    @media (max-width: 480px) {
+    }
+
+    /* Add touch support styles */
+    @media (max-width: 768px) {
+      .key {
+        /* Prevent iOS double-tap zoom */
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+      }
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      padding: 40px;
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .title {
+      color: #a78bfa;
+      font-size: 3rem;
+      font-weight: 700;
+      text-shadow: 0 0 20px rgba(0, 242, 255, 0.3);
+      margin-bottom: 5px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: rgba(230, 230, 230, 0.8);
+      font-size: 1.1rem;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .piano {
+      display: flex;
+      position: relative;
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Piano keys - base style */
+    .key {
+      width: 50px;
+      height: 200px;
+      border: 1px solid rgba(0, 0, 0, 0.5);
+      border-radius: 0 0 10px 10px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      padding-bottom: 15px;
+      margin: 0 1px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      color: #ccc; /* Lighter text color */
+      background: linear-gradient(180deg, #2d2d2d 0%, #121212 100%);
+    }
+
+    /* Random white/black appearance for Piano instrument */
+    .key.white-key {
+      background: linear-gradient(180deg, #ffffff 0%, #e0e0e0 100%);
+      border-color: rgba(0, 0, 0, 0.3);
+      color: #222;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    }
+
+    .key.black-key {
+      background: linear-gradient(180deg, #2d2d2d 0%, #000000 100%);
+      border-color: rgba(0, 0, 0, 0.6);
+      color: #ddd;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    }
+
+    /* Narrower keys layout when Bambi/Bandu (wide layouts) are active */
+    .piano.bambi-layout .key {
+      width: 24px;
+      margin: 0 0.5px;
+      font-size: 0.7em;
+    }
+
+    .key:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+      background: linear-gradient(180deg, #3a3a3a 0%, #1a1a1a 100%);
+    }
+
+    /* Default active visual (Boyfriend etc.) */
+    .piano:not(.piano-mode) .key:active,
+    .piano:not(.piano-mode) .key.active,
+    .piano:not(.piano-mode) .key.midi-active {
+      background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+      color: white;
+      transform: translateY(2px);
+      box-shadow: 0 2px 8px rgba(0, 242, 255, 0.5);
+    }
+
+    /* Piano mode: keep white/black key colors, just add a subtle press effect */
+    .piano.piano-mode .key:active,
+    .piano.piano-mode .key.active,
+    .piano.piano-mode .key.midi-active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    #controls {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(10px);
+      padding: 30px;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .midi-section {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 20px 0;
+    }
+
+    .midi-section:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .section-label {
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #a78bfa;
+      text-transform: uppercase;
+      font-size: 0.9em;
+      letter-spacing: 1px;
+    }
+
+    #controls input[type="file"] {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 12px;
+      color: white;
+      width: 100%;
+      margin-bottom: 15px;
+    }
+
+    .slider-control {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .slider-control label {
+      font-weight: 600;
+      font-size: 0.9em;
+      color: rgba(230,230,230,0.9);
+    }
+
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    input[type="range"] {
+      flex-grow: 1;
+      -webkit-appearance: none;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #a78bfa;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #7c3aed;
+      transform: scale(1.1);
+    }
+
+    .value-display {
+      min-width: 80px; /* Increased to accommodate input */
+      text-align: center;
+      font-weight: 600;
+      color: #a78bfa;
+    }
+
+    /* New styles for number input */
+    .value-display input[type="number"] {
+      width: 70px;
+      background: transparent;
+      border: 1px solid rgba(0, 242, 255, 0.3);
+      border-radius: 4px;
+      color: #a78bfa;
+      font-weight: 600;
+      padding: 2px 4px;
+      text-align: center;
+    }
+
+    .value-display input[type="number"]:focus {
+      outline: none;
+      border-color: #a78bfa;
+    }
+
+    /* Remove spinner buttons from number input */
+    .value-display input[type="number"]::-webkit-inner-spin-button,
+    .value-display input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    .speed-value {
+      font-weight: 700;
+      min-width: 50px;
+      text-align: right;
+    }
+
+    /* Modal styles */
+    .modal-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+    }
+
+    .modal-content {
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      text-align: center;
+      background: rgba(22, 33, 62, 0.9);
+      padding: 30px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 242, 255, 0.2);
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.37);
+    }
+
+    .modal-content h2 {
+      color: #a78bfa;
+      margin-bottom: 15px;
+      font-size: 1.5rem;
+    }
+
+    .modal-content p {
+      margin-bottom: 25px;
+      line-height: 1.6;
+      color: rgba(230, 230, 230, 0.9);
+    }
+
+    .modal-content code {
+        background: rgba(0,0,0,0.4);
+        padding: 3px 7px;
+        border-radius: 4px;
+        font-family: monospace;
+        color: #a78bfa;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    #bpm-input-textarea {
+        width: 100%;
+        background: rgba(0,0,0,0.3);
+        border: 1px solid rgba(0, 242, 255, 0.3);
+        border-radius: 8px;
+        color: white;
+        padding: 10px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        margin-bottom: 20px;
+        resize: vertical;
+    }
+
+    #bpm-input-textarea:focus {
+        outline: none;
+        border-color: #a78bfa;
+    }
+
+    /* Styles for BPM Preview Player */
+    #bpm-preview-player {
+        margin-bottom: 20px;
+        background: rgba(0,0,0,0.2);
+        padding: 15px;
+        border-radius: 8px;
+        border: 1px solid rgba(0, 242, 255, 0.1);
+    }
+
+    #bpm-preview-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+
+    #bpm-preview-play-pause-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        min-width: 70px; /* So it doesn't resize between Play/Pause */
+    }
+
+    #bpm-preview-time {
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 14px;
+        color: #a78bfa;
+        flex-grow: 1;
+        text-align: right;
+    }
+
+    #bpm-preview-progress-container {
+        width: 100%;
+        height: 10px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 5px;
+        cursor: pointer;
+        overflow: hidden;
+    }
+
+    #bpm-preview-progress-bar {
+        width: 0%;
+        height: 100%;
+        background: #a78bfa;
+        /* Removed transition for smoother seeking updates */
+        pointer-events: none; /* So clicks go to the container */
+    }
+
+    #midi-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%);
+      color: white;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 242, 255, 0.4);
+    }
+
+    button:disabled {
+      background: rgba(255,255,255,0.1);
+      cursor: not-allowed;
+    }
+
+    .progress-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #a78bfa 0%, #7c3aed 100%);
+      transition: width 0.1s linear;
+    }
+
+    #loading-indicator {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+    }
+
+    .loading-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 18px;
+      font-weight: 700;
+      text-align: center;
+      background: rgba(255,255,255,0.1);
+      padding: 30px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Export progress bar inside loading overlay */
+    #export-progress-container {
+      margin-top: 10px;
+      width: 260px;
+      max-width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+
+    #export-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #a78bfa 0%, #7c3aed 100%);
+      transition: width 0.1s linear;
+    }
+
+    #export-progress-text {
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.85;
+      display: none;
+    }
+
+    /* Render progress bar (for actual audio rendering phase) */
+    #render-progress-container {
+      margin-top: 10px;
+      width: 260px;
+      max-width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+
+    #render-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ffb74d 0%, #ff8a00 100%);
+      transition: width 0.1s linear;
+    }
+
+    #render-progress-text {
+      margin-top: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.85;
+      display: none;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid rgba(255,255,255,0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Add styles for new MIDI controls */
+    .midi-settings {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .speed-control {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .speed-control label {
+      margin-bottom: 0;
+    }
+
+    .speed-control-inner {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      gap: 10px;
+    }
+
+    .speed-control input[type="range"] {
+      flex-grow: 1;
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 5px;
+      outline: none;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .speed-control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #008B8B;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .speed-control input[type="range"]::-webkit-slider-thumb:hover {
+      background: #00688B;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1 class="title">FNF Boyfriend Piano</h1>
+    <p class="subtitle">Play with your keyboard or load a MIDI file</p>
+    
+    <div id="controls">
+      <div class="midi-section">
+        <div class="section-label">File Controls</div>
+        <input type="file" id="midi-file-input" accept=".mid,.midi">
+
+        <!-- Instrument selector (for manual piano & default MIDI track instrument) -->
+        <div class="slider-control" style="margin-top:10px;">
+          <label for="instrument-select">Instrument</label>
+          <div class="slider-row">
+            <select id="instrument-select" style="flex-grow:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:#e6e6e6;">
+              <option value="piano">Piano (Synth)</option>
+              <option value="boyfriend">Boyfriend (default)</option>
+              <option value="bf2">BF2</option>
+              <option value="daddy">Daddy Dearest</option>
+              <option value="orge">Orge (New)</option>
+              <option value="bambi">Bambi</option>
+              <option value="bandu">Bandu</option>
+              <option value="cedric">Cedric</option>
+              <option value="hello">Hello Penguin</option>
+              <option value="fresh">Fresh BF</option>
+              <option value="burger">Burger</option>
+              <option value="redmungus">Red Mungus</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Per-track instrument routing for MIDI -->
+        <div class="slider-control" style="margin-top:10px;">
+          <label>Track Instruments (for MIDI playback & export)</label>
+          <div id="track-instruments-container" style="display:flex;flex-direction:column;gap:6px;font-size:0.85em;max-height:180px;overflow-y:auto;padding-right:4px;"></div>
+        </div>
+        <!-- Orge sample offset controls -->
+        <div id="orge-offset-controls" class="slider-control" style="margin-top:10px; display:none;">
+          <label>Orge Sample Start Offsets (ms)</label>
+          <div class="slider-row" style="flex-wrap:wrap; gap:6px;">
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+              <span style="font-size:0.8em;opacity:0.8;">aah</span>
+              <input type="number" id="orge-offset-aah" min="0" step="1" value="0" style="width:70px;background:transparent;border:1px solid rgba(0, 242, 255, 0.3);border-radius:4px;color:#a78bfa;padding:2px 4px;text-align:center;">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+              <span style="font-size:0.8em;opacity:0.8;">ee</span>
+              <input type="number" id="orge-offset-ee" min="0" step="1" value="0" style="width:70px;background:transparent;border:1px solid rgba(0, 242, 255, 0.3);border-radius:4px;color:#a78bfa;padding:2px 4px;text-align:center;">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+              <span style="font-size:0.8em;opacity:0.8;">ooh</span>
+              <input type="number" id="orge-offset-ooh" min="0" step="1" value="0" style="width:70px;background:transparent;border:1px solid rgba(0, 242, 255, 0.3);border-radius:4px;color:#a78bfa;padding:2px 4px;text-align:center;">
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-start;">
+              <span style="font-size:0.8em;opacity:0.8;">uu</span>
+              <input type="number" id="orge-offset-uu" min="0" step="1" value="0" style="width:70px;background:transparent;border:1px solid rgba(0, 242, 255, 0.3);border-radius:4px;color:#a78bfa;padding:2px 4px;text-align:center;">
+            </div>
+          </div>
+        </div>
+        <div id="midi-controls">
+          <button id="start-midi-btn" disabled>Start</button>
+          <button id="pause-resume-midi-btn" disabled>Pause</button>
+          <button id="stop-midi-btn" disabled>Stop</button>
+          <button id="edit-bpm-btn" disabled>Change BPM</button>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar"></div>
+        </div>
+      </div>
+
+      <div class="midi-section">
+        <div class="section-label">Playback Settings</div>
+        <div class="slider-control">
+          <label>Playback Speed</label>
+          <div class="slider-row">
+            <input type="range" id="speed-slider" min="0.25" max="5" value="1" step="0.001">
+            <span class="value-display">
+              <input type="number" id="speed-input" min="0.25" max="5" value="1.000" step="0.001">
+            </span>
+          </div>
+        </div>
+        
+        <div class="slider-control">
+          <label>Pitch Shift</label>
+          <div class="slider-row">
+            <input type="range" id="pitch-shift-slider" min="-55" max="55" value="0" step="1">
+            <span id="pitch-shift-value" class="value-display">0</span>
+          </div>
+        </div>
+
+        <div class="slider-control">
+          <label>Release Time</label>
+          <div class="slider-row">
+            <input type="range" id="release-slider" min="0" max="2" value="0" step="0.01">
+            <span id="release-value" class="value-display">0.00s</span>
+          </div>
+        </div>
+
+
+        <div class="slider-control">
+          <label for="instrumental-file-input">Optional Instrumental (WAV / MP3 / OGG)</label>
+          <input type="file" id="instrumental-file-input" accept=".wav,.mp3,.ogg,audio/wav,audio/mp3,audio/ogg">
+        </div>
+
+        <div class="slider-control">
+          <label>Instrumental Volume</label>
+          <div class="slider-row">
+            <input type="range" id="instrumental-volume-slider" min="0" max="200" value="100" step="1">
+            <span id="instrumental-volume-value" class="value-display">100</span>
+          </div>
+        </div>
+
+        <div class="slider-control">
+          <label>Instrumental Offset (ms)</label>
+          <div class="slider-row">
+            <input type="range" id="instrumental-offset-slider" min="-5000" max="5000" value="0" step="10">
+            <span id="instrumental-offset-value" class="value-display">0 ms</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="midi-section">
+        <div class="section-label">Export Options</div>
+        <button id="export-btn" disabled>Export as WAV</button>
+      </div>
+    </div>
+    
+    <div class="piano"></div>
+  </div>
+  
+  <div id="loading-indicator">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <div id="loading-text">Loading sounds...</div>
+      <div id="export-progress-container">
+        <div id="export-progress-bar"></div>
+      </div>
+      <div id="export-progress-text">0%</div>
+      <div id="render-progress-container">
+        <div id="render-progress-bar"></div>
+      </div>
+      <div id="render-progress-text">0%</div>
+      <button id="speedup-loading-btn" style="margin-top:15px;">Speed up loading</button>
+    </div>
+  </div>
+
+  <div id="bpm-modal-container" class="modal-container" style="display: none;">
+    <div class="modal-content">
+      <h2>Manual BPM Changes</h2>
+      <p>Does this MIDI file have BPM changes you want to manually specify?</p>
+      <div class="modal-buttons">
+        <button id="bpm-no-btn">No, Use File's Tempo</button>
+        <button id="bpm-yes-btn">Yes, Let Me Specify</button>
+      </div>
+    </div>
+  </div>
+  
+  <div id="bpm-input-modal-container" class="modal-container" style="display: none;">
+    <div class="modal-content">
+      <h2>Enter BPM Changes</h2>
+      <p>Use the preview player below to find the exact times for your BPM changes. Then, enter each change on a new line in the format: <code>minutes:seconds.ms, BPM</code></p>
+      
+      <!-- New Preview Player -->
+      <div id="bpm-preview-player">
+        <div id="bpm-preview-controls">
+          <button id="bpm-preview-play-pause-btn">Play</button>
+          <div id="bpm-preview-time">00:00.0 / 00:00.0</div>
+        </div>
+        <div id="bpm-preview-progress-container">
+          <div id="bpm-preview-progress-bar"></div>
+        </div>
+      </div>
+
+      <textarea id="bpm-input-textarea" rows="5" placeholder="00:00.0, 120&#10;00:30.5, 180&#10;01:00.0, 150"></textarea>
+      <div class="modal-buttons">
+        <button id="bpm-submit-btn">Apply</button>
+        <button id="bpm-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Set BPM Modal -->
+  <div id="set-bpm-modal-container" class="modal-container" style="display: none;">
+    <div class="modal-content">
+      <h2>Set Base BPM</h2>
+      <p>Enter a single BPM value to apply to the entire MIDI (this will overwrite previous BPM changes).</p>
+      <input id="set-bpm-input" type="number" min="20" max="400" step="0.1" placeholder="120" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0, 242, 255, 0.3);background:rgba(0,0,0,0.3);color:white;">
+      <div class="modal-buttons">
+        <button id="set-bpm-apply-btn">Apply</button>
+        <button id="set-bpm-cancel-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="midi.js"></script>
+</body>
+</html>
