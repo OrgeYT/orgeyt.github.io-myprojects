@@ -1360,6 +1360,13 @@ const projects = [
         description: "Fun GD wave playground.",
         tags: ["Games", "Simulation"],
         archive: false
+    },
+    {
+        name: "Orbital Clash",
+        path: "https://orbital-clash--orgeyt.on.websim.com/",
+        description: "Watch balls fight each other.",
+        tags: ["Simulation"],
+        archive: false
     }
 ];
 
