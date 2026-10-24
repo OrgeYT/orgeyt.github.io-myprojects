@@ -1381,7 +1381,14 @@ const projects = [
         description: "When you don't got a needoh and you become a weirdo but you have this instead",
         tags: ["Games"],
         archive: false
-    } // If you don't got a needoh your a weirdo
+    }, // If you don't got a needoh your a weirdo
+    {
+        name: "Roblox Error Generator",
+        path: "https://roblox-error-generator--orgeyt.on.websim.com/",
+        description: "Generate errors that looks like it came from roblox",
+        tags: ["Tools"],
+        archive: false
+    }
 ];
 
 
