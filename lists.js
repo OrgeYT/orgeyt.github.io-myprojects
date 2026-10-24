@@ -1374,7 +1374,14 @@ const projects = [
         description: "Turn midis into bf vocals, and other vocals!",
         tags: ["Tools"],
         archive: false
-    } // ITS FINALLY MOVED AWAY FROM WEBSIM YEAHHHHHHHH!!
+    }, // ITS FINALLY MOVED AWAY FROM WEBSIM YEAHHHHHHHH!!
+    {
+        name: "NeeDoh Simulator",
+        path: "https://needoh--orgeyt.on.websim.com/",
+        description: "When you don't got a needoh and you become a weirdo but you have this instead",
+        tags: ["Games"],
+        archive: false
+    } // If you don't got a needoh your a weirdo
 ];
 
 
