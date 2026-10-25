@@ -1388,6 +1388,13 @@ const projects = [
         description: "Generate errors that looks like it came from roblox",
         tags: ["Tools"],
         archive: false
+    },
+    {
+        name: "The Websim Projectverse",
+        path: "https://the-websim-projectverse--orgeyt.on.websim.com/",
+        description: "Platform your way to find random websim projects!",
+        tags: ["Games"],
+        archive: false
     }
 ];
 
