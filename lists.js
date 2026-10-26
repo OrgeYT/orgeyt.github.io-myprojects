@@ -1395,6 +1395,13 @@ const projects = [
         description: "Platform your way to find random websim projects!",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "OrgeYT Dash",
+        path: "https://orgeyt-dash--orgeyt.on.websim.com/",
+        description: "Modded version of GD.",
+        tags: ["Games"],
+        archive: false
     }
 ];
 
