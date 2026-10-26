@@ -1402,6 +1402,13 @@ const projects = [
         description: "Modded version of GD.",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "TESSERACT FIGHTING",
+        path: "https://tesseract-fighting--president_car.on.websim.com/",
+        description: "Fight other shapes until the final 4D bosses!",
+        tags: ["Games", "Simulation"],
+        archive: false
     }
 ];
 
