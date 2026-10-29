@@ -119,3 +119,6 @@ Added The Websim Projectverse
 [Monday, October 26]
 Added OrgeYT Dash, which is a moded version of GD
 Added TESSERACT FIGHTING
+
+[Wednesday, October 28]
+Added Cube Fighter
