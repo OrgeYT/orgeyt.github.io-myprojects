@@ -1409,6 +1409,13 @@ const projects = [
         description: "Fight other shapes until the final 4D bosses!",
         tags: ["Games", "Simulation"],
         archive: false
+    },
+    {
+        name: "Cube Fighter",
+        path: "https://cube-fighter--orgeyt.on.websim.com/",
+        description: "Online multiplayer game where you battle other players!",
+        tags: ["Games"],
+        archive: false
     }
 ];
 
