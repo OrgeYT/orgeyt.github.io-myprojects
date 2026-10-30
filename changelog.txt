@@ -122,3 +122,6 @@ Added TESSERACT FIGHTING
 
 [Wednesday, October 28]
 Added Cube Fighter
+
+[Thursday, October 29]
+Renamed Cube Fighter to The Strongest Cube Battles
