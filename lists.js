@@ -1411,8 +1411,8 @@ const projects = [
         archive: false
     },
     {
-        name: "Cube Fighter",
-        path: "https://cube-fighter--orgeyt.on.websim.com/",
+        name: "The Strongest Cube Battles",
+        path: "https://the-strongest-cube-battles-tscb--orgeyt.on.websim.com/",
         description: "Online multiplayer game where you battle other players!",
         tags: ["Games"],
         archive: false
