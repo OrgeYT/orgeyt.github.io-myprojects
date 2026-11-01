@@ -125,3 +125,12 @@ Added Cube Fighter
 
 [Thursday, October 29]
 Renamed Cube Fighter to The Strongest Cube Battles
+
+[Saturday, October 31]
+Added Custom Theme Editor in Theme Settings
+Create, edit, save, and delete custom themes with full color controls
+Optional background images for main, sidebar, and cards (IndexedDB, max 5 MB)
+Live preview while editing
+Export a single saved theme as JSON (includes images) and load it on another device
+Custom themes included in full site Backup export/import
+Added OG Buttons mode — optional flat layout of all menu buttons on the sidebar (like the original menu)

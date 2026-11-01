@@ -1032,7 +1032,75 @@ const CONTROLS_GROUP_TITLES = {
     data: 'Data & Info'
 };
 
+const OG_BUTTONS_LS_KEY = 'orgeyt-og-buttons';
+let ogButtonsMode = localStorage.getItem(OG_BUTTONS_LS_KEY) === 'true';
+
+function getControlsGroups() {
+    // Groups may live in the modal or in the OG sidebar panel
+    return Array.from(document.querySelectorAll('.controls-group[data-controls-group]'));
+}
+
+function getButtonsModalHome() {
+    return document.querySelector('#buttons-menu-modal .buttons-menu-modal-content') ||
+        document.getElementById('buttons-menu-modal');
+}
+
+function updateOgButtonsToggleUi() {
+    const label = document.getElementById('og-buttons-toggle-label');
+    const btn = document.getElementById('og-buttons-toggle-btn');
+    if (label) label.textContent = ogButtonsMode ? 'OG Buttons: On' : 'OG Buttons: Off';
+    if (btn) {
+        btn.classList.toggle('og-buttons-on', ogButtonsMode);
+        btn.setAttribute('aria-pressed', ogButtonsMode ? 'true' : 'false');
+    }
+    document.body.classList.toggle('og-buttons-mode', ogButtonsMode);
+}
+
+function applyOgButtonsMode(enabled) {
+    ogButtonsMode = !!enabled;
+    try {
+        if (ogButtonsMode) localStorage.setItem(OG_BUTTONS_LS_KEY, 'true');
+        else localStorage.removeItem(OG_BUTTONS_LS_KEY);
+    } catch (_) {}
+
+    const panel = document.getElementById('og-buttons-panel');
+    const modalHome = getButtonsModalHome();
+    const groups = getControlsGroups();
+
+    if (ogButtonsMode) {
+        // Close nested modal layout; put every group on the sidebar
+        setControlsMenuView('closed');
+        if (panel) {
+            groups.forEach(g => {
+                panel.appendChild(g);
+                g.classList.remove('hidden');
+            });
+            panel.classList.remove('hidden');
+        }
+    } else {
+        // Restore groups into the Buttons modal
+        if (modalHome) {
+            groups.forEach(g => {
+                modalHome.appendChild(g);
+                g.classList.add('hidden');
+            });
+        }
+        if (panel) {
+            panel.classList.add('hidden');
+        }
+        setControlsMenuView('closed');
+    }
+
+    updateOgButtonsToggleUi();
+    if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
+}
+
 function setControlsMenuView(view, groupId) {
+    // OG mode: no nested Buttons modal — groups already live on the sidebar
+    if (ogButtonsMode && view !== 'closed') {
+        return;
+    }
+
     const modal = document.getElementById('buttons-menu-modal');
     const hub = document.getElementById('controls-menu-hub');
     const backBtn = document.getElementById('controls-menu-back-btn');
@@ -1069,6 +1137,7 @@ function setControlsMenuView(view, groupId) {
 }
 
 function openControlsMenu() {
+    if (ogButtonsMode) return;
     setControlsMenuView('hub');
 }
 
@@ -1095,6 +1164,7 @@ function initControlsMenu() {
     const closeBtn = document.getElementById('controls-menu-close-btn');
     const backBtn = document.getElementById('controls-menu-back-btn');
     const modal = document.getElementById('buttons-menu-modal');
+    const ogToggle = document.getElementById('og-buttons-toggle-btn');
 
     if (openBtn && openBtn.dataset.controlsBound !== '1') {
         openBtn.dataset.controlsBound = '1';
@@ -1132,7 +1202,16 @@ function initControlsMenu() {
         });
     });
 
-    setControlsMenuView('closed');
+    if (ogToggle && ogToggle.dataset.controlsBound !== '1') {
+        ogToggle.dataset.controlsBound = '1';
+        ogToggle.addEventListener('click', () => {
+            applyOgButtonsMode(!ogButtonsMode);
+        });
+    }
+
+    // Apply saved OG preference after DOM is ready (moves groups if needed)
+    applyOgButtonsMode(ogButtonsMode);
+
     if (typeof attachSidebarSounds === 'function') attachSidebarSounds();
 }
 
@@ -1165,7 +1244,11 @@ const ORGEYT_LS_KEYS = [
     'orgeyt-controls-collapsed',
     'orgeyt-orgepet-interactions',
     'orgeyt-orgepet-enabled',
-    'orgeyt-menu-music-want-play'
+    'orgeyt-menu-music-want-play',
+    'orgeyt-custom-themes',
+    'orgeyt-active-custom-theme-id',
+    'orgeyt-menu-music-keep-project',
+    'orgeyt-og-buttons'
 ];
 
 /** Current favicon href (may be relative path, URL, or data:). */
@@ -1181,7 +1264,7 @@ function buildOrgeytBackupData(options) {
     const data = {
         _meta: {
             type: 'orgeyt-website-backup',
-            version: 1,
+            version: 2,
             exportedAt: new Date().toISOString()
         }
     };
@@ -1197,6 +1280,10 @@ function buildOrgeytBackupData(options) {
         favicon: getCurrentFaviconHref(),
         tabTitle: document.title || "OrgeYT's HTML Projects"
     };
+    // Custom theme images live in IndexedDB — attach if already prepared async
+    if (opts.customThemePayload) {
+        data._customThemes = opts.customThemePayload;
+    }
     return data;
 }
 
@@ -1213,13 +1300,21 @@ function downloadOrgeytBackupData(data, filenamePrefix) {
     URL.revokeObjectURL(url);
 }
 
-function exportOrgeytData() {
-    downloadOrgeytBackupData(buildOrgeytBackupData(), 'orgeyt-backup');
+async function exportOrgeytData() {
+    let customThemePayload = null;
+    try {
+        if (window.OrgeytCustomTheme && typeof window.OrgeytCustomTheme.exportPayload === 'function') {
+            customThemePayload = await window.OrgeytCustomTheme.exportPayload();
+        }
+    } catch (err) {
+        console.warn('Custom theme export skipped:', err);
+    }
+    downloadOrgeytBackupData(buildOrgeytBackupData({ customThemePayload }), 'orgeyt-backup');
 }
 
 function importOrgeytData(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
         try {
             const text = e.target.result;
             const data = JSON.parse(text);
@@ -1235,6 +1330,18 @@ function importOrgeytData(file) {
                     imported++;
                 }
             }
+
+            // Custom themes + IndexedDB images (optional extended backup)
+            let customImported = 0;
+            if (data._customThemes && window.OrgeytCustomTheme && typeof window.OrgeytCustomTheme.importPayload === 'function') {
+                try {
+                    customImported = await window.OrgeytCustomTheme.importPayload(data._customThemes);
+                    if (customImported > 0) imported += customImported;
+                } catch (err) {
+                    console.warn('Custom theme import failed:', err);
+                }
+            }
+
             if (imported === 0) {
                 alert('No recognized website data found in this file.');
                 return;
@@ -1258,7 +1365,8 @@ function importOrgeytData(file) {
                 localStorage.removeItem('orgeyt-site-randomizer-active');
             } catch (_) {}
 
-            alert(`Import successful! Restored ${imported} setting(s). The page will reload.`);
+            const extraMsg = customImported > 0 ? ` (including ${customImported} custom theme(s))` : '';
+            alert(`Import successful! Restored ${imported} setting(s)${extraMsg}. The page will reload.`);
             location.reload();
         } catch (err) {
             alert('Could not import file: invalid or corrupted JSON.\n' + (err && err.message ? err.message : ''));
@@ -1904,6 +2012,10 @@ function runSiteRandomization() {
     // 1) Theme
     const theme = pickRandom(SITE_RANDOMIZER_THEMES);
     if (theme) {
+        if (window.OrgeytCustomTheme && typeof window.OrgeytCustomTheme.clearStyles === 'function') {
+            window.OrgeytCustomTheme.clearStyles();
+        }
+        try { localStorage.removeItem('orgeyt-active-custom-theme-id'); } catch (_) {}
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('orgeyt-theme', theme);
         if (typeof hasChangedTheme !== 'undefined') hasChangedTheme = true;

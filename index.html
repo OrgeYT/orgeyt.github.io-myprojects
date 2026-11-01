@@ -32,9 +32,13 @@
         <div id="time-counter">Time: 0s</div>
 
         <div class="sidebar-controls" id="sidebar-controls">
+            <button type="button" id="og-buttons-toggle-btn" class="toggle-btn" data-sound="true" title="Show all menu buttons on the sidebar like the old layout">
+                <span class="btn-icon">📜</span> <span id="og-buttons-toggle-label">OG Buttons: Off</span>
+            </button>
             <button type="button" id="controls-menu-open-btn" class="toggle-btn controls-menu-open-btn" data-sound="true">
                 <span class="btn-icon">📋</span> Buttons
             </button>
+            <div id="og-buttons-panel" class="og-buttons-panel hidden" aria-label="All menu buttons"></div>
             <input type="file" id="import-data-file" accept=".json,application/json" style="display:none;">
         </div>
 
@@ -106,6 +110,10 @@
                 <button class="modal-btn" data-set-theme="deepseek">DeepSeek</button>
                 <button class="modal-btn" data-set-theme="websim">WebSim Agent</button>
                 <button class="modal-btn" data-set-theme="san-turbino">San Turbino</button>
+            </div>
+            <div class="setting-group" style="margin-top: 12px; border-top: 1px solid var(--border-main); padding-top: 12px;">
+                <button type="button" id="open-custom-theme-btn" class="modal-btn" style="width: 100%; padding: 10px; font-weight: bold;">🎨 Custom Theme</button>
+                <p style="font-size: 0.75rem; color: var(--text-accent); margin-top: 6px; text-align: center;">Create, edit, and save your own themes with colors and background images.</p>
             </div>
         </div>
     </div>
@@ -644,6 +652,68 @@
         </div>
     </div>
 
+    <!-- Custom Theme Editor Modal -->
+    <div id="custom-theme-modal" class="modal hidden">
+        <div class="modal-content cte-modal-content">
+            <span id="close-custom-theme-btn" class="close-btn">&times;</span>
+            <h3>Custom Theme Editor</h3>
+            <p id="cte-edit-status" class="cte-status">Creating new theme</p>
+
+            <div class="cte-layout">
+                <div class="cte-main-col">
+                    <div class="setting-group">
+                        <label for="cte-theme-name"><strong>Theme name</strong></label>
+                        <input type="text" id="cte-theme-name" class="cte-name-input" maxlength="48" placeholder="My Custom Theme">
+                    </div>
+
+                    <div class="setting-group">
+                        <strong class="cte-section-title">Colors</strong>
+                        <div id="cte-colors" class="cte-colors"></div>
+                    </div>
+
+                    <div class="setting-group">
+                        <strong class="cte-section-title">Background images</strong>
+                        <p class="cte-hint">Optional · PNG / JPG / WebP · max 5 MB each. Stored in IndexedDB on this device.</p>
+                        <div id="cte-images" class="cte-images"></div>
+                    </div>
+
+                    <div class="cte-actions">
+                        <button type="button" id="cte-new-btn" class="modal-btn">New</button>
+                        <button type="button" id="cte-reset-btn" class="modal-btn">Reset</button>
+                        <button type="button" id="cte-apply-btn" class="modal-btn">Apply preview</button>
+                        <button type="button" id="cte-save-btn" class="modal-btn" style="font-weight:bold;">Save theme</button>
+                    </div>
+                </div>
+
+                <div class="cte-side-col">
+                    <strong class="cte-section-title">Live preview</strong>
+                    <div id="cte-preview" class="cte-preview">
+                        <div class="cte-preview-body">
+                            <div class="cte-preview-sidebar">
+                                <div class="cte-preview-logo">Menu</div>
+                                <button type="button" class="cte-preview-btn">Project A</button>
+                                <button type="button" class="cte-preview-btn cte-preview-btn-sec">Project B</button>
+                            </div>
+                            <div class="cte-preview-main">
+                                <div class="cte-preview-card">
+                                    <div class="cte-preview-card-title">Sample card</div>
+                                    <p class="cte-preview-card-text">Text uses main &amp; accent colors.</p>
+                                    <button type="button" class="cte-preview-btn">Action</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <strong class="cte-section-title" style="margin-top:14px;">Saved themes</strong>
+                    <p class="cte-hint">📤 exports one theme as JSON (includes images). Use Load on another device to import it.</p>
+                    <button type="button" id="cte-load-theme-btn" class="modal-btn" style="width:100%; margin-bottom:8px;">📥 Load theme JSON</button>
+                    <input type="file" id="cte-load-theme-file" accept=".json,application/json" style="display:none;">
+                    <div id="cte-saved-list" class="cte-saved-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <svg style="display: none;">
         <defs>
             <filter id="posterize-filter">
@@ -661,5 +731,6 @@
     <script src="orge-pet.js"></script>
     <script src="projects.js"></script>
     <script src="ui.js"></script>
+    <script src="custom-theme.js"></script>
 </body>
 </html>
