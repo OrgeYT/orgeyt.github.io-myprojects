@@ -505,6 +505,17 @@
       "hack": true,
       "description": "An improved NES port of Sonic the Hedgehog with better graphics, physics, and gameplay refinements.",
       "homebrew": false
+    },
+    {
+      "id": "fuck",
+      "title": "FUCK",
+      "system": "nes",
+      "file": "fuck.nes",
+      "thumb": "fuck.jpg",
+      "year": 2026,
+      "hack": true,
+      "description": "Random SMB1 rom hack by president car",
+      "homebrew": false
     }
   ]
 }
