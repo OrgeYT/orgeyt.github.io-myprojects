@@ -134,3 +134,6 @@ Live preview while editing
 Export a single saved theme as JSON (includes images) and load it on another device
 Custom themes included in full site Backup export/import
 Added OG Buttons mode — optional flat layout of all menu buttons on the sidebar (like the original menu)
+
+[Sunday, November 1]
+Added new NES game to Classic Games
