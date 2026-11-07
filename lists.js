@@ -1416,6 +1416,13 @@ const projects = [
         description: "Online multiplayer game where you battle other players!",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "Flufity",
+        path: "https://flufity--orgeyt.on.websim.com/",
+        description: "A cool AI Assistant",
+        tags: ["Tools"],
+        archive: false
     }
 ];
 
