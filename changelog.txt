@@ -137,3 +137,6 @@ Added OG Buttons mode — optional flat layout of all menu buttons on the sideba
 
 [Sunday, November 1]
 Added new NES game to Classic Games
+
+[Saturday, November 7]
+Added Flufity
