@@ -1426,7 +1426,7 @@ const projects = [
     },
     {
         name: "Discord Text Effects tool",
-        path: "discord-text-formatter/index.html",
+        path: "discord-text-formatter/discord-text-formatter/index.html",
         description: "A tool that lets you do Discord text effects easier",
         tags: ["Tools"],
         archive: false
