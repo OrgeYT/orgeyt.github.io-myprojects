@@ -611,6 +611,232 @@
     }
   });
 
+
+  // ========== Utilities: Clock / Timer / Timestamps ==========
+  const liveClock = document.getElementById('liveClock');
+  const liveDate = document.getElementById('liveDate');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  function updateClock() {
+    if (!liveClock) return;
+    const now = new Date();
+    liveClock.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+    liveDate.textContent = now.toLocaleDateString(undefined, {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  function copyText(str) {
+    return navigator.clipboard.writeText(str).catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = str;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+  }
+
+  function flashBtn(id, label) {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    const old = btn.textContent;
+    btn.textContent = label || 'Copied!';
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  }
+
+  document.getElementById('copyTime')?.addEventListener('click', () => {
+    const now = new Date();
+    copyText(pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds()));
+    flashBtn('copyTime');
+  });
+  document.getElementById('copyDate')?.addEventListener('click', () => {
+    copyText(new Date().toLocaleDateString());
+    flashBtn('copyDate');
+  });
+  document.getElementById('copyDateTime')?.addEventListener('click', () => {
+    const now = new Date();
+    copyText(now.toLocaleString());
+    flashBtn('copyDateTime');
+  });
+
+  // Discord timestamps
+  let tsUnix = Math.floor(Date.now() / 1000);
+  let tsStyle = 'f';
+
+  function refreshTimestampOutput() {
+    const out = document.getElementById('timestampOutput');
+    if (out) out.value = '<t:' + tsUnix + ':' + tsStyle + '>';
+  }
+
+  function setTsOffset(seconds) {
+    tsUnix = Math.floor(Date.now() / 1000) + seconds;
+    refreshTimestampOutput();
+  }
+
+  document.getElementById('tsNow')?.addEventListener('click', () => setTsOffset(0));
+  document.getElementById('tsIn5')?.addEventListener('click', () => setTsOffset(5 * 60));
+  document.getElementById('tsIn15')?.addEventListener('click', () => setTsOffset(15 * 60));
+  document.getElementById('tsIn60')?.addEventListener('click', () => setTsOffset(60 * 60));
+  document.getElementById('tsIn24h')?.addEventListener('click', () => setTsOffset(24 * 60 * 60));
+
+  document.querySelectorAll('.ts-style').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ts-style').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tsStyle = btn.dataset.style;
+      refreshTimestampOutput();
+    });
+  });
+  refreshTimestampOutput();
+
+  document.getElementById('copyTimestamp')?.addEventListener('click', () => {
+    const out = document.getElementById('timestampOutput');
+    if (!out || !out.value) return;
+    copyText(out.value);
+    flashBtn('copyTimestamp');
+  });
+  document.getElementById('insertTimestamp')?.addEventListener('click', () => {
+    const out = document.getElementById('timestampOutput');
+    if (!out || !out.value) return;
+    insertAtCursor(out.value);
+  });
+
+  // Stopwatch
+  let timerRunning = false;
+  let timerStartMs = 0;
+  let timerElapsed = 0;
+  let timerInterval = null;
+  let lapCount = 0;
+
+  function formatMs(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    const cs = Math.floor((ms % 1000) / 10);
+    if (h > 0) return pad(h) + ':' + pad(m) + ':' + pad(s);
+    return pad(m) + ':' + pad(s) + '.' + pad(cs);
+  }
+
+  function updateTimerDisplay() {
+    const el = document.getElementById('timerDisplay');
+    if (!el) return;
+    const ms = timerElapsed + (timerRunning ? Date.now() - timerStartMs : 0);
+    el.textContent = formatMs(ms);
+  }
+
+  document.getElementById('timerStart')?.addEventListener('click', () => {
+    if (timerRunning) return;
+    timerRunning = true;
+    timerStartMs = Date.now();
+    timerInterval = setInterval(updateTimerDisplay, 50);
+  });
+  document.getElementById('timerPause')?.addEventListener('click', () => {
+    if (!timerRunning) return;
+    timerElapsed += Date.now() - timerStartMs;
+    timerRunning = false;
+    clearInterval(timerInterval);
+    updateTimerDisplay();
+  });
+  document.getElementById('timerReset')?.addEventListener('click', () => {
+    timerRunning = false;
+    clearInterval(timerInterval);
+    timerElapsed = 0;
+    timerStartMs = 0;
+    lapCount = 0;
+    updateTimerDisplay();
+    const list = document.getElementById('lapList');
+    if (list) list.innerHTML = '';
+  });
+  document.getElementById('timerLap')?.addEventListener('click', () => {
+    const ms = timerElapsed + (timerRunning ? Date.now() - timerStartMs : 0);
+    if (ms <= 0) return;
+    lapCount++;
+    const list = document.getElementById('lapList');
+    if (list) {
+      const div = document.createElement('div');
+      div.textContent = 'Lap ' + lapCount + ' — ' + formatMs(ms);
+      list.prepend(div);
+    }
+  });
+  document.getElementById('copyTimer')?.addEventListener('click', () => {
+    const el = document.getElementById('timerDisplay');
+    if (!el) return;
+    copyText(el.textContent);
+    flashBtn('copyTimer');
+  });
+
+  // Countdown
+  let cdRunning = false;
+  let cdRemainingMs = 5 * 60 * 1000;
+  let cdEndMs = 0;
+  let cdInterval = null;
+
+  function getCdInputMs() {
+    const min = parseInt(document.getElementById('cdMinutes')?.value || '0', 10) || 0;
+    const sec = parseInt(document.getElementById('cdSeconds')?.value || '0', 10) || 0;
+    return (min * 60 + sec) * 1000;
+  }
+
+  function updateCountdownDisplay() {
+    const el = document.getElementById('countdownDisplay');
+    if (!el) return;
+    let ms = cdRemainingMs;
+    if (cdRunning) ms = Math.max(0, cdEndMs - Date.now());
+    const totalSec = Math.ceil(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    el.textContent = pad(m) + ':' + pad(s);
+    if (cdRunning && ms <= 0) {
+      cdRunning = false;
+      clearInterval(cdInterval);
+      el.textContent = '00:00';
+      el.style.color = '#ed4245';
+      setTimeout(() => { el.style.color = ''; }, 2000);
+    }
+  }
+
+  document.getElementById('cdStart')?.addEventListener('click', () => {
+    if (cdRunning) return;
+    if (!cdRemainingMs || cdRemainingMs <= 0) cdRemainingMs = getCdInputMs();
+    if (cdRemainingMs <= 0) return;
+    cdRunning = true;
+    cdEndMs = Date.now() + cdRemainingMs;
+    cdInterval = setInterval(updateCountdownDisplay, 200);
+    updateCountdownDisplay();
+  });
+  document.getElementById('cdPause')?.addEventListener('click', () => {
+    if (!cdRunning) return;
+    cdRemainingMs = Math.max(0, cdEndMs - Date.now());
+    cdRunning = false;
+    clearInterval(cdInterval);
+    updateCountdownDisplay();
+  });
+  document.getElementById('cdReset')?.addEventListener('click', () => {
+    cdRunning = false;
+    clearInterval(cdInterval);
+    cdRemainingMs = getCdInputMs();
+    updateCountdownDisplay();
+  });
+  document.getElementById('cdMinutes')?.addEventListener('change', () => {
+    if (!cdRunning) {
+      cdRemainingMs = getCdInputMs();
+      updateCountdownDisplay();
+    }
+  });
+  document.getElementById('cdSeconds')?.addEventListener('change', () => {
+    if (!cdRunning) {
+      cdRemainingMs = getCdInputMs();
+      updateCountdownDisplay();
+    }
+  });
+  updateCountdownDisplay();
+
+
   // Initial
   updateOutput();
 })();

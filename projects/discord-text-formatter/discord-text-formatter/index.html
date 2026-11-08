@@ -38,6 +38,7 @@
           <button class="tab" data-tab="dialogue">Dialogue</button>
           <button class="tab" data-tab="ansi">ANSI Colors</button>
           <button class="tab" data-tab="symbols">Symbols</button>
+          <button class="tab" data-tab="utils">Utilities</button>
           <button class="tab" data-tab="presets">Presets</button>
         </div>
 
@@ -207,6 +208,79 @@
           <div class="tool-group">
             <span class="group-label">Boxes & Lines</span>
             <div class="symbol-grid" id="symbolsBoxes"></div>
+          </div>
+        </div>
+
+
+        <!-- Utilities Tab -->
+        <div class="tab-content" id="tab-utils">
+          <div class="tool-group">
+            <span class="group-label">Current Time</span>
+            <div class="utils-clock">
+              <div class="clock-time" id="liveClock">--:--:--</div>
+              <div class="clock-date" id="liveDate">—</div>
+            </div>
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="fmt-btn" id="copyTime" title="Copy current time">Copy Time</button>
+              <button class="fmt-btn" id="copyDate" title="Copy current date">Copy Date</button>
+              <button class="fmt-btn" id="copyDateTime" title="Copy date + time">Copy Both</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Discord Timestamp</span>
+            <p class="builder-hint">Generates a dynamic Discord timestamp that updates for every viewer</p>
+            <div class="btn-row" style="margin-bottom:8px;">
+              <button class="fmt-btn" id="tsNow" title="Use current time">Now</button>
+              <button class="fmt-btn" id="tsIn5" title="+5 minutes">+5m</button>
+              <button class="fmt-btn" id="tsIn15" title="+15 minutes">+15m</button>
+              <button class="fmt-btn" id="tsIn60" title="+1 hour">+1h</button>
+              <button class="fmt-btn" id="tsIn24h" title="+1 day">+1d</button>
+            </div>
+            <div class="timestamp-styles" id="timestampStyles">
+              <button class="fmt-btn ts-style" data-style="t" title="Short time">Short Time</button>
+              <button class="fmt-btn ts-style" data-style="T" title="Long time">Long Time</button>
+              <button class="fmt-btn ts-style" data-style="d" title="Short date">Short Date</button>
+              <button class="fmt-btn ts-style" data-style="D" title="Long date">Long Date</button>
+              <button class="fmt-btn ts-style active" data-style="f" title="Short date/time">Date+Time</button>
+              <button class="fmt-btn ts-style" data-style="F" title="Long date/time">Full</button>
+              <button class="fmt-btn ts-style" data-style="R" title="Relative">Relative</button>
+            </div>
+            <input type="text" id="timestampOutput" class="ansi-text-input" readonly placeholder="Timestamp will appear here..." style="margin-top:8px;">
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="btn btn-primary" id="copyTimestamp">Copy Timestamp</button>
+              <button class="fmt-btn" id="insertTimestamp">Insert into message</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Timer / Stopwatch</span>
+            <div class="utils-timer">
+              <div class="timer-display" id="timerDisplay">00:00:00</div>
+              <div class="btn-row">
+                <button class="fmt-btn" id="timerStart">Start</button>
+                <button class="fmt-btn" id="timerPause">Pause</button>
+                <button class="fmt-btn" id="timerReset">Reset</button>
+                <button class="fmt-btn" id="timerLap">Lap</button>
+                <button class="fmt-btn" id="copyTimer">Copy Time</button>
+              </div>
+              <div class="lap-list" id="lapList"></div>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Countdown</span>
+            <div class="countdown-row">
+              <input type="number" id="cdMinutes" class="ansi-text-input cd-input" min="0" value="5" placeholder="Min">
+              <span class="cd-sep">:</span>
+              <input type="number" id="cdSeconds" class="ansi-text-input cd-input" min="0" max="59" value="0" placeholder="Sec">
+            </div>
+            <div class="timer-display" id="countdownDisplay" style="margin-top:8px;">05:00</div>
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="fmt-btn" id="cdStart">Start</button>
+              <button class="fmt-btn" id="cdPause">Pause</button>
+              <button class="fmt-btn" id="cdReset">Reset</button>
+            </div>
           </div>
         </div>
 

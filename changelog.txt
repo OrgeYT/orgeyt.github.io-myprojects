@@ -143,3 +143,4 @@ Added Flufity
 
 [Sunday, November 8]
 Added Discord Text Effects tool
+Updated Discord Text Effects tool

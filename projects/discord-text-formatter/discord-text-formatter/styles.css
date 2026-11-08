@@ -670,3 +670,86 @@ footer {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Utilities */
+.utils-clock {
+  text-align: center;
+  padding: 12px;
+  background: #1e1f22;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.clock-time {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+}
+
+.clock-date {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.utils-timer {
+  text-align: center;
+}
+
+.timer-display {
+  font-family: var(--mono);
+  font-size: 2rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #fff;
+  padding: 12px;
+  background: #1e1f22;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.lap-list {
+  margin-top: 10px;
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.lap-list div {
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.timestamp-styles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.timestamp-styles .ts-style.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.countdown-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cd-input {
+  width: 80px !important;
+  text-align: center;
+}
+
+.cd-sep {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+}
