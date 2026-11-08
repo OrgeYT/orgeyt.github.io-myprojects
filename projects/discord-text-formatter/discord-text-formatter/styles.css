@@ -1,20 +1,20 @@
 :root {
-  /* Refined Windows 98 palette */
-  --bg: #008080;
-  --bg-secondary: #c0c0c0;
-  --bg-tertiary: #dfdfdf;
-  --bg-input: #ffffff;
-  --border: #808080;
-  --border-light: #ffffff;
-  --border-dark: #404040;
-  --text: #000000;
-  --text-muted: #555555;
-  --accent: #000080;
-  --accent-hover: #1084d0;
-  --title: #000080;
+  /* Dark Windows 98-inspired palette */
+  --bg: #0d1117;
+  --bg-secondary: #1a1d23;
+  --bg-tertiary: #252830;
+  --bg-input: #0d1117;
+  --border: #3d4450;
+  --border-light: #4a5160;
+  --border-dark: #0a0c10;
+  --text: #e6e8ec;
+  --text-muted: #8b929e;
+  --accent: #2b4a9b;
+  --accent-hover: #3d6fd4;
+  --title: #1a2f6b;
   --title-text: #ffffff;
-  --success: #008000;
-  --danger: #800000;
+  --success: #3dd68c;
+  --danger: #e05c5c;
   --radius: 0;
   --font: 'Tahoma', 'MS Sans Serif', 'Segoe UI', system-ui, sans-serif;
   --mono: 'Consolas', 'Courier New', monospace;
@@ -59,7 +59,7 @@ header {
   align-items: center;
   gap: 10px;
   margin-bottom: 0;
-  background: linear-gradient(90deg, #000080, #1084d0);
+  background: linear-gradient(90deg, #1a2f6b, #2b4a9b);
   padding: 6px 10px;
 }
 
@@ -73,7 +73,7 @@ h1 {
   font-weight: 700;
   letter-spacing: 0;
   color: #fff;
-  text-shadow: 1px 1px 0 #000040;
+  text-shadow: 1px 1px 0 #0a1535;
 }
 
 .subtitle {
@@ -207,7 +207,7 @@ h1 {
 }
 
 .tab:hover {
-  background: #e8e8e8;
+  background: #2a2e38;
 }
 
 .tab.active {
@@ -281,13 +281,13 @@ h1 {
 }
 
 .fmt-btn.toggle.active {
-  background: #000080;
-  border-color: #000080;
+  background: #2b4a9b;
+  border-color: #2b4a9b;
   color: #fff;
-  border-top: 2px solid #000040;
-  border-left: 2px solid #000040;
-  border-right: 2px solid #1084d0;
-  border-bottom: 2px solid #1084d0;
+  border-top: 2px solid #1a2f6b;
+  border-left: 2px solid #1a2f6b;
+  border-right: 2px solid #3d6fd4;
+  border-bottom: 2px solid #3d6fd4;
 }
 
 .fmt-btn.rainbow-btn {
@@ -376,15 +376,15 @@ h1 {
 }
 
 .mini-color.active {
-  outline: 2px solid #000080;
+  outline: 2px solid #3d6fd4;
   outline-offset: 1px;
 }
 
 .chat-preview {
   margin-top: 10px;
   padding: 8px 10px;
-  background: #000000;
-  color: #c0c0c0;
+  background: #0a0c10;
+  color: #c8ccd4;
   border-top: 2px solid var(--border-dark);
   border-left: 2px solid var(--border-dark);
   border-right: 2px solid var(--border-light);
@@ -558,7 +558,7 @@ h1 {
   max-height: 260px;
   overflow: auto;
   padding: 10px 12px;
-  background: #ffffff;
+  background: #0a0c10;
   border-top: 2px solid var(--border-dark);
   border-left: 2px solid var(--border-dark);
   border-right: 2px solid var(--border-light);
@@ -568,7 +568,7 @@ h1 {
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-all;
-  color: #000;
+  color: #c8ccd4;
 }
 
 .copy-feedback {
@@ -598,7 +598,7 @@ h1 {
 
 .discord-preview {
   padding: 12px;
-  background: #000080;
+  background: #0f1320;
 }
 
 .discord-message {
@@ -718,19 +718,19 @@ footer {
   text-align: center;
   margin-top: 16px;
   font-size: 0.8rem;
-  color: #fff;
-  text-shadow: 1px 1px 0 #004040;
+  color: var(--text-muted);
+  text-shadow: none;
 }
 
 .group-label {
-  color: #000080 !important;
+  color: #8eb4ff !important;
   font-weight: 700 !important;
 }
 
 .ansi-note {
-  background: #ffffcc !important;
-  border: 2px solid #808000 !important;
-  color: #000 !important;
+  background: #1a2030 !important;
+  border: 2px solid #2b4a9b !important;
+  color: #c8ccd4 !important;
 }
 
 .symbol-btn {
@@ -740,7 +740,7 @@ footer {
   border-left: 2px solid var(--border-light) !important;
   border-right: 2px solid var(--border-dark) !important;
   border-bottom: 2px solid var(--border-dark) !important;
-  color: #000 !important;
+  color: var(--text) !important;
 }
 
 .color-btn {
@@ -749,8 +749,8 @@ footer {
 
 .utils-clock, .timer-display {
   border-radius: 0 !important;
-  background: #000 !important;
-  color: #00ff00 !important;
+  background: #050608 !important;
+  color: #3dd68c !important;
   border-top: 2px solid var(--border-dark) !important;
   border-left: 2px solid var(--border-dark) !important;
   border-right: 2px solid var(--border-light) !important;
@@ -759,7 +759,7 @@ footer {
 }
 
 .clock-date {
-  color: #00cc00 !important;
+  color: #2a9e68 !important;
 }
 
 .preset-btn {
@@ -769,7 +769,7 @@ footer {
   border-left: 2px solid var(--border-light) !important;
   border-right: 2px solid var(--border-dark) !important;
   border-bottom: 2px solid var(--border-dark) !important;
-  color: #000 !important;
+  color: var(--text) !important;
 }
 
 .preview-note {
@@ -885,8 +885,8 @@ footer {
 .panel-header .btn,
 .panel-header .btn-ghost,
 .panel-header .btn-primary {
-  background: var(--bg-secondary);
-  color: #000;
+  background: var(--bg-tertiary);
+  color: var(--text);
   border-top: 2px solid var(--border-light);
   border-left: 2px solid var(--border-light);
   border-right: 2px solid var(--border-dark);
@@ -896,8 +896,8 @@ footer {
   border: 2px solid #fff;
 }
 .copy-feedback {
-  background: #ffffcc !important;
-  color: #000 !important;
-  border: 2px solid #808000;
+  background: #1a3020 !important;
+  color: #3dd68c !important;
+  border: 2px solid #2a6b45;
   border-radius: 0 !important;
 }
