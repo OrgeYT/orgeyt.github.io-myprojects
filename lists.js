@@ -1423,6 +1423,13 @@ const projects = [
         description: "A cool AI Assistant",
         tags: ["Tools"],
         archive: false
+    },
+    {
+        name: "Discord Text Effects tool",
+        path: "discord-text-formatter/index.html",
+        description: "A tool that lets you do Discord text effects easier",
+        tags: ["Tools"],
+        archive: false
     }
 ];
 

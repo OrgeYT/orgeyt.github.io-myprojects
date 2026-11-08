@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discord Text Formatter</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="logo">
+        <span class="discord-icon">◈</span>
+        <h1>Discord Text Formatter</h1>
+      </div>
+      <p class="subtitle">Create colored text, spoilers, headers & more • Ready to paste</p>
+    </header>
+
+    <main>
+      <!-- Input Section -->
+      <section class="panel input-panel">
+        <div class="panel-header">
+          <h2>Your Text</h2>
+          <div class="header-actions">
+            <button id="clearBtn" class="btn btn-ghost" title="Clear all">Clear</button>
+          </div>
+        </div>
+        <textarea id="inputText" placeholder="Type or paste your message here..." spellcheck="false"></textarea>
+      </section>
+
+      <!-- Tools -->
+      <section class="panel tools-panel">
+        <div class="tabs">
+          <button class="tab active" data-tab="markdown">Markdown</button>
+          <button class="tab" data-tab="dialogue">Dialogue</button>
+          <button class="tab" data-tab="ansi">ANSI Colors</button>
+          <button class="tab" data-tab="symbols">Symbols</button>
+          <button class="tab" data-tab="presets">Presets</button>
+        </div>
+
+        <!-- Markdown Tab -->
+        <div class="tab-content active" id="tab-markdown">
+          <div class="tool-group">
+            <span class="group-label">Text Style</span>
+            <div class="btn-row">
+              <button class="fmt-btn" data-fmt="bold" title="Bold **text**"><b>B</b></button>
+              <button class="fmt-btn" data-fmt="italic" title="Italic *text*"><i>I</i></button>
+              <button class="fmt-btn" data-fmt="underline" title="Underline __text__"><u>U</u></button>
+              <button class="fmt-btn" data-fmt="strike" title="Strikethrough ~~text~~"><s>S</s></button>
+              <button class="fmt-btn" data-fmt="spoiler" title="Spoiler ||text||">||</button>
+              <button class="fmt-btn" data-fmt="code" title="Inline code `text`">`</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Structure</span>
+            <div class="btn-row">
+              <button class="fmt-btn" data-fmt="h1" title="Header 1">H1</button>
+              <button class="fmt-btn" data-fmt="h2" title="Header 2">H2</button>
+              <button class="fmt-btn" data-fmt="h3" title="Header 3">H3</button>
+              <button class="fmt-btn" data-fmt="subtext" title="Subtext -#">-#</button>
+              <button class="fmt-btn" data-fmt="quote" title="Quote >">></button>
+              <button class="fmt-btn" data-fmt="quote-all" title="Quote rest of message >>>">>>></button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Other</span>
+            <div class="btn-row">
+              <button class="fmt-btn" data-fmt="bullet" title="Bullet list">• List</button>
+              <button class="fmt-btn" data-fmt="number" title="Numbered list">1. List</button>
+              <button class="fmt-btn" data-fmt="codeblock" title="Code block">```</button>
+              <button class="fmt-btn" data-fmt="link" title="Masked link">Link</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dialogue Tab -->
+        <div class="tab-content" id="tab-dialogue">
+          <div class="tool-group chat-builder">
+            <span class="group-label">Chat / Dialogue Builder</span>
+            <p class="builder-hint">Build multi-line colored conversations. Pick a name color, type name + message, then Add Line.</p>
+
+            <div class="chat-row">
+              <input type="text" id="chatName" class="ansi-text-input chat-name" placeholder="Name" spellcheck="false">
+              <div class="chat-name-colors" id="chatNameColors">
+                <button class="mini-color" data-code="30" style="--c:#4f545c" title="Gray"></button>
+                <button class="mini-color" data-code="31" style="--c:#ed4245" title="Red"></button>
+                <button class="mini-color" data-code="32" style="--c:#57f287" title="Green"></button>
+                <button class="mini-color" data-code="33" style="--c:#fee75c" title="Yellow"></button>
+                <button class="mini-color" data-code="34" style="--c:#5865f2" title="Blue"></button>
+                <button class="mini-color" data-code="35" style="--c:#eb459e" title="Pink"></button>
+                <button class="mini-color" data-code="36" style="--c:#00b0f4" title="Cyan"></button>
+                <button class="mini-color" data-code="37" style="--c:#ffffff" title="White"></button>
+              </div>
+            </div>
+
+            <div class="tool-group" style="margin-bottom:8px;">
+              <span class="group-label" style="margin-bottom:6px;">Name style</span>
+              <div class="btn-row">
+                <button class="fmt-btn toggle" id="nameBold" title="Bold name">Bold</button>
+                <button class="fmt-btn toggle" id="nameUnderline" title="Underline name">Underline</button>
+              </div>
+            </div>
+
+            <input type="text" id="chatMessage" class="ansi-text-input" placeholder="Message..." spellcheck="false">
+
+            <div class="btn-row" style="margin-top:8px;">
+              <button class="fmt-btn" id="addChatLine" title="Add this line to the builder">+ Add Line</button>
+              <button class="fmt-btn" id="addNarration" title="Add as narration (underlined gray)">+ Narration</button>
+              <button class="fmt-btn" id="removeLastChat" title="Remove the most recent chat message">− Last Chat</button>
+              <button class="fmt-btn" id="removeLastNarration" title="Remove the most recent narration">− Last Narration</button>
+              <button class="fmt-btn" id="undoChat" title="Undo last action">Undo</button>
+              <button class="fmt-btn" id="redoChat" title="Redo last undone action">Redo</button>
+              <button class="fmt-btn" id="clearChatBuilder" title="Clear all lines">Clear All</button>
+            </div>
+
+            <div class="chat-preview" id="chatPreview">
+              <span class="placeholder">Lines will appear here...</span>
+            </div>
+
+            <div class="btn-row" style="margin-top:10px;">
+              <button class="btn btn-primary" id="copyChatBlock" title="Copy the finished dialogue">Copy Dialogue</button>
+              <button class="fmt-btn" id="insertChatBlock" title="Also insert into the main message box">Insert into message</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ANSI Colors Tab -->
+        <div class="tab-content" id="tab-ansi">
+          <div class="tool-group">
+            <span class="group-label">Single text color</span>
+            <input type="text" id="ansiTextInput" class="ansi-text-input" placeholder="Type text to color..." spellcheck="false">
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Foreground Color</span>
+            <div class="color-grid" id="fgColors">
+              <button class="color-btn" data-code="30" style="--c:#4f545c" title="Gray">Gray</button>
+              <button class="color-btn" data-code="31" style="--c:#ed4245" title="Red">Red</button>
+              <button class="color-btn" data-code="32" style="--c:#57f287" title="Green">Green</button>
+              <button class="color-btn" data-code="33" style="--c:#fee75c" title="Yellow">Yellow</button>
+              <button class="color-btn" data-code="34" style="--c:#5865f2" title="Blue">Blue</button>
+              <button class="color-btn" data-code="35" style="--c:#eb459e" title="Pink">Pink</button>
+              <button class="color-btn" data-code="36" style="--c:#00b0f4" title="Cyan">Cyan</button>
+              <button class="color-btn" data-code="37" style="--c:#ffffff" title="White">White</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Background Color</span>
+            <div class="color-grid" id="bgColors">
+              <button class="color-btn bg" data-code="40" style="--c:#2c2f33" title="Dark">Dark</button>
+              <button class="color-btn bg" data-code="41" style="--c:#992d22" title="Red BG">Red</button>
+              <button class="color-btn bg" data-code="42" style="--c:#1f8b4c" title="Green BG">Green</button>
+              <button class="color-btn bg" data-code="43" style="--c:#c27c0e" title="Yellow BG">Yellow</button>
+              <button class="color-btn bg" data-code="44" style="--c:#206694" title="Blue BG">Blue</button>
+              <button class="color-btn bg" data-code="45" style="--c:#71368a" title="Purple BG">Purple</button>
+              <button class="color-btn bg" data-code="46" style="--c:#11806a" title="Teal BG">Teal</button>
+              <button class="color-btn bg" data-code="47" style="--c:#99aab5" title="Light BG">Light</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Styles</span>
+            <div class="btn-row">
+              <button class="fmt-btn toggle" id="ansiBold" data-style="1" title="Bold">Bold</button>
+              <button class="fmt-btn toggle" id="ansiUnderline" data-style="4" title="Underline">Underline</button>
+              <button class="fmt-btn" id="ansiReset" title="Reset styles">Reset</button>
+              <button class="fmt-btn rainbow-btn" id="ansiRainbow" title="Apply rainbow (no white)">Rainbow</button>
+            </div>
+          </div>
+
+          <div class="tool-group">
+            <span class="group-label">Output mode</span>
+            <div class="btn-row">
+              <button class="fmt-btn toggle" id="skipAnsiBlock" title="When on: only insert the colored text (no ```ansi wrapper)">Skip ```ansi</button>
+            </div>
+          </div>
+
+          <div class="ansi-note">
+            <strong>Tip:</strong> Type text above, then click a color or <strong>Rainbow</strong>. Use <strong>Skip ```ansi</strong> if you only want the raw colored text.
+          </div>
+        </div>
+
+        <!-- Symbols Tab -->
+        <div class="tab-content" id="tab-symbols">
+          <div class="tool-group">
+            <span class="group-label">Stars & Sparkles</span>
+            <div class="symbol-grid" id="symbolsStars"></div>
+          </div>
+          <div class="tool-group">
+            <span class="group-label">Arrows & Pointers</span>
+            <div class="symbol-grid" id="symbolsArrows"></div>
+          </div>
+          <div class="tool-group">
+            <span class="group-label">Status & Check</span>
+            <div class="symbol-grid" id="symbolsStatus"></div>
+          </div>
+          <div class="tool-group">
+            <span class="group-label">Shapes & Misc</span>
+            <div class="symbol-grid" id="symbolsMisc"></div>
+          </div>
+          <div class="tool-group">
+            <span class="group-label">Boxes & Lines</span>
+            <div class="symbol-grid" id="symbolsBoxes"></div>
+          </div>
+        </div>
+
+        <!-- Presets Tab -->
+        <div class="tab-content" id="tab-presets">
+          <div class="presets-grid">
+            <button class="preset-btn" data-preset="warning">
+              <span class="preset-preview red">⚠ Warning</span>
+              <span>Red warning</span>
+            </button>
+            <button class="preset-btn" data-preset="success">
+              <span class="preset-preview green">✓ Success</span>
+              <span>Green success</span>
+            </button>
+            <button class="preset-btn" data-preset="info">
+              <span class="preset-preview cyan">ℹ Info</span>
+              <span>Cyan info</span>
+            </button>
+            <button class="preset-btn" data-preset="error">
+              <span class="preset-preview red-bg">✕ Error</span>
+              <span>Error block</span>
+            </button>
+            <button class="preset-btn" data-preset="title">
+              <span class="preset-preview yellow">✦ Title</span>
+              <span>Yellow title</span>
+            </button>
+            <button class="preset-btn" data-preset="code">
+              <span class="preset-preview">Code example</span>
+              <span>JS code block</span>
+            </button>
+            <button class="preset-btn" data-preset="rules">
+              <span class="preset-preview">Server rules</span>
+              <span>Rules template</span>
+            </button>
+            <button class="preset-btn" data-preset="rainbow">
+              <span class="preset-preview rainbow">Rainbow</span>
+              <span>Rainbow (no white)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Output Section -->
+      <section class="panel output-panel">
+        <div class="panel-header">
+          <h2>Discord Output</h2>
+          <div class="header-actions">
+            <button id="copyBtn" class="btn btn-primary">Copy to Clipboard</button>
+          </div>
+        </div>
+        <div class="output-wrapper">
+          <pre id="outputText" class="output-code"></pre>
+        </div>
+        <div class="copy-feedback" id="copyFeedback">Copied!</div>
+      </section>
+
+      <!-- Preview Section -->
+      <section class="panel preview-panel">
+        <div class="panel-header">
+          <h2>Approximate Preview</h2>
+          <span class="preview-note">How it may look in Discord (desktop)</span>
+        </div>
+        <div class="discord-preview" id="preview">
+          <div class="discord-message">
+            <div class="avatar"></div>
+            <div class="message-content">
+              <div class="message-header">
+                <span class="username">You</span>
+                <span class="timestamp">Today at 12:00 PM</span>
+              </div>
+              <div class="message-body" id="previewBody">
+                <span class="placeholder">Your formatted message will appear here...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Discord uses a limited Markdown + ANSI code blocks for colors. Mobile may not show ANSI colors.</p>
+    </footer>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

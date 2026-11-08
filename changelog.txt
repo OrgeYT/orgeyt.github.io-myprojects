@@ -140,3 +140,6 @@ Added new NES game to Classic Games
 
 [Saturday, November 7]
 Added Flufity
+
+[Sunday, November 8]
+Added Discord Text Effects tool
