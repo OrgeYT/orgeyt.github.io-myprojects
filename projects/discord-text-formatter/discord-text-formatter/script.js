@@ -201,11 +201,23 @@
   if (defaultColorBtn) defaultColorBtn.classList.add('active');
 
   document.querySelectorAll('#chatMsgColors .msg-color').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
       document.querySelectorAll('#chatMsgColors .msg-color').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       const code = btn.dataset.code;
-      selectedMsgColor = code === 'none' || code === 'rainbow' ? code : parseInt(code, 10);
+      if (code === 'none' || code === 'rainbow') {
+        selectedMsgColor = code;
+      } else {
+        selectedMsgColor = parseInt(code, 10);
+      }
+      // Live hint under message box
+      const hint = document.getElementById('msgColorHint');
+      if (hint) {
+        const labels = { none: 'Default', rainbow: 'Rainbow', 30: 'Gray', 31: 'Red', 32: 'Green', 33: 'Yellow', 34: 'Blue', 35: 'Pink', 36: 'Cyan', 37: 'White' };
+        hint.textContent = 'Message color: ' + (labels[selectedMsgColor] || selectedMsgColor);
+      }
     });
   });
 
