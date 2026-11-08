@@ -753,3 +753,7 @@ footer {
   font-size: 1.2rem;
   color: var(--text-muted);
 }
+
+.mini-color.mini-rainbow {
+  background: linear-gradient(135deg, #ed4245, #fee75c, #57f287, #00b0f4, #eb459e) !important;
+}

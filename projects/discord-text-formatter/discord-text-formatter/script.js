@@ -192,7 +192,8 @@
     btn.addEventListener('click', () => {
       document.querySelectorAll('#chatNameColors .mini-color').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      selectedNameColor = parseInt(btn.dataset.code, 10);
+      const code = btn.dataset.code;
+      selectedNameColor = code === 'rainbow' ? 'rainbow' : parseInt(code, 10);
     });
   });
   const defaultColorBtn = document.querySelector('#chatNameColors .mini-color[data-code="33"]');
@@ -215,7 +216,29 @@
     return ESC + '[' + parts.join(';') + 'm';
   }
 
+  const NAME_RAINBOW = [31, 33, 32, 36, 34, 35]; // no gray/white
+
+  function colorNameRainbow(name) {
+    let result = '';
+    let i = 0;
+    for (const char of name) {
+      if (char === ' ') {
+        result += char;
+        continue;
+      }
+      const code = NAME_RAINBOW[i % NAME_RAINBOW.length];
+      const parts = [];
+      if (nameBold) parts.push('1');
+      if (nameUnderline) parts.push('4');
+      parts.push(String(code));
+      result += ESC + '[' + parts.join(';') + 'm' + char + ESC + '[0m';
+      i++;
+    }
+    return result;
+  }
+
   function colorName(name, code) {
+    if (code === 'rainbow') return colorNameRainbow(name);
     return buildNameCode(code) + name + ESC + '[0m';
   }
 
@@ -253,10 +276,28 @@
       pushHistory();
       const displayName = name || '???';
       const raw = colorName(displayName + ':', selectedNameColor) + (msg ? ' ' + msg : '');
-      const classes = ['ansi-' + selectedNameColor];
-      if (nameBold) classes.push('ansi-bold');
-      if (nameUnderline) classes.push('ansi-underline');
-      const html = '<span class="' + classes.join(' ') + '">' + escapeHtml(displayName) + ':</span>' + (msg ? ' ' + escapeHtml(msg) : '');
+      let html;
+      if (selectedNameColor === 'rainbow') {
+        // Build rainbow preview span by span
+        let nameHtml = '';
+        let ri = 0;
+        const full = displayName + ':';
+        for (const char of full) {
+          if (char === ' ') { nameHtml += ' '; continue; }
+          const c = NAME_RAINBOW[ri % NAME_RAINBOW.length];
+          const cls = ['ansi-' + c];
+          if (nameBold) cls.push('ansi-bold');
+          if (nameUnderline) cls.push('ansi-underline');
+          nameHtml += '<span class="' + cls.join(' ') + '">' + escapeHtml(char) + '</span>';
+          ri++;
+        }
+        html = nameHtml + (msg ? ' ' + escapeHtml(msg) : '');
+      } else {
+        const classes = ['ansi-' + selectedNameColor];
+        if (nameBold) classes.push('ansi-bold');
+        if (nameUnderline) classes.push('ansi-underline');
+        html = '<span class="' + classes.join(' ') + '">' + escapeHtml(displayName) + ':</span>' + (msg ? ' ' + escapeHtml(msg) : '');
+      }
       chatLines.push({ raw, html, type: 'chat' });
     }
 
