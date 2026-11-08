@@ -110,6 +110,22 @@
 
             <input type="text" id="chatMessage" class="ansi-text-input" placeholder="Message..." spellcheck="false">
 
+            <div class="tool-group" style="margin-top:8px;margin-bottom:4px;">
+              <span class="group-label" style="margin-bottom:6px;">Message color</span>
+              <div class="chat-name-colors" id="chatMsgColors">
+                <button class="mini-color msg-color active" data-code="none" style="--c:#dbdee1" title="Default (no color)"></button>
+                <button class="mini-color msg-color" data-code="30" style="--c:#4f545c" title="Gray"></button>
+                <button class="mini-color msg-color" data-code="31" style="--c:#ed4245" title="Red"></button>
+                <button class="mini-color msg-color" data-code="32" style="--c:#57f287" title="Green"></button>
+                <button class="mini-color msg-color" data-code="33" style="--c:#fee75c" title="Yellow"></button>
+                <button class="mini-color msg-color" data-code="34" style="--c:#5865f2" title="Blue"></button>
+                <button class="mini-color msg-color" data-code="35" style="--c:#eb459e" title="Pink"></button>
+                <button class="mini-color msg-color" data-code="36" style="--c:#00b0f4" title="Cyan"></button>
+                <button class="mini-color msg-color" data-code="37" style="--c:#ffffff" title="White"></button>
+                <button class="mini-color msg-color mini-rainbow" data-code="rainbow" title="Rainbow (no white)"></button>
+              </div>
+            </div>
+
             <div class="btn-row" style="margin-top:8px;">
               <button class="fmt-btn" id="addChatLine" title="Add this line to the builder">+ Add Line</button>
               <button class="fmt-btn" id="addNarration" title="Add as narration (underlined gray)">+ Narration</button>

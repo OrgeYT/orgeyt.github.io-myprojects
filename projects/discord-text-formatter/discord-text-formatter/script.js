@@ -168,6 +168,7 @@
   const chatPreview = document.getElementById('chatPreview');
   let chatLines = []; // { raw, html, type: 'chat'|'narration' }
   let selectedNameColor = 33; // default yellow
+  let selectedMsgColor = 'none'; // none | 30-37 | rainbow
   let nameBold = false;
   let nameUnderline = false;
   let undoStack = [];
@@ -198,6 +199,15 @@
   });
   const defaultColorBtn = document.querySelector('#chatNameColors .mini-color[data-code="33"]');
   if (defaultColorBtn) defaultColorBtn.classList.add('active');
+
+  document.querySelectorAll('#chatMsgColors .msg-color').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#chatMsgColors .msg-color').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const code = btn.dataset.code;
+      selectedMsgColor = code === 'none' || code === 'rainbow' ? code : parseInt(code, 10);
+    });
+  });
 
   document.getElementById('nameBold').addEventListener('click', function () {
     nameBold = !nameBold;
@@ -242,6 +252,39 @@
     return buildNameCode(code) + name + ESC + '[0m';
   }
 
+  function colorMessage(text, code) {
+    if (!text || code === 'none' || code === null || code === undefined) return text;
+    if (code === 'rainbow') {
+      let result = '';
+      let i = 0;
+      for (const char of text) {
+        if (char === ' ') { result += char; continue; }
+        const c = NAME_RAINBOW[i % NAME_RAINBOW.length];
+        result += ESC + '[' + c + 'm' + char + ESC + '[0m';
+        i++;
+      }
+      return result;
+    }
+    return ESC + '[' + code + 'm' + text + ESC + '[0m';
+  }
+
+  function messagePreviewHtml(text, code) {
+    if (!text) return '';
+    if (code === 'none' || code === null || code === undefined) return escapeHtml(text);
+    if (code === 'rainbow') {
+      let html = '';
+      let i = 0;
+      for (const char of text) {
+        if (char === ' ') { html += ' '; continue; }
+        const c = NAME_RAINBOW[i % NAME_RAINBOW.length];
+        html += '<span class="ansi-' + c + '">' + escapeHtml(char) + '</span>';
+        i++;
+      }
+      return html;
+    }
+    return '<span class="ansi-' + code + '">' + escapeHtml(text) + '</span>';
+  }
+
   function escapeHtml(str) {
     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
@@ -275,10 +318,10 @@
       if (!name && !msg) return;
       pushHistory();
       const displayName = name || '???';
-      const raw = colorName(displayName + ':', selectedNameColor) + (msg ? ' ' + msg : '');
+      const coloredMsg = msg ? colorMessage(msg, selectedMsgColor) : '';
+      const raw = colorName(displayName + ':', selectedNameColor) + (coloredMsg ? ' ' + coloredMsg : '');
       let html;
       if (selectedNameColor === 'rainbow') {
-        // Build rainbow preview span by span
         let nameHtml = '';
         let ri = 0;
         const full = displayName + ':';
@@ -291,12 +334,12 @@
           nameHtml += '<span class="' + cls.join(' ') + '">' + escapeHtml(char) + '</span>';
           ri++;
         }
-        html = nameHtml + (msg ? ' ' + escapeHtml(msg) : '');
+        html = nameHtml + (msg ? ' ' + messagePreviewHtml(msg, selectedMsgColor) : '');
       } else {
         const classes = ['ansi-' + selectedNameColor];
         if (nameBold) classes.push('ansi-bold');
         if (nameUnderline) classes.push('ansi-underline');
-        html = '<span class="' + classes.join(' ') + '">' + escapeHtml(displayName) + ':</span>' + (msg ? ' ' + escapeHtml(msg) : '');
+        html = '<span class="' + classes.join(' ') + '">' + escapeHtml(displayName) + ':</span>' + (msg ? ' ' + messagePreviewHtml(msg, selectedMsgColor) : '');
       }
       chatLines.push({ raw, html, type: 'chat' });
     }
