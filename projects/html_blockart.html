@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockArt Studio — ░█ Text, Pixel & Screen Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .block-canvas {
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Courier New', monospace;
+            line-height: 1.05;
+            letter-spacing: 0px;
+            font-variant-ligatures: none;
+            font-feature-settings: "liga" 0, "calt" 0;
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .sr-only-file {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
+        .shade-btn.active {
+            outline: 2px solid #34d399;
+            outline-offset: 1px;
+            background: rgba(52, 211, 153, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-emerald-500 selection:text-slate-950">
+
+    <!-- Top Header -->
+    <header class="border-b border-slate-800/80 bg-slate-900/70 backdrop-blur-md sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-slate-950 font-bold text-sm shadow-lg shadow-emerald-500/20 select-none">
+                    █░
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg tracking-tight text-white flex items-center gap-2">
+                        BlockArt Studio
+                        <span class="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">░ ▒ ▓ █</span>
+                    </h1>
+                    <p class="text-xs text-slate-400 hidden sm:block">Convert text, images, drawings or your screen into crisp Unicode block art</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="btnClear" type="button" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-medium text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 transition flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="eraser" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Clear</span>
+                </button>
+                <button id="btnCopy" type="button" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-[0.98] transition shadow-lg shadow-emerald-500/20 flex items-center gap-1.5 cursor-pointer">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span id="copyBtnLabel">Copy Art</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Sidebar -->
+        <section class="lg:col-span-4 flex flex-col gap-5">
+
+            <!-- Text Input Card -->
+            <div id="textInputCard" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="textInput" class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="type" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        Input Text
+                    </label>
+                    <span id="charCounter" class="text-xs font-mono text-slate-500">5 chars</span>
+                </div>
+                <textarea id="textInput" rows="2" placeholder="Type something awesome..."
+                    class="w-full bg-slate-950 border border-slate-700/90 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 font-medium text-base transition resize-y outline-none">HELLO</textarea>
+                <p class="mt-2 text-[11px] text-slate-500">Supports multi-line text, numbers, symbols, and custom fonts.</p>
+            </div>
+
+            <!-- Configuration Controls -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl flex flex-col gap-5">
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-emerald-400"></i>
+                        Generator Mode & Settings
+                    </h2>
+                    <button id="btnReset" type="button" class="text-xs text-slate-400 hover:text-emerald-400 transition cursor-pointer">Reset defaults</button>
+                </div>
+
+                <!-- Mode Switcher -->
+                <div class="grid grid-cols-4 gap-1 p-1 bg-slate-950 border border-slate-800 rounded-xl" role="tablist">
+                    <button id="btnModeSimple" type="button" role="tab" aria-selected="true" class="py-2 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-emerald-500 text-slate-950 shadow-sm cursor-pointer">
+                        <i data-lucide="grid" class="w-3.5 h-3.5 shrink-0"></i><span>Simple</span>
+                    </button>
+                    <button id="btnModeCustom" type="button" role="tab" aria-selected="false" class="py-2 px-1 rounded-lg text-[11px] font-medium transition flex items-center justify-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer">
+                        <i data-lucide="wand-2" class="w-3.5 h-3.5 shrink-0"></i><span>Custom</span>
+                    </button>
+                    <button id="btnModeDraw" type="button" role="tab" aria-selected="false" class="py-2 px-1 rounded-lg text-[11px] font-medium transition flex items-center justify-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer">
+                        <i data-lucide="pencil" class="w-3.5 h-3.5 shrink-0"></i><span>Draw</span>
+                    </button>
+                    <button id="btnModeMedia" type="button" role="tab" aria-selected="false" class="py-2 px-1 rounded-lg text-[11px] font-medium transition flex items-center justify-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer">
+                        <i data-lucide="monitor" class="w-3.5 h-3.5 shrink-0"></i><span>Media</span>
+                    </button>
+                </div>
+
+                <!-- ===== DRAW MODE ===== -->
+                <div id="drawControls" class="hidden flex-col gap-4">
+                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2 text-[11px] text-emerald-300/90 flex items-center gap-2">
+                        <i data-lucide="mouse-pointer-click" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                        <span>Pick a shade below, then click/drag to paint. All four levels are available.</span>
+                    </div>
+
+                    <!-- Shade palette for drawing -->
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Paint Shade</span>
+                        <div class="grid grid-cols-5 gap-1.5" id="drawShadePalette">
+                            <button type="button" data-shade="0" class="shade-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer" title="Optional · (may look different when pasted)">·</button>
+                            <button type="button" data-shade="1" class="shade-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer active" title="Light ░ (paste-safe empty)">░</button>
+                            <button type="button" data-shade="2" class="shade-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer" title="Medium ▒">▒</button>
+                            <button type="button" data-shade="3" class="shade-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer" title="Dark ▓">▓</button>
+                            <button type="button" data-shade="4" class="shade-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer" title="Darkest █">█</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Canvas Grid Size</span>
+                        <div class="grid grid-cols-5 gap-1.5">
+                            <button id="btnGrid3" type="button" data-grid-size="3" class="py-2 px-1 rounded-xl text-[11px] font-medium border transition flex items-center justify-center bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"><span>3×3</span></button>
+                            <button id="btnGrid5" type="button" data-grid-size="5" class="py-2 px-1 rounded-xl text-[11px] font-semibold border transition flex items-center justify-center bg-emerald-500/15 border-emerald-500 text-emerald-300 cursor-pointer"><span>5×5</span></button>
+                            <button id="btnGrid10" type="button" data-grid-size="10" class="py-2 px-1 rounded-xl text-[11px] font-medium border transition flex items-center justify-center bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"><span>10×10</span></button>
+                            <button id="btnGrid15" type="button" data-grid-size="15" class="py-2 px-1 rounded-xl text-[11px] font-medium border transition flex items-center justify-center bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"><span>15×15</span></button>
+                            <button id="btnGrid20" type="button" data-grid-size="20" class="py-2 px-1 rounded-xl text-[11px] font-medium border transition flex items-center justify-center bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer"><span>20×20</span></button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1.5">
+                            <span class="text-xs font-medium text-slate-300">Pixel Canvas</span>
+                            <div class="flex items-center gap-2">
+                                <button id="btnFillGrid" type="button" class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer">Fill All</button>
+                                <button id="btnClearGrid" type="button" class="text-[11px] font-medium px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-rose-300 border border-slate-700 transition cursor-pointer">Clear Grid</button>
+                            </div>
+                        </div>
+                        <div id="drawGridContainer" class="w-full aspect-square max-w-[300px] mx-auto bg-slate-950 p-2 rounded-xl border border-slate-800 grid gap-1 select-none touch-none shadow-inner"></div>
+                    </div>
+                </div>
+
+                <!-- ===== SIMPLE MODE ===== -->
+                <div id="simpleControls" class="flex flex-col gap-4">
+                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2 text-[11px] text-emerald-300/90 flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                        <span>Handcrafted 5-row pixel glyphs (A–Z, 0–9, punctuation).</span>
+                    </div>
+
+                    <!-- Filled character picker for text modes -->
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Filled Character</span>
+                        <div class="grid grid-cols-5 gap-1.5" id="textFillPalette">
+                            <button type="button" data-fill="█" class="fill-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn active" title="Darkest █">█</button>
+                            <button type="button" data-fill="▓" class="fill-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Dark ▓">▓</button>
+                            <button type="button" data-fill="▒" class="fill-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Medium ▒">▒</button>
+                            <button type="button" data-fill="░" class="fill-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Light ░">░</button>
+                            <button type="button" data-fill="·" class="fill-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Empty · (middle dot)">·</button>
+                        </div>
+                    </div>
+
+                    <!-- Background character picker -->
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Background Character</span>
+                        <div class="grid grid-cols-5 gap-1.5" id="textBgPalette">
+                            <button type="button" data-bg="░" class="bg-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn active" title="Light ░">░</button>
+                            <button type="button" data-bg="·" class="bg-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Empty ·">·</button>
+                            <button type="button" data-bg="▒" class="bg-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Medium ▒">▒</button>
+                            <button type="button" data-bg="▓" class="bg-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Dark ▓">▓</button>
+                            <button type="button" data-bg="█" class="bg-btn py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Darkest █">█</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="letterSpacingRange" class="text-xs font-medium text-slate-300">Letter Spacing</label>
+                            <span id="letterSpacingVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">1 col</span>
+                        </div>
+                        <input id="letterSpacingRange" type="range" min="1" max="4" value="1" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="lineSpacingRange" class="text-xs font-medium text-slate-300">Line Spacing</label>
+                            <span id="lineSpacingVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">1 row</span>
+                        </div>
+                        <input id="lineSpacingRange" type="range" min="1" max="4" value="1" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- ===== CUSTOM MODE ===== -->
+                <div id="customControls" class="hidden flex-col gap-4">
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Filled Character</span>
+                        <div class="grid grid-cols-5 gap-1.5" id="customFillPalette">
+                            <button type="button" data-fill="█" class="fill-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn active" title="Darkest █">█</button>
+                            <button type="button" data-fill="▓" class="fill-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Dark ▓">▓</button>
+                            <button type="button" data-fill="▒" class="fill-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Medium ▒">▒</button>
+                            <button type="button" data-fill="░" class="fill-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Light ░">░</button>
+                            <button type="button" data-fill="·" class="fill-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Empty · (middle dot)">·</button>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Background Character</span>
+                        <div class="grid grid-cols-5 gap-1.5" id="customBgPalette">
+                            <button type="button" data-bg="░" class="bg-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn active" title="Light ░">░</button>
+                            <button type="button" data-bg="·" class="bg-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Empty ·">·</button>
+                            <button type="button" data-bg="▒" class="bg-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Medium ▒">▒</button>
+                            <button type="button" data-bg="▓" class="bg-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Dark ▓">▓</button>
+                            <button type="button" data-bg="█" class="bg-btn-custom py-2.5 rounded-xl text-lg font-mono border border-slate-700 bg-slate-950 hover:bg-slate-800 transition cursor-pointer shade-btn" title="Darkest █">█</button>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
+                        <div>
+                            <label for="fontSelect" class="block text-xs font-medium text-slate-300 mb-1.5">Font Style</label>
+                            <select id="fontSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-500">
+                                <option value="pixel" selected>8-Bit Pixel (Crisp)</option>
+                                <option value="sans">Modern Sans-Serif</option>
+                                <option value="mono">Technical Monospace</option>
+                                <option value="serif">Editorial Serif</option>
+                                <option value="impact">Heavy Display</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="weightSelect" class="block text-xs font-medium text-slate-300 mb-1.5">Stroke Weight</label>
+                            <select id="weightSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-emerald-500">
+                                <option value="normal">Regular</option>
+                                <option value="bold" selected>Bold</option>
+                                <option value="900">Extra Black</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="resolutionRange" class="text-xs font-medium text-slate-300">Vertical Resolution</label>
+                            <span id="resolutionVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">12 rows</span>
+                        </div>
+                        <input id="resolutionRange" type="range" min="7" max="32" value="12" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="aspectRange" class="text-xs font-medium text-slate-300">Horizontal Stretch</label>
+                            <span id="aspectVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">1.2x</span>
+                        </div>
+                        <input id="aspectRange" type="range" min="0.8" max="2.2" step="0.1" value="1.2" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- ===== MEDIA MODE ===== -->
+                <div id="mediaControls" class="hidden flex-col gap-4">
+                    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-3 py-2 text-[11px] text-emerald-300/90 flex items-center gap-2">
+                        <i data-lucide="image" class="w-3.5 h-3.5 text-emerald-400 shrink-0"></i>
+                        <span>Upload an image or share your screen — both convert live to block art.</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <label for="imageUpload" class="py-2.5 px-3 rounded-xl text-xs font-semibold border border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="upload" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Upload Image</span>
+                        </label>
+                        <input type="file" id="imageUpload" accept="image/*" class="sr-only-file">
+                        <button id="btnStartStream" type="button" class="py-2.5 px-3 rounded-xl text-xs font-semibold border border-slate-700 bg-slate-950 hover:bg-slate-800 text-slate-200 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                            <i data-lucide="monitor-play" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Share Screen</span>
+                        </button>
+                    </div>
+                    <button id="btnStopStream" type="button" class="hidden py-2.5 px-3 rounded-xl text-xs font-semibold border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i data-lucide="square" class="w-3.5 h-3.5"></i>
+                        <span>Stop Stream</span>
+                    </button>
+
+                    <div id="mediaStatus" class="text-[11px] font-mono text-slate-500 flex items-center gap-2">
+                        <span id="mediaStatusDot" class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+                        <span id="mediaStatusText">No media loaded</span>
+                    </div>
+
+                    <!-- Multi-shade toggle -->
+                    <div class="flex items-center justify-between py-1">
+                        <div>
+                            <span class="text-sm font-medium text-slate-200 block">Multi-shade (░ ▒ ▓ █)</span>
+                            <span class="text-xs text-slate-500">4 paste-safe density levels</span>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input id="multiShadeToggle" type="checkbox" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:after:bg-slate-950"></div>
+                        </label>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="mediaResRange" class="text-xs font-medium text-slate-300">Vertical Resolution</label>
+                            <span id="mediaResVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">24 rows</span>
+                        </div>
+                        <input id="mediaResRange" type="range" min="8" max="96" value="24" class="w-full accent-emerald-400 cursor-pointer">
+                    </div>
+                    <div>
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="mediaAspectRange" class="text-xs font-medium text-slate-300">Character Aspect</label>
+                            <span id="mediaAspectVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">0.55</span>
+                        </div>
+                        <input id="mediaAspectRange" type="range" min="0.35" max="1.0" step="0.05" value="0.55" class="w-full accent-emerald-400 cursor-pointer">
+                        <p class="mt-1 text-[10px] text-slate-500">Lower = wider characters (better for most monospace fonts)</p>
+                    </div>
+                    <div id="mediaThreshWrap">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <label for="mediaThreshRange" class="text-xs font-medium text-slate-300" id="mediaThreshLabel">Light Threshold</label>
+                            <span id="mediaThreshVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">128</span>
+                        </div>
+                        <input id="mediaThreshRange" type="range" min="30" max="220" value="128" class="w-full accent-emerald-400 cursor-pointer">
+                        <p id="mediaThreshHint" class="mt-1 text-[10px] text-slate-500">With multi-shade: shifts ░▒▓█ boundaries. Binary: hard cutoff.</p>
+                    </div>
+
+                    <div id="mediaPreviewWrap" class="hidden">
+                        <span class="block text-xs font-medium text-slate-300 mb-1.5">Source Preview</span>
+                        <div class="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-video max-h-36">
+                            <video id="mediaVideo" class="hidden w-full h-full object-contain" playsinline muted></video>
+                            <img id="mediaImagePreview" class="hidden w-full h-full object-contain" alt="Uploaded image preview">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shared padding -->
+                <div>
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label for="paddingRange" class="text-xs font-medium text-slate-300">Outer Frame Padding</label>
+                        <span id="paddingVal" class="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">0 blocks</span>
+                    </div>
+                    <input id="paddingRange" type="range" min="0" max="6" value="0" class="w-full accent-emerald-400 cursor-pointer">
+                </div>
+
+                <!-- Shared Invert -->
+                <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                    <div>
+                        <span class="text-sm font-medium text-slate-200 block">Invert Blocks</span>
+                        <span class="text-xs text-slate-500">Swap empty ↔ filled (or reverse shade order)</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input id="invertToggle" type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 peer-checked:after:bg-slate-950"></div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="bg-slate-900/50 border border-slate-800/70 rounded-2xl p-4 text-xs text-slate-400 flex items-start gap-3">
+                <i data-lucide="info" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                <p id="tipText">
+                    <strong>Simple Mode (5×5)</strong> generates ultra-clean, fixed-height 5-row letters ideal for chat messages, code comments, and banners.
+                </p>
+            </div>
+        </section>
+
+        <!-- Right: Live Preview -->
+        <section class="lg:col-span-8 flex flex-col gap-4">
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl flex flex-col flex-1 overflow-hidden">
+                <div class="px-4 sm:px-5 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-900">
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <i data-lucide="terminal" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            Live Preview
+                        </span>
+                        <span id="gridDimensions" class="text-xs font-mono px-2.5 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-slate-300">0 × 0</span>
+                        <span id="charCountTotal" class="text-xs font-mono text-slate-500 hidden sm:inline">0 blocks</span>
+                        <span id="streamBadge" class="hidden text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 animate-pulse">LIVE</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400">Zoom:</span>
+                        <button id="btnZoomOut" type="button" title="Zoom Out" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer">
+                            <i data-lucide="zoom-out" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <input id="zoomRange" type="range" min="2" max="36" value="18" class="w-20 sm:w-28 accent-emerald-400 cursor-pointer">
+                        <button id="btnZoomIn" type="button" title="Zoom In" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition cursor-pointer">
+                            <i data-lucide="zoom-in" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="relative flex-1 bg-slate-950 p-4 sm:p-6 overflow-auto flex items-center justify-center min-h-[340px] sm:min-h-[460px]">
+                    <pre id="asciiOutput" class="block-canvas text-emerald-400 select-all whitespace-pre text-[18px] transition-all duration-100"></pre>
+                </div>
+                <div class="px-4 sm:px-5 py-2.5 border-t border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
+                    <div class="flex items-center gap-3 font-mono flex-wrap">
+                        <span><span class="text-slate-500">░</span> light/empty</span>
+                        <span><span class="text-slate-400">▒</span> med</span>
+                        <span><span class="text-emerald-500/80">▓</span> dark</span>
+                        <span><span class="text-emerald-400">█</span> darkest</span>
+                        <span class="text-slate-600">· optional</span>
+                    </div>
+                    <span class="text-slate-500">Click text to select all • Monospace safe</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 bg-emerald-500 text-slate-950 font-semibold text-sm px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2">
+        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+        <span id="toastMessage">Copied block art to clipboard!</span>
+    </div>
+
+    <canvas id="rasterCanvas" class="hidden"></canvas>
+    <canvas id="mediaProcessCanvas" class="hidden"></canvas>
+
+    <script>
+        lucide.createIcons();
+
+        // Paste-safe shade table. ░ is the lightest empty — keeps monospace width in Discord, Notepad, etc.
+        // · is still available as an optional paint/fill choice, but is not used for media empty by default.
+        const EMPTY_CHAR = '░';
+        const SHADES = ['░', '▒', '▓', '█']; // multi-shade media + default draw scale (4 levels)
+        // Optional draw-only shade · (index handled separately in draw palette)
+        const DRAW_SHADES = ['·', '░', '▒', '▓', '█'];
+        // CSS backgrounds for draw cells by DRAW_SHADES index
+        const SHADE_BG = [
+            'bg-slate-950 hover:bg-slate-900 border-slate-800/90',           // · optional empty
+            'bg-slate-700 hover:bg-slate-600 border-slate-600',             // ░
+            'bg-slate-500 border-slate-400',                                // ▒
+            'bg-emerald-700/80 border-emerald-600',                         // ▓
+            'bg-emerald-400 border-emerald-300 shadow-sm'                   // █
+        ];
+
+        const SIMPLE_FONT_5X5 = {
+            'A': ['01110', '10001', '11111', '10001', '10001'],
+            'B': ['11110', '10001', '11110', '10001', '11110'],
+            'C': ['01111', '10000', '10000', '10000', '01111'],
+            'D': ['11110', '10001', '10001', '10001', '11110'],
+            'E': ['11111', '10000', '11110', '10000', '11111'],
+            'F': ['11111', '10000', '11111', '10000', '10000'],
+            'G': ['01111', '10000', '10111', '10001', '01111'],
+            'H': ['10001', '10001', '11111', '10001', '10001'],
+            'I': ['11111', '00100', '00100', '00100', '11111'],
+            'J': ['11111', '00010', '00010', '10010', '01100'],
+            'K': ['10001', '10010', '11100', '10010', '10001'],
+            'L': ['10000', '10000', '10000', '10000', '11111'],
+            'M': ['10001', '11011', '10101', '10001', '10001'],
+            'N': ['10001', '11001', '10101', '10011', '10001'],
+            'O': ['01110', '10001', '10001', '10001', '01110'],
+            'P': ['11110', '10001', '11110', '10000', '10000'],
+            'Q': ['01110', '10001', '10001', '10011', '01111'],
+            'R': ['11110', '10001', '11110', '10010', '10001'],
+            'S': ['01111', '10000', '01110', '00001', '11110'],
+            'T': ['11111', '00100', '00100', '00100', '00100'],
+            'U': ['10001', '10001', '10001', '10001', '01110'],
+            'V': ['10001', '10001', '10001', '01010', '00100'],
+            'W': ['10001', '10001', '10101', '11011', '10001'],
+            'X': ['10001', '01010', '00100', '01010', '10001'],
+            'Y': ['10001', '01010', '00100', '00100', '00100'],
+            'Z': ['11111', '00010', '00100', '01000', '11111'],
+            '0': ['01110', '10011', '10101', '11001', '01110'],
+            '1': ['00100', '01100', '00100', '00100', '01110'],
+            '2': ['01110', '10001', '00110', '01000', '11111'],
+            '3': ['11110', '00001', '01110', '00001', '11110'],
+            '4': ['10010', '10010', '11111', '00010', '00010'],
+            '5': ['11111', '10000', '11110', '00001', '11110'],
+            '6': ['01111', '10000', '11110', '10001', '01110'],
+            '7': ['11111', '00001', '00010', '00100', '00100'],
+            '8': ['01110', '10001', '01110', '10001', '01110'],
+            '9': ['01110', '10001', '01111', '00001', '11110'],
+            ' ': ['000', '000', '000', '000', '000'],
+            '!': ['1', '1', '1', '0', '1'],
+            '?': ['01110', '10001', '00110', '00000', '00100'],
+            '.': ['0', '0', '0', '0', '1'],
+            ',': ['0', '0', '0', '1', '1'],
+            ':': ['0', '1', '0', '1', '0'],
+            ';': ['0', '1', '0', '1', '1'],
+            '-': ['0000', '0000', '1111', '0000', '0000'],
+            '_': ['00000', '00000', '00000', '00000', '11111'],
+            '+': ['00000', '00100', '01110', '00100', '00000'],
+            '=': ['0000', '1111', '0000', '1111', '0000'],
+            '/': ['00001', '00010', '00100', '01000', '10000'],
+            '\\': ['10000', '01000', '00100', '00010', '00001'],
+            '(': ['010', '100', '100', '100', '010'],
+            ')': ['010', '001', '001', '001', '010'],
+            '[': ['110', '100', '100', '100', '110'],
+            ']': ['011', '001', '001', '001', '011'],
+            '<': ['001', '010', '100', '010', '001'],
+            '>': ['100', '010', '001', '010', '100'],
+            '@': ['01110', '10111', '10101', '10000', '01111'],
+            '#': ['01010', '11111', '01010', '11111', '01010'],
+            '$': ['01111', '10100', '01110', '00101', '11110'],
+            '%': ['11001', '11010', '00100', '01011', '10011'],
+            '&': ['01100', '10010', '01101', '10010', '01101'],
+            '*': ['00100', '10101', '01110', '10101', '00100'],
+            '"': ['101', '101', '000', '000', '000'],
+            "'": ['1', '1', '0', '0', '0'],
+            '~': ['00000', '01001', '10110', '00000', '00000'],
+            '^': ['00100', '01010', '10001', '00000', '00000'],
+            // Shade symbols (own glyphs for Simple mode)
+            '█': ['11111', '11111', '11111', '11111', '11111'],
+            '▓': ['11111', '10101', '11111', '10101', '11111'],
+            '▒': ['10101', '01010', '10101', '01010', '10101'],
+            '░': ['10001', '00000', '00100', '00000', '10001'],
+            '·': ['00000', '00000', '00100', '00000', '00000']
+        };
+
+        // DOM
+        const textInputCard = document.getElementById('textInputCard');
+        const textInput = document.getElementById('textInput');
+        const btnModeSimple = document.getElementById('btnModeSimple');
+        const btnModeCustom = document.getElementById('btnModeCustom');
+        const btnModeDraw = document.getElementById('btnModeDraw');
+        const btnModeMedia = document.getElementById('btnModeMedia');
+        const simpleControls = document.getElementById('simpleControls');
+        const customControls = document.getElementById('customControls');
+        const drawControls = document.getElementById('drawControls');
+        const mediaControls = document.getElementById('mediaControls');
+        const drawGridContainer = document.getElementById('drawGridContainer');
+        const gridSizeButtons = document.querySelectorAll('[data-grid-size]');
+        const btnFillGrid = document.getElementById('btnFillGrid');
+        const btnClearGrid = document.getElementById('btnClearGrid');
+        const tipText = document.getElementById('tipText');
+
+        const letterSpacingRange = document.getElementById('letterSpacingRange');
+        const lineSpacingRange = document.getElementById('lineSpacingRange');
+        const fontSelect = document.getElementById('fontSelect');
+        const weightSelect = document.getElementById('weightSelect');
+        const resolutionRange = document.getElementById('resolutionRange');
+        const aspectRange = document.getElementById('aspectRange');
+        const paddingRange = document.getElementById('paddingRange');
+        const invertToggle = document.getElementById('invertToggle');
+        const zoomRange = document.getElementById('zoomRange');
+        const multiShadeToggle = document.getElementById('multiShadeToggle');
+        const mediaThreshWrap = document.getElementById('mediaThreshWrap');
+
+        // Media
+        const imageUpload = document.getElementById('imageUpload');
+        const btnStartStream = document.getElementById('btnStartStream');
+        const btnStopStream = document.getElementById('btnStopStream');
+        const mediaStatusDot = document.getElementById('mediaStatusDot');
+        const mediaStatusText = document.getElementById('mediaStatusText');
+        const mediaResRange = document.getElementById('mediaResRange');
+        const mediaResVal = document.getElementById('mediaResVal');
+        const mediaAspectRange = document.getElementById('mediaAspectRange');
+        const mediaAspectVal = document.getElementById('mediaAspectVal');
+        const mediaThreshRange = document.getElementById('mediaThreshRange');
+        const mediaThreshVal = document.getElementById('mediaThreshVal');
+        const mediaPreviewWrap = document.getElementById('mediaPreviewWrap');
+        const mediaVideo = document.getElementById('mediaVideo');
+        const mediaImagePreview = document.getElementById('mediaImagePreview');
+        const streamBadge = document.getElementById('streamBadge');
+        const mediaProcessCanvas = document.getElementById('mediaProcessCanvas');
+        const mediaProcessCtx = mediaProcessCanvas.getContext('2d', { willReadFrequently: true });
+
+        const charCounter = document.getElementById('charCounter');
+        const letterSpacingVal = document.getElementById('letterSpacingVal');
+        const lineSpacingVal = document.getElementById('lineSpacingVal');
+        const resolutionVal = document.getElementById('resolutionVal');
+        const aspectVal = document.getElementById('aspectVal');
+        const paddingVal = document.getElementById('paddingVal');
+        const gridDimensions = document.getElementById('gridDimensions');
+        const charCountTotal = document.getElementById('charCountTotal');
+        const asciiOutput = document.getElementById('asciiOutput');
+
+        const btnCopy = document.getElementById('btnCopy');
+        const copyBtnLabel = document.getElementById('copyBtnLabel');
+        const btnClear = document.getElementById('btnClear');
+        const btnReset = document.getElementById('btnReset');
+        const btnZoomIn = document.getElementById('btnZoomIn');
+        const btnZoomOut = document.getElementById('btnZoomOut');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+
+        const canvas = document.getElementById('rasterCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        // State
+        let currentMode = 'simple';
+        let drawGridSize = 5;
+        // drawCells now store shade index 0-3
+        let drawCells = Array.from({ length: 5 }, () => Array(5).fill(1)); // 1 = ░ paste-safe empty
+        let isDrawingPointer = false;
+        let currentDrawShade = 1; // default paint with ░ (paste-safe)
+        let toastTimeout = null;
+
+        // Text fill character (used by Simple + Custom)
+        let textFillChar = '█';
+        let textBgChar = '░';
+        let customFillChar = '█';
+        let customBgChar = '░';
+
+        // Media state
+        let mediaStream = null;
+        let mediaAnimationId = null;
+        let mediaSourceType = null;
+        let lastMediaImageData = null;
+        let uploadedImage = null;
+
+        function getEmptyChar(isInverted) {
+            return isInverted ? textFillChar : textBgChar;
+        }
+        function getFilledChar(isInverted, modeFill) {
+            const fill = modeFill || textFillChar;
+            return isInverted ? textBgChar : fill;
+        }
+
+        function setMode(mode) {
+            if (currentMode === 'media' && mode !== 'media') stopScreenStream(false);
+            currentMode = mode;
+
+            const active = 'py-2 px-1 rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1 bg-emerald-500 text-slate-950 shadow-sm cursor-pointer';
+            const inactive = 'py-2 px-1 rounded-lg text-[11px] font-medium transition flex items-center justify-center gap-1 text-slate-400 hover:text-slate-200 cursor-pointer';
+
+            btnModeSimple.className = mode === 'simple' ? active : inactive;
+            btnModeSimple.setAttribute('aria-selected', mode === 'simple');
+            btnModeCustom.className = mode === 'custom' ? active : inactive;
+            btnModeCustom.setAttribute('aria-selected', mode === 'custom');
+            btnModeDraw.className = mode === 'draw' ? active : inactive;
+            btnModeDraw.setAttribute('aria-selected', mode === 'draw');
+            btnModeMedia.className = mode === 'media' ? active : inactive;
+            btnModeMedia.setAttribute('aria-selected', mode === 'media');
+
+            textInputCard.classList.toggle('hidden', mode === 'draw' || mode === 'media');
+            simpleControls.classList.toggle('hidden', mode !== 'simple');
+            simpleControls.classList.toggle('flex', mode === 'simple');
+            customControls.classList.toggle('hidden', mode !== 'custom');
+            customControls.classList.toggle('flex', mode === 'custom');
+            drawControls.classList.toggle('hidden', mode !== 'draw');
+            drawControls.classList.toggle('flex', mode === 'draw');
+            mediaControls.classList.toggle('hidden', mode !== 'media');
+            mediaControls.classList.toggle('flex', mode === 'media');
+
+            if (mode === 'simple') {
+                tipText.innerHTML = '<strong>Simple Mode (5×5)</strong> generates ultra-clean fixed-height letters. Pick filled + background characters. ░ pastes cleanly everywhere; · is optional and may look different when pasted.';
+            } else if (mode === 'custom') {
+                tipText.innerHTML = '<strong>Custom Font Mode</strong> rasterizes any font into block art. Prefer ░ for background if you plan to paste into chat or a text file.';
+            } else if (mode === 'draw') {
+                tipText.innerHTML = '<strong>Draw Mode</strong> — paint with · ░ ▒ ▓ █. Use ░ for empty if you need the art to paste cleanly in Discord/Notepad.';
+                buildDrawGrid();
+            } else {
+                tipText.innerHTML = '<strong>Media Mode</strong> — multi-shade uses paste-safe ░ ▒ ▓ █ (no middle dots), so copied frames keep their layout outside the app.';
+            }
+            renderBlockArt();
+        }
+
+        function setDrawGridSize(size) {
+            if (drawGridSize === size && drawCells.length === size) return;
+            const prev = drawCells;
+            drawGridSize = size;
+            drawCells = Array.from({ length: size }, (_, r) =>
+                Array.from({ length: size }, (_, c) => (prev[r] && prev[r][c] !== undefined) ? prev[r][c] : 1)
+            );
+            const activeCls = 'py-2 px-1 rounded-xl text-[11px] font-semibold border transition flex items-center justify-center bg-emerald-500/15 border-emerald-500 text-emerald-300 cursor-pointer';
+            const inactiveCls = 'py-2 px-1 rounded-xl text-[11px] font-medium border transition flex items-center justify-center bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer';
+            gridSizeButtons.forEach(btn => {
+                btn.className = parseInt(btn.dataset.gridSize, 10) === size ? activeCls : inactiveCls;
+            });
+            buildDrawGrid();
+            renderBlockArt();
+        }
+
+        function buildDrawGrid() {
+            drawGridContainer.innerHTML = '';
+            drawGridContainer.style.gridTemplateColumns = `repeat(${drawGridSize}, minmax(0, 1fr))`;
+            drawGridContainer.style.gap = drawGridSize >= 15 ? '2px' : '4px';
+            for (let r = 0; r < drawGridSize; r++) {
+                for (let c = 0; c < drawGridSize; c++) {
+                    const cell = document.createElement('button');
+                    cell.type = 'button';
+                    cell.dataset.row = r;
+                    cell.dataset.col = c;
+                    cell.className = getDrawCellClass(drawCells[r][c]);
+                    cell.addEventListener('pointerdown', (e) => {
+                        e.preventDefault();
+                        isDrawingPointer = true;
+                        applyDrawCell(r, c, currentDrawShade, cell);
+                    });
+                    cell.addEventListener('pointerenter', () => {
+                        if (!isDrawingPointer) return;
+                        applyDrawCell(r, c, currentDrawShade, cell);
+                    });
+                    drawGridContainer.appendChild(cell);
+                }
+            }
+        }
+
+        function getDrawCellClass(shadeIdx) {
+            const radius = drawGridSize >= 15 ? 'rounded-[2px]' : 'rounded-[4px]';
+            const bg = SHADE_BG[shadeIdx] || SHADE_BG[0];
+            return `w-full h-full ${radius} border transition-colors duration-75 cursor-pointer ${bg}`;
+        }
+
+        function applyDrawCell(r, c, shade, cellEl) {
+            if (drawCells[r][c] === shade) return;
+            drawCells[r][c] = shade;
+            if (cellEl) cellEl.className = getDrawCellClass(shade);
+            renderBlockArt();
+        }
+
+        function renderDrawBlockArt(padSize, isInverted) {
+            // Draw uses DRAW_SHADES (· ░ ▒ ▓ █); invert reverses order
+            const map = isInverted
+                ? DRAW_SHADES.slice().reverse()
+                : DRAW_SHADES.slice();
+
+            const contentRows = drawCells.map(row =>
+                row.map(s => map[s] || map[0]).join('')
+            );
+            const fullWidth = drawGridSize + padSize * 2;
+            // Padding uses ░ so pasted art keeps columns (· is optional paint only)
+            const empty = isInverted ? DRAW_SHADES[DRAW_SHADES.length - 1] : EMPTY_CHAR;
+            const topBottom = empty.repeat(fullWidth);
+            const side = empty.repeat(padSize);
+            const finalRows = [];
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+            for (const row of contentRows) finalRows.push(side + row + side);
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+
+            asciiOutput.textContent = finalRows.join('\n');
+            setOutputMeta(fullWidth, finalRows.length);
+        }
+
+        function getFontFamilyString(preset) {
+            switch (preset) {
+                case 'pixel': return '"Courier New", "JetBrains Mono", monospace';
+                case 'mono': return '"JetBrains Mono", "Fira Code", "Consolas", monospace';
+                case 'serif': return 'Georgia, "Times New Roman", Times, serif';
+                case 'impact': return 'Impact, "Arial Black", sans-serif';
+                default: return '"Inter", "Helvetica Neue", Arial, sans-serif';
+            }
+        }
+
+        function renderSimpleBlockArt(rawText, padSize, isInverted) {
+            const letterSpacing = parseInt(letterSpacingRange.value, 10);
+            const lineSpacing = parseInt(lineSpacingRange.value, 10);
+            letterSpacingVal.textContent = `${letterSpacing} ${letterSpacing === 1 ? 'col' : 'cols'}`;
+            lineSpacingVal.textContent = `${lineSpacing} ${lineSpacing === 1 ? 'row' : 'rows'}`;
+
+            const emptyChar = isInverted ? textFillChar : textBgChar;
+            const filledChar = isInverted ? textBgChar : textFillChar;
+
+            const lines = rawText.replace(/\r/g, '').split('\n');
+            const renderedLineBlocks = [];
+            let maxLineWidth = 0;
+
+            for (const line of lines) {
+                const upperLine = line.toUpperCase();
+                if (upperLine.length === 0) {
+                    renderedLineBlocks.push(['', '', '', '', '']);
+                    continue;
+                }
+                const rows = ['', '', '', '', ''];
+                const gapStr = emptyChar.repeat(letterSpacing);
+                for (let idx = 0; idx < upperLine.length; idx++) {
+                    const ch = upperLine[idx];
+                    const glyph = SIMPLE_FONT_5X5[ch] || SIMPLE_FONT_5X5['?'];
+                    for (let r = 0; r < 5; r++) {
+                        if (idx > 0) rows[r] += gapStr;
+                        for (let c = 0; c < glyph[r].length; c++) {
+                            rows[r] += glyph[r][c] === '1' ? filledChar : emptyChar;
+                        }
+                    }
+                }
+                maxLineWidth = Math.max(maxLineWidth, rows[0].length);
+                renderedLineBlocks.push(rows);
+            }
+
+            if (maxLineWidth === 0) {
+                const emptyGrid = Array.from({ length: 5 }, () => emptyChar.repeat(12)).join('\n');
+                asciiOutput.textContent = emptyGrid;
+                setOutputMeta(12, 5);
+                return;
+            }
+
+            const contentRows = [];
+            renderedLineBlocks.forEach((blockRows, blockIdx) => {
+                if (blockIdx > 0) {
+                    for (let s = 0; s < lineSpacing; s++) contentRows.push(emptyChar.repeat(maxLineWidth));
+                }
+                for (let r = 0; r < 5; r++) {
+                    contentRows.push(blockRows[r] + emptyChar.repeat(Math.max(0, maxLineWidth - blockRows[r].length)));
+                }
+            });
+
+            const fullWidth = maxLineWidth + padSize * 2;
+            const topBottom = emptyChar.repeat(fullWidth);
+            const side = emptyChar.repeat(padSize);
+            const finalRows = [];
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+            for (const row of contentRows) finalRows.push(side + row + side);
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+
+            asciiOutput.textContent = finalRows.join('\n');
+            setOutputMeta(fullWidth, finalRows.length);
+        }
+
+        /**
+         * Convert ImageData to block art.
+         * multiShade = true → 4 paste-safe levels ░▒▓█
+         * multiShade = false → binary using threshold (empty = ░)
+         */
+        function imageDataToBlockArt(imgData, srcW, srcH, targetRows, charAspect, threshold, isInverted, padSize, multiShade) {
+            const targetCols = Math.max(1, Math.round(targetRows * (srcW / srcH) / charAspect));
+            const cellW = srcW / targetCols;
+            const cellH = srcH / targetRows;
+
+            // Build character lookup — ░ as lightest so pasted art keeps width everywhere
+            let shadeMap;
+            if (multiShade) {
+                shadeMap = isInverted
+                    ? SHADES.slice().reverse()
+                    : SHADES.slice();
+            } else {
+                shadeMap = null; // use threshold
+            }
+
+            const contentRows = [];
+            for (let r = 0; r < targetRows; r++) {
+                let rowStr = '';
+                const y0 = Math.floor(r * cellH);
+                const y1 = Math.min(srcH, Math.ceil((r + 1) * cellH));
+                for (let c = 0; c < targetCols; c++) {
+                    const x0 = Math.floor(c * cellW);
+                    const x1 = Math.min(srcW, Math.ceil((c + 1) * cellW));
+                    let sum = 0, count = 0;
+                    for (let py = y0; py < y1; py++) {
+                        for (let px = x0; px < x1; px++) {
+                            const i = (py * srcW + px) * 4;
+                            sum += 0.299 * imgData[i] + 0.587 * imgData[i + 1] + 0.114 * imgData[i + 2];
+                            count++;
+                        }
+                    }
+                    const avg = count > 0 ? sum / count : 0;
+
+                    if (multiShade) {
+                        // Light threshold biases the 4-level boundaries.
+                        // threshold=128 is neutral; higher → more empty/light, lower → more filled.
+                        const bias = threshold - 128;
+                        const shifted = avg - bias;
+                        let idx = Math.min(3, Math.max(0, Math.floor(shifted / 64)));
+                        rowStr += shadeMap[idx];
+                    } else {
+                        const empty = isInverted ? '█' : EMPTY_CHAR;
+                        const filled = isInverted ? EMPTY_CHAR : '█';
+                        rowStr += avg >= threshold ? filled : empty;
+                    }
+                }
+                contentRows.push(rowStr);
+            }
+
+            const emptyChar = multiShade
+                ? (isInverted ? SHADES[SHADES.length - 1] : SHADES[0])
+                : (isInverted ? '█' : EMPTY_CHAR);
+
+            const fullWidth = targetCols + padSize * 2;
+            const topBottom = emptyChar.repeat(fullWidth);
+            const side = emptyChar.repeat(padSize);
+            const finalRows = [];
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+            for (const row of contentRows) finalRows.push(side + row + side);
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+
+            return { text: finalRows.join('\n'), width: fullWidth, height: finalRows.length };
+        }
+
+        function processMediaFrame(source, isVideo) {
+            const padSize = parseInt(paddingRange.value, 10);
+            const isInverted = invertToggle.checked;
+            const targetRows = parseInt(mediaResRange.value, 10);
+            const charAspect = parseFloat(mediaAspectRange.value);
+            const threshold = parseInt(mediaThreshRange.value, 10);
+            const multiShade = multiShadeToggle.checked;
+
+            mediaResVal.textContent = `${targetRows} rows`;
+            mediaAspectVal.textContent = charAspect.toFixed(2);
+            mediaThreshVal.textContent = threshold.toString();
+            paddingVal.textContent = `${padSize} block${padSize === 1 ? '' : 's'}`;
+            // Light threshold stays active for both binary and multi-shade modes
+            mediaThreshWrap.style.opacity = '1';
+            mediaThreshWrap.style.pointerEvents = 'auto';
+
+            let srcW, srcH;
+            if (isVideo) {
+                srcW = source.videoWidth;
+                srcH = source.videoHeight;
+            } else {
+                srcW = source.naturalWidth || source.width;
+                srcH = source.naturalHeight || source.height;
+            }
+            if (!srcW || !srcH) return;
+
+            const maxProcessDim = 640;
+            let procW = srcW, procH = srcH;
+            if (Math.max(srcW, srcH) > maxProcessDim) {
+                const scale = maxProcessDim / Math.max(srcW, srcH);
+                procW = Math.round(srcW * scale);
+                procH = Math.round(srcH * scale);
+            }
+
+            mediaProcessCanvas.width = procW;
+            mediaProcessCanvas.height = procH;
+            mediaProcessCtx.drawImage(source, 0, 0, procW, procH);
+            const imgData = mediaProcessCtx.getImageData(0, 0, procW, procH).data;
+            const result = imageDataToBlockArt(imgData, procW, procH, targetRows, charAspect, threshold, isInverted, padSize, multiShade);
+
+            asciiOutput.textContent = result.text;
+            setOutputMeta(result.width, result.height);
+            lastMediaImageData = result.text;
+        }
+
+        function mediaStreamLoop() {
+            if (!mediaStream || currentMode !== 'media') return;
+            if (mediaVideo.readyState >= 2) processMediaFrame(mediaVideo, true);
+            mediaAnimationId = requestAnimationFrame(mediaStreamLoop);
+        }
+
+        async function startScreenStream() {
+            try {
+                mediaStream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { cursor: 'always', displaySurface: 'monitor' },
+                    audio: false
+                });
+                mediaVideo.srcObject = mediaStream;
+                mediaVideo.classList.remove('hidden');
+                mediaImagePreview.classList.add('hidden');
+                mediaPreviewWrap.classList.remove('hidden');
+                await mediaVideo.play();
+
+                mediaSourceType = 'stream';
+                btnStartStream.classList.add('hidden');
+                btnStopStream.classList.remove('hidden');
+                streamBadge.classList.remove('hidden');
+                mediaStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse';
+                mediaStatusText.textContent = 'Live screen stream active';
+
+                mediaStream.getVideoTracks()[0].addEventListener('ended', () => stopScreenStream(true));
+                mediaStreamLoop();
+                showToast('Screen share started — converting to blocks');
+            } catch (err) {
+                mediaStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-rose-500';
+                mediaStatusText.textContent = 'Screen share cancelled or denied';
+                showToast('Screen share was cancelled or blocked');
+            }
+        }
+
+        function stopScreenStream(fromTrackEnded) {
+            if (mediaAnimationId) { cancelAnimationFrame(mediaAnimationId); mediaAnimationId = null; }
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+            mediaVideo.srcObject = null;
+            mediaVideo.classList.add('hidden');
+            btnStartStream.classList.remove('hidden');
+            btnStopStream.classList.add('hidden');
+            streamBadge.classList.add('hidden');
+            mediaStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-500';
+            mediaStatusText.textContent = lastMediaImageData
+                ? 'Stream stopped — last frame ready to copy'
+                : 'Stream stopped';
+            if (fromTrackEnded || lastMediaImageData) {
+                showToast('Stream stopped. Last frame is ready — press Copy Art');
+            }
+        }
+
+        function handleImageUpload(file) {
+            if (!file || !file.type.startsWith('image/')) {
+                showToast('Please choose a valid image file');
+                return;
+            }
+            stopScreenStream(false);
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    uploadedImage = img;
+                    mediaSourceType = 'image';
+                    mediaImagePreview.src = e.target.result;
+                    mediaImagePreview.classList.remove('hidden');
+                    mediaVideo.classList.add('hidden');
+                    mediaPreviewWrap.classList.remove('hidden');
+                    mediaStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+                    mediaStatusText.textContent = `Image loaded: ${file.name}`;
+                    processMediaFrame(img, false);
+                    showToast('Image converted to block art');
+                };
+                img.onerror = () => showToast('Failed to load image');
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderBlockArt() {
+            const rawText = textInput.value;
+            const padSize = parseInt(paddingRange.value, 10);
+            const isInverted = invertToggle.checked;
+            charCounter.textContent = `${rawText.length} char${rawText.length === 1 ? '' : 's'}`;
+            paddingVal.textContent = `${padSize} block${padSize === 1 ? '' : 's'}`;
+
+            if (currentMode === 'simple') {
+                renderSimpleBlockArt(rawText, padSize, isInverted);
+                return;
+            }
+            if (currentMode === 'draw') {
+                renderDrawBlockArt(padSize, isInverted);
+                return;
+            }
+            if (currentMode === 'media') {
+                if (mediaSourceType === 'stream' && mediaVideo.readyState >= 2) {
+                    processMediaFrame(mediaVideo, true);
+                } else if (mediaSourceType === 'image' && uploadedImage) {
+                    processMediaFrame(uploadedImage, false);
+                } else if (lastMediaImageData) {
+                    asciiOutput.textContent = lastMediaImageData;
+                } else {
+                    const empty = isInverted ? '█' : EMPTY_CHAR;
+                    const placeholder = Array.from({ length: 12 }, () => empty.repeat(32)).join('\n');
+                    asciiOutput.textContent = placeholder;
+                    setOutputMeta(32, 12);
+                }
+                return;
+            }
+
+            // Custom Font Mode
+            const targetRows = parseInt(resolutionRange.value, 10);
+            const aspectStretch = parseFloat(aspectRange.value);
+            const fontPreset = fontSelect.value;
+            const fontWeight = weightSelect.value;
+            resolutionVal.textContent = `${targetRows} rows`;
+            aspectVal.textContent = `${aspectStretch.toFixed(1)}x`;
+
+            const emptyChar = isInverted ? customFillChar : customBgChar;
+            const filledChar = isInverted ? customBgChar : customFillChar;
+
+            const lines = rawText.replace(/\r/g, '').split('\n');
+            const hasContent = lines.some(line => line.trim().length > 0);
+
+            if (!hasContent) {
+                const cols = 24, rows = Math.max(8, targetRows);
+                asciiOutput.textContent = Array.from({ length: rows }, () => emptyChar.repeat(cols)).join('\n');
+                setOutputMeta(cols, rows);
+                return;
+            }
+
+            const oversampleY = 4;
+            const fontSizePx = targetRows * oversampleY;
+            const fontFamily = getFontFamilyString(fontPreset);
+            const fontSpec = `${fontWeight} ${fontSizePx}px ${fontFamily}`;
+            ctx.font = fontSpec;
+
+            let maxTextWidthPx = 0;
+            for (const line of lines) {
+                const m = ctx.measureText(line || ' ');
+                if (m.width > maxTextWidthPx) maxTextWidthPx = m.width;
+            }
+
+            const lineSpacingFactor = 1.15;
+            const singleLineHeightPx = fontSizePx * lineSpacingFactor;
+            const totalCanvasWidth = Math.max(16, Math.ceil(maxTextWidthPx + fontSizePx * 0.4));
+            const totalCanvasHeight = Math.max(16, Math.ceil(lines.length * singleLineHeightPx + fontSizePx * 0.25));
+            canvas.width = totalCanvasWidth;
+            canvas.height = totalCanvasHeight;
+
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = fontSpec;
+            ctx.fillStyle = '#ffffff';
+            ctx.textBaseline = 'top';
+            ctx.textAlign = 'left';
+            const startX = Math.floor(fontSizePx * 0.15);
+            const startY = Math.floor(fontSizePx * 0.1);
+            lines.forEach((line, idx) => ctx.fillText(line, startX, startY + idx * singleLineHeightPx));
+
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            let minX = canvas.width, maxX = 0, minY = canvas.height, maxY = 0, foundInk = false;
+            for (let y = 0; y < canvas.height; y++) {
+                for (let x = 0; x < canvas.width; x++) {
+                    if (imgData[(y * canvas.width + x) * 4] > 40) {
+                        foundInk = true;
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (!foundInk) { minX = 0; maxX = canvas.width - 1; minY = 0; maxY = canvas.height - 1; }
+
+            const inkWidth = Math.max(1, maxX - minX + 1);
+            const inkHeight = Math.max(1, maxY - minY + 1);
+            const gridRows = Math.max(5, Math.round((inkHeight / singleLineHeightPx) * targetRows));
+            const gridCols = Math.max(1, Math.round((inkWidth / inkHeight) * gridRows * aspectStretch));
+            const cellW = inkWidth / gridCols;
+            const cellH = inkHeight / gridRows;
+            const alphaThreshold = fontPreset === 'pixel' ? 110 : 122;
+
+            const contentRows = [];
+            for (let r = 0; r < gridRows; r++) {
+                let rowStr = '';
+                const y0 = Math.floor(minY + r * cellH);
+                const y1 = Math.min(canvas.height, Math.max(y0 + 1, Math.ceil(minY + (r + 1) * cellH)));
+                for (let c = 0; c < gridCols; c++) {
+                    const x0 = Math.floor(minX + c * cellW);
+                    const x1 = Math.min(canvas.width, Math.max(x0 + 1, Math.ceil(minX + (c + 1) * cellW)));
+                    let sum = 0, count = 0;
+                    for (let py = y0; py < y1; py++) {
+                        for (let px = x0; px < x1; px++) {
+                            sum += imgData[(py * canvas.width + px) * 4];
+                            count++;
+                        }
+                    }
+                    rowStr += (count > 0 ? sum / count : 0) >= alphaThreshold ? filledChar : emptyChar;
+                }
+                contentRows.push(rowStr);
+            }
+
+            const fullWidth = gridCols + padSize * 2;
+            const topBottom = emptyChar.repeat(fullWidth);
+            const side = emptyChar.repeat(padSize);
+            const finalRows = [];
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+            for (const row of contentRows) finalRows.push(side + row + side);
+            for (let p = 0; p < padSize; p++) finalRows.push(topBottom);
+
+            asciiOutput.textContent = finalRows.join('\n');
+            setOutputMeta(fullWidth, finalRows.length);
+        }
+
+        function updateZoom() {
+            asciiOutput.style.fontSize = `${parseInt(zoomRange.value, 10)}px`;
+        }
+
+        /**
+         * Adapt zoom min/max to output size so large grids can zoom further out
+         * and small ones stay readable without tiny defaults.
+         */
+        function updateZoomRangeForSize(width, height) {
+            const dim = Math.max(width || 0, height || 0);
+            let minZ, maxZ;
+            if (dim <= 12) {
+                minZ = 10; maxZ = 36;
+            } else if (dim <= 24) {
+                minZ = 6; maxZ = 32;
+            } else if (dim <= 48) {
+                minZ = 4; maxZ = 28;
+            } else if (dim <= 72) {
+                minZ = 3; maxZ = 22;
+            } else if (dim <= 100) {
+                minZ = 2; maxZ = 16;
+            } else if (dim <= 160) {
+                minZ = 1; maxZ = 12;
+            } else {
+                minZ = 1; maxZ = 8;
+            }
+
+            zoomRange.min = minZ;
+            zoomRange.max = maxZ;
+
+            let v = parseInt(zoomRange.value, 10);
+            if (Number.isNaN(v)) v = Math.round((minZ + maxZ) / 2);
+            if (v < minZ) v = minZ;
+            if (v > maxZ) v = maxZ;
+            zoomRange.value = v;
+            updateZoom();
+        }
+
+        function setOutputMeta(width, height) {
+            gridDimensions.textContent = `${width} × ${height}`;
+            charCountTotal.textContent = `${(width * height).toLocaleString()} blocks`;
+            updateZoomRangeForSize(width, height);
+        }
+
+        function showToast(msg) {
+            toastMessage.textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2400);
+        }
+
+        function copyBlockArt() {
+            const art = asciiOutput.textContent;
+            if (!art) return;
+            const ta = document.createElement('textarea');
+            ta.value = art;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                copyBtnLabel.textContent = 'Copied!';
+                showToast('Copied block art to clipboard!');
+                setTimeout(() => { copyBtnLabel.textContent = 'Copy Art'; }, 1800);
+            } catch (e) {
+                showToast('Select the art and press Ctrl+C / Cmd+C to copy');
+            } finally {
+                document.body.removeChild(ta);
+            }
+        }
+
+        // ===== Event wiring =====
+        btnModeSimple.addEventListener('click', () => setMode('simple'));
+        btnModeCustom.addEventListener('click', () => setMode('custom'));
+        btnModeDraw.addEventListener('click', () => setMode('draw'));
+        btnModeMedia.addEventListener('click', () => setMode('media'));
+
+        // Draw shade palette
+        document.querySelectorAll('#drawShadePalette [data-shade]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                currentDrawShade = parseInt(btn.dataset.shade, 10);
+                document.querySelectorAll('#drawShadePalette .shade-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
+        // Text fill palette (Simple)
+        document.querySelectorAll('#textFillPalette [data-fill]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textFillChar = btn.dataset.fill;
+                document.querySelectorAll('#textFillPalette .shade-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBlockArt();
+            });
+        });
+
+        // Text background palette (Simple)
+        document.querySelectorAll('#textBgPalette [data-bg]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                textBgChar = btn.dataset.bg;
+                document.querySelectorAll('#textBgPalette .shade-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBlockArt();
+            });
+        });
+
+        // Custom fill palette
+        document.querySelectorAll('#customFillPalette [data-fill]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                customFillChar = btn.dataset.fill;
+                document.querySelectorAll('#customFillPalette .shade-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBlockArt();
+            });
+        });
+
+        // Custom background palette
+        document.querySelectorAll('#customBgPalette [data-bg]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                customBgChar = btn.dataset.bg;
+                document.querySelectorAll('#customBgPalette .shade-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                renderBlockArt();
+            });
+        });
+
+        gridSizeButtons.forEach(btn => {
+            btn.addEventListener('click', () => setDrawGridSize(parseInt(btn.dataset.gridSize, 10)));
+        });
+
+        btnFillGrid.addEventListener('click', () => {
+            drawCells = Array.from({ length: drawGridSize }, () => Array(drawGridSize).fill(currentDrawShade));
+            buildDrawGrid();
+            renderBlockArt();
+        });
+        btnClearGrid.addEventListener('click', () => {
+            drawCells = Array.from({ length: drawGridSize }, () => Array(drawGridSize).fill(1)); // ░
+            buildDrawGrid();
+            renderBlockArt();
+        });
+
+        window.addEventListener('pointerup', () => { isDrawingPointer = false; });
+        drawGridContainer.addEventListener('pointermove', (e) => {
+            if (!isDrawingPointer) return;
+            const target = document.elementFromPoint(e.clientX, e.clientY);
+            if (target && target.dataset && target.dataset.row !== undefined) {
+                applyDrawCell(parseInt(target.dataset.row, 10), parseInt(target.dataset.col, 10), currentDrawShade, target);
+            }
+        });
+
+        btnStartStream.addEventListener('click', startScreenStream);
+        btnStopStream.addEventListener('click', () => stopScreenStream(false));
+        imageUpload.addEventListener('change', (e) => {
+            const file = e.target.files && e.target.files[0];
+            if (file) handleImageUpload(file);
+            e.target.value = '';
+        });
+
+        multiShadeToggle.addEventListener('change', () => { if (currentMode === 'media') renderBlockArt(); });
+        mediaResRange.addEventListener('input', () => { if (currentMode === 'media') renderBlockArt(); });
+        mediaAspectRange.addEventListener('input', () => { if (currentMode === 'media') renderBlockArt(); });
+        mediaThreshRange.addEventListener('input', () => { if (currentMode === 'media') renderBlockArt(); });
+
+        textInput.addEventListener('input', renderBlockArt);
+        letterSpacingRange.addEventListener('input', renderBlockArt);
+        lineSpacingRange.addEventListener('input', renderBlockArt);
+        fontSelect.addEventListener('change', renderBlockArt);
+        weightSelect.addEventListener('change', renderBlockArt);
+        resolutionRange.addEventListener('input', renderBlockArt);
+        aspectRange.addEventListener('input', renderBlockArt);
+        paddingRange.addEventListener('input', renderBlockArt);
+        invertToggle.addEventListener('change', renderBlockArt);
+
+        zoomRange.addEventListener('input', updateZoom);
+        btnZoomIn.addEventListener('click', () => {
+            const maxZ = parseInt(zoomRange.max, 10);
+            zoomRange.value = Math.min(maxZ, parseInt(zoomRange.value, 10) + 2);
+            updateZoom();
+        });
+        btnZoomOut.addEventListener('click', () => {
+            const minZ = parseInt(zoomRange.min, 10);
+            zoomRange.value = Math.max(minZ, parseInt(zoomRange.value, 10) - 2);
+            updateZoom();
+        });
+
+        btnCopy.addEventListener('click', copyBlockArt);
+
+        btnClear.addEventListener('click', () => {
+            if (currentMode === 'draw') {
+                drawCells = Array.from({ length: drawGridSize }, () => Array(drawGridSize).fill(1));
+                buildDrawGrid();
+                renderBlockArt();
+                return;
+            }
+            if (currentMode === 'media') {
+                stopScreenStream(false);
+                uploadedImage = null;
+                lastMediaImageData = null;
+                mediaSourceType = null;
+                mediaImagePreview.classList.add('hidden');
+                mediaPreviewWrap.classList.add('hidden');
+                mediaStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-slate-600';
+                mediaStatusText.textContent = 'No media loaded';
+                renderBlockArt();
+                return;
+            }
+            textInput.value = '';
+            textInput.focus();
+            renderBlockArt();
+        });
+
+        btnReset.addEventListener('click', () => {
+            letterSpacingRange.value = 1;
+            lineSpacingRange.value = 1;
+            fontSelect.value = 'pixel';
+            weightSelect.value = 'bold';
+            resolutionRange.value = 12;
+            aspectRange.value = 1.2;
+            paddingRange.value = 0;
+            invertToggle.checked = false;
+            zoomRange.value = 18;
+            mediaResRange.value = 24;
+            mediaAspectRange.value = 0.55;
+            mediaThreshRange.value = 128;
+            multiShadeToggle.checked = true;
+            textFillChar = '█';
+            textBgChar = '░';
+            customFillChar = '█';
+            customBgChar = '░';
+            currentDrawShade = 1;
+            document.querySelectorAll('#textFillPalette .shade-btn, #textBgPalette .shade-btn, #customFillPalette .shade-btn, #customBgPalette .shade-btn, #drawShadePalette .shade-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('#textFillPalette [data-fill="█"]')?.classList.add('active');
+            document.querySelector('#textBgPalette [data-bg="░"]')?.classList.add('active');
+            document.querySelector('#customFillPalette [data-fill="█"]')?.classList.add('active');
+            document.querySelector('#customBgPalette [data-bg="░"]')?.classList.add('active');
+            document.querySelector('#drawShadePalette [data-shade="1"]')?.classList.add('active');
+            drawGridSize = 5;
+            drawCells = Array.from({ length: 5 }, () => Array(5).fill(1));
+            stopScreenStream(false);
+            uploadedImage = null;
+            lastMediaImageData = null;
+            mediaSourceType = null;
+            mediaImagePreview.classList.add('hidden');
+            mediaPreviewWrap.classList.add('hidden');
+            setDrawGridSize(5);
+            setMode('simple');
+            updateZoom();
+            renderBlockArt();
+            showToast('Settings reset to defaults');
+        });
+
+        window.addEventListener('DOMContentLoaded', () => {
+            setMode('simple');
+            updateZoom();
+            renderBlockArt();
+        });
+    </script>
+</body>
+</html>
