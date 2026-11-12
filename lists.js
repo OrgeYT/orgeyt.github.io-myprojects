@@ -1432,10 +1432,16 @@ const projects = [
         archive: false
     },
     {
-        name: "ROBLOX on Websim",
+        name: "Orgeblox",
         path: "https://roblox-in-websim--orgeyt.on.websim.com/",
         description: "A recreation of Roblox! Recommended to make a Websim account first.",
         tags: ["Games"],
+        archive: false
+    },
+    {
+        name: "blockart",
+        description: "Convert text, images, drawings or your screen into crisp Unicode block art",
+        tags: ["Tools"],
         archive: false
     }
 ];
