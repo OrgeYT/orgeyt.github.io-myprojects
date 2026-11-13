@@ -1443,6 +1443,12 @@ const projects = [
         description: "Convert text, images, drawings or your screen into crisp Unicode block art",
         tags: ["Tools"],
         archive: false
+    },
+    {
+        name: "ImageBackgroundRemoval",
+        description: "Remove Green Screens or Red Screens from images!",
+        tags: ["Tools"],
+        archive: false
     }
 ];
 
