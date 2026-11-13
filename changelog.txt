@@ -153,3 +153,6 @@ Added ROBLOX on Websim, a WIP project I will continue to work on!
 [Thursday, November 12]
 Added blockart
 :)
+
+[Friday, November 13]
+Added Image Background Removal project
