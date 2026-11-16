@@ -156,3 +156,6 @@ Added blockart
 
 [Friday, November 13]
 Added Image Background Removal project
+
+[Monday, November 16]
+Added WAVE RUSH
