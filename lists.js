@@ -1449,6 +1449,13 @@ const projects = [
         description: "Remove Green Screens or Red Screens from images!",
         tags: ["Tools"],
         archive: false
+    },
+    {
+        name: "WAVE RUSH",
+        path: "https://wave-rush--orgeyt.on.websim.com/",
+        description: "A fun Geometry dash wave inspired game with wonderful music and visuals!",
+        tags: ["Games"],
+        archive: false
     }
 ];
 
