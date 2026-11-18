@@ -159,3 +159,6 @@ Added Image Background Removal project
 
 [Monday, November 16]
 Added WAVE RUSH
+
+[Tuesday, November 17]
+Added Lyric Bench
