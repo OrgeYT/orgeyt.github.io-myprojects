@@ -1456,6 +1456,12 @@ const projects = [
         description: "A fun Geometry dash wave inspired game with wonderful music and visuals!",
         tags: ["Games"],
         archive: false
+    },
+    {
+        name: "Lyric Bench",
+        description: "A custom TTS made by Claude to sing and talk!",
+        tags: ["Tools"],
+        archive: false
     }
 ];
 
