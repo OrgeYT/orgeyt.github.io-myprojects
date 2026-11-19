@@ -1459,6 +1459,7 @@ const projects = [
     },
     {
         name: "Lyric Bench",
+        path: "https://lyric-bench--orgeyt.on.websim.com/",
         description: "A custom TTS made by Claude to sing and talk!",
         tags: ["Tools"],
         archive: false
