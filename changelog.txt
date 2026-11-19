@@ -162,3 +162,6 @@ Added WAVE RUSH
 
 [Tuesday, November 17]
 Added Lyric Bench
+
+[Wednesday, November 18]
+Updated Lyric Bench
