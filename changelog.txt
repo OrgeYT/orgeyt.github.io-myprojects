@@ -165,3 +165,6 @@ Added Lyric Bench
 
 [Wednesday, November 18]
 Updated Lyric Bench
+
+[Saturday, November 21]
+Added Memories
