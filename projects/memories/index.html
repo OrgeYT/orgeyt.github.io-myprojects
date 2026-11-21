@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Memories</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark;--bg:#0b0d12;--paper:#14171f;--ink:#e8eaf0;--sun:#8b9cff;--red:#ff6b81;--grass:#34d399;--line:#2a2f3d;--chk1:#1a1e28;--chk2:#141720;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(900px 500px at 50% -10%,#1b2140,var(--bg));color:var(--ink);font-family:'Inter',system-ui,sans-serif;display:flex;flex-direction:column;align-items:center;padding:20px 16px 28px}
+h1{margin:0;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:700;letter-spacing:.01em}
+.sub{margin:2px 0 16px;font-size:1rem;opacity:.8}
+.wrap{width:100%;max-width:880px}
+.stage{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.nav{width:52px;height:52px;border-radius:50%;border:1px solid var(--line);background:var(--paper);color:var(--ink);font:500 1.6rem 'Inter',system-ui,sans-serif;cursor:pointer;transition:background .15s,border-color .15s}
+.nav:hover{background:#1e2330;border-color:var(--sun)}
+.nav:focus-visible,.dl:focus-visible,.th:focus-visible{outline:3px solid var(--red);outline-offset:3px}
+.frame{background:var(--paper);border:1px solid var(--line);border-radius:20px;padding:12px;box-shadow:0 24px 60px rgba(0,0,0,.55)}
+.view{height:min(56vh,480px);border-radius:10px;display:grid;place-items:center;overflow:hidden;background:repeating-conic-gradient(var(--chk1) 0 25%,var(--chk2) 0 50%) 0 0/20px 20px;touch-action:pan-y}
+.view img{display:block}
+.info{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-top:12px}
+.name{font-weight:600;font-size:1.15rem;word-break:break-all;margin:0}
+.meta{margin:2px 0 0;font-size:.9rem;opacity:.75}
+.dl{border:0;background:var(--sun);color:#0b0d12;border-radius:999px;padding:10px 22px;font:600 1rem 'Inter',system-ui,sans-serif;cursor:pointer;transition:filter .15s}
+.dl:hover{filter:brightness(1.12)}
+.toast{min-height:1.2em;font-size:.85rem;margin:6px 0 0;text-align:right;opacity:.85}
+.strip{display:flex;gap:10px;overflow-x:auto;padding:14px 4px 10px;margin-top:8px}
+.th{flex:0 0 auto;width:64px;height:64px;border:3px solid var(--line);border-radius:12px;background:var(--paper);padding:3px;cursor:pointer;display:grid;place-items:center}
+.th img{max-width:100%;max-height:100%;image-rendering:pixelated}
+.th[aria-current="true"]{background:var(--sun);transform:translateY(-4px);box-shadow:0 4px 0 var(--line)}
+@media (max-width:560px){.stage{grid-template-columns:1fr 1fr;grid-template-areas:"f f" "p n"}.frame{grid-area:f}.nav{width:100%;border-radius:999px;height:46px}#prev{grid-area:p}#next{grid-area:n}.toast{text-align:left}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<h1>Our Memories</h1>
+<p class="sub" id="count"></p>
+<main class="wrap">
+  <div class="stage">
+    <button class="nav" id="prev" aria-label="Previous picture">‹</button>
+    <div class="frame">
+      <div class="view" id="view"><img id="img" alt=""></div>
+      <div class="info">
+        <div>
+          <p class="name" id="name"></p>
+          <p class="meta" id="meta"></p>
+        </div>
+        <button class="dl" id="dl">Download</button>
+      </div>
+      <p class="toast" id="toast" role="status"></p>
+    </div>
+    <button class="nav" id="next" aria-label="Next picture">›</button>
+  </div>
+</main>
+<script>
+const ITEMS=[{"name": "Screenshot_2023-12-12_081845.webp", "w": 107, "h": 106, "size": 15120, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2023-12-12_081845.webp"}, {"name": "Screenshot_2024-02-10_190901.webp", "w": 108, "h": 96, "size": 1672, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-02-10_190901.webp"}, {"name": "Screenshot_2024-05-11_084435.webp", "w": 200, "h": 151, "size": 4156, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-05-11_084435.webp"}, {"name": "Screenshot_2024-06-23_210133.webp", "w": 278, "h": 203, "size": 24102, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-06-23_210133.webp"}, {"name": "Screenshot_2024-07-02_104748.webp", "w": 476, "h": 356, "size": 45650, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-07-02_104748.webp"}, {"name": "Screenshot_2024-08-06_174821.webp", "w": 477, "h": 353, "size": 150640, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-08-06_174821.webp"}, {"name": "Screenshot_2024-08-18_183838.webp", "w": 266, "h": 242, "size": 28846, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-08-18_183838.webp"}, {"name": "Screenshot_2024-09-07_192253.webp", "w": 477, "h": 335, "size": 54174, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-09-07_192253.webp"}, {"name": "Screenshot_2024-09-19_075440.webp", "w": 397, "h": 352, "size": 23450, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-09-19_075440.webp"}, {"name": "Screenshot_2024-09-19_222453.webp", "w": 156, "h": 308, "size": 43818, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-09-19_222453.webp"}, {"name": "Screenshot_2024-10-08_195840.webp", "w": 223, "h": 206, "size": 17344, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-10-08_195840.webp"}, {"name": "Screenshot_2024-10-21_133154.webp", "w": 136, "h": 187, "size": 1982, "type": "image/webp", "frames": 1, "src": "pictures/Screenshot_2024-10-21_133154.webp"}, {"name": "ezgif-7-52455f6ea7.gif", "w": 500, "h": 500, "size": 2426566, "type": "image/gif", "frames": 47, "src": "pictures/ezgif-7-52455f6ea7.gif"}, {"name": "costume1.png", "w": 64, "h": 66, "size": 9770, "type": "image/png", "frames": 1, "src": "pictures/costume1.png"}, {"name": "costume1 (1).png", "w": 68, "h": 68, "size": 2965, "type": "image/png", "frames": 1, "src": "pictures/costume1%20%281%29.png"}, {"name": "costume1 (2).png", "w": 68, "h": 68, "size": 5439, "type": "image/png", "frames": 1, "src": "pictures/costume1%20%282%29.png"}, {"name": "costume1 (3).png", "w": 61, "h": 68, "size": 8562, "type": "image/png", "frames": 1, "src": "pictures/costume1%20%283%29.png"}, {"name": "costume1 (4).png", "w": 68, "h": 68, "size": 6267, "type": "image/png", "frames": 1, "src": "pictures/costume1%20%284%29.png"}, {"name": "costume1 (5).png", "w": 68, "h": 68, "size": 4968, "type": "image/png", "frames": 1, "src": "pictures/costume1%20%285%29.png"}];
+let i=0;
+const $=id=>document.getElementById(id);
+const img=$('img'),view=$('view');
+const kb=n=>n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB';
+function fit(it){
+  const bw=view.clientWidth,bh=view.clientHeight;
+  const s=Math.min(4,bw/it.w,bh/it.h);
+  img.style.width=Math.round(it.w*s)+'px';img.style.height=Math.round(it.h*s)+'px';
+  img.style.imageRendering=it.w<=300?'pixelated':'auto';
+}
+function show(n){
+  i=(n+ITEMS.length)%ITEMS.length;const it=ITEMS[i];
+  img.src=it.src;img.alt=it.name;fit(it);
+  $('name').textContent=it.name;
+  $('meta').textContent='Picture '+(i+1)+' of '+ITEMS.length+' • '+it.w+'×'+it.h+' px • '+kb(it.size)+(it.frames>1?' • animated, '+it.frames+' frames':'');
+  $('toast').textContent='';
+}
+$('count').textContent=ITEMS.length+' pictures to flip through';
+$('prev').onclick=()=>show(i-1);$('next').onclick=()=>show(i+1);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')show(i-1);if(e.key==='ArrowRight')show(i+1)});
+let sx=null;
+view.addEventListener('touchstart',e=>{sx=e.touches[0].clientX},{passive:true});
+view.addEventListener('touchend',e=>{if(sx===null)return;const d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>50)show(i+(d<0?1:-1));sx=null});
+window.addEventListener('resize',()=>fit(ITEMS[i]));
+async function dataBlob(it){return await (await fetch(it.src)).blob()}
+$('dl').onclick=()=>{
+  const it=ITEMS[i],a=document.createElement('a');
+  a.href=it.src;a.download=it.name;document.body.appendChild(a);a.click();a.remove();
+  $('toast').textContent='Downloading '+it.name;
+};
+show(0);
+</script>
+</body>
+</html>
