@@ -1463,6 +1463,13 @@ const projects = [
         description: "A custom TTS made by Claude to sing and talk!",
         tags: ["Tools"],
         archive: false
+    },
+    {
+        name: "Memories",
+        path: "memories/index.html",
+        description: "Old pictures from me and my friend brad",
+        tags: [""],
+        archive: false
     }
 ];
 
