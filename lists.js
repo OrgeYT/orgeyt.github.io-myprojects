@@ -1470,6 +1470,13 @@ const projects = [
         description: "Old pictures from me and my friend brad",
         tags: [""],
         archive: false
+    },
+    {
+        name: "Peep Sandbox",
+        path: "https://peep-sandbox--orgeyt.on.websim.com/",
+        description: "Fun simulation game with lil peeps!",
+        tags: ["Games" "Simulation"],
+        archive: false
     }
 ];
 
