@@ -1475,7 +1475,7 @@ const projects = [
         name: "Peep Sandbox",
         path: "https://peep-sandbox--orgeyt.on.websim.com/",
         description: "Fun simulation game with lil peeps!",
-        tags: ["Games" "Simulation"],
+        tags: ["Games", "Simulation"], // bruh
         archive: false
     }
 ];
