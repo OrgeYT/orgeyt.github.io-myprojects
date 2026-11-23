@@ -171,3 +171,8 @@ Added Memories
 
 [Sunday, November 22]
 Added Peep Sandbox
+
+[Monday, November 23]
+I am SO sorry :(
+My website was broken for awhile, from one missing comma in lists.js!!
+I just fixed it, so now you can use my website again!
