@@ -98,6 +98,8 @@ function resetRenderProgress() {
  // Separate buffers for each instrument
 const boyfriendBuffers = {};
 const orgeBuffers = {};
+const longnameBuffers = {}; // Longname: pre-rendered markers 1–31
+const orgeytBuffers = {}; // OrgeYT: pre-rendered markers 1–31
 const bambiBuffers = {};
 const banduBuffers = {};
 const bf2Buffers = {};
@@ -156,6 +158,8 @@ function getBentNote(originalNote, bendSemitones, instrumentId) {
 const instrumentDisplayNames = {
   boyfriend: 'Boyfriend',
   orge: 'Orge',
+  orgeyt: 'OrgeYT',
+  longname: 'Longname',
   bambi: 'Bambi',
   bandu: 'Bandu',
   daddy: 'Daddy Dearest',
@@ -182,6 +186,16 @@ const instrumentVisuals = {
     background: 'linear-gradient(180deg, #ffb74d 0%, #ff8a00 100%)',
     boxShadow: '0 2px 8px rgba(255, 167, 38, 0.8)',
     color: '#1b1307'
+  },
+  longname: {
+    background: 'linear-gradient(180deg, #2b2b2b 0%, #000000 100%)',
+    boxShadow: '0 0 0 1px rgba(255,255,255,0.35), 0 2px 8px rgba(0,0,0,0.95)',
+    color: '#ffffff'
+  },
+  orgeyt: {
+    background: 'linear-gradient(180deg, #ff8a65 0%, #d84315 100%)',
+    boxShadow: '0 2px 8px rgba(255, 112, 67, 0.85)',
+    color: '#ffffff'
   },
   bambi: {
     background: 'linear-gradient(180deg, #81c784 0%, #388e3c 100%)',
@@ -596,6 +610,28 @@ function loadAllAudio() {
     })
   );
 
+  // OrgeYT markers 1–31 (pre-rendered .wav: OW/IY/AH vowels pitch-shifted to Boyfriend's pitches, same length)
+  const orgeytPromises = [];
+  for (let i = 1; i <= 31; i++) {
+    const path = `markers/orgeyt/marker_${i}_orgeyt.wav`;
+    orgeytPromises.push(
+      loadAudioBuffer(path).then(decodedBuffer => {
+        orgeytBuffers[String(i)] = decodedBuffer;
+      })
+    );
+  }
+
+  // Longname markers 1–31 (pre-rendered .wav: o/e/a vowels pitch-shifted to Boyfriend's pitches, male voice)
+  const longnamePromises = [];
+  for (let i = 1; i <= 31; i++) {
+    const path = `markers/longname/marker_${i}_longname.wav`;
+    longnamePromises.push(
+      loadAudioBuffer(path).then(decodedBuffer => {
+        longnameBuffers[String(i)] = decodedBuffer;
+      })
+    );
+  }
+
   // Bambi markers 1–80 (all .wav)
   const bambiPromises = [];
   for (let i = 1; i <= 80; i++) {
@@ -686,7 +722,7 @@ function loadAllAudio() {
     );
   }
 
-  Promise.all([...boyfriendPromises, ...orgePromises, ...bambiPromises, ...banduPromises, ...bf2Promises, ...cedricPromises, ...burgerPromises, ...redmungusPromises, ...helloPromises, ...freshPromises])
+  Promise.all([...boyfriendPromises, ...orgePromises, ...orgeytPromises, ...longnamePromises, ...bambiPromises, ...banduPromises, ...bf2Promises, ...cedricPromises, ...burgerPromises, ...redmungusPromises, ...helloPromises, ...freshPromises])
     .then(() => {
       if (speedUpRequested) {
         triggerRandomKeyPress();
@@ -700,7 +736,7 @@ function loadAllAudio() {
     });
 }
 
-// Helper to choose buffer + playbackRate based on current instrument
+// Helper to choose buffer + playbackRate based on current instrument
 // Helper that can target a specific instrument (used for MIDI routing)
 function getInstrumentBufferAndRateForInstrument(note, instrumentId, basePlaybackRate = 1) {
   const noteIndex = parseInt(note, 10);
@@ -742,6 +778,18 @@ function getInstrumentBufferAndRateForInstrument(note, instrumentId, basePlaybac
     const offsetSeconds = getOrgeOffsetSecondsForId(bufferId);
 
     return { buffer, playbackRate, offsetSeconds };
+  }
+
+  if (instrumentId === 'longname') {
+    // Longname: pre-rendered markers 1–31 (already at Boyfriend's pitches), so no pitch scaling here.
+    const buffer = longnameBuffers[note] || null;
+    return { buffer, playbackRate: basePlaybackRate, offsetSeconds: 0 };
+  }
+
+  if (instrumentId === 'orgeyt') {
+    // OrgeYT: pre-rendered markers 1–31 (already at Boyfriend's pitches), so no pitch scaling here.
+    const buffer = orgeytBuffers[note] || null;
+    return { buffer, playbackRate: basePlaybackRate, offsetSeconds: 0 };
   }
 
   if (instrumentId === 'daddy') {
@@ -2718,6 +2766,12 @@ instrumentSelect.addEventListener('change', () => {
 } else if (instrumentSelect.value === 'orge') {
   currentInstrument = 'orge';
   orgeOffsetControls.style.display = 'block';
+} else if (instrumentSelect.value === 'orgeyt') {
+  currentInstrument = 'orgeyt';
+  orgeOffsetControls.style.display = 'none';
+} else if (instrumentSelect.value === 'longname') {
+  currentInstrument = 'longname';
+  orgeOffsetControls.style.display = 'none';
 } else if (instrumentSelect.value === 'bambi') {
   currentInstrument = 'bambi';
   orgeOffsetControls.style.display = 'none';
@@ -2764,6 +2818,12 @@ if (instrumentSelect.value === 'piano') {
 } else if (instrumentSelect.value === 'orge') {
   currentInstrument = 'orge';
   orgeOffsetControls.style.display = 'block';
+} else if (instrumentSelect.value === 'orgeyt') {
+  currentInstrument = 'orgeyt';
+  orgeOffsetControls.style.display = 'none';
+} else if (instrumentSelect.value === 'longname') {
+  currentInstrument = 'longname';
+  orgeOffsetControls.style.display = 'none';
 } else if (instrumentSelect.value === 'bambi') {
   currentInstrument = 'bambi';
   orgeOffsetControls.style.display = 'none';

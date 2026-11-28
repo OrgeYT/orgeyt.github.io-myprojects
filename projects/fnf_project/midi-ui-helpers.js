@@ -61,11 +61,13 @@ export function buildTrackInstrumentRoutingUI(
     select.style.background = 'rgba(0,0,0,0.4)';
     select.style.color = '#e6e6e6';
 
-    ['piano','boyfriend','bf2','daddy','orge','bambi','bandu','cedric','catto','bigboi','hello','fresh','burger','redmungus','none'].forEach(id => {
+    ['piano','boyfriend','bf2','daddy','orge','orgeyt','longname','bambi','bandu','cedric','catto','bigboi','hello','fresh','burger','redmungus','none'].forEach(id => {
       const opt = document.createElement('option');
       opt.value = id;
       if (id === 'boyfriend') opt.textContent = 'Boyfriend';
       if (id === 'orge') opt.textContent = 'Orge';
+      if (id === 'orgeyt') opt.textContent = 'OrgeYT';
+      if (id === 'longname') opt.textContent = 'Longname';
       if (id === 'daddy') opt.textContent = 'Daddy Dearest';
       if (id === 'bambi') opt.textContent = 'Bambi';
       if (id === 'bandu') opt.textContent = 'Bandu';
@@ -180,6 +182,18 @@ export function applyTrackRowStyles(row, instrumentId) {
       colorConfig = {
         border: '1px solid rgba(255,167,38,0.7)',
         background: 'linear-gradient(90deg, rgba(255,183,77,0.12), rgba(255,138,0,0.06))'
+      };
+      break;
+    case 'longname':
+      colorConfig = {
+        border: '1px solid rgba(140,140,140,0.9)',
+        background: 'linear-gradient(90deg, rgba(0,0,0,0.9), rgba(35,35,35,0.6))'
+      };
+      break;
+    case 'orgeyt':
+      colorConfig = {
+        border: '1px solid rgba(255,112,67,0.9)',
+        background: 'linear-gradient(90deg, rgba(255,138,101,0.16), rgba(216,67,21,0.06))'
       };
       break;
     case 'bambi':
